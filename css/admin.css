@@ -1,0 +1,176 @@
+/* WooTax admin CSS */
+
+.woocommerce_page_wootax .error, .woocommerce_page_wootax .updated {
+	margin-left: 0px !important;
+	margin-top: 15px !important;
+}
+
+.toplevel .form-error {
+	border-color: #be0636 !important;
+}
+
+#catList {
+	width: 350px !important;
+}
+
+.wootax-reports-page {
+	padding-left: 10px;
+}
+
+#poststuff #woocommerce-order-totals .buttons .calc_line_taxes {
+	/*display: none !important;*/
+}
+
+#calculateTax {
+    display: none;
+	float: left;
+}
+
+#wooLoader {
+	float: left;
+	width: 16px;
+	height: 30px;
+	background: url('../img/ajax-loader.gif') left center no-repeat;
+	display: none;
+	margin-left: 5px;
+}
+
+#wooButtonWrap {
+	width: 100%;
+	clear: both;
+	height: 30px;
+    display: none;
+}
+
+a#wootax-remove-tic {
+	text-decoration: none;
+}
+
+span.required {
+	color: red;
+}
+
+#wootax_form {
+	float: left;
+	clear: both;
+	width: 100%;
+}
+
+#wootax_form .widefat th span, #wootax_form .widefat th img {
+	display: inline-block;
+	vertical-align: middle;
+}
+
+a.remove_address {
+	font-size: 18px;
+	color: red;
+	cursor: pointer;
+	display: block;
+	margin-top: 4px;
+}
+
+a.remove_address.disabled {
+	cursor: not-allowed;
+	color: #666;
+}
+
+#wootax_form table td>input[type=radio] {
+	margin-top: 7px;
+}
+
+#wootax_form table.widefat {
+	margin-bottom: 30px;
+}
+
+/**
+ * Tooltip styles (taken from woocommerce admin css)
+ */
+
+#tiptip_holder {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 99999;
+}
+
+#tiptip_holder.tip_top {
+    padding-bottom: 5px;
+}
+
+#tiptip_holder.tip_top #tiptip_arrow_inner {
+    margin-top: -7px;
+    margin-left: -6px;
+    border-top-color: #464646;
+}
+
+#tiptip_holder.tip_bottom {
+    padding-top: 5px;
+}
+
+#tiptip_holder.tip_bottom #tiptip_arrow_inner {
+    margin-top: -5px;
+    margin-left: -6px;
+    border-bottom-color: #464646;
+}
+
+#tiptip_holder.tip_right {
+    padding-left: 5px;
+}
+
+#tiptip_holder.tip_right #tiptip_arrow_inner {
+    margin-top: -6px;
+    margin-left: -5px;
+    border-right-color: #464646;
+}
+
+#tiptip_holder.tip_left {
+    padding-right: 5px;
+}
+
+#tiptip_holder.tip_left #tiptip_arrow_inner {
+    margin-top: -6px;
+    margin-left: -7px;
+    border-left-color: #464646;
+}
+
+#tiptip_content,.chart-tooltip,.wc_error_tip {
+    font-size: 11px;
+    color: #fff;
+    padding: .5em;
+    background: #464646;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    -webkit-box-shadow: 1px 1px 3px rgba(0,0,0,.1);
+    -moz-box-shadow: 1px 1px 3px rgba(0,0,0,.1);
+    box-shadow: 1px 1px 3px rgba(0,0,0,.1);
+    text-align: center;
+    max-width: 150px;
+}
+
+#tiptip_content code,.chart-tooltip code,.wc_error_tip code {
+    background: #888;
+    padding: 1px;
+}
+
+#tiptip_arrow,#tiptip_arrow_inner {
+    position: absolute;
+    border-color: transparent;
+    border-style: solid;
+    border-width: 6px;
+    height: 0;
+    width: 0;
+}
+
+.wp-admin.post-php .chzn-container {
+    max-width: 259px !important;
+}
+
+/*.button.calculate-tax-action, */.button.add-order-tax, a.delete_refund {
+    display: none !important;
+}
+
+.help_tip {
+    vertical-align: middle;
+}
