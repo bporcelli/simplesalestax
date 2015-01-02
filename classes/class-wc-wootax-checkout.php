@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 /**
  * WC_WooTax_Checkout Object
- * Responsible for performing tax Lookup during checkout
+ * Responsible for performing tax Lookups during checkout
  *
  * @package WooTax
  * @since 4.2
@@ -157,8 +157,6 @@ class WC_WooTax_Checkout {
 			$this->woo->session->lookup_data               = $this->lookup_data;
 			$this->woo->session->taxcloud_ids              = $this->taxcloud_ids;
 			$this->woo->session->cart_taxes                = $this->cart_taxes;
-			//$this->woo->session->backend_cart_taxes        = $this->backend_cart_taxes;
-			//$this->woo->session->backend_location_mapping  = $this->backend_location_mapping;
 			$this->woo->session->wootax_tax_total          = $this->tax_total;
 			$this->woo->session->wootax_shipping_tax_total = $this->shipping_tax_total;
 			$this->woo->session->item_ids                  = $this->identifiers;
@@ -184,7 +182,6 @@ class WC_WooTax_Checkout {
 		$this->update_tax_totals();
 
 		// Clear applied taxes
-		//$this->location_mapping_array = array();
 		$this->cart_taxes = array();
 
 	}
@@ -1123,7 +1120,7 @@ class WC_WooTax_Checkout {
 		$this->cart->shipping_taxes[ $this->wootax_rate_id ] = $new_tax;
 
 		// Use get_tax_total to set new tax total so we don't override other rates
-		$this->cart->shipping_tax_total = $this->cart->tax->get_tax_total( $this->cart->shipping_taxes );//$shipping_tax_total == 0 ? $new_tax : ( $shipping_tax_total - $current_tax ) + $new_tax;
+		$this->cart->shipping_tax_total = $this->cart->tax->get_tax_total( $this->cart->shipping_taxes );
 
 		// Update internal shipping tax total
 		$this->shipping_tax_total = $new_tax;

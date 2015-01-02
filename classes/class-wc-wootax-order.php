@@ -33,18 +33,13 @@ class WC_WooTax_Order {
 	private $defaults = array(
 		'tax_total'              => 0,
 		'shipping_tax_total'     => 0,
-		//'cart_taxes'             => array(),
 		'customer_id'            => 0,
-		//'wc_order_id'            => 0,
-		'imported_order'         => false,
 		'exemption_applied'      => false,
 		'captured'               => false,
-		'is_renewal'             => false,
 		'tax_item_id'            => 0,
 		'mapping_array'          => array(),
 		'location_mapping_array' => array(),
 		'refunded'               => false,
-		//'refunded_items'         => array(),
 		'lookup_data'            => array(),
 		'taxcloud_ids'			 => array(),
 		'identifiers'            => array(),
@@ -117,7 +112,6 @@ class WC_WooTax_Order {
 		//add_filter( 'woocommerce_hidden_order_itemmeta', array( $this, 'hide_order_item_meta' ), 10, 1 );
 
 		// Hook into WooCommerce calculate tax ajax action so we can add WooTax taxes
-		//remove_action( 'wp_ajax_woocommerce_calc_line_taxes', array( 'WC_AJAX', 'calc_line_taxes' ) );
 		add_action( 'wp_ajax_woocommerce_calc_line_taxes', array( $this, 'ajax_update_order_tax' ), 1 );
 
 		// Needed for compatibility with WooCommerce 2.2+
@@ -186,7 +180,7 @@ class WC_WooTax_Order {
 			$location_id = isset( $this->location_mapping_array[ WOOTAX_SHIPPING_ITEM ] ) ? $this->location_mapping_array[ WOOTAX_SHIPPING_ITEM ] : 0;
 
 			if ( isset( $this->mapping_array[ $location_id ][ WOOTAX_SHIPPING_ITEM ] ) ) {
-				update_post_meta( $order_id, '_wootax_shipping_index', $this->mapping_array[ $location_id ][ WOOTAX_SHIPPING_ITEM ] );
+				$this->shipping_index = $this->mapping_array[ $location_id ][ WOOTAX_SHIPPING_ITEM ];
 			}
 
 		}
@@ -300,6 +294,7 @@ class WC_WooTax_Order {
 
 		$to_hide[] = '_wootax_tax_amount';
 		$to_hide[] = '_wootax_location_id';
+		$to_hide[] = '_wootax_index';
 
 		return $to_hide;
 
@@ -406,10 +401,10 @@ class WC_WooTax_Order {
 		if ( isset( $this->mapping_array[ $item_id ] ) ) {
 			return $this->mapping_array[ $item_id ];
 		} else {
-			if ( $item_id == WOOTAX_SHIPPING_ITEM && version_compare( WOOCOMMERCE_VERSION, '2.2', '<' ) ) {
-				return get_post_meta( $this->order_id, '_wootax_shipping_index', true );
+			if ( $item_id == WOOTAX_SHIPPING_ITEM ) { // WC 2.1 shipping
+				return $this->shipping_index;
 			} else {
-				return $this->order->get_item_meta( $item_id, '_wootax_index', true );
+				return $this->get_item_meta( $item_id, '_wootax_index' );
 			}
 		}
 
@@ -452,8 +447,8 @@ class WC_WooTax_Order {
 
 		if ( $item_id == WOOTAX_SHIPPING_ITEM ) { // This will occur for WooCommerce 2.1.x
 			$tax = $this->shipping_tax_total;
-		} else if ( $this->order->get_item_meta( $item_id, '_wootax_tax_amount', true ) ) {
-			$tax = $this->order->get_item_meta( $item_id, '_wootax_tax_amount', true );
+		} else if ( $this->get_item_meta( $item_id, '_wootax_tax_amount' ) ) {
+			$tax = $this->get_item_meta( $item_id, '_wootax_tax_amount' );
 		}
 
 		return $tax;
@@ -476,31 +471,43 @@ class WC_WooTax_Order {
 		} else {
 
 			// Calculate new tax values
-			$line_subtotal_tax = get_metadata( 'order_item', $item_id, '_line_subtotal_tax', true ) + $amt;
-			$line_tax 		   = get_metadata( 'order_item', $item_id, '_line_tax', true ) + $amt;
+			$line_subtotal_tax = $this->get_item_meta( $item_id, '_line_subtotal_tax' ) + $amt;
+			$line_tax 		   = $this->get_item_meta( $item_id, '_line_tax' ) + $amt;
 				
 			// Save new tax values
-			update_metadata( 'order_item', $item_id, '_line_tax', $line_tax );
-			update_metadata( 'order_item', $item_id, '_line_subtotal_tax', $line_subtotal_tax );
-			update_metadata( 'order_item', $item_id, '_wootax_tax_amount', $amt ); 
+			wc_update_order_item_meta( $item_id, '_line_tax', $line_tax );
+			wc_update_order_item_meta( $item_id, '_line_subtotal_tax', $line_subtotal_tax );
+			wc_update_order_item_meta( $item_id, '_wootax_tax_amount', $amt ); 
 
 			// Update the "tax_data" array if we are dealing with WooCommerce 2.2+
 			if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ) {
 
-				$tax_data = get_metadata( 'order_item', $item_id, '_line_tax_data', true );
+				$tax_data = $this->get_item_meta( $item_id, '_line_tax_data' );
+				$taxes    = $this->get_item_meta( $item_id, 'taxes' );
 
-				if ( isset( $tax_data['total'] ) ) {
-					// Cart items/shipping
-					$tax_data['subtotal'][$this->wootax_rate_id] = $amt;
-					$tax_data['total'][$this->wootax_rate_id]    = $amt;
+				if ( $taxes ) {
+
+					// Shipping item
+					if ( isset( $taxes[ $this->wootax_rate_id ] ) ) {
+						$taxes[ $this->wootax_rate_id ] = $amt;
+					}
+
+					wc_update_order_item_meta( $item_id, 'taxes', $taxes );
+
 				} else {
-					// Fee
-					$tax_data[$this->wootax_rate_id] = $amt;
-				}
-				
 
-				// Store update tax data
-				update_metadata( 'order_item', $item_id, '_line_tax_data', $tax_data );
+					if ( isset( $tax_data['total'] ) ) {
+						// Cart items
+						$tax_data['subtotal'][$this->wootax_rate_id] = $amt;
+						$tax_data['total'][$this->wootax_rate_id]    = $amt;
+					} else {
+						// Fee
+						$tax_data[$this->wootax_rate_id] = $amt;
+					}
+
+					wc_update_order_item_meta( $item_id, '_line_tax_data', $tax_data );
+
+				}
 
 			}
 
@@ -508,6 +515,24 @@ class WC_WooTax_Order {
 
 	}
 	
+	/**
+	 * Get item meta data
+	 *
+	 * @since 4.2
+	 * @param $item_id (int) item id
+	 * @param $meta_key (mixed) meta key
+	 * @param $single (bool) retrieve a single meta value?
+	 */
+	private function get_item_meta( $item_id, $meta_key, $single = true ) {
+
+		if ( !$this->order instanceof WC_Order ) {
+			return false;
+		} else {
+			return $this->order->get_item_meta( $item_id, $meta_key, $single );
+		}
+
+	}
+
 	/**
 	 * Remove tax applied by WooTax from an item
 	 * 
@@ -528,35 +553,48 @@ class WC_WooTax_Order {
 			} else {
 
 				// Calculate new tax values
-				$line_subtotal_tax = get_metadata( 'order_item', $item_id, '_line_subtotal_tax', true ) - $applied_tax;
-				$line_tax          = get_metadata( 'order_item', $item_id, '_line_tax', true ) - $applied_tax;
+				$line_subtotal_tax = $this->get_item_meta( $item_id, '_line_subtotal_tax' ) - $applied_tax;
+				$line_tax          = $this->get_item_meta( $item_id, '_line_tax' ) - $applied_tax;
 
 				// Zero out tax if the calculated value is negative
 				$line_subtotal_tax = $line_subtotal_tax < 0 ? 0 : $line_subtotal_tax;
 				$line_tax          = $line_tax < 0 ? 0 : $line_tax;
 
 				// Save new tax values
-				update_metadata( 'order_item', $item_id, '_line_tax', $line_tax );
-				update_metadata( 'order_item', $item_id, '_line_subtotal_tax', $line_subtotal_tax );
-				update_metadata( 'order_item', $item_id, '_wootax_tax_amount', 0 );
+				wc_update_order_item_meta( $item_id, '_line_tax', $line_tax );
+				wc_update_order_item_meta( $item_id, '_line_subtotal_tax', $line_subtotal_tax );
+				wc_update_order_item_meta( $item_id, '_wootax_tax_amount', 0 );
 
 				// Update the "tax_data" array if we are dealing with WooCommerce 2.2+
 				if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ) {
 
-					$tax_data = get_metadata( 'order_item', $item_id, '_line_tax_data', true );
+					$tax_data = $this->get_item_meta( $item_id, '_line_tax_data' );
+					$taxes    = $this->get_item_meta( $item_id, 'taxes' );
 
-					if ( isset( $tax_data['total'] ) ) {
-						// Cart items/shipping
-						$tax_data['subtotal'][$this->wootax_rate_id] = 0;
-						$tax_data['total'][$this->wootax_rate_id]    = 0;
+					if ( $taxes ) {
+
+						// Shipping item
+						if ( isset( $taxes[ $this->wootax_rate_id ] ) ) {
+							$taxes[ $this->wootax_rate_id ] = 0;
+						}
+
+						wc_update_order_item_meta( $item_id, 'taxes', $taxes );
+
 					} else {
-						// Fee
-						$tax_data[$this->wootax_rate_id] = 0;
+
+						if ( isset( $tax_data['total'] ) ) {
+							// Cart items
+							$tax_data['subtotal'][$this->wootax_rate_id] = 0;
+							$tax_data['total'][$this->wootax_rate_id]    = 0;
+						} else {
+							// Fee
+							$tax_data[$this->wootax_rate_id] = 0;
+						}
+
+						wc_update_order_item_meta( $item_id, '_line_tax_data', $tax_data );
+
 					}
-
-					// Store update tax data
-					update_metadata( 'order_item', $item_id, '_line_tax_data', $tax_data );
-
+					
 				}
 
 			}
@@ -790,9 +828,9 @@ class WC_WooTax_Order {
 			$destination_address = validate_address( $this->destination_address );
 
 			// Used in every tax lookup
-			$tax_array    = $all_cart_items = $lookup_data = $location_mapping_array = $new_mapping_array = array();
-			$tax_total    = $shipping_tax_total = 0;
-			$taxcloud_ids = $this->taxcloud_ids;
+			$all_cart_items = array();
+			$tax_total      = $shipping_tax_total = 0;
+			$taxcloud_ids   = $this->taxcloud_ids;
 
 			// Fetch some information about the order
 			$exempt_cert         = $this->get_exemption_certificate();
@@ -801,8 +839,6 @@ class WC_WooTax_Order {
 			
 			// Loop through locations in lookup_data array and send a Lookup request for each
 			foreach ( $this->lookup_data as $location_key => $items ) {
-
-				$lookup_data[$location_key] = $items;
 
 				// Fetch cart_id
 				$cart_id = isset( $this->taxcloud_ids[$location_key]['cart_id'] ) ? $this->taxcloud_ids[$location_key]['cart_id'] : '';
@@ -830,7 +866,7 @@ class WC_WooTax_Order {
 					$cart_items = $res->LookupResult->CartItemsResponse->CartItemResponse;
 
 					// Store the returned CartID for later use
-					$taxcloud_ids[$location_key]['cart_id'] = $res->LookupResult->CartID;
+					$taxcloud_ids[ $location_key ]['cart_id'] = $res->LookupResult->CartID;
 
 					// If cart_items only contains one item, it will not be an array. In that case, convert to an array to avoid 
 					// the need for separate code to handle this case
@@ -843,7 +879,7 @@ class WC_WooTax_Order {
 
 						// Fetch item info
 						$index   = $cart_item->CartItemIndex;
-						$item_id = $this->mapping_array[$location_key][$index];
+						$item_id = $this->mapping_array[ $location_key ][ $index ];
 						$type    = isset( $type_array[ $item_id ] ) ? $type_array[ $item_id ] : 'cart';
 						$tax     = $cart_item->TaxAmount;
 
@@ -857,14 +893,8 @@ class WC_WooTax_Order {
 							$shipping_tax_total += $tax;
 						}
 
-						// Add ItemID property $this->ajax_update_order_tax() can assign tax values as expected
+						// Add ItemID property so @see $this->ajax_update_order_tax() can work as expected
 						$cart_item->ItemID = $item_id;
-						
-						// Build tax array
-						//$tax_array[$location_key][$mapping_id] = $tax;
-
-						// Map itemID to location key
-						$location_mapping_array[$item_id] = $location_key;
 
 					}
 
@@ -880,12 +910,6 @@ class WC_WooTax_Order {
 
 			// Save updated tax totals
 			$this->update_tax_totals( $tax_total, $shipping_tax_total );
-
-			// Update location mapping array
-			$this->location_mapping_array = $location_mapping_array;
-
-			// Store lookup data with updated cart ids
-			$this->lookup_data = $lookup_data;
 
 			// Update TaxCloud IDs array
 			$this->taxcloud_ids = $taxcloud_ids;
@@ -910,7 +934,23 @@ class WC_WooTax_Order {
 
 			$this->mapping_array = $new_mapping_array;
 
-			// Return array of CartItems
+			// Update index/location mappings
+			foreach ( $this->lookup_data as $address_key => $items ) {
+				foreach ( $items as $item ) {
+
+					$item_id = $item['ItemID'];
+
+					if ( $item_id == WOOTAX_SHIPPING_ITEM ) { // WC 2.1 shipping
+						$this->shipping_index = $item['Index'];
+					} else {
+						wc_update_order_item_meta( $item_id, '_wootax_location_id', $address_key );
+						wc_update_order_item_meta( $item_id, '_wootax_index', $item['Index'] );
+					}
+
+				}
+			}
+
+			// Return CartItems
 			$return_arr = array();				
 
 			foreach ( $all_cart_items as $cart_items ) {
@@ -1072,11 +1112,12 @@ class WC_WooTax_Order {
 		global $current_user;
 
 		// Fetch and/or generate customerID
-		if ( $this->customer_id == false ) {
+		if ( $this->customer_id === false ) {
+
 			// Generate new customer id if one isn't associated with the order already
 			$current_user_id = $this->order->user_id;
 
-			if ( $current_user_id == 0 ) {
+			if ( $current_user_id == false ) {
 				$customer_id = wp_generate_password( 32, false );
 			} else {
 				$customer_id = $current_user_id;
@@ -1086,6 +1127,7 @@ class WC_WooTax_Order {
 			$this->customer_id = $customer_id;
 			
 			return $customer_id;
+
 		} else {
 			return $this->customer_id;
 		}
@@ -1280,11 +1322,11 @@ class WC_WooTax_Order {
 
 				// Check for errors
 				if ( $this->taxcloud->isError( $res->ReturnedResult ) ) {
-					
+
 					return $this->taxcloud->getErrorMessage();
-					
+
 				} else {
-					
+
 					// Set the order status to refunded so the user cannot calculate the tax due anymore
 					$this->refunded = true;
 
@@ -1292,7 +1334,7 @@ class WC_WooTax_Order {
 					$this->refunded_items = $refunded_items;
 
 					return true;
-					
+
 				}
 
 			}
@@ -1313,7 +1355,7 @@ class WC_WooTax_Order {
 		$current_tax = $this->tax_total;
 
 		// Get current cart tax value as float
-		$cart_tax_total = (float) get_post_meta( $this->order->id, '_order_tax', true );
+		$cart_tax_total = (float) get_post_meta( $this->order_id, '_order_tax', true );
 
 		// Calculate new cart tax value
 		$new_cart_tax_total = $cart_tax_total == 0 ? $new_tax : ( $cart_tax_total - $current_tax ) + $new_tax;
@@ -1322,7 +1364,7 @@ class WC_WooTax_Order {
 		$new_cart_tax_total = $new_cart_tax_total < 0 ? 0 : $new_cart_tax_total;
 
 		// Update order meta to reflect changes
-		update_post_meta( $this->order->id, '_order_tax', $new_cart_tax_total );
+		update_post_meta( $this->order_id, '_order_tax', $new_cart_tax_total );
 
 		// Update internal "tax_total" property
 		$this->tax_total = $new_tax;
@@ -1341,7 +1383,7 @@ class WC_WooTax_Order {
 		$current_tax = $this->shipping_tax_total;
 		
 		// Get current shipping tax total as float
-		$shipping_tax_total = (float) get_post_meta( $this->order->id, '_order_shipping_tax', true );
+		$shipping_tax_total = (float) get_post_meta( $this->order_id, '_order_shipping_tax', true );
 
 		// Calculate new tax 
 		$new_shipping_tax_total = $shipping_tax_total == 0 ? $new_tax : ($shipping_tax_total - $current_tax) + $new_tax;
@@ -1350,7 +1392,7 @@ class WC_WooTax_Order {
 		$new_shipping_tax_total = $new_shipping_tax_total < 0 ? 0 : $new_shipping_tax_total;
 
 		// Update order meta to reflect changes
-		update_post_meta( $this->order->id, '_order_shipping_tax', $new_shipping_tax_total );
+		update_post_meta( $this->order_id, '_order_shipping_tax', $new_shipping_tax_total );
 
 		// Update internal shipping tax total
 		$this->shipping_tax_total = $new_tax;
@@ -1395,7 +1437,7 @@ class WC_WooTax_Order {
 			$wpdb->insert( "{$wpdb->prefix}woocommerce_order_items", array(
 				'order_item_type' => 'tax', 
 				'order_item_name' => 'WOOTAX-RATE-DO-NOT-REMOVE', 
-				'order_id'        => $this->order->id
+				'order_id'        => $this->order_id
 			) );
 
 			// Update tax item id
@@ -1406,17 +1448,17 @@ class WC_WooTax_Order {
 		// Update tax item meta
 		$item_id = $this->tax_item_id;
 
-		update_metadata( 'order_item', $item_id, 'rate_id', $this->wootax_rate_id );
-		update_metadata( 'order_item', $item_id, 'label', 'Sales Tax' );
-		update_metadata( 'order_item', $item_id, 'name', 'Sales Tax' );
-		update_metadata( 'order_item', $item_id, 'compound', true );
-		update_metadata( 'order_item', $item_id, 'tax_amount', $this->tax_total );
-		update_metadata( 'order_item', $item_id, 'shipping_tax_amount', $this->shipping_tax_total );
+		wc_update_order_item_meta( $item_id, 'rate_id', $this->wootax_rate_id );
+		wc_update_order_item_meta( $item_id, 'label', 'Sales Tax' );
+		wc_update_order_item_meta( $item_id, 'name', 'Sales Tax' );
+		wc_update_order_item_meta( $item_id, 'compound', true );
+		wc_update_order_item_meta( $item_id, 'tax_amount', $this->tax_total );
+		wc_update_order_item_meta( $item_id, 'shipping_tax_amount', $this->shipping_tax_total );
 
 		// Added for WooCommerce Subscriptions support
 		if ( class_exists( 'WC_Subscriptions' ) ) {
-			update_metadata( 'order_item', $item_id, 'cart_tax', $this->tax_total );
-			update_metadata( 'order_item', $item_id, 'shipping_tax', $this->shipping_tax_total );
+			wc_update_order_item_meta( $item_id, 'cart_tax', $this->tax_total );
+			wc_update_order_item_meta( $item_id, 'shipping_tax', $this->shipping_tax_total );
 		}
 
 	}
@@ -1443,17 +1485,12 @@ class WC_WooTax_Order {
 	
 	/**
 	 * Get order status
-	 * Four return values: Invalid Order, Pending Capture, Captured, Returned
+	 * Three possible return values: Pending Capture, Captured, Returned
 	 *
 	 * @since 4.2
 	 * @return order status (string)
 	 */
 	public function get_status() {
-
-		// Return 'Invalid Order' if the ID is not defined
-		if ( !$this->order_id ) {
-			return 'Invalid Order';
-		}
 			
 		// Order has been returned
 		if ( $this->refunded == true ) {
@@ -1486,16 +1523,14 @@ class WC_WooTax_Order {
 
 		$this->load_order( $order_id );
 
-		$shipping_tax = $this->shipping_tax_total;
-
 		// Fetch taxes array
 		$taxes = array_map( 'wc_format_decimal', $shipping_rate->taxes );
 
 		// Add WooTax tax rate
-		$taxes[ $this->wootax_rate_id ] = $shipping_tax;
+		$taxes[ $this->wootax_rate_id ] = $this->shipping_tax_total;
 
 		// Update meta
-		update_metadata( 'order_item', $item_id, 'taxes', $taxes );
+		wc_update_order_item_meta( $item_id, 'taxes', $taxes );
 
 	}
 
@@ -1512,14 +1547,6 @@ class WC_WooTax_Order {
 
 		$order_id = absint( $_POST['order_id'] );
 		$country  = strtoupper( esc_attr( $_POST['country'] ) );
-
-		// Create a new order if need be (this will happen when orders are added manually in the backend)
-		/*if ( get_wootax_oid( $order_id ) == '' ) {
-			$this->create_new_order( $order_id );
-			$order_id = get_wootax_oid( $order_id );
-		} else if ( $order_id != get_wootax_oid( $order_id ) ) {
-			$order_id = get_wootax_oid( $order_id );
-		}*/
 
 		// Set up WC_WooTax_Order object
 		$this->load_order( $order_id );
@@ -1558,7 +1585,7 @@ class WC_WooTax_Order {
 
 					$items['order_item_id'][] = $item_id;
 
-					if ( get_post_type( $this->order->get_item_meta( $item_id, '_product_id', true ) ) == 'product' ) {
+					if ( get_post_type( $this->get_item_meta( $item_id, '_product_id' ) ) == 'product' ) {
 						$items['order_item_qty'][$item_id] = isset( $item['quantity'] ) ? $item['quantity'] : 1;
 					}
 
@@ -1588,7 +1615,7 @@ class WC_WooTax_Order {
 			// Construct items array from POST data
 			foreach ( $order_items as $item_id ) {
 
-				$product_id = $this->order->get_item_meta( $item_id, '_product_id', true );
+				$product_id = $this->get_item_meta( $item_id, '_product_id' );
 
 				if ( get_post_type( $product_id ) == 'product' ) {
 
@@ -1683,17 +1710,17 @@ class WC_WooTax_Order {
 					$tax = $item->TaxAmount; 
 
 					if ( in_array( $id, $items['shipping_method_id'] ) ) {
-						$items['shipping_taxes'][$id][$this->wootax_rate_id] = $tax;
+						$items['shipping_taxes'][ $id ][ $this->wootax_rate_id ] = $tax;
 					} else {
-						$items['line_tax'][$id][$this->wootax_rate_id] = $tax;
-						$items['line_subtotal_tax'][$id][$this->wootax_rate_id] = $tax;
+						$items['line_tax'][ $id ][ $this->wootax_rate_id ] = $tax;
+						$items['line_subtotal_tax'][ $id ][ $this->wootax_rate_id ] = $tax;
 					}
 
 				}
 
-				$items['order_taxes'][$this->tax_item_id] = absint($this->wootax_rate_id); // Correct?
+				$items['order_taxes'][ $this->tax_item_id ] = absint( $this->wootax_rate_id ); // Correct?
 
-				wc_save_order_items( $this->order->id, $items );
+				wc_save_order_items( $this->order_id, $items );
 
 				// Return HTML items
 				$order = $this->order;

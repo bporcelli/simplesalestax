@@ -169,8 +169,10 @@ class WC_WooTax_Admin {
 
 		// Current order ID and tax item ID (if applicable)
 		if ( is_object( $post ) && get_post_type( $post->ID ) == 'shop_order' ) {
-			$admin_data['orderID']   = get_wootax_oid( $post->ID ) == false ? $post->ID : get_wootax_oid( $post->ID );
+
+			$admin_data['orderID']   = $post->ID;
 			$admin_data['taxItemID'] = (int) get_post_meta( $admin_data['orderID'], '_wootax_tax_item_id', true );
+
 		}
 
 		// WooCommerce version (if we are dealing with a version greater than 2.2)
@@ -326,37 +328,33 @@ class WC_WooTax_Admin {
 		global $WC_WooTax_Order;
 
 		// Get wootax_order ID from shop_order post ID
-		$id = get_wootax_oid( $post->ID ) == false ? $post->ID : get_wootax_oid( $post->ID );
+		$id = $post->ID;
 
 		// Load order
 		$order = $WC_WooTax_Order;
 		$order->load_order( $id );
 
-		// Fetch tax total
-		$total_tax = woocommerce_price( $order->tax_total + $order->shipping_tax_total );
-
 		// Display tax totals
 		?>
-        <p>The information displayed below applies to the original transaction. You should not attempt to modify the calculated tax amount except through means of refunding items or the entire order.</p>
-        <p>If an order has <strong><em>not been marked as completed or refunded</em></strong> (i.e. its "TaxCloud Status" is "Pending Capture"), you can update the tax for the order by clicking "Calculate Tax" below.</p>
+		<p>The status of this order in TaxCloud is displayed below. There are three possible values for the order status: "Pending Capture," "Captured," and "Refunded."</p>
+		<p>Eventually, all of your orders should have a status of "Captured." To mark an order as captured, set its status to "Completed" and save it.</p>
+		<p><strong><em>Please note that tax can only be recalculated using the "Calculate Taxes" button if the status below is "Pending Capture."</em></strong></p>
         <p>
         	<strong>TaxCloud Status:</strong> <?php echo $order->get_status(); ?><br />
-            <!--<strong>Calculated Sales Tax:</strong> <?php echo $total_tax; ?><br />-->
         </p>
         <?php
 		
 		// Display a "calculate tax" button if the order has not been captured yet
-		$captured = (bool) $order->captured;
-		$refunded = (bool) $order->refunded;
+		$captured = $order->captured;
+		$refunded = $order->refunded;
 
 		if ( !$captured && !$refunded ) {
-			echo '<div id="wooButtonWrap"><button class="wp-core-ui button button-primary" type="button" id="calculateTax">Calculate Tax</button><span id="wooLoader"></span></div>';
 			
 			// Display special message for users of WooCommerce Subscriptions
 			if ( class_exists( 'WC_Subscriptions' ) && WC_Subscriptions_Order::order_contains_subscription( $order->order ) ) {
-				echo '<p><strong>Note: Clicking this button will only update the tax amount for the initial subscription payment.
-				Recurring tax totals will be updated when the subscription is renewed.</strong></p>';
+				echo '<p><strong>Note: Recalculating taxes will only update the tax amount for the initial subscription payment. Recurring tax totals will be updated when the subscription is renewed.</strong></p>';
 			}
+
 		}
 
 	}

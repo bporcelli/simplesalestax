@@ -90,18 +90,6 @@ function validate_address( $address ) {
 }
 
 /**
- * Returns the WooTax order ID associated with a WooCommerce order
- * 
- * @since 2.0
- * @param $order_id a WooCommerce order ID
- */
-function get_wootax_oid( $order_id ) {
-
-	return get_post_meta( $order_id, '_wootax_order_id', true );
-
-}
-
-/**
  * Add flash message to be displayed on admin side
  * 
  * @since 3.5
