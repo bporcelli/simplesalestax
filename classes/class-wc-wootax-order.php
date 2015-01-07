@@ -101,8 +101,9 @@ class WC_WooTax_Order {
 		// Sends AuthorizedWithCapture request to TaxCloud when order is marked as completed via the Woo interface 
 		add_action( 'woocommerce_order_status_completed', array( $this, 'complete' ) );
 		
-		// Marks order as Refunded within TaxCloud when order status is changed to refunded
+		// Marks order as Refunded within TaxCloud when order status is changed to refunded or cancelled
 		add_action( 'woocommerce_order_status_refunded', array( $this, 'refund' ) );
+		add_action( 'woocommerce_order_status_cancelled', array( $this, 'refund' ) );
 
 		// Add meta to order items
 		add_action( 'woocommerce_add_order_item_meta', array( $this, 'add_cart_item_meta' ), 10, 3 );
@@ -291,6 +292,12 @@ class WC_WooTax_Order {
 		}
 
 		$this->tax_item_id = $tax_item_id;
+
+		// Subscriptions support
+		if ( class_exists( 'WC_Subscriptions' ) ) {
+			wc_add_order_item_meta( $tax_item_id, 'cart_tax', wc_format_decimal( $this->tax_total ) );
+			wc_add_order_item_meta( $tax_item_id, 'shipping_tax', wc_format_decimal( $this->shipping_tax_total ) );
+		}
 
 	}
 
@@ -1194,7 +1201,7 @@ class WC_WooTax_Order {
 		if ( $this->refunded ) {
 			return;
 		} else if( !$this->captured ) {
-			wootax_add_flash_message('<strong>WARNING:</strong> The order was not refunded through TaxCloud because it has not been captured yet. To fix this issue, save the order as completed before marking it as refunded.', 'update-nag');
+			wootax_add_flash_message( '<strong>WARNING:</strong> The order was not refunded through TaxCloud because it has not been captured yet. To fix this issue, save the order as completed before marking it as refunded.', 'update-nag' );
 			return;
 		}
 		
@@ -1676,7 +1683,7 @@ class WC_WooTax_Order {
 						'ItemID' => $item_id, 
 						'Qty'    => $qty, 
 						'Price'  => $unit_price,	
-						'Type' => $type,
+						'Type'   => $type,
 					);	
 
 					if ( !empty( $tic ) && $tic ) {
@@ -1836,6 +1843,11 @@ class WC_WooTax_Order {
 		// Update tax amount to match that for this order
 		wc_add_order_item_meta( $item_id, 'tax_amount', wc_format_decimal( $this->tax_total ) );
 		wc_add_order_item_meta( $item_id, 'shipping_tax_amount', wc_format_decimal( $this->shipping_tax_total ) );
+
+		if ( class_exists( 'WC_Subscriptions' ) ) {
+			wc_add_order_item_meta( $item_id, 'cart_tax', wc_format_decimal( $this->tax_total ) );
+			wc_add_order_item_meta( $item_id, 'shipping_tax', wc_format_decimal( $this->shipping_tax_total ) );
+		}
 
 	}
 

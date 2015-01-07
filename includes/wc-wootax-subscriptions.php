@@ -117,8 +117,8 @@ function handle_renewal_order( $order_id ) {
 }
 
 // Hook into WordPress/WooCommerce
-add_action( 'woocommerce_checkout_update_order_meta', 'fix_recurring_taxes', 15, 1 );
-add_filter( 'woocommerce_get_order_item_totals', 'fix_tax_key', 5, 1 );
+//add_action( 'woocommerce_checkout_update_order_meta', 'fix_recurring_taxes', 15, 1 );
+//add_filter( 'woocommerce_get_order_item_totals', 'fix_tax_key', 5, 1 );
 add_action( 'woocommerce_renewal_order_payment_complete', 'handle_renewal_order', 12, 4 );
 
 endif;

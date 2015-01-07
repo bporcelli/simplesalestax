@@ -244,11 +244,13 @@ class WC_WooTax {
 	 * Get appropriate label for tax rate (should be Sales Tax for the tax rate applied by WooTax)
 	 *
 	 * @param $name the name of the tax (fetched from db; won't be populated in our instance)
-	 * @param $key the tax key (we want to return the appropriate name for the rate with ID returned by getRateID())
+	 * @param $key the tax key (we want to return the appropriate name for the wootax rate)
 	 */
-	public function get_rate_label( $name, $key ) {
+	public function get_rate_label( $name, $key = NULL ) {
 
-		if ( $key == get_option( 'wootax_rate_id' ) ) {
+		$rate_id = get_option( 'wootax_rate_id' );
+
+		if ( $name == $rate_id || $key == $rate_id ) {
 			return 'Sales Tax';
 		} else {
 			return $name;
@@ -325,14 +327,17 @@ function load_wootax() {
 
 	if ( version_compare( WOOCOMMERCE_VERSION, '2.1', '>=' ) ) {
 		require( 'includes/wc-wootax-exemptions.php' );
-		require( 'includes/wc-wootax-subscriptions.php' );
 		require( 'includes/wc-wootax-debug-tools.php' );
 		require( 'classes/class-wc-wootax-order.php' );
 		require( 'classes/class-wc-wootax-checkout.php' );
 		require( 'classes/class-wc-wootax-admin.php' );
 		require( 'classes/class-wc-wootax-refund.php' );
 
-		$WC_WooTax = new WC_WooTax();	
+		if ( is_plugin_active( 'woocommerce-subscriptions/woocommerce-subscriptions.php' ) ) {
+			require( 'classes/class-wc-wootax-subscriptions.php' );
+		}
+
+		$WC_WooTax = new WC_WooTax();		
 	} else {
 		wootax_add_flash_message( '<strong>Warning: WooTax has been disabled.</strong> This version of WooTax requires WooCommerce 2.1 or newer.' );
 	}
