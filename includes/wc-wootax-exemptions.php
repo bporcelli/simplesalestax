@@ -161,7 +161,6 @@ function add_exemption_certificate() {
 	// Build WC_WooTax_Exemption_Certificate object
 	$certificate = new WC_WooTax_Exemption_Certificate();
 
-	$certificate->ExemptStates       = array( $_POST['ExemptState'] );
 	$certificate->SinglePurchase     = ( $_POST['SinglePurchase'] == 'false' ) ? false : true;
 	$certificate->PurchaserFirstName = $_POST['PurchaserFirstName'];
 	$certificate->PurchaserLastName	 = $_POST['PurchaserLastName'];
@@ -175,6 +174,12 @@ function add_exemption_certificate() {
 		'TaxType'      => $_POST['TaxType'],
 		'IDNumber'     => $_POST['IDNumber'],
 		'StateOfIssue' => $_POST['StateOfIssue'],
+	);
+
+	$certificate->ExemptStates[0] = array( 
+		'StateAbbr'            => $_POST['ExemptState'],
+		'ReasonForExemption'   => '',
+		'IdentificationNumber' => '',
 	);
 
 	$certificate->PurchaserBusinessType           = $_POST['PurchaserBusinessType'];
@@ -201,21 +206,21 @@ function add_exemption_certificate() {
 	} else {
 
 		// Send request
-		$res = $taxcloud->AddExemptCertificate( $final_certificate );
+		$res = $taxcloud->send_request( 'AddExemptCertificate', $final_certificate );
 
 		// Check for errors
-		if ( !$taxcloud->isError( $res->AddExemptCertificateResult ) ) {
+		if ( $res !== false ) {
 			$certificate_id = $res->AddExemptCertificateResult->CertificateID;
 
 			// For blanket certificates, a success response should lead to a redirect to the "manage-certificates" lightbox
 			die( json_encode( array( 
-				'status' => 'success', 
+				'status'  => 'success', 
 				'message' => 'Certificate ' . $certificate_id . ' saved successfully.' 
 			) ) );
 		} else {
 			die( json_encode( array( 
-				'status' => 'error', 
-				'message' => 'There was an error while saving this certificate. TaxCloud said: ' . $taxcloud->getErrorMessage() 
+				'status'  => 'error', 
+				'message' => 'There was an error while saving this certificate: ' . $taxcloud->get_error_message() 
 			) ) );
 		}
 
@@ -237,17 +242,17 @@ function remove_exemption_certificate() {
 
 	// Collect vars
 	$certificate_id = $_POST['certificateID'];
-	$single = $_POST['single'];
+	$single         = $_POST['single'];
 
 	// Fetch customer ID
 	$customer_id = $woocommerce->session->wootax_customer_id;
 	
 	// If this is a "single purchase" cert, we need to remove all certificates with the same OrderID
-	if ( $single == 'true' || intval($single) == 1 ) {
+	if ( $single == 'true' || intval( $single ) == 1 ) {
 		
-		$response = $taxcloud->GetExemptCertificates( array( 'customerID' => $customer_id ) );
+		$response = $taxcloud->send_request( 'GetExemptCertificates', array( 'customerID' => $customer_id ) );
 		
-		if ( !$taxcloud->isError( $response->GetExemptCertificatesResult ) ) {
+		if ( $response !== false ) {
 
 			$certificates = $response->GetExemptCertificatesResult->ExemptCertificates;
 			$duplicates = array();
@@ -272,13 +277,13 @@ function remove_exemption_certificate() {
 					if ( in_array( $certificate_id, $dupes ) ) {
 						foreach ($dupes as $certID) {
 							// Send request
-							$res = $taxcloud->DeleteExemptCertificate( array( 'certificateID' => $certID ) );
+							$res = $taxcloud->send_request( 'DeleteExemptCertificate', array( 'certificateID' => $certID ) );
 							
 							// Check for errors
-							if ( $taxcloud->isError( $res->DeleteExemptCertificateResult ) ) {
+							if ( $res == false ) {
 								die( json_encode( array( 
-									'status' => 'error', 
-									'message' => 'There was an error while removing this certificate. TaxCloud said: ' . $taxcloud->getErrorMesage() 
+									'status'  => 'error', 
+									'message' => 'There was an error while removing this certificate: ' . $taxcloud->get_error_message() 
 								) ) );
 							}
 						}
@@ -286,32 +291,32 @@ function remove_exemption_certificate() {
 				}
 				
 				die( json_encode( array( 
-					'status' => 'success', 
+					'status'  => 'success', 
 					'message' => 'Certificate ' . $certificate_id . ' removed successfully.' 
 				) ) );
 
 		} else {
 			die( json_encode( array( 
-				'status' => 'error', 
-				'message' => 'There was an error while removing this certificate. TaxCloud said: ' . $taxcloud->getErrorMesage() 
+				'status'  => 'error', 
+				'message' => 'There was an error while removing this certificate: ' . $taxcloud->get_error_message() 
 			) ) );
 		}
 
 	} else {
 
 		// Send request
-		$res = $taxcloud->DeleteExemptCertificate( array( 'certificateID' => $certificate_id ) );
+		$res = $taxcloud->send_request( 'DeleteExemptCertificate', array( 'certificateID' => $certificate_id ) );
 
 		// Check for errors
-		if ( !$taxcloud->isError( $res->DeleteExemptCertificateResult ) ) {
+		if ( $res !== false ) {
 			die( json_encode( array( 
-				'status' => 'success', 
+				'status'  => 'success', 
 				'message' => 'Certificate ' . $certificate_id . ' removed successfully.' 
 			) ) );
 		} else {
 			die( json_encode( array( 
-				'status' => 'error', 
-				'message' => 'There was an error while removing this certificate. TaxCloud said: ' . $taxcloud->getErrorMesage() 
+				'status'  => 'error', 
+				'message' => 'There was an error while removing this certificate: ' . $taxcloud->get_error_message() 
 			) ) );
 		}
 
@@ -364,9 +369,9 @@ function ajax_list_exemption_certificates() {
 
 		// Set up TaxCloud object
 		$taxcloud = get_taxcloud();
-		$response = $taxcloud->GetExemptCertificates( array( 'customerID' => $customer_id ) );
+		$response = $taxcloud->send_request( 'GetExemptCertificates', array( 'customerID' => $customer_id ) );
 
-		if ( !$taxcloud->isError( $response->GetExemptCertificatesResult ) ) {
+		if ( $response !== false ) {
 
 			$certificate_result = $response->GetExemptCertificatesResult->ExemptCertificates;
 			

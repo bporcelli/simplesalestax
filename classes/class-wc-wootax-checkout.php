@@ -58,6 +58,11 @@ class WC_WooTax_Checkout {
 	public $location_mapping_array = array();
 
 	/**
+	 * Address key that fees and shipping costs are associated with
+	 */
+	public $first_found = 0;
+
+	/**
 	 * Array containing item IDs that are sent to TaxCloud
 	 */
 	public $identifiers = array();
@@ -131,10 +136,6 @@ class WC_WooTax_Checkout {
 				$this->cart_taxes = $this->woo->session->wootax_cart_taxes;
 			}
 
-			/*if ( isset( $this->woo->session->location_mapping_array ) ) {
-				$this->location_mapping_array = $this->woo->session->location_mapping_array;
-			}*/
-
 			if ( isset( $this->woo->session->taxcloud_ids ) ) {
 				$this->taxcloud_ids = $this->woo->session->taxcloud_ids;
 			}
@@ -160,6 +161,7 @@ class WC_WooTax_Checkout {
 			$this->woo->session->wootax_tax_total          = $this->tax_total;
 			$this->woo->session->wootax_shipping_tax_total = $this->shipping_tax_total;
 			$this->woo->session->item_ids                  = $this->identifiers;
+			$this->woo->session->first_found_key           = $this->first_found;
 
 		}
 
@@ -439,9 +441,11 @@ class WC_WooTax_Checkout {
 
 				case 'cart':
 					// Fetch shipping origin addresses for this product
-					$origin_addresses = fetch_product_origin_addresses( $item_id );
-					$address_found = empty( $this->default_address ) ? 0 : $this->default_address;
-					
+					$product          = $this->cart->cart_contents[ $item_id ]['data'];
+					$product_id       = $product->id;
+					$origin_addresses = fetch_product_origin_addresses( $product_id );
+					$address_found    = empty( $this->default_address ) ? 0 : $this->default_address;
+
 					/**
 					 * Attempt to find proper origin address
 					 * If there is more than one address available, we will use the first address that occurs in the customer's state 
@@ -563,6 +567,7 @@ class WC_WooTax_Checkout {
 		// Store data and save
 		$this->lookup_data   = $data;
 		$this->mapping_array = $mapping_array;
+		$this->first_found   = $first_found;
 
 		$this->generate_order_ids();
 
@@ -727,7 +732,6 @@ class WC_WooTax_Checkout {
 
 		// Define some variable used in every tax lookup
 		$tax_array          = array();
-		//$item_indexes       = array();
 		$lookup_data        = array();
 		$tax_total          = 0;
 		$shipping_tax_total = 0;
@@ -743,7 +747,7 @@ class WC_WooTax_Checkout {
 			$lookup_data[ $location_key ] = $items;
 
 			// Fetch cart_id
-			$cart_id = isset( $this->taxcloud_ids[$location_key] ) ? $this->taxcloud_ids[$location_key]['cart_id'] : '';
+			$cart_id = isset( $this->taxcloud_ids[ $location_key ] ) ? $this->taxcloud_ids[ $location_key ]['cart_id'] : '';
 
 			// Get the origin address
 			$origin_address = validate_address( $this->get_origin_address( $location_key ) );
@@ -756,19 +760,22 @@ class WC_WooTax_Checkout {
 				'origin'            => $origin_address, 
 				'destination'       => $destination_address, 
 				'deliveredBySeller' => $delivered_by_seller, 
-				'exemptCert'        => $exempt_cert,
 			);		
 
-			// Send Lookup request 
-			$res = $this->taxcloud->Lookup( $req );
+			if ( $exempt_cert != NULL ) {
+				$req['exemptCert'] = $exempt_cert;
+			}
 
-			if ( !$this->taxcloud->isError( $res->LookupResult ) ) {
+			// Send Lookup request 
+			$res = $this->taxcloud->send_request( 'Lookup', $req );
+
+			if ( $res !== false ) {
 
 				// Initialize some vars
 				$cart_items = $res->LookupResult->CartItemsResponse->CartItemResponse;
 
 				// Store cartID to improve efficiency of subsequent lookup requests
-				$this->taxcloud_ids[$location_key]['cart_id']  = $res->LookupResult->CartID;
+				$this->taxcloud_ids[ $location_key ]['cart_id']  = $res->LookupResult->CartID;
 
 				// If cart_items only contains one item, it will not be an array.
 				// In that case, convert to an array to avoid the need for extra code
@@ -782,14 +789,14 @@ class WC_WooTax_Checkout {
 					// Fetch item info
 					$index = $cart_item->CartItemIndex;
 					$tax   = $cart_item->TaxAmount;
-					$type  = $this->mapping_array[$location_key][$index]['type'];
+					$type  = $this->mapping_array[ $location_key ][ $index ]['type'];
 
 					// Update item tax
 					switch ( $type ) {
 
 						case 'cart':
 							// Fetch appropriate item identifier (cart item key)
-							$item_id = $this->mapping_array[$location_key][$index]['key'];
+							$item_id = $this->mapping_array[ $location_key ][ $index ]['key'];
 
 							// Apply tax to item
 							$this->apply_item_tax( $item_id, $tax );
@@ -807,7 +814,7 @@ class WC_WooTax_Checkout {
 
 						case 'fee':
 							// Fetch appropriate fee identifier (cart fee index)
-							$item_id = $this->mapping_array[$location_key][$index]['index'];
+							$item_id = $this->mapping_array[ $location_key ][ $index ]['index'];
 
 							// Apply tax to fees
 							$this->apply_fee_tax( $item_id, $tax );
@@ -819,23 +826,19 @@ class WC_WooTax_Checkout {
 					}
 					
 					// Add item tax to cart_taxes array
-					$this->cart_taxes[$item_id] = $tax;
+					$this->cart_taxes[ $item_id ] = $tax;
 
 					// Map item id to location
-					$this->location_mapping_array[$item_id] = $location_key;
-
-					// Map item id to item index
-					//$item_indexes[$item_id] = $index;
+					$this->location_mapping_array[ $item_id ] = $location_key;
 
 				}
 
 			} else {
 					
-				// TODO: add error logging feature
 				if ( function_exists( 'wc_add_notice' ) ) {
-					wc_add_notice( 'An error occurred while calculating the tax for this order. TaxCloud said: '. $this->taxcloud->getErrorMessage(), 'error' );
+					wc_add_notice( 'An error occurred while calculating the tax for this order: '. $this->taxcloud->get_error_message(), 'error' );
 				} else {
-					$this->woo->add_error( 'An error occurred while calculating the tax for this order. TaxCloud said: '. $this->taxcloud->getErrorMessage() );
+					$this->woo->add_error( 'An error occurred while calculating the tax for this order: '. $this->taxcloud->get_error_message() );
 				}
 
 				return;
@@ -943,7 +946,7 @@ class WC_WooTax_Checkout {
 	public function get_destination_address() {
 
 		// Retrieve "tax based on" option
-		$tax_based_on = wootax_get_option( 'tax_based_on' );
+		$tax_based_on = get_option( 'woocommerce_tax_based_on' );
 
 		// Return origin address if this is a local pickup order
 		if ( $this->is_local_pickup() || $tax_based_on == 'base' ) {
@@ -1063,7 +1066,7 @@ class WC_WooTax_Checkout {
 		}
 
 		// Check for a valid destinaton address
-		if ( !$this->taxcloud->isValidAddress( $this->destination_address, true ) ) {
+		if ( !$this->taxcloud->is_valid_address( $this->destination_address, true ) ) {
 			return false;
 		}
 		
@@ -1102,6 +1105,10 @@ class WC_WooTax_Checkout {
 
 		$this->cart->taxes[ $this->wootax_rate_id ] = $new_tax;
 
+		if ( wootax_get_option( 'show_zero_tax' ) != 'true' && $new_tax == 0 ) {
+			unset( $this->cart->taxes[ $this->wootax_rate_id ] );
+		}
+
 		// Use get_tax_total to set new tax total so we don't override other rates
 		$this->cart->tax_total = $this->cart->tax->get_tax_total( $this->cart->taxes );
 
@@ -1118,6 +1125,10 @@ class WC_WooTax_Checkout {
 	private function update_shipping_tax_total( $new_tax ) {
 
 		$this->cart->shipping_taxes[ $this->wootax_rate_id ] = $new_tax;
+
+		if ( wootax_get_option( 'show_zero_tax' ) != 'true' && $new_tax == 0 ) {
+			unset( $this->cart->shipping_taxes[ $this->wootax_rate_id ] );
+		}
 
 		// Use get_tax_total to set new tax total so we don't override other rates
 		$this->cart->shipping_tax_total = $this->cart->tax->get_tax_total( $this->cart->shipping_taxes );

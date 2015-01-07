@@ -8,7 +8,7 @@
  */
 
 class WC_WooTax_Exemption_Certificate {
-	public $ExemptStates;
+	public $ExemptStates = array();
 	public $CertificateID = NULL;
 	public $SinglePurchase;
 	public $SinglePurchaseOrderNumber = NULL;
@@ -35,6 +35,7 @@ class WC_WooTax_Exemption_Certificate {
 
 	// Return formatted certificate ready to be sent to TaxCloud
 	public function get_formatted_certificate() {
+
 		global $woocommerce;
 
 		$customer_id = $woocommerce->session->wootax_customer_id;
@@ -43,26 +44,27 @@ class WC_WooTax_Exemption_Certificate {
 			'customerID' => $customer_id,
 			'exemptCert' => array(
 				'CertificateID' => $this->CertificateID,
-				'Detail' => array(
-					'ExemptStates' => $this->ExemptStates,
-					'SinglePurchase' => $this->SinglePurchase,
-					'SinglePurchaseOrderNumber' => $this->SinglePurchaseOrderNumber,
-					'PurchaserFirstName' => $this->PurchaserFirstName,
-					'PurchaserLastName' => $this->PurchaserLastName,
-					'PurchaserTitle' => $this->PurchaserTitle,
-					'PurchaserAddress1' => $this->PurchaserAddress1,
-					'PurchaserAddress2' => $this->PurchaserAddress2,
-					'PurchaserCity' => $this->PurchaserCity,
-					'PurchaserState' => $this->PurchaserState,
-					'PurchaserZip' => $this->PurchaserZip,
-					'PurchaserTaxID' => $this->PurchaserTaxID,
-					'PurchaserBusinessType' => $this->PurchaserBusinessType,
+				'Detail'        => array(
+					'ExemptStates'                    => $this->ExemptStates,
+					'SinglePurchase'                  => $this->SinglePurchase,
+					'SinglePurchaseOrderNumber'       => $this->SinglePurchaseOrderNumber,
+					'PurchaserFirstName'              => $this->PurchaserFirstName,
+					'PurchaserLastName'               => $this->PurchaserLastName,
+					'PurchaserTitle'                  => $this->PurchaserTitle,
+					'PurchaserAddress1'               => $this->PurchaserAddress1,
+					'PurchaserAddress2'               => $this->PurchaserAddress2,
+					'PurchaserCity'                   => $this->PurchaserCity,
+					'PurchaserState'                  => $this->PurchaserState,
+					'PurchaserZip'                    => $this->PurchaserZip,
+					'PurchaserTaxID'                  => $this->PurchaserTaxID,
+					'PurchaserBusinessType'           => $this->PurchaserBusinessType,
 					'PurchaserBusinessTypeOtherValue' => $this->PurchaserBusinessTypeOtherValue,
-					'PurchaserExemptionReason' => $this->PurchaserExemptionReason,
-					'PurchaserExemptionReasonValue' => $this->PurchaserExemptionReasonValue,
-					'CreatedDate' => $this->CreatedDate,
-				)
-			)
+					'PurchaserExemptionReason'        => $this->PurchaserExemptionReason,
+					'PurchaserExemptionReasonValue'   => $this->PurchaserExemptionReasonValue,
+					'CreatedDate'                     => $this->CreatedDate,
+				),
+			),
 		);
+
 	}
 }

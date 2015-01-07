@@ -68,9 +68,6 @@ class WC_WooTax {
 	private function hook_woocommerce() {
 
 		if ( get_option( 'wootax_license_key' ) != false && wootax_get_option( 'tc_key' ) != false && wootax_get_option( 'tc_id' ) != false ) {
-
-			// Called in WC_Cart::remove_taxes; allows us to control the display of the "zero tax" row
-			add_filter( 'woocommerce_cart_remove_taxes_apply_zero_rate', array( $this, 'apply_zero_rate' ) );
 			
 			// Display correct rate label for older versions of WooCommerce
 			add_filter( 'woocommerce_rate_label', array( $this, 'get_rate_label' ), 15, 2 );
@@ -227,34 +224,6 @@ class WC_WooTax {
 		}
 
 	}
-
-	/**
-	 * Prevent WooCommerce from adding its own zero tax row
-	 *
-	 * @since 4.2
-	 */
-	public function apply_zero_rate() {
-		return false;
-	}
-
-	/*
-	 * Returns the tax label that should be displayed
-	 * When WooTax is being applied, this is "Sales Tax." Else, the original value
-	 * Implemented for WC 2.1+ support
-	 *
-	 * @since 3.0
-	 * @param $original_label the current tax label 
-	 * @return "Sales Tax" or the original value of $original_label
-	
- 	public function get_tax_label( $original_label ) {\
-		$wootax_tax_id = get_option( 'wootax_rate_id' );
-
-		if ( is_object( $this->cart ) && in_array( $wootax_tax_id, array_keys( $this->cart->taxes ) ) ) {
-			return 'Sales Tax';
-		}
-
-		return $original_label;
-	}*/
 	
 	/**
 	 * Adds a custom post type for WooTax orders (wootax_order)

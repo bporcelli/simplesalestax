@@ -67,11 +67,12 @@ function process_refund( $refund ) {
 	$order->load_order( $refund->post->post_parent );
 
 	// Holds the ID of the first found location
-	$first_found = false;
+	$first_found = empty( $order->first_found ) ? false : $order->first_found;
 
 	// Map product IDs to locations
-	$location_mapping_array = $id_array = array();
-	$identifiers = $order->identifiers;
+	$location_mapping_array = array();
+	$id_array               = array();
+	$identifiers            = $order->identifiers;
 
 	foreach ( $order->order->get_items() as $item_id => $item ) {
 

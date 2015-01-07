@@ -36,6 +36,7 @@ class WC_WooTax_Settings extends WC_Integration {
 		$this->show_zero_tax   = $this->get_option( 'show_zero_tax' );
 		$this->exemption_text  = $this->get_option( 'exemption_text' );
 		$this->tax_based_on    = $this->get_option( 'tax_based_on' );
+		$this->log_requests    = $this->get_option( 'log_requests' );
  
 		// Actions.
 		add_action( 'woocommerce_update_options_integration_' .  $this->id, array( $this, 'process_admin_options' ) );
@@ -167,6 +168,17 @@ class WC_WooTax_Settings extends WC_Integration {
 				'title' 			=> 'Advanced Settings',
 				'type'              => 'section',
 				'description'       => __( 'For advanced users only. Leave these settings untouched if you are not sure how to use them.', 'woocommerce-wootax' )
+			),
+			'log_requests' => array(
+				'title' 			=> 'Log Requests',
+				'type' 				=> 'select',
+				'options'			=> array(
+					'yes' => 'Yes',
+					'no'  => 'No',
+				),
+				'default' 			=> 'yes',
+				'description' 		=> __( 'When set to "Yes," WooTax will log all requests sent to TaxCloud for debugging purposes.', 'woocommerce-wootax' ),
+				'desc_tip'			=> true
 			),
 			'tax_based_on' => array(
 				'title' 			=> 'Tax Based On',

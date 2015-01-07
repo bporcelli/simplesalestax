@@ -118,11 +118,11 @@ function loadCertificates() {
 
 function previewCertificate(certIndex) {
     parent.jQuery.magnificPopup.open({
-        items: {
+        'items': {
             src: window.parent.lbPath + '/preview-certificate.php?pluginPath=' + pluginPath + '&certIndex=' + certIndex + '&company=' + window.parent.merchantName
         },
-        type: 'iframe',
-        class: 'mfp-fade'
+        'type': 'iframe',
+        'class': 'mfp-fade'
     })
 }
 

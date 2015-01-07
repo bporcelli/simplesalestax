@@ -116,11 +116,11 @@ function switchView(lb) {
 
     // Open new lightbox
     jQuery.magnificPopup.open({
-        items: {
+        'items': {
             src: lbPath + '/' + lb + '?pluginPath=' + pluginPath,
         },
-        type: 'iframe',
-        class: 'mfp-fade'
+        'type': 'iframe',
+        'class': 'mfp-fade'
     });
 
 }

@@ -473,13 +473,13 @@ class WC_WooTax_Admin {
 	 */
 	public function verify_taxcloud_settings() {
 
-		$taxcloud = $this->taxcloud;
-		$taxcloud_id = $_POST['wootax_tc_id'];
+		$taxcloud     = $this->taxcloud;
+		$taxcloud_id  = $_POST['wootax_tc_id'];
 		$taxcloud_key = $_POST['wootax_tc_key'];
 
-		if ( empty($taxcloud_id) || empty($taxcloud_key) ) {
+		if ( empty( $taxcloud_id ) || empty( $taxcloud_key ) ) {
 
-			die(false);
+			die( false );
 
 		} else {
 
@@ -488,16 +488,16 @@ class WC_WooTax_Admin {
 				$taxcloud = new WC_WooTax_TaxCloud( $taxcloud_id, $taxcloud_key );
 			} 
 
-			$taxcloud->setID($taxcloud_id);
-			$taxcloud->setKey($taxcloud_key);
+			$taxcloud->set_id( $taxcloud_id );
+			$taxcloud->set_key( $taxcloud_key );
 
 			// Send ping request and check for errors
-			$res = $taxcloud->Ping();
+			$response = $taxcloud->send_request( 'Ping' );
 
-			if ( !$taxcloud->isError( $res->PingResult ) ) {
-				die(true);
+			if ( $response == false ) {
+				die( $taxcloud->get_error_message() );
 			} else {
-				die( $taxcloud->getErrorMessage() );
+				die( true );
 			}
 
 		}
@@ -514,25 +514,25 @@ class WC_WooTax_Admin {
 		$taxcloud = $this->taxcloud;
 
 		// Collect TaxCloud credentials and USPS ID
-		$taxcloud_id = trim( $_POST['wootax_tc_id'] );
+		$taxcloud_id  = trim( $_POST['wootax_tc_id'] );
 		$taxcloud_key = trim( $_POST['wootax_tc_key'] );
-		$usps_id = trim( $_POST['wootax_usps_id'] );
-		$addresses = array();
+		$usps_id      = trim( $_POST['wootax_usps_id'] );
+		$addresses    = array();
 
-		if ( !empty($taxcloud_id) && !empty($taxcloud_key) && !empty($usps_id) ) {
+		if ( !empty( $taxcloud_id ) && !empty( $taxcloud_key ) && !empty( $usps_id ) ) {
 
 			// Dump address data into an array
-			$address_count = count($_POST['wootax_address1']);
+			$address_count = count( $_POST['wootax_address1'] );
 
 			for($i = 0; $i < $address_count; $i++) {
 				$address = array(
-					'address_1' => $_POST['wootax_address1'][$i],
-					'address_2' => $_POST['wootax_address2'][$i],
+					'address_1' => $_POST['wootax_address1'][ $i ],
+					'address_2' => $_POST['wootax_address2'][ $i ],
 					'country' 	=> 'United States', // hardcoded because this is the only option as of right now
-					'state'		=> $_POST['wootax_state'][$i],
-					'city' 		=> $_POST['wootax_city'][$i],
-					'zip5'		=> $_POST['wootax_zip5'][$i],
-					'zip4'		=> $_POST['wootax_zip4'][$i],
+					'state'		=> $_POST['wootax_state'][ $i ],
+					'city' 		=> $_POST['wootax_city'][ $i ],
+					'zip5'		=> $_POST['wootax_zip5'][ $i ],
+					'zip4'		=> $_POST['wootax_zip4'][ $i ],
 				);
 
 				$addresses[] = $address;
@@ -542,8 +542,8 @@ class WC_WooTax_Admin {
 			if ( !is_object( $taxcloud ) ) {
 				$taxcloud = new WC_WooTax_TaxCloud( $taxcloud_id, $taxcloud_key );
 			} else {
-				$taxcloud->setID( $taxcloud_id );
-				$taxcloud->setKey( $taxcloud_key );
+				$taxcloud->set_id( $taxcloud_id );
+				$taxcloud->set_key( $taxcloud_key );
 			}
 
 			// Loop through addresses and attempt to verify each
@@ -551,46 +551,46 @@ class WC_WooTax_Admin {
 
 				$req = array(
 					'uspsUserID' => $usps_id, 
-					'Address1' => strtolower($address['address_1']), 
-					'Address2' => strtolower($address['address_2']), 
-					'Country' => 'US', 
-					'City' => $address['city'], 
-					'State' => $address['state'], 
-					'Zip5' => $address['zip5'], 
-					'Zip4' => $address['zip4'],
+					'Address1'   => strtolower( $address['address_1'] ), 
+					'Address2'   => strtolower( $address['address_2'] ), 
+					'Country'    => 'US', 
+					'City'       => $address['city'], 
+					'State'      => $address['state'], 
+					'Zip5'       => $address['zip5'], 
+					'Zip4'       => $address['zip4'],
 				);
 
-				// Attempt to verify address using VerifyAddress API call
-				$res = $taxcloud->VerifyAddress( $req );
+				// Attempt to verify address 
+				$response = $taxcloud->send_request( 'VerifyAddress', $req );
 
-				if ( !$taxcloud->isError( $res->VerifyAddressResult ) ) {
+				if ( $response !== false ) {
 					$new_address = array();
 
 					$properties = array(
 						'Address1' => 'address_1', 
 						'Address2' => 'address_2',
-						'Country' => 'country',
-						'City' => 'city',
-						'State' => 'state',
-						'Zip5' => 'zip5',
-						'Zip4' => 'zip4'
+						'Country'  => 'country',
+						'City'     => 'city',
+						'State'    => 'state',
+						'Zip5'     => 'zip5',
+						'Zip4'     => 'zip4'
 					);
 
 					foreach ($properties as $property => $k) {
-						if ( isset( $res->VerifyAddressResult->$property ) ) {
-							$new_address[$k] = $res->VerifyAddressResult->$property;
+						if ( isset( $response->VerifyAddressResult->$property ) ) {
+							$new_address[ $k ] = $response->VerifyAddressResult->$property;
 						}
 					}
 
-					$addresses[$key] = $new_address;			
+					$addresses[ $key ] = $new_address;			
 				} 
 
 			}
 
-			die( json_encode( array('status' => 'success', 'message' => $addresses) ) ); 
+			die( json_encode( array( 'status' => 'success', 'message' => $addresses ) ) ); 
 
 		} else {
-			die( json_encode( array('status' => 'error', 'message' => 'A valid API Login ID, API Key, and USPS ID are required.') ) );
+			die( json_encode( array( 'status' => 'error', 'message' => 'A valid API Login ID, API Key, and USPS ID are required.' ) ) );
 		}
 
 	}
@@ -607,7 +607,7 @@ class WC_WooTax_Admin {
 		delete_option( 'woocommerce_wootax_settings' );
 
 		// Return success message
-		die( json_encode( array('status' => 'success', 'message' => '') ) );
+		die( json_encode( array( 'status' => 'success', 'message' => '' ) ) );
 
 	}
 

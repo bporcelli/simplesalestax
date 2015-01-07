@@ -8,57 +8,86 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  *
  * @since 4.2
  * @package WooTax
- * @version: 1.5
+ * @version: 2.0
  */
 
 class WC_WooTax_TaxCloud {
-	private $apiLoginID;
-	private $apiKey;
+	private $login_id;
+	private $key;
 	private $client;
-	private $lastRequest;
-	private $lastResponse;
-	private $lastResponseHeaders;
-	private $lastError;
+	private $last_request;
+	private $last_response;
+	private $last_response_headers;
+	private $last_error;
+	private $logger;
 	
 	/**
 	 * Class constructor
-	 * Sets up class params
+	 *
+	 * @since 4.2
+	 * @param $login_id 
 	 */
-	public function __construct( $apiLoginID, $apiKey ) {
+	public function __construct( $login_id = false, $key = false ) {
+
 		// Set TaxCloud properties
-		$this->apiLoginID = $apiLoginID;
-		$this->apiKey = $apiKey;
+		$this->login_id = $login_id;
+		$this->key      = $key;
 
 		// Set up SOAPClient
 		$this->client = new SOAPClient( 'https://api.taxcloud.net/1.0/?wsdl', array( 
 			'trace' => true, 
 			'soap_version' => SOAP_1_2 
 		) );
+
+		// Set up logger
+		$this->logger = false;
+		$log_requests = wootax_get_option( 'log_requests' );
+
+		if ( $log_requests == 'yes' || !$log_requests ) {
+			$this->logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : $woocommerce->logger();
+		}
+
 	}
 	
 	/**
-	 * Setter for property "apiLoginID"
+	 * Sets the API Login ID
+	 *
+	 * @since 4.2
+	 * @param $id (string) TaxCloud API Login ID
 	 */
-	public function setID( $id ) {
-		$this->apiLoginID = $id;
+	public function set_id( $id ) {
+		$this->login_id = $id;
 	} 
 	
 	/**
-	 * Setter for property "apiKey"
+	 * Sets the API Key
+	 *
+	 * @since 4.2
+	 * @param $key (string) TaxCloud API Key
 	 */
-	public function setKey( $key ) {
-		$this->apiKey = $key;
+	public function set_key( $key ) {
+		$this->key = $key;
 	}
 	
 	/**
 	 * Checks if the provided response is an error
-	 * Responses will be considered "errors" if a) a TaxCloud error is returned or b) an HTTP error code is returned
-	 * Stores the last error message to the lastError property
+	 * Responses will be considered "errors" if:
+	 * - a) a TaxCloud error is returned, or
+	 * - b) an HTTP error code is returned
+	 *
+	 * Stores the last error message in last_error and adds log message if appropriate
+	 * 
+	 * @since 4.2
+	 * @param $resp (array) response from TaxCloud 
+	 * @return (bool) true if the response has an error, otherwise false
 	 */
-	public function isError( $resp ) {
+	private function is_response_error( $resp ) {
+
+		$this->last_error = false;
+
 		// Check for bool false resp/HTTP code other than 200 
-		if ( $resp == false || !stristr( $this->lastResponseHeaders, '200 OK' ) ) {
-			return true;
+		if ( $resp == false || !stristr( $this->last_response_headers, '200 OK' ) ) {
+			$this->last_error = 'An error occurred during the last API request. Response headers indicate an HTTP failure: '. print_r( $this->last_response_headers, true );
 		}
 
 		// Check for TaxCloud error messages
@@ -67,76 +96,90 @@ class WC_WooTax_TaxCloud {
 			$errors = '';
 
 			foreach ( $resp->Messages as $message ) {
-				$errors .= 'Error: '. $message->ResponseType .' - '. $message->Message .'<br />';
+				$errors .= $message->ResponseType .' - '. $message->Message .'<br />';
 			}
 
 			$errors = substr( $errors, 0, strlen( $errors ) - 6 );
-			$this->lastError = $errors;
 			
-			return true;
+			$this->last_error = 'An error occurred during the last API request. TaxCloud said: '. $errors;
 
 		} else if ( isset( $resp->ErrDescription ) && !empty( $resp->ErrDescription ) ) {
-			$this->lastError = $resp->ErrDescription;
-			return true;
+			$this->last_error = 'An error occurred during the last API request. TaxCloud said: ' . $resp->ErrDescription;
 		}
 
-		return false;
+		if ( $this->last_error ) {
+			return true;
+		} else {
+			return false;
+		}
+
 	}
 	
 	/**
-	 * Allows access to get the lastError property
-	 * Returns last error message
+	 * Returns the last error message
+	 *
+	 * @since 4.2
+	 * @return last error message (string) 
 	 */
-	public function getErrorMessage() {
-		return $this->lastError;
+	public function get_error_message() {
+		return $this->last_error;
 	}
 	
 	/**
-	 * Allows access to the lastRequest property
-	 * Returns last request
+	 * Returns the contents of the last API request
+	 *
+	 * @since 4.2
+	 * @return last request content (string)
 	 */
-	public function getLastRequest() {
-		return $this->lastRequest;	
+	public function get_last_request() {
+		return $this->last_request;	
 	}
 	
 	/**
-	 * Allows access to the lastResponse property
-	 * Returns the last response from TaxCloud
+	 * Returns the contents of the last API response
+	 *
+	 * @since 4.2
+	 * @return last API response (string)
 	 */
-	public function getLastResponse() {
-		return $this->lastResponse;
+	public function get_last_response() {
+		return $this->last_response;
 	}
 	
 	/**
 	 * Fills in debug information, including the last request message and the last response message
 	 * Executed after each request to the TaxCloud API
+	 *
+	 * @since 4.2
 	 */
-	public function log_request_details() {
+	private function log_request_details() {
 
-		$this->lastRequest = $this->client->__getLastRequest();
-		$this->lastResponse = $this->client->__getLastResponse();
-		$this->lastResponseHeaders = $this->client->__getLastResponseHeaders();
+		$this->last_request          = $this->client->__getLastRequest();
+		$this->last_response         = $this->client->__getLastResponse();
+		$this->last_response_headers = $this->client->__getLastResponseHeaders();
 
 	}
 	
 	/**
-	 * Checks for a valid address. For an address to be valid, Address 1, Country, City, State, and 5-digit ZIP must be provided
+	 * Checks for a valid address. For an address to be valid, Country, City, State, and 5-digit ZIP must be provided
 	 *
 	 * @param Address $address
-	 * @return bool true if the address is valid; else, bool false
+	 * @return (bool) true if the address is valid; else, false
 	 */
-	public function isValidAddress( $address, $dest = false ) {
+	public function is_valid_address( $address, $dest = false ) {
+
 		// Convert all array keys to lowercase for consistency
-		$address = array_change_key_case( array_map( 'strtolower', $address ) );
-		$required_fields = array( /*'address1',*/'country', 'city', 'state', 'zip5' );
+		$address         = array_change_key_case( array_map( 'strtolower', $address ) );
+		$required_fields = array( 'country', 'city', 'state', 'zip5' );
 		
 		// Check for presence of required fields
 		foreach ( $required_fields as $required ) {
-			$val = isset( $address[$required] ) ? $address[$required] : '' ;
+
+			$val = isset( $address[ $required ] ) ? $address[ $required ] : '' ;
 			
 			if ( empty( $val ) ) {
 				return false;
 			}
+
 		}
 		
 		// If the destination country is not the US, return false
@@ -145,316 +188,110 @@ class WC_WooTax_TaxCloud {
 		}
 			
 		return true;
+
 	}
 	
 	/**
-	 * Send a TaxCloud Ping request
+	 * Send API request
 	 *
-	 * @return response from TaxCloud
+	 * @since 4.2
+	 * @param $type (string) type of request being sent
+	 * @param $params (array) request parameters
+	 * @return (mixed) response result or boolean false if an error occurs
 	 */
-	public function Ping() {
-		if ( !empty( $this->apiLoginID ) && !empty( $this->apiKey ) ) {
-			// Build & Send request
-			$request = array( 
-				'apiLoginID' => $this->apiLoginID, 
-				'apiKey' => $this->apiKey,
-			);
+	public function send_request( $type, $params = array() ) {
 
-			$response = $this->client->Ping($request);
+		$last_error = false;
 
-			// Fill in debug info
-			$this->log_request_details();
-
-			// Return response
-			return $response;
-		} else {
-			$this->lastError = 'Could not make Ping request: API Login ID and API Key must be set.';
-			return false;
+		if ( $this->logger ) {
+			$this->logger->add( 'wootax', 'Started '. $type .' request.' );
 		}
-	}
-	
-	/** 
-	 * Sends a TaxCloud VerifyAddress request
-	 *
-	 * @param Address $address
-	 * @return TaxCloud response
-	 */
-	public function VerifyAddress( $address ) {
-		if ( !empty( $this->apiLoginID ) && !empty( $this->apiKey ) ) {
-			// Unset uspsUserID
-			$user_id = '';
 
-			if ( isset( $address['uspsUserID'] ) ) {
-				$user_id = $address['uspsUserID'];
+		if ( !$this->login_id || !$this->key ) {
+			$last_error = 'Could not make '. $type .' request: API Login ID and API Key are required.';
+		} else if ( $type == 'Lookup' && ( !$this->is_valid_address( $params['origin'] ) || !$this->is_valid_address( $params['destination'], true ) ) ) {
+			$last_error = 'Could not make '. $type .' request: Valid origin and destination addresses are required.';
+		} else {
+			// Perform some special formatting 
+			if ( $type == 'VerifyAddress' ) {
 
-				unset( $address['uspsUserID'] );
-			}
+				// Unset uspsUserID
+				$user_id = '';
 
-			// Convert all address keys to lowercase
-			$address = array_change_key_case( $address );
-
-			// Check for valid address
-			if ( $this->isValidAddress( $address ) ) {
-				// Reset uspsUserID
-				$address['uspsUserID'] = $user_id;
-
-				// Unset country
-				unset( $address['country'] );
-
-				// Build & Send request
-				$request = array_merge( array( 
-					'apiLoginID' => $this->apiLoginID, 
-					'apiKey' => $this->apiKey 
-				), $address );
-
-				try {
-					$response = $this->client->VerifyAddress( $request );
-				} catch (SoapFault $e) {
-					$this->lastError = 'Could not make Lookup request due to SOAPFault. Please try again.';
-					return false;
+				if ( isset( $params['uspsUserID'] ) ) {
+					$user_id = $params['uspsUserID'];
+					unset( $params['uspsUserID'] );
 				}
-				
-				// Fill in debug info
-				$this->log_request_details();
 
-				// Return response
-				return $response;
-			} else {
-				$this->lastError = 'Could not make VerifyAddress request: required parameters are missing.';
-				return false;
+				$params = array_change_key_case( $params );
+
+				// Check for valid address
+				if ( !$this->is_valid_address( $params ) ) {
+					$last_error = 'Could not make '. $type .' request: A valid address is required.';
+				} else {
+					// Reset uspsUserID
+					$params['uspsUserID'] = $user_id;
+
+					// Unset country
+					unset( $params['country'] );
+				}
+
 			}
-		} else {
-			$this->lastError = 'Could not make VerifyAddress request: API Login ID and API Key must be set.';
-			return false;
-		}
-	}
-	
-	/**
-	 * Performs tax Lookup request
-	 *
-	 * @param request parameters $params
-	 * @return TaxCloud response 
-	 */
-	public function Lookup( $params ) {
-		$origin = $params['origin'];
-		$dest = $params['destination'];
 
-		if ( !empty( $this->apiLoginID ) && !empty( $this->apiKey ) ) {
-			if ( $this->isValidAddress( $origin ) && $this->isValidAddress( $dest, true ) ) {
-				// Build & Send request
+			if ( $last_error == false ) { // Prevents VerifyAddress requests from being executed when an invalid address is passed
+
+				// Add API Login ID/Key to request parameters
 				$request = array_merge( array( 
-					'apiLoginID' => $this->apiLoginID, 
-					'apiKey' => $this->apiKey 
+					'apiLoginID' => $this->login_id, 
+					'apiKey'     => $this->key, 
 				), $params );
 
 				try {
-					$response = $this->client->Lookup( $request );
-				} catch (SoapFault $e) {
-					$this->lastError = 'Could not make Lookup request due to SOAPFault. Please try again.';
-					return false;
+
+					$response = $this->client->$type( $request );
+
+					// Record request details (response headers, request/response)
+					$this->log_request_details();
+
+					if ( $this->logger ) {
+						$this->logger->add( 'wootax', 'Request: '. print_r( $request, true ) );
+						$this->logger->add( 'wootax', 'Response: '. print_r( $response, true ) );
+					}
+
+					// Check response for errors 
+					$response_key = $type . 'Result';
+
+					if ( $this->is_response_error( $response->$response_key ) ) {
+						$last_error = $this->last_error;
+					}
+
+				} catch ( SoapFault $e ) {
+					$last_error = 'Could not make '. $type .' request due to SoapFault. It is possible that the request was not formatted correctly. Please try again.';
 				}
-				
-				// Fill in debug info
-				$this->log_request_details();
 
-				// Return response
-				return $response;
-			} else {
-				$this->lastError = 'Could not make Lookup request. Valid origin and destination addresses are required.';
-				return false;
 			}
-		} else {
-			$this->lastError = 'Could not make Lookup request: API Login ID and API Key must be set.';
-			return false;
-		}
-	}
-	
-	/**
-	 * Performs Authorize request; signifies the beginning of the checkout process
-	 *
-	 * @param request parameters $params
-	 * @return TaxCloud response
-	 */
-	public function Authorized($params) {
-		// Build & Send request
-		$request = array_merge( array( 
-			'apiLoginID' => $this->apiLoginID, 
-			'apiKey' => $this->apiKey 
-		), $params );
-
-		try {
-			$response = $this->client->Authorized( $request );
-		} catch (SoapFault $e) {
-			$this->lastError = 'Could not make Lookup request due to SOAPFault. Please try again.';
-			return false;
-		}
-
-		// Fill in debug info
-		$this->log_request_details();
-
-		// Return response
-		return $response;
-	}
-	
-	/**
-	 * Performs Captured request; signifies the completion of an order
-	 *
-	 * @param parameters $params
-	 * @return TaxCloud response
-	 */
-	public function Captured($params) {
-		// Build & Send request
-		$request = array_merge( array( 
-			'apiLoginID' => $this->apiLoginID, 
-			'apiKey' => $this->apiKey 
-		), $params );
-
-		try {
-			$response = $this->client->Captured( $request );
-		} catch (SoapFault $e) {
-			$this->lastError = 'Could not make Lookup request due to SOAPFault. Please try again.';
-			return false;
-		}
-
-		// Fill in debug info
-		$this->log_request_details();
-
-		// Return response
-		return $response;
-	}
-	
-	/**
-	 * Performs AuthorizedWithCapture request
-	 *
-	 * @param request parameters $params
-	 * @return TaxCloud response
-	 */
-	public function AuthorizedWithCapture($params) {
-		// Build & Send request
-		$request = array_merge( array( 
-			'apiLoginID' => $this->apiLoginID, 
-			'apiKey' => $this->apiKey 
-		), $params );
-
-		try {
-			$response = $this->client->AuthorizedWithCapture( $request );
-		} catch (SoapFault $e) {
-			$this->lastError = 'Could not make Lookup request due to SOAPFault. Please try again.';
-			return false;
-		}
-
-		// Fill in debug info
-		$this->log_request_details();
-
-		// Return response
-		return $response;
-	}
-	
-	/**
-	 * Performs Returned request
-	 *
-	 * @param request parameters $params
-	 * @return TaxCloud response
-	 */
-	public function Returned($params) {
-		// Build & Send request
-		$request = array_merge( array( 
-			'apiLoginID' => $this->apiLoginID, 
-			'apiKey' => $this->apiKey 
-		), $params );
-
-		try {
-			$response = $this->client->Returned( $request );
-		} catch (SoapFault $e) {
-			$this->lastError = 'Could not make Lookup request due to SOAPFault. Please try again.';
-			return false;
 		}
 		
-		// Fill in debug info
-		$this->log_request_details();
+		if ( $last_error ) {
 
-		// Return response
-		return $response;
-	}
-	
-	/**
-	 * Sends request to GetExemptCertificates endpoint
-	 *
-	 * @param request parameters $params
-	 * @return TaxCloud response
-	 */
-	public function GetExemptCertificates($params) {
-		// Build & Send request
-		$request = array_merge( array( 
-			'apiLoginID' => $this->apiLoginID, 
-			'apiKey' => $this->apiKey 
-		), $params );
+			$this->last_error = $last_error;
 
-		try {
-			$response = $this->client->GetExemptCertificates( $request );
-		} catch (SoapFault $e) {
-			$this->lastError = 'Could not make Lookup request due to SOAPFault. Please try again.';
+			if ( $this->logger ) {
+				$this->logger->add( 'wootax', 'Request failed: '. $last_error );
+			}
+
 			return false;
+
+		} else {
+
+			if ( $this->logger ) {
+				$this->logger->add( 'wootax', 'Request succeeded!' );
+			}
+
+			return $response;
+
 		}
 
-		// Fill in debug info
-		$this->log_request_details();
-
-		// Return response
-		return $response;
 	}
-	
-	/**
-	 * Sends request to AddExemptCertificate endpoint
-	 *
-	 * @param parameters $params
-	 * @return TaxCloud response
-	 */
-	public function AddExemptCertificate( $params ) {
-		// Build & Send request
-		$request = array_merge( array( 
-			'apiLoginID' => $this->apiLoginID, 
-			'apiKey' => $this->apiKey ), 
-		$params );
 
-		try {
-			$response = $this->client->AddExemptCertificate( $request );
-		} catch (SoapFault $e) {
-			$this->lastError = 'Could not make Lookup request due to SOAPFault. Please try again.';
-			return false;
-		}
-
-		// Fill in debug info
-		$this->log_request_details();
-
-		// Return response
-		return $response;
-	}
-	
-	/**
-	 * Sends request to DeleteExemptCertificate endpoint
-	 *
-	 * @param parameters $params
-	 * @return TaxCloud response
-	 */
-	public function DeleteExemptCertificate( $params ) {
-		// Build & Send request
-		$request = array_merge( array( 
-			'apiLoginID' => $this->apiLoginID, 
-			'apiKey' => $this->apiKey 
-		), $params );
-
-		try {
-			$response = $this->client->DeleteExemptCertificate( $request );
-		} catch (SoapFault $e) {
-			$this->lastError = 'Could not make Lookup request due to SOAPFault. Please try again.';
-			return false;
-		}
-
-		// Fill in debug info
-		$this->log_request_details();
-
-		// Return response
-		return $response;
-	}
 }

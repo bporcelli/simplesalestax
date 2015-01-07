@@ -60,18 +60,21 @@ function validate_address( $address ) {
 		$address['uspsUserID'] = $usps_id;
 
 		// Send request to TaxCloud
-		$res = $taxcloud->VerifyAddress( $address );
+		$res = $taxcloud->send_request( 'VerifyAddress', $address );
 
 		// Check for errors
-		if ( !isset( $res->VerifyAddressResult->ErrDescription ) ) {
+		if ( $res !== false ) {
 			$verified_address = $res->VerifyAddressResult;
 
 			// TaxCloud will return an ErrNumber field even when there isn't an error; remove it so only the address is returned
-			unset($verified_address->ErrNumber);
+			unset( $verified_address->ErrNumber );
 		} else {
 			$verified_address = $address;
-
-			unset($address['uspsUserID']);
+			
+			// Remove USPS ID
+			if ( isset( $verified_address['uspsUserID'] ) ) {
+				unset( $verified_address['uspsUserID'] );
+			}
 		}
 
 	}
@@ -208,12 +211,11 @@ function fetch_business_addresses() {
  *
  * @since 4.2
  * @param $key the key of the option to be fetched
- * @param $user_id (int) the ID of the use whose settings we want to query (for multivendor installations)
  * @return requested option or boolean false if it isn't set
  */
-function wootax_get_option( $key = '', $user_id = -1 ) {
+function wootax_get_option( $key = '' ) {
 
-	$settings_key = 'woocommerce_wootax_settings'. ( $user_id == -1 ? '' : '_' . $user_id );
+	$settings_key = 'woocommerce_wootax_settings';
 
 	$settings = get_option( $settings_key );
 

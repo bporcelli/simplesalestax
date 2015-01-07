@@ -34,12 +34,13 @@ class WC_WooTax_Order {
 		'tax_total'              => 0,
 		'shipping_tax_total'     => 0,
 		'customer_id'            => 0,
+		'tax_item_id'            => 0,
 		'exemption_applied'      => false,
 		'captured'               => false,
-		'tax_item_id'            => 0,
+		'refunded'               => false,
+		'first_found'            => false,
 		'mapping_array'          => array(),
 		'location_mapping_array' => array(),
-		'refunded'               => false,
 		'lookup_data'            => array(),
 		'taxcloud_ids'			 => array(),
 		'identifiers'            => array(),
@@ -185,6 +186,16 @@ class WC_WooTax_Order {
 
 		}
 
+		// Log tax total/shipping tax total at time of order creation for reference
+		$log_requests = wootax_get_option( 'log_requests' );
+
+		if ( $log_requests == 'yes' || !$log_requests ) {
+
+			$logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : $woocommerce->logger();
+			$logger->add( 'wootax', 'New order with ID '. $order_id .' created. Tax total: '. $this->tax_total .'; Shipping tax total: '. $this->shipping_tax_total );
+
+		}
+
 	}
 
 	/**
@@ -318,7 +329,8 @@ class WC_WooTax_Order {
 			$this->tax_total              = $this->woo->session->wootax_tax_total;
 			$this->shipping_tax_total     = $this->woo->session->wootax_shipping_tax_total;
 			$this->identifiers            = $this->woo->session->item_ids;
-			
+			$this->first_found            = $this->woo->session->first_found_key;
+
 			// Store mapping array in flipped order
 			$mapping_array = array();
 
@@ -371,24 +383,6 @@ class WC_WooTax_Order {
 		}
 
 	}
-
-	/**
-	 * Get ID last sent to TaxCloud given item ID
-	 *
-	 * @since 4.2
-	 * @param $key (mixed) a key corresponding to a fee or cart item
-	 */
-	/*public function get_item_identifier( $key ) {
-
-		$identifiers = $this->identifiers;
-
-		if ( isset( $identifiers[ $key ] ) ) {
-			return $identifiers[ $key ];
-		}
-
-		return $key;
-
-	}*/
 
 	/**
 	 * Get index of item as sent to TaxCloud
@@ -643,9 +637,8 @@ class WC_WooTax_Order {
 		$customer_state = $this->destination_address['State'];
 
 		// Initialize some vars that we need for the foreach loop below
-		$data = $mapping_array = $counters_array = $fee_items = $shipping_items = $cart_ids = $order_ids = array();
+		$data = $mapping_array = $counters_array = $fee_items = $shipping_items = array();
 		$fee_counter = 0;
-		$taxcloud_id = $this->taxcloud_ids;
 
 		// This will hold the ID of the first found origin address/location for this order; Fees and shipping chars will be attached to it
 		$first_found = false;
@@ -659,23 +652,29 @@ class WC_WooTax_Order {
 			switch( $type ) {
 
 				case 'cart':
-					// Fetch shipping origin addresses for this product
-					$origin_addresses = fetch_product_origin_addresses( $item_id );
-					$address_found = empty( $this->default_address ) ? 0 : $this->default_address;
-					
+					// Fetch shipping origin addresses for this product_id
+					$item_ids = array( 
+						'product_id'   => $this->order->get_item_meta( $item_id, '_product_id', true),
+						'variation_id' => $this->order->get_item_meta( $item_id, '_variation_id', true ),
+					);
+
+					$product          = $this->order->get_product_from_item( $item_ids );
+					$origin_addresses = fetch_product_origin_addresses( $product->id );
+					$address_found    = empty( $this->default_address ) ? 0 : $this->default_address;
+
 					/**
 					 * Attempt to find proper origin address
 					 * If there is more than one address available, we will use the first address that occurs in the customer's state 
 					 * If there no shipping location in the customer's state, we will use the default origin address
 					 * Developers can modify the selected shipping origin address using the wootax_origin_address filter
 					 */
-					if ( count($origin_addresses) == 1 ) {
+					if ( count( $origin_addresses ) == 1 ) {
 						// There is only one address ID to fetch, with index 0
 						$address_found = $origin_addresses[0];				
 					} else {
 						// Find an address in the customer's state if possible
 						foreach ( $origin_addresses as $key ) {
-							if ( isset( $this->addresses[$key]['state'] ) && $this->addresses[$key]['state'] == $customer_state ) {
+							if ( isset( $this->addresses[ $key ]['state'] ) && $this->addresses[ $key ]['state'] == $customer_state ) {
 								$address_found = $key;
 								break;
 							}
@@ -691,49 +690,44 @@ class WC_WooTax_Order {
 					}
 
 					// Initialize CartItems array for this shipping location
-					if ( !isset( $data[$address_found] ) || !is_array( $data[$address_found] ) ) {
-						$data[$address_found] = array();
+					if ( !isset( $data[ $address_found ] ) || !is_array( $data[ $address_found ] ) ) {
+						$data[ $address_found ] = array();
 					}
 
 					// Initialize counter for this location if necessary
-					if ( !isset( $counters_array[$address_found] ) ) {
-						$counters_array[$address_found] = 0;
+					if ( !isset( $counters_array[ $address_found ] ) ) {
+						$counters_array[ $address_found ] = 0;
 					}
 
 					// Initialize mapping array for this location if necessary
-					if ( !isset( $mapping_array[$address_found] ) ) {
-						$mapping_array[$address_found] = array();
-					}
+					if ( !isset( $mapping_array[ $address_found ] ) ) {
+						$mapping_array[ $address_found ] = array();
+					} 
 
 					// Update mapping array
-					$mapping_array[$address_found][] = $item_id;/*array(
-						'id'    => $item_id, 
-						'index' => $counters_array[$address_found], 
-						'type'  => 'cart',
-						'key'   => $item_key,
-					);*/
+					$mapping_array[ $address_found ][] = $item_id;
 
 					// Update item Index
-					$item['Index'] = $counters_array[$address_found];
+					$item['Index'] = $counters_array[ $address_found ];
 
 					// Unset "type" value
 					unset( $item['Type'] );
 
 					// Add formatted item data to the $data array
-					$data[$address_found][] = $item;
+					$data[ $address_found ][] = $item;
 
 					// Increment counter
-					$counters_array[$address_found]++;
+					$counters_array[ $address_found ]++;
 				break;
 
 				case 'shipping':
 					// Push this item to the shipping array; the cost of shipping will be attached to the first daughter order later on
-					$shipping_items[$item_id] = $item;
+					$shipping_items[ $item_id ] = $item;
 				break;
 
 				case 'fee':
 					// Push this item to the fee array; it will be attached to the first daughter order later on
-					$fee_items[$item_id] = $item;
+					$fee_items[ $item_id ] = $item;
 
 					// Update fee counter
 					$fee_counter++;
@@ -748,27 +742,22 @@ class WC_WooTax_Order {
 			foreach ( $shipping_items + $fee_items as $key => $item ) {
 
 				// Get new item index
-				$index = $counters_array[$first_found];
+				$index = $counters_array[ $first_found ];
 
 				// Add to items array (Type index not included here)
-				$data[$first_found][] = array(
-					'Index' => $index,
+				$data[ $first_found ][] = array(
+					'Index'  => $index,
 					'ItemID' => $item['ItemID'],
-					'TIC' => $item['TIC'],
-					'Price' => $item['Price'],
-					'Qty' => $item['Qty'],
+					'TIC'    => $item['TIC'],
+					'Price'  => $item['Price'],
+					'Qty'    => $item['Qty'],
 				);
 
 				// Update mapping array
-				$mapping_array[$first_found][$index] = $key;/*array(
-					'id'    => $key, 
-					'key'   => $key,
-					'index' => $index, 
-					'type'  => $item['Type'],
-				);*/
+				$mapping_array[ $first_found ][ $index ] = $key;
 
 				// Increment counter
-				$counters_array[$first_found]++;
+				$counters_array[ $first_found ]++;
 
 			}
 		}
@@ -776,7 +765,7 @@ class WC_WooTax_Order {
 		// Store data and save
 		$this->lookup_data   = $data;
 		$this->mapping_array = $mapping_array;
-		//$this->taxcloud_ids  = $taxcloud_ids;
+		$this->first_found   = $first_found;
 
 		$this->generate_order_ids();
 
@@ -841,7 +830,7 @@ class WC_WooTax_Order {
 			foreach ( $this->lookup_data as $location_key => $items ) {
 
 				// Fetch cart_id
-				$cart_id = isset( $this->taxcloud_ids[$location_key]['cart_id'] ) ? $this->taxcloud_ids[$location_key]['cart_id'] : '';
+				$cart_id = isset( $this->taxcloud_ids[ $location_key ]['cart_id'] ) ? $this->taxcloud_ids[ $location_key ]['cart_id'] : '';
 
 				// Get the origin address
 				$origin_address = validate_address( $this->get_origin_address( $location_key ) );
@@ -854,13 +843,16 @@ class WC_WooTax_Order {
 					'origin'            => $origin_address, 
 					'destination'       => $destination_address, 
 					'deliveredBySeller' => $delivered_by_seller, 
-					'exemptCert'        => $exempt_cert,
 				);	
 
-				// Send Lookup request 
-				$res = $this->taxcloud->Lookup( $req );
+				if ( $exempt_cert != NULL ) {
+					$req['exemptCert'] = $exempt_cert;
+				}
 
-				if ( !$this->taxcloud->isError( $res->LookupResult ) ) {
+				// Send Lookup request 
+				$res = $this->taxcloud->send_request( 'Lookup', $req );
+
+				if ( $res !== false ) {
 
 					// Initialize some vars
 					$cart_items = $res->LookupResult->CartItemsResponse->CartItemResponse;
@@ -900,7 +892,7 @@ class WC_WooTax_Order {
 
 				} else {
 					// Return error
-					return 'An error occurred while performing tax lookup. TaxCloud said: '. $this->taxcloud->getErrorMessage();
+					return $this->taxcloud->get_error_message();
 				}
 
 				// Add cart_items to all_cart_items array
@@ -1096,7 +1088,7 @@ class WC_WooTax_Order {
 		}
 
 		// Check for a valid destinaton address
-		if ( !$this->taxcloud->isValidAddress( $this->destination_address, true ) ) {
+		if ( !$this->taxcloud->is_valid_address( $this->destination_address, true ) ) {
 			return false;
 		}
 		
@@ -1146,13 +1138,13 @@ class WC_WooTax_Order {
 		$this->load_order( $order_id );
 
 		// Exit if the order has already been captured or contains no taxable items 
-		if ( $this->captured || !is_array( $this->lookup_data ) ) { 
+		if ( $this->captured ) { 
 			return;
 		}
 
 		// Instantiate WC_WooTax_TaxCloud object
 		$this->taxcloud = get_taxcloud();
-		
+
 		// Loop orders and mark as captured
 		foreach ( $this->taxcloud_ids as $address_key => $data ) {
 
@@ -1164,18 +1156,18 @@ class WC_WooTax_Order {
 			$authorized_date = date( 'c' );
 
 			$req = array(
-				'cartID' => $cart_id, 
-				'customerID' => $this->customer_id, 
-				'orderID' => $order_id, 
+				'cartID'         => $cart_id, 
+				'customerID'     => $this->customer_id, 
+				'orderID'        => $order_id, 
 				'dateAuthorized' => $authorized_date, 
-				'dateCaptured' => $authorized_date,
+				'dateCaptured'   => $authorized_date,
 			);
 
-			$res = $this->taxcloud->AuthorizedWithCapture( $req );
+			$res = $this->taxcloud->send_request( 'AuthorizedWithCapture', $req );
 
 			// Check for errors
-			if ( $this->taxcloud->isError( $res->AuthorizedWithCaptureResult ) ) {
-				wootax_add_flash_message( 'There was an error while marking the order as Captured. TaxCloud said: '. $this->taxcloud->getErrorMessage() );
+			if ( $res == false ) {
+				wootax_add_flash_message( 'There was an error while marking the order as Captured. '. $this->taxcloud->get_error_message() );
 				return;
 			}
 
@@ -1224,11 +1216,11 @@ class WC_WooTax_Order {
 				'orderID'      => $order_id,
 			);
 			
-			$res = $this->taxcloud->Returned( $req );
+			$res = $this->taxcloud->send_request( 'Returned', $req );
 			
 			// Check for errors
-			if ( $this->taxcloud->isError( $res->ReturnedResult ) ) {
-				wootax_add_flash_message( 'There was an error while refunding the order. TaxCloud said: '. $this->taxcloud->getErrorMessage() );
+			if ( $res == false ) {
+				wootax_add_flash_message( 'There was an error while refunding the order. '. $this->taxcloud->get_error_message() );
 				break;
 			}
 
@@ -1256,6 +1248,8 @@ class WC_WooTax_Order {
 	 */
 	public function refund_items( $refund_items ) {
 		
+		global $woocommerce;
+
 		if ( !$this->captured ) {
 			return 'You must set this order\'s status to "completed" before refunding any items.';
 		}
@@ -1318,28 +1312,40 @@ class WC_WooTax_Order {
 				);	
 
 				// Send request
-				$res = $this->taxcloud->Returned( $req );
+				$res = $this->taxcloud->send_request( 'Returned', $req );
 
 				// Check for errors
-				if ( $this->taxcloud->isError( $res->ReturnedResult ) ) {
+				if ( $res == false ) {
 
-					return $this->taxcloud->getErrorMessage();
+					return $this->taxcloud->get_error_message();
 
-				} else {
+				}
 
-					// Set the order status to refunded so the user cannot calculate the tax due anymore
-					$this->refunded = true;
+			} else {
 
-					// Save refunded items array
-					$this->refunded_items = $refunded_items;
+				$log_requests = wootax_get_option( 'log_requests' );
 
-					return true;
+				if ( $log_requests == 'yes' || !$log_requests ) {
+
+					$logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : $woocommerce->logger();
+
+					$logger->add( 'wootax', 'Didn\'t process refund for order '. $this->order_id .', location '. $address_key .': No items in location.' );
+					$logger->add( 'wootax', 'Refund items array: '. print_r( $refund_items, true ) );
+					$logger->add( 'wootax', 'IDs array: '. print_r( $this->taxcloud_ids, true ) );
 
 				}
 
 			}
 			
 		}
+
+		// Set the order status to refunded so the user cannot calculate the tax due anymore
+		$this->refunded = true;
+
+		// Save refunded items array
+		$this->refunded_items = $refunded_items; // Eliminate?
+
+		return true;
 		
 	}
 	
@@ -1610,7 +1616,9 @@ class WC_WooTax_Order {
 			$order_items = array_merge( $items['order_item_id'], $order_items );
 
 			// Add shipping items
-			$order_items = array_merge( $items['shipping_method_id'], $order_items );
+			if ( isset( $items['shipping_method_id'] ) ) {
+				$order_items = array_merge( $items['shipping_method_id'], $order_items );
+			}
 
 			// Construct items array from POST data
 			foreach ( $order_items as $item_id ) {
@@ -1633,7 +1641,7 @@ class WC_WooTax_Order {
 					$qty = $items['order_item_qty'][$item_id];
 				}
 
-				if ( in_array( $item_id, $items['shipping_method_id'] ) ) {
+				if ( is_array( $items['shipping_method_id'] ) && in_array( $item_id, $items['shipping_method_id'] ) ) {
 					// Shipping method
 					$tic  = WOOTAX_SHIPPING_TIC;
 					$cost = $items['shipping_cost'][$item_id];
@@ -1709,7 +1717,7 @@ class WC_WooTax_Order {
 					$id  = $item->ItemID;
 					$tax = $item->TaxAmount; 
 
-					if ( in_array( $id, $items['shipping_method_id'] ) ) {
+					if ( is_array( $items['shipping_method_id'] ) && in_array( $id, $items['shipping_method_id'] ) ) {
 						$items['shipping_taxes'][ $id ][ $this->wootax_rate_id ] = $tax;
 					} else {
 						$items['line_tax'][ $id ][ $this->wootax_rate_id ] = $tax;
@@ -1854,7 +1862,7 @@ class WC_WooTax_Order {
 		}
 		
 		$meta_value = get_post_meta( $this->order_id, '_wootax_' . $key, true );
-		$meta_value = ( $meta_value != false ) ? $meta_value : ( isset( $this->defaults[$key] ) ? $this->defaults[$key] : NULL );
+		$meta_value = ( $meta_value !== false ) ? $meta_value : ( isset( $this->defaults[ $key ] ) ? $this->defaults[ $key ] : NULL );
 			
 		return $meta_value;
 

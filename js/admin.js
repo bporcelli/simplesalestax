@@ -61,24 +61,24 @@ jQuery(function() {
         jQuery('.form-error').removeClass('form-error');
 
         // Set up some vars
-        var loginID = jQuery('#wootax_tc_id').val();
-        var apiKey = jQuery('#wootax_tc_key').val();
-        var uspsID = jQuery('#wootax_usps_id').val();
+        var loginID = jQuery('#woocommerce_wootax_tc_id').val();
+        var apiKey = jQuery('#woocommerce_wootax_tc_key').val();
+        var uspsID = jQuery('#woocommerce_wootax_usps_id').val();
         var missing = 0;
 
         // Check configuration
         if (loginID == '') {
-            jQuery('#wootax_tc_id').addClass('form-error');
+            jQuery('#woocommerce_wootax_tc_id').addClass('form-error');
             missing++;
         }
 
         if (apiKey == '') {
-            jQuery('#wootax_tc_key').addClass('form-error');
+            jQuery('#woocommerce_wootax_tc_key').addClass('form-error');
             missing++;
         }
 
         if (uspsID == '') {
-            jQuery('#wootax_usps_id').addClass('form-error');
+            jQuery('#woocommerce_wootax_usps_id').addClass('form-error');
             missing++;
         }
 
@@ -206,7 +206,7 @@ jQuery(function() {
     });
 
     // Get information about item quantities
-    var originalQuantities = [];
+    /*var originalQuantities = [];
 
     function getOriginalQuantities() {
 
@@ -308,7 +308,7 @@ jQuery(function() {
                     title: title,
                 });
             }
-        });
+        });*/
 
         /**
          * Add shipping methods
@@ -316,7 +316,7 @@ jQuery(function() {
          */
 
         // WooCommerce 2.2 only
-        if (MyAjax.woo22) {
+        /*if (MyAjax.woo22) {
             orderTable.find('.shipping').each(function() {
                 var $item = jQuery(this);
 
@@ -593,7 +593,7 @@ jQuery(function() {
             jQuery('.save_order').trigger('click');
         }
 
-    }
+    }*/
 
     // Set cookie function
     function setCookie(cname, cvalue, exdays) {
@@ -623,7 +623,7 @@ jQuery(function() {
     }
 
     // Check if totals should be re-calculated on page load
-    if (jQuery('.woocommerce_order_items').length != 0) {
+    /*if (jQuery('.woocommerce_order_items').length != 0) {
 
         jQuery(window).ready(function() {
             if ( getCookie( 'wootax_recalculate_totals' ) == true || getCookie( 'wootax_recalculate_totals' ) == 'true' ) {
@@ -723,7 +723,7 @@ jQuery(function() {
         // Stop page jitter
         e.preventDefault();
 
-    });
+    });*/
 
     // Remove product TIC
     jQuery('#wootax-remove-tic').click(function(e) {
