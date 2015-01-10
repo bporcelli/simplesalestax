@@ -218,9 +218,6 @@ class WC_WooTax {
 			// Update current version to avoid running the upgrade routine multiple times
 			update_option( 'wootax_version', WOOTAX_VERSION );
 
-			// Add flash message
-			wootax_add_flash_message( 'WooTax has been updated to version '. WOOTAX_VERSION .' successfully.' );
-
 		}
 
 	}

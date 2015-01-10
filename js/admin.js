@@ -179,12 +179,12 @@ jQuery(function() {
     });
 
     // Deactivate license on this domain
-    jQuery('#deactivateLicense').click(function(e) {
+    jQuery('#wootax_deactivate_license').click(function(e) {
 
         // Verify user action
         var msg = 'Are you sure you want to deactivate your license? You will have to enter a valid license key to use WooTax on this site again.';
 
-        if (confirm(msg)) {
+        if ( confirm( msg ) ) {
             jQuery.ajax({
                 type: 'POST',
                 url: MyAjax.ajaxURL,
@@ -205,395 +205,55 @@ jQuery(function() {
 
     });
 
-    // Get information about item quantities
-    /*var originalQuantities = [];
+    // Uninstall WooTax
+    jQuery( '#wootax_uninstall' ).click( function( e ) {
 
-    function getOriginalQuantities() {
+        // Stop page jitter
+        e.preventDefault();
 
-        // Reset array
-        orderQuantities = [];
-        var orderTable = jQuery('table.woocommerce_order_items');
+        // Verify user action
+        var msg = 'Are you sure you want to uninstall WooTax? All of your settings will be erased and your license will be deactivated on this domain.';
 
-        // Collect quantity values in array
-        orderTable.find('.item').each(function() {
-            var $item = jQuery(this);
-            // Fetch item ID
-            var id = $item.data('order_item_id');
-            // Fetch quantity
-            var qty = $item.find('.quantity').find('.view').text();
-            // Push to quantity array
-            originalQuantities.push({
-                id: id,
-                qty: qty
-            });
-        });
+        if ( confirm( msg ) ) {
 
-    }
+            // Show loader
+            jQuery( '#wootax-loader' ).css( 'display', 'inline-block' );
+            
+            jQuery.ajax({
+                type: 'POST',
+                url: MyAjax.ajaxURL,
+                data: 'action=wootax-uninstall',
+                success: function(resp) {
 
-    // Get original quantity for a given item
-    function getItemQuantity(id) {
+                    resp = eval( '(' + resp + ')' );
 
-        var qty = 1;
+                    if (resp.status == 'success') {
+                        // Don't use window.location.reload(); this will cause form re-submission on the settings page
+                        window.location.href = '/wp-admin/admin.php?page=wc-settings&tab=integration&section=wootax';
+                    } else {
+                        alert( 'Error: ' + resp );
+                    }
 
-        for (var i = 0; i < originalQuantities.length; i++) {
-            if (originalQuantities[i].id == id)
-                qty = originalQuantities[i].qty == null ? 1 : originalQuantities[i].qty;
-        }
+                    // Hide loader
+                    jQuery( '#wootax-loader' ).hide();
 
-        return qty;
-
-    }
-
-    // Collect information about the original item quantities upon page load
-    jQuery(window).load(function() {
-        getOriginalQuantities();
-    });
-
-    // Collect information about the items currently added to the order
-    function getOrderItems() {
-
-        // Initialize array
-        var orderItems = [];
-        var orderTable = jQuery('table.woocommerce_order_items');
-        var orderTotals = jQuery('#woocommerce-order-totals');
-
-        // Add cart items
-        orderTable.find('.item').each(function() {
-            var $item = jQuery(this);
-
-            // Fetch item ID
-            var id = $item.data('order_item_id');
-
-            // Fetch quantity
-            var qty = $item.find('input.quantity').val();
-
-            // Fetch total
-            var total = $item.find('input.line_total').val();
-
-            // Push values to array
-            if (id != null && id != '' && !(typeof id == 'undefined')) {
-                orderItems.push({
-                    type: 'cart',
-                    id: id,
-                    qty: qty,
-                    total: total
-                });
-            }
-        });
-
-        // Add fees
-        orderTable.find('.fee').each(function() {
-            var $item = jQuery(this);
-
-            // Fetch item ID
-            var id = $item.data('order_item_id');
-
-            // Fetch fee title
-            var title = $item.find('.name input').length > 0 ? $item.find('.name input').eq(0).val() : $item.find('.name .view').text();
-
-            // Fetch total
-            var total = $item.find('input.line_total').val();
-
-            // Fetch tax class
-            var taxClass = $item.find('.tax_class div.view').text().toLowerCase();
-
-            // Push values to array
-            if (id != null && id != '' && !(typeof id == 'undefined')) {
-                orderItems.push({
-                    type: 'fee',
-                    id: id,
-                    qty: 1,
-                    tax_class: taxClass,
-                    total: total,
-                    title: title,
-                });
-            }
-        });*/
-
-        /**
-         * Add shipping methods
-         * Note: method varies according to version of WooCommerce
-         */
-
-        // WooCommerce 2.2 only
-        /*if (MyAjax.woo22) {
-            orderTable.find('.shipping').each(function() {
-                var $item = jQuery(this);
-
-                // Fetch item ID
-                var id = $item.data('order_item_id');
-
-                // Fetch quantity
-                var qty = $item.find('input.quantity').val();
-
-                // Fetch total
-                var total = $item.find('input.line_total').val();
-                
-                // Push values to array
-                if (id != null && id != '' && !(typeof id == 'undefined'))
-                    orderItems.push({
-                        type: 'shipping',
-                        id: id,
-                        qty: qty,
-                        total: total
-                    });
-            });
-        } else {
-            // Legacy versions of Woo
-            if (jQuery('#woocommerce-order-totals').find('.totals_group').eq(1).find('ul.totals').length != 0) {
-                var $item = jQuery('#woocommerce-order-totals').find('.totals_group').eq(1).find('ul.totals');
-                // Fetch id
-                var id = 'shipping';
-                // Fetch price
-                var total = $item.find('#_order_shipping').val();
-                // Push value to array
-                orderItems.push({
-                    type: 'shipping',
-                    id: id,
-                    qty: 1,
-                    total: total
-                });
-
-            // Woo 2.1 - 2.1.12
-            } else {
-                orderTotals.find('#shipping_rows').find('.shipping_row').each(function() {
-                    var $item = jQuery(this);
-                    // Fetch item ID
-                    var id = $item.data('order_item_id') == null ? 'new_shipping_method' : $item.data('order_item_id');
-                    // Fetch price
-                    var total = $item.find('.shipping_cost').val();
-                    // Push values to array
-                    orderItems.push({
-                        type: 'shipping',
-                        id: id,
-                        qty: 1,
-                        total: total
-                    });
-                });
-            }
-
-        }
-
-        // Convert array into data that can be sent to the server
-        var orderString = '';
-
-        if (orderItems.length != 0) {
-            for (var i = 0; i < orderItems.length; i++) {
-                orderString += '&type_' + i + '=' + orderItems[i].type + '&id_' + i + '=' + orderItems[i].id + '&qty_' + i + '=' + orderItems[i].qty + '&total_' + i + '=' + orderItems[i].total;
-
-                // Add extra fields if we are dealing with a fee
-                if (orderItems[i].type == 'fee') {
-                    orderString += '&class_' + i + '=' + orderItems[i].tax_class + '&title_' + i + '=' + orderItems[i].title;
                 }
-            }
-
-            // Append a parameter indicating the number of items sent
-            orderString += '&itemNum=' + i;
-        }
-
-        return orderString;
-
-    }
-
-    // Fetch shipping method names
-    function getShippingMethods() {
-
-        // Initialize some vars
-        var orderTotals = jQuery('#woocommerce-order-totals');
-        var shippingMethods = [];
-        var methodString = '&shipping_methods=';
-
-        // Loop through shipping items and pull names
-        if (jQuery('#woocommerce-order-totals').find('.totals_group').eq(1).find('ul.totals').length != 0) {
-            // WC 2.0
-            var $item = jQuery('#woocommerce-order-totals').find('.totals_group').eq(1).find('ul.totals');
-            // Fetch method name
-            var name = $item.find('select').find('option:selected').val();
-            // Push name to array
-            shippingMethods.push(name);
-        } else {
-            // WC 2.1
-            orderTotals.find('#shipping_rows').find('.shipping_row').each(function() {
-                var $item = jQuery(this);
-                // Fetch method name
-                var name = $item.find('select').find('option:selected').val();
-                // Push name to array
-                shippingMethods.push(name);
             });
+
         }
 
-        // Convert array to string
-        for (var i = 0; i < shippingMethods.length; i++) {
-            methodString += shippingMethods[i] + ',';
-        }
+    } );
+    
+    // Download log file
+    jQuery( '#wootax_download_log' ).click( function( e ) {
 
-        // Trim string
-        methodString = methodString.substr(0, methodString.length - 1);
+        // Stop jitter
+        e.preventDefault();
 
-        return methodString;
+        // Redirect to initiate file download
+        window.location.href = window.location.href + '&download_log=true';
 
-    }
-
-    // Fetch order discount
-    // This might get tricky when it comes to performing lookups -- discount has to be distributed evenly amongst items (if it isn't already)
-    function getOrderDiscount() {
-        return jQuery('#_order_discount').val();
-    }
-
-    // Fetch orderID
-    function getOrderID() {
-        return parseInt(MyAjax.orderID);
-    }
-
-    // Update tax values given array of calculated tax values
-    function updateOrderTaxes(taxes) {
-
-        taxes = eval('(' + taxes + ')');
-
-        // Fetch tax item id from the end of the array
-        var taxID = MyAjax.taxItemID;
-
-        // We want to total the taxes as we loop through them
-        var taxTotal = 0;
-        var shippingTaxTotal = 0;
-
-        // Update front end to display new tax values
-        for (var i = 0; i < taxes.length; i++) {
-            var type = taxes[i].type;
-            var tax = taxes[i].tax;
-            var old = taxes[i].oldtax;
-            var id = taxes[i].id;
-
-            if (type == 'cart' || MyAjax.woo22 && type == 'shipping') {
-                // Fetch correct item
-                var $itemRow = jQuery('tr[data-order_item_id="' + id + '"]');
-
-                // Fetch current tax values
-                var currentSubTax = $itemRow.find('input.line_subtotal_tax').val();
-                var currentTax = $itemRow.find('input.line_tax').val();
-
-                // Correct "old" value for changes in quantity
-                old = ($itemRow.find('input.quantity').val() / getItemQuantity(id)) * old;
-                old = typeof old == 'undefined' ? 0 : old;
-
-                // Calculate new tax values
-                var newSubTax = (currentSubTax != '' && currentSubTax >= old ? currentSubTax - old : 0) + tax;
-                var newTax = (currentTax != '' && currentTax >= old ? currentTax - old : 0) + tax;
-
-                // Update fields with new value
-                $itemRow.find('input.line_subtotal_tax').val(newSubTax).data('subtotal_tax', newSubTax);
-                $itemRow.find('input.line_tax').val(newTax).data('total_tax', newTax);
-                $itemRow.find('.line_tax').find('.amount').text('$' + newTax.toFixed(2));
-                $itemRow.find('.line_subtotal_tax').find('.amount').text('$' + newSubTax.toFixed(2));
-
-                // Add to tax total
-                taxTotal += tax;
-            } else if (type == 'fee') {
-                // Fetch correct item
-                var $itemRow = jQuery('tr[data-order_item_id="' + id + '"]');
-
-                // Fetch current tax values
-                var currentTax = $itemRow.find('.line_tax').val();
-
-                // Calculate new tax values
-                var newTax = (currentTax <= old ? currentTax - old : 0) + tax;
-
-                // Update fields with new value
-                $itemRow.find('input.line_tax').val(newTax);
-                $itemRow.find('.line_tax').find('.amount').text('$' + newTax.toFixed(2));
-
-                // Add to tax total
-                taxTotal += tax;
-            } else {
-                // Add to shipping tax total
-                shippingTaxTotal += tax;
-            }
-        }
-
-        // Fetch tax item (if possible)
-        var $taxItem = jQuery('#tax_rows').find('.tax_row[data-order_item_id="' + taxID + '"]');
-
-        // Fetch old tax totals (older versions of WooCommerce)
-        if (jQuery('#_order_tax').length == 1) {
-            // Fetch old tax values
-            var oldTaxTotal = $taxItem.length != 0 ? $taxItem.find('input[type="number"]').eq(0).val() : 0;
-            var oldShippingTaxTotal = $taxItem.length != 0 ? $taxItem.find('input[type="number"]').eq(1).val() : 0;
-        }
-
-        // Calculate total tax added by WooTax (limit precision to 2 decimal places and round up, TaxCloud style)
-        var raw_tax_total = taxTotal + shippingTaxTotal;
-        var wootax_tax_total = raw_tax_total.toFixed(2);
-
-        // Update WooTax tax total
-        jQuery('#sales_tax_meta').find('.amount').text('$' + wootax_tax_total);
-
-        // Update the tax row
-        if (taxID != '' && taxID != 0) {
-
-            if (MyAjax.woo22 == true) {
-                // WooCommerce 2.2+
-                alert('The tax for this order has been calculated successfully. Your changes will now be saved.');
-            
-                // Search for tax row and update it's amount
-                jQuery('.wc-order-totals tbody tr').each(function() {
-                    if (jQuery(this).find('.label').text().replace(':', '') == 'Sales Tax') 
-                        jQuery(this).find('.amount').text('$' + wootax_tax_total);
-                });
-
-                // Save updated tax values
-                jQuery('.save-action').trigger('click');
-                jQuery('.calculate-action').trigger('click');
-            } else if ($taxItem.length > 0) {
-                // WooCommerce 2.0.2 - 2.1.12
-                alert('The tax for this order has been calculated successfully. You will now be prompted to recalculate the total for this order. Afterwards, you should save this order to avoid losing your changes.');
-                
-                // Identify the correct fields to update (varies depending on version of Woo we are dealing with)
-                var $taxTotal = $taxItem.find('input[type="number"]').length != 0 ? $taxItem.find('input[type="number"]').eq(0) : $taxItem.find('input.order_taxes_amount');
-                var $shippingTaxTotal = $taxItem.find('input[type="number"]').length != 0 ? $taxItem.find('input[type="number"]').eq(1) : $taxItem.find('input.order_taxes_shipping_amount');
-                
-                // Update total fields for tax row
-                $taxTotal.val(taxTotal.toFixed(2));
-                $shippingTaxTotal.val(shippingTaxTotal.toFixed(2));
-
-                // Calculate new order tax total
-                var currentTaxTotal = jQuery('#_order_tax').val();
-                var newTaxTotal = currentTaxTotal == 0 ? taxTotal : (currentTaxTotal - oldTaxTotal) + taxTotal;
-
-                // Update order tax total
-                jQuery('#_order_tax').val(newTaxTotal.toFixed(2));
-
-                // Calculate new order shipping tax total
-                var currentShippingTaxTotal = jQuery('#_order_shipping_tax').val();
-                var newShippingTaxTotal = currentShippingTaxTotal == 0 ? shippingTaxTotal : (currentShippingTaxTotal - oldShippingTaxTotal) + shippingTaxTotal;
-
-                // Update shipping tax total
-                jQuery('#_order_shipping_tax').val(newShippingTaxTotal.toFixed(2));
-
-                // Trigger calculation of totals
-                jQuery('.calc_totals').trigger('click');
-            } else {
-                // Alert the user
-                alert('The tax for this order has been calculated successfully. The page will now refresh.');
-                
-                // Set cookie such that totals are re-calculated after page reloads
-                setCookie('wootax_recalculate_totals', true, 1);
-                
-                // Trigger save so that the new tax row is displayed
-                jQuery('.save_order').trigger('click');
-            }
-
-        } else {
-            // Alert the user
-            alert('The tax for this order has been calculated successfully. The page will now refresh.');
-            
-            // Set cookie such that totals are re-calculated after page reloads
-            setCookie('wootax_recalculate_totals', true, 1);
-            
-            // Trigger save so that the new tax row is displayed
-            jQuery('.save_order').trigger('click');
-        }
-
-    }*/
+    } );
 
     // Set cookie function
     function setCookie(cname, cvalue, exdays) {
@@ -621,109 +281,6 @@ jQuery(function() {
         return "";
 
     }
-
-    // Check if totals should be re-calculated on page load
-    /*if (jQuery('.woocommerce_order_items').length != 0) {
-
-        jQuery(window).ready(function() {
-            if ( getCookie( 'wootax_recalculate_totals' ) == true || getCookie( 'wootax_recalculate_totals' ) == 'true' ) {
-                // Force calculation of tax again for Woo22
-                if ( MyAjax.woo22 ) {
-                    // Calculate taxes
-                    jQuery('#calculateTax').trigger('click');
-
-                    // Reset cookie
-                    setCookie( 'wootax_recalculate_totals', false, 1 );
-                } else {
-                    // Alert user
-                    alert('Since you just calculated the tax for this order, you will now be prompted to re-calculate order totals. After doing so, save the order to update the total.');
-                    
-                    // Trigger calculation of totals
-                    jQuery('.calc_totals').trigger('click');
-
-                    // Reset cookie
-                    setCookie( 'wootax_recalculate_totals', false, 1 );
-                }
-            }
-        });
-
-    }
-
-    // Get shipping address for lookup requests
-    function getShippingAddress() {
-
-        var shipping_address_1 = jQuery('#_shipping_address_1').val();
-        var shipping_address_2 = jQuery('#_shipping_address_2').val();
-        var shipping_country = jQuery('#_shipping_country').find('option:selected').val();
-        var shipping_state = jQuery('#_shipping_state').val();
-        var shipping_city = jQuery('#_shipping_city').val();
-        var shipping_postcode = jQuery('#_shipping_postcode').val();
-
-        // Return formatted for query
-        return '&shipping_address_1=' + shipping_address_1 + '&shipping_address_2=' + shipping_address_2 + '&shipping_country=' + shipping_country + '&shipping_state=' + shipping_state + '&shipping_city=' + shipping_city + '&shipping_postcode=' + shipping_postcode;
-
-    }
-
-    // Get billing address for lookup requests
-    function getBillingAddress() {
-
-        var billing_address_1 = jQuery('#_billing_address_1').val();
-        var billing_address_2 = jQuery('#_billing_address_2').val();
-        var billing_country = jQuery('#_billing_country').find('option:selected').val();
-        var billing_state = jQuery('#_billing_state').val();
-        var billing_city = jQuery('#_billing_city').val();
-        var billing_postcode = jQuery('#_billing_postcode').val();
-
-        // Return formatted for query
-        return '&billing_address_1=' + billing_address_1 + '&billing_address_2=' + billing_address_2 + '&billing_country=' + billing_country + '&billing_state=' + billing_state + '&billing_city=' + billing_city + '&billing_postcode=' + billing_postcode;
-
-    }
-
-    // Calculate tax on demand
-    jQuery('#calculateTax').click(function(e) {
-
-        // Show loader
-        jQuery('#wooLoader').show();
-
-        // Force "edit mode" on products so user can see the fields being edited (2.2+)
-        if (MyAjax.woo22) {
-            if (MyAjax.woo22) {
-                jQuery('.woocommerce_order_items tr.item, .woocommerce_order_items tr.shipping, .woocommerce_order_items tr.fee').each(function() {
-                    jQuery(this).find('.edit-order-item').trigger('click');
-                });
-            }
-        } 
-
-        // Send request to calculate tax amounts
-        var items = getOrderItems();
-        if (items != '') {
-            jQuery.ajax({
-                type: 'POST',
-                url: MyAjax.ajaxURL,
-                data: 'action=wootax-update-tax' + items + '&discount=' + getOrderDiscount() + '&orderID=' + getOrderID() + getShippingAddress() + getBillingAddress() + getShippingMethods(),
-                success: function(resp) {
-                    resp = eval('(' + resp + ')');
-                    if (resp.status == 'success') {
-                        updateOrderTaxes(resp.message);
-                    } else if (resp.status == 'error') {
-                        alert(resp.message);
-                    } else {
-                        alert(resp);
-                    }
-                    // Hide loader
-                    jQuery('#wooLoader').hide();
-                }
-            });
-        } else {
-            alert('You have not added any items to this order add. Please add at least one item and try again.');
-            // Hide loader
-            jQuery('#wooLoader').hide();
-        }
-        
-        // Stop page jitter
-        e.preventDefault();
-
-    });*/
 
     // Remove product TIC
     jQuery('#wootax-remove-tic').click(function(e) {
@@ -867,4 +424,4 @@ jQuery(function() {
 });
 
 var currentTic = '';
-var fieldID = 'wootax_set_tic';
+var fieldID    = 'wootax_set_tic';

@@ -42,8 +42,11 @@ class WC_WooTax_Admin {
 		// Register WooTax integration to build settings page
 		add_filter( 'woocommerce_integrations', array( $this, 'add_integration' ) );
 
+		// Add installation page
+		add_action( 'admin_menu', array( $this, 'admin_menu' ), 20 );
+
 		// Update installation progress
-		add_action( 'admin_init', array( $this, 'update_installation_progress' ) );
+		add_action( 'init', array( $this, 'update_installation_progress' ) );
 
 		// Enqueue admin scripts 
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ), 20 );
@@ -69,11 +72,8 @@ class WC_WooTax_Admin {
 		// Verify origin addressses via AJAX
 		add_action( 'wp_ajax_wootax-verify-address', array( $this, 'verify_origin_addresses' ) );
 
-		// Reset WooTax settings
-		add_action( 'wp_ajax_wootax-clear-settings', array( $this, 'clear_wootax_settings' ) );
-
-		// Deactivate license
-		add_action( 'wp_ajax_wootax-deactivate-license', array( $this, 'wootax_deactivate_license' ) );
+		// Uninstall WooTax
+		add_action( 'wp_ajax_wootax-uninstall', array( $this, 'uninstall_wootax' ) );
 
 		// Delete tax rates from specified tax classes
 		add_action( 'wp_ajax_wootax-delete-rates', array($this, 'wootax_delete_tax_rates') );
@@ -98,6 +98,7 @@ class WC_WooTax_Admin {
 
 	/**
 	 * Update progress of installation on init
+	 * Also, force download of log file if requested
 	 *
 	 * @since 4.2
 	 */
@@ -140,8 +141,31 @@ class WC_WooTax_Admin {
 				wootax_add_flash_message( 'Please enter your license key.' );
 			}
 
-		} else if ( isset( $_GET['rates'] ) ) {
-			update_option( 'wootax_rates_checked', true );
+		} 
+
+		if ( isset( $_GET['download_log'] ) ) {
+
+			// If file doesn't exist, create it
+			$log_path = wc_get_log_file_path( 'wootax' );
+
+			if ( !file_exists( $log_path ) ) {
+				$handle = @fopen( $log_path, 'a' );
+				fclose( $handle );
+			}
+
+			// Force download
+			header( 'Content-Description: File Transfer' );
+		    header( 'Content-Type: application/octet-stream' );
+		    header( 'Content-Disposition: attachment; filename=' . basename( $log_path ) );
+		    header( 'Expires: 0' );
+		    header( 'Cache-Control: must-revalidate' );
+		    header( 'Pragma: public' );
+		    header( 'Content-Length: ' . filesize( $log_path ) );
+
+		    readfile( $log_path );
+
+		    exit;
+
 		}
 
 	}
@@ -153,8 +177,6 @@ class WC_WooTax_Admin {
 	 */
 	public function enqueue_admin_scripts() {
 
-		global $post;
-
 		// WooTax admin JS
 		wp_enqueue_script( 'wootax-admin', WOOTAX_DIR_URL .'js/admin.js', array( 'jquery', 'jquery-tiptip' ), '1.0' );
 
@@ -162,23 +184,9 @@ class WC_WooTax_Admin {
 		wp_enqueue_script( 'jquery-tic', WOOTAX_DIR_URL .'js/jquery-tic.js', array( 'jquery', 'wootax-admin' ) );
 
 		// We need to let our admin script access some important data...
-		$admin_data = array();
-
-		// URL to send AJAX requests to
-		$admin_data['ajaxURL'] = admin_url( 'admin-ajax.php' );
-
-		// Current order ID and tax item ID (if applicable)
-		if ( is_object( $post ) && get_post_type( $post->ID ) == 'shop_order' ) {
-
-			$admin_data['orderID']   = $post->ID;
-			$admin_data['taxItemID'] = (int) get_post_meta( $admin_data['orderID'], '_wootax_tax_item_id', true );
-
-		}
-
-		// WooCommerce version (if we are dealing with a version greater than 2.2)
-		if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ) {
-			$admin_data['woo22'] = true;
-		}
+		$admin_data = array(
+			'ajaxURL' => admin_url( 'admin-ajax.php' )
+		);
 
 		wp_localize_script( 'wootax-admin', 'MyAjax', $admin_data );
 
@@ -509,7 +517,7 @@ class WC_WooTax_Admin {
 	 * @since 1.0
 	 * @return JSON object with status (success | error) and message (array of validated addresses | error message)
 	 */
-	function verify_origin_addresses() {
+	public function verify_origin_addresses() {
 
 		$taxcloud = $this->taxcloud;
 
@@ -596,34 +604,18 @@ class WC_WooTax_Admin {
 	}
 
 	/**
-	 * Reset all WooTax options
-	 * Called on ajax action "wootax-clear-settings"
-	 *
-	 * @since 3.0
-	 * @return JSON object with status (success) and blank message
-	 */
-	function clear_wootax_settings() {
-
-		delete_option( 'woocommerce_wootax_settings' );
-
-		// Return success message
-		die( json_encode( array( 'status' => 'success', 'message' => '' ) ) );
-
-	}
-
-	/**
 	 * Deactivate the user's license on this domain
 	 * Called on AJAX action: wootax-deactivate-license
 	 *
 	 * @since 3.8
-	 * @return JSON object with succcess message
+	 * @return bool true on success; error message on failure
 	 */
-	function wootax_deactivate_license() {
+	private function wootax_deactivate_license() {
 
 		$current_key = get_option( 'wootax_license_key' );
 
 		if ( !$current_key ) {
-			die();
+			return true;
 		}
 
 		// data to send in our API request
@@ -639,14 +631,10 @@ class WC_WooTax_Admin {
 
 		// make sure the response came back okay
 		if ( is_wp_error( $response ) ) {
-			die('There was an error while deactivating your license. Please try again.');
+			return 'There was an error while deactivating your license. Please try again.';
 		}
 
-		// Delete license option
-		delete_option( 'wootax_license_key' );
-
-		// We're good!
-		die( json_encode( array('status' => 'success') ) );
+		return true;
 
 	}
 
@@ -657,11 +645,11 @@ class WC_WooTax_Admin {
 	 * @since 3.5
 	 * @return boolean true on success; error message on failure
 	 */
-	function wootax_delete_tax_rates() {
+	public function wootax_delete_tax_rates() {
 
 		global $wpdb;
 
-		$rate_classes = explode( ',', $_POST['rates'] );
+		$rate_classes   = explode( ',', $_POST['rates'] );
 		$wootax_rate_id = get_option( 'wootax_rate_id' ) == false ? 999999 : get_option( 'wootax_rate_id' );
 
 		foreach ($rate_classes as $rate_class) {
@@ -688,6 +676,43 @@ class WC_WooTax_Admin {
 	}
 
 	/**
+	 * Uninstall WooTax:
+	 * - Remove WooTax tax rate
+	 * - Delete WooTax settings
+	 * - Deactivate license on this domain
+	 *
+	 * @since 4.2
+	 */
+	public function uninstall_wootax() {
+
+		global $wpdb;
+
+		// Deactivate license
+		$license_deactivated = $this->wootax_deactivate_license();
+
+		if ( $license_deactivated !== true ) {
+			die( $license_deactivated );
+		}
+
+		// Remove WooTax tax rate
+		$wootax_rate_id = get_option( 'wootax_rate_id' );
+		$wpdb->query( "DELETE FROM {$wpdb->prefix}woocommerce_tax_rates WHERE tax_rate_id = $wootax_rate_id" );
+
+		// Delete WooTax settings
+		delete_option( 'woocommerce_wootax_settings' );
+
+		// Delete WooTax options
+		delete_option( 'wootax_license_key' );
+		delete_option( 'wootax_rates_checked' );
+		delete_option( 'wootax_rate_id' );
+		delete_option( 'wootax_version' );
+
+		// Done!
+		die( json_encode( array( 'status' => 'success' ) ) );
+
+	}
+
+	/**
 	 * Register WooTax WooCommerce Integration
 	 *
 	 * @since 4.2
@@ -696,6 +721,97 @@ class WC_WooTax_Admin {
 
 		$integrations[] = 'WC_WooTax_Settings';
 		return $integrations;
+
+	}
+
+	/**
+	 * Add installation page if WooTax is not installed
+	 *
+	 * @since 4.2
+	 */
+	public function admin_menu() {
+
+		$license       = get_option( 'wootax_license_key' );
+		$rates_checked = get_option( 'wootax_rates_checked' );
+
+		if ( !$license || !$rates_checked ) {
+			add_submenu_page( 'woocommerce', 'WooTax Installation', 'Install WooTax', 'manage_options', 'wootax_install', array( $this, 'render_installation_page' ) );
+		} 
+
+	}
+
+	/**
+	 * Render installation page
+	 *
+	 * @since 4.2
+	 */
+	public function render_installation_page() {
+
+		$license_key   = get_option( 'wootax_license_key' );
+		$rates_checked = get_option( 'wootax_rates_checked' );
+
+		if ( !$license_key ) {
+			include( WOOTAX_PATH .'templates/admin/license-activation.php' );
+		} else if ( !$rates_checked ) {
+			include( WOOTAX_PATH .'templates/admin/delete-rates.php' );
+		} 
+
+	}
+
+	/**
+ 	 * Display rate removal table during installation
+ 	 */
+ 	public function display_class_table() {
+
+ 		global $wpdb;
+
+		// Get readable tax classes
+		$readable_classes = array( 'Standard Rate' );
+		$raw_classes = get_option( 'woocommerce_tax_classes' );
+		
+		if ( !empty( $raw_classes ) && $raw_classes ) {
+			$readable_classes = array_map( 'trim', array_merge( $readable_classes, explode( PHP_EOL, $raw_classes ) ) );
+		}
+
+		// Get the count for each tax class
+		$rate_counts = array_keys( $readable_classes );
+
+		foreach ( $rate_counts as $key ) {
+			$array_key = sanitize_title( $readable_classes[$key] );
+
+			$count = $wpdb->get_var( $wpdb->prepare("
+				SELECT COUNT(tax_rate_id) FROM
+					{$wpdb->prefix}woocommerce_tax_rates 
+				WHERE 
+					tax_rate_class = %s
+				",
+				($array_key == 'standard-rate' ? '' : $array_key)
+			) );
+
+			if ( $count != false && !empty( $count ) ) {
+				$rate_counts[$array_key] = array( 'name' => $readable_classes[$key], 'count' => $count );
+			} 
+
+			unset( $rate_counts[$key] );
+		}
+
+		// Show message if now classes or rates are added
+		if ( count( $readable_classes ) == 0 || count( $rate_counts ) == 0 ) {
+			echo '<p><strong>You do not have any tax rates added. Click "Complete Installation" to complete the installation process.</strong></p>';
+			return;
+		} 
+
+		include( WOOTAX_PATH .'/templates/admin/rate-table-header.php' );
+
+		foreach ( $rate_counts as $rate => $data ) {
+			$GLOBALS['rate'] = $rate;
+			$GLOBALS['data'] = $data;
+
+			include( WOOTAX_PATH .'/templates/admin/rate-table-row.php' );
+		}
+	
+		echo '</tbody>';
+		echo '</table>';
 
 	}
 }

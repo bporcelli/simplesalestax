@@ -1111,15 +1111,16 @@ class WC_WooTax_Order {
 		global $current_user;
 
 		// Fetch and/or generate customerID
-		if ( $this->customer_id === false ) {
+		if ( $this->customer_id === false || empty( $this->customer_id ) ) {
 
 			// Generate new customer id if one isn't associated with the order already
 			$current_user_id = $this->order->user_id;
 
-			if ( $current_user_id == false ) {
+			if ( $current_user_id === false || empty( $current_user_id ) ) {
 				$customer_id = wp_generate_password( 32, false );
 			} else {
-				$customer_id = $current_user_id;
+				$user        = get_userdata( $current_user_id );
+				$customer_id = $user->user_login;
 			}
 			
 			// Save generated ID

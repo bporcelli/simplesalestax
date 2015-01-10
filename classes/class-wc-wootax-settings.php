@@ -19,7 +19,7 @@ class WC_WooTax_Settings extends WC_Integration {
  
 		$this->id                 = 'wootax';
 		$this->method_title       = __( 'WooTax', 'woocommerce-wootax' );
-		$this->method_description = __( 'WooTax allows you to easily and accurately collect sales tax from your customers using TaxCloud. If you experience issues with WooTax, please consult the <a href="http://wootax.com/frequently-asked-questions/">FAQ</a> and the <a href="http://wootax.com/installation-guide/" target="_blank">Installation Guide</a> before contacting support.', 'woocommerce-wootax' );
+		$this->method_description = __( 'WooTax allows you to easily and accurately collect sales tax from your customers using TaxCloud. If you experience issues with WooTax, please consult the <a href="http://wootax.com/#faq" target="_blank">FAQ</a> and the <a href="http://wootax.com/installation-guide/" target="_blank">Installation Guide</a> before contacting support.', 'woocommerce-wootax' );
  
 		// Load the settings.
 		$this->init_form_fields();
@@ -47,19 +47,23 @@ class WC_WooTax_Settings extends WC_Integration {
 	}
  	
  	/**
- 	 * Display activation screen if plugin isn't activated yet
+ 	 * Show link to Installation page if installation not complete
+ 	 *
+ 	 * @since 4.2
  	 */
- 	public function generate_settings_html( $form_fields = false ) {
+ 	public function admin_options() {
 
  		$license       = get_option( 'wootax_license_key' );
 		$rates_checked = get_option( 'wootax_rates_checked' );
 
-		if ( $license == false ) {
-			include( WOOTAX_PATH .'templates/admin/license-activation.php' );
-		} else if ( $rates_checked == false ) {
-			include( WOOTAX_PATH .'templates/admin/delete-rates.php' );
+		if ( !$license || !$rates_checked ) {
+
+			echo '<h3>WooTax</h3>';
+			echo '<h4>WooTax installation incomplete.</h4>';
+			echo '<a href="?page=wootax_install" class="wp-core-ui button-primary">Install WooTax</a>';
+
 		} else {
-			parent::generate_settings_html();
+			parent::admin_options();
 		}
 
  	}
@@ -191,22 +195,23 @@ class WC_WooTax_Settings extends WC_Integration {
 				'description' 		=> __( 'When the sales tax due is zero, should the "Sales Tax" line be shown?', 'woocommerce-wootax' ),
 				'desc_tip'			=> true
 			),
-			'clear_settings_button' => array(
-				'title'				=> 'Reset WooTax',
-				'label'				=> 'Reset',
+			'uninstall_button' => array(
+				'title'				=> 'Uninstall WooTax',
+				'label'				=> 'Uninstall',
 				'type'				=> 'button',
-				'id'				=> 'resetSettings',
-				'description'		=> __( 'Use this button to reset WooTax. All of your settings will be erased.', 'woocommerce-wootax' ),
-				'desc_tip'			=> true
-			),
-			'deactive_license_button' => array(
-				'title'				=> 'Deactivate License',
-				'label'				=> 'Deactivate',
+				'id'				=> 'wootax_uninstall',
+				'description'		=> __( 'Click this button to uninstall WooTax. All of your settings will be erased and your license will be deactivated on this domain.', 'woocommerce-wootax' ),
+				'desc_tip'			=> true,
+				'loader'            => true,
+			), 
+			'download_log_button' => array(
+				'title'				=> 'Download Log File',
+				'label'				=> 'Download Log',
 				'type'				=> 'button',
-				'id'				=> 'wootax_deactivate_license',
-				'description'		=> __( 'Use this button to deactivate your license on this domain. Useful if you want to activate WooTax on a different website.', 'woocommerce-wootax' ),
-				'desc_tip'			=> true
-			)
+				'id'				=> 'wootax_download_log',
+				'description'		=> __( 'Click this button to download the WooTax log file for debugging purposes.', 'woocommerce-wootax' ),
+				'desc_tip'			=> true,
+			), 
 		);
 
 	}
@@ -247,7 +252,15 @@ class WC_WooTax_Settings extends WC_Integration {
 				<fieldset>
 					<legend class="screen-reader-text"><span><?php echo wp_kses_post( $data['title'] ); ?></span></legend>
 					<button class="wp-core-ui button button-secondary" type="button" id="<?php echo $data['id']; ?>"><?php echo wp_kses_post( $data['label'] ); ?></button>
-					<?php echo $this->get_description_html( $data ); ?>
+					<?php 
+
+						if ( isset( $data['loader'] ) ) {
+							echo '<div id="wootax-loader"></div>';
+						}
+
+						echo $this->get_description_html( $data ); 
+
+					?>
 				</fieldset>
 			</td>
 		</tr>
@@ -420,63 +433,6 @@ class WC_WooTax_Settings extends WC_Integration {
 		return $settings;
 
  	}
-
- 	/**
- 	 * Display rate removal table during installation
- 	 */
- 	public function display_class_table() {
-
- 		global $wpdb;
-
-		// Get readable tax classes
-		$readable_classes = array( 'Standard Rate' );
-		$raw_classes = get_option( 'woocommerce_tax_classes' );
-		
-		if ( !empty( $raw_classes ) && $raw_classes ) {
-			$readable_classes = array_map( 'trim', array_merge( $readable_classes, explode( PHP_EOL, $raw_classes ) ) );
-		}
-
-		// Get the count for each tax class
-		$rate_counts = array_keys( $readable_classes );
-
-		foreach ( $rate_counts as $key ) {
-			$array_key = sanitize_title( $readable_classes[$key] );
-
-			$count = $wpdb->get_var( $wpdb->prepare("
-				SELECT COUNT(tax_rate_id) FROM
-					{$wpdb->prefix}woocommerce_tax_rates 
-				WHERE 
-					tax_rate_class = %s
-				",
-				($array_key == 'standard-rate' ? '' : $array_key)
-			) );
-
-			if ( $count != false && !empty( $count ) ) {
-				$rate_counts[$array_key] = array( 'name' => $readable_classes[$key], 'count' => $count );
-			} 
-
-			unset( $rate_counts[$key] );
-		}
-
-		// Show message if now classes or rates are added
-		if ( count( $readable_classes ) == 0 || count( $rate_counts ) == 0 ) {
-			echo '<p><strong>You do not have any tax rates added. Click "Next Step" to complete the installation process.</strong></p>';
-			return;
-		} 
-
-		include( WOOTAX_PATH .'/templates/admin/rate-table-header.php' );
-
-		foreach ( $rate_counts as $rate => $data ) {
-			$GLOBALS['rate'] = $rate;
-			$GLOBALS['data'] = $data;
-
-			include( WOOTAX_PATH .'/templates/admin/rate-table-row.php' );
-		}
-	
-		echo '</tbody>';
-		echo '</table>';
-
-	}
 }
  
 endif;

@@ -1,6 +1,6 @@
 /* WooTax admin CSS */
 
-.woocommerce_page_wootax .error, .woocommerce_page_wootax .updated {
+.woocommerce_page_wootax_install .error, .woocommerce_page_wootax_install .updated {
 	margin-left: 0px !important;
 	margin-top: 15px !important;
 }
@@ -17,19 +17,14 @@
 	padding-left: 10px;
 }
 
-#poststuff #woocommerce-order-totals .buttons .calc_line_taxes {
-	/*display: none !important;*/
-}
-
 #calculateTax {
     display: none;
 	float: left;
 }
 
-#wooLoader {
-	float: left;
+#wootax-loader {
 	width: 16px;
-	height: 30px;
+	height: 26px;
 	background: url('../img/ajax-loader.gif') left center no-repeat;
 	display: none;
 	margin-left: 5px;
@@ -134,7 +129,7 @@ a.remove_address.disabled {
     border-left-color: #464646;
 }
 
-#tiptip_content,.chart-tooltip,.wc_error_tip {
+#tiptip_content,.chart-tooltip, .wc_error_tip {
     font-size: 11px;
     color: #fff;
     padding: .5em;
@@ -149,12 +144,12 @@ a.remove_address.disabled {
     max-width: 150px;
 }
 
-#tiptip_content code,.chart-tooltip code,.wc_error_tip code {
+#tiptip_content code,.chart-tooltip code, .wc_error_tip code {
     background: #888;
     padding: 1px;
 }
 
-#tiptip_arrow,#tiptip_arrow_inner {
+#tiptip_arrow, #tiptip_arrow_inner {
     position: absolute;
     border-color: transparent;
     border-style: solid;
@@ -167,7 +162,7 @@ a.remove_address.disabled {
     max-width: 259px !important;
 }
 
-/*.button.calculate-tax-action, */.button.add-order-tax, a.delete_refund {
+.button.add-order-tax, a.delete_refund {
     display: none !important;
 }
 

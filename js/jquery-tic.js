@@ -74,9 +74,9 @@ function checkRequirements(reqs) {
                 errorString += " but is required when <i>withSubmit=true</i>"
             }
         }
-        if (!isOK) {
+        /*if (!isOK) {
             jQuery("body").append("<div style='margin:0px;padding:10px 0px 10px 0px;text-align:center;font-family:verdana;position:relative;top:0px:left:0px;width:" + jQuery("body").width() + ";z-index:100;color:#000000;background:#FFCC00;border:1px solid #000066;'>TaxCloud JS TIC Selector ERROR: javascript <b style='color:#000000;'>" + reqs[x] + "</b> var is <b style='color:#000000;'>" + errorString + "</b>.</div>")
-        }
+        }*/
     }
     return isOK
 }
