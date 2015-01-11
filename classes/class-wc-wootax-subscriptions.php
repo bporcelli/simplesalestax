@@ -27,10 +27,13 @@ class WC_WooTax_Subscriptions {
 		add_filter( 'woocommerce_get_order_item_totals', array( $this, 'get_order_item_totals' ), 5, 2 );
 
 		// Handle renewal orders
-		add_action( 'woocommerce_renewal_order_payment_complete', array( $this, 'handle_renewal_order' ), 10, 4 );
+		add_action( 'woocommerce_renewal_order_payment_complete', array( $this, 'handle_renewal_order' ), 10, 1 );
 
 		// Fix recurring taxes: add "cart_tax" and "shipping_tax" meta keys
 		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'fix_recurring_taxes' ), 15, 2 );
+
+		// Remove duplicate tax columns from renewal orders
+		add_action( 'woocommerce_subscriptions_renewal_order_created', array( $this, 'remove_duplicate_renewal_taxes' ), 10, 2 );
 
 	}
 
@@ -69,13 +72,24 @@ class WC_WooTax_Subscriptions {
 	 * @since 4.0
 	 * @param $order_id the ID of the renewal order
 	 */
-	function handle_renewal_order( $order_id ) {
+	public function handle_renewal_order( $order_id ) {
 
 		global $WC_WooTax_Order;
 
 		// Create a new WC_WooTax_Order object
 		$order = $WC_WooTax_Order;
 		$order->load_order( $order_id );
+
+		// Set destination address based on original order
+		$renewal_parent             = get_post_meta( $order->order_id, '_original_order', true );
+		$original_order             = new WC_Order( $renewal_parent );
+
+		$order->destination_address = $this->get_destination_address( $original_order );
+		
+		// Reset order meta values to default 
+		foreach ( $order->defaults as $key => $val ) {
+			$order->$key = $val;
+		}
 
 		// Build order items array
 		$final_items = array();
@@ -110,12 +124,15 @@ class WC_WooTax_Subscriptions {
 
 				case 'shipping':
 					$tic  = WOOTAX_SHIPPING_TIC;
+					$type = 'shipping';
 					break;
 				case 'fee':
 					$tic  = WOOTAX_FEE_TIC;
+					$type = 'fee';
 					break;
 				case 'line_item':
 					$tic  = get_post_meta( $product_id, 'wootax_tic', true );
+					$type = 'cart';
 					break;
 
 			}
@@ -128,9 +145,6 @@ class WC_WooTax_Subscriptions {
 
 				// Map item_id to item type 
 				$type_array[ $item_id ] = $type == 'shipping' ? 'shipping' : 'cart';
-			
-				// Add tax amount to tax array
-				$old_taxes[ $item_id ] = $order->get_item_tax( $item_id );
 				
 				// Add to items array 
 				$item_data = array(
@@ -177,8 +191,6 @@ class WC_WooTax_Subscriptions {
 		$result = $order->do_lookup( $final_items, $type_array );
 
 		// Add errors as notes if necessary
-		$original_order = new WC_Order( $order->order->post->post_parent );
-
 		if ( $result != true ) {
 
 			$original_order->add_order_note( sprintf( __( 'Tax lookup for renewal order %s failed. Reason: '. $result, 'woocommerce-subscriptions' ), $order_id ) );
@@ -186,7 +198,7 @@ class WC_WooTax_Subscriptions {
 		} else {
 
 			// Mark order as captured
-			$order->complete( $order_id );
+			$order->order->update_status( 'completed' );
 
 			// Add success note
 			$original_order->add_order_note( sprintf( __( 'TaxCloud was successfully notified of renewal order %s.', 'woocommerce-subscriptions' ), $order_id ) );
@@ -220,6 +232,67 @@ class WC_WooTax_Subscriptions {
 
 	}
 
+	/**
+	 * Get destination address information from original order
+	 *
+	 * @since 4.2
+	 */
+	public function get_destination_address( $order ) {
+
+		// Initialize blank address array
+		$address = array();
+		
+		// Construct final address arraya
+		$parsed_zip = parse_zip( $order->shipping_postcode );
+
+		$address['Address1'] = $order->shipping_address_1;
+		$address['Address2'] = $order->shipping_address_2;
+		$address['Country']  = $order->shipping_country;
+		$address['State']    = $order->shipping_state;
+		$address['City']     = $order->shipping_city;
+		$address['Zip5']     = $parsed_zip['zip5'];
+		$address['Zip4']     = $parsed_zip['zip4']; 
+
+		// Return final address
+		return $address;
+
+	}
+
+	/**
+	 * Remove duplicate tax column from renewal orders
+	 *
+	 * @since 4.2
+	 */
+	public function remove_duplicate_renewal_taxes( $renewal_order, $original_order ) {
+
+		global $wpdb;
+
+		$wootax_rate_id = get_option( 'wootax_rate_id' );
+
+		$original_taxes = $original_order->get_items( 'recurring_tax' );
+		$new_taxes      = $renewal_order->get_taxes();
+		$to_remove      = array();
+
+		foreach ( $original_taxes as $tax_item_id => $data ) {
+
+			if ( $data['rate_id'] != $wootax_rate_id ) 
+				continue;
+
+			foreach ( $new_taxes as $tax_id => $tax_data ) {
+
+				if ( $tax_data['tax_amount'] == $data['tax_amount'] && $tax_data['rate_id'] == $data['rate_id'] ) {
+					$to_remove[] = $tax_id;
+				}
+
+			}
+
+		}	
+
+		foreach ( $to_remove as $tax_item_id ) {
+			wc_delete_order_item( $tax_item_id );
+		}
+
+	}
 }
 
 new WC_WooTax_Subscriptions();

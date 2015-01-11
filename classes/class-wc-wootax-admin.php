@@ -146,11 +146,17 @@ class WC_WooTax_Admin {
 		if ( isset( $_GET['download_log'] ) ) {
 
 			// If file doesn't exist, create it
-			$log_path = wc_get_log_file_path( 'wootax' );
+			$handle = 'wootax';
+
+			if ( function_exists( 'wc_get_log_file_path' ) ) {
+				$log_path = wc_get_log_file_path( $handle );
+			} else {
+				$log_path = WC()->plugin_path() . '/logs/' . $handle . '-' . sanitize_file_name( wp_hash( $handle ) ) . '.txt';
+			}
 
 			if ( !file_exists( $log_path ) ) {
-				$handle = @fopen( $log_path, 'a' );
-				fclose( $handle );
+				$fh = @fopen( $log_path, 'a' );
+				fclose( $fh );
 			}
 
 			// Force download

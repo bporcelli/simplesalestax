@@ -897,14 +897,23 @@ class WC_WooTax_Checkout {
 		$certificate_data = NULL;
 		
 		if ( !empty( $this->woo->session->certificate_id ) ) {
+
 			if ( $this->woo->session->certificate_id == 'true' ) {
+
 				$certificate_data = $this->woo->session->certificate_data;
-				$certificate_data['Detail']['SinglePurchaseOrderNumber'] = generate_order_id();
+
+				if ( !isset( $certificate_data['Detail']['SinglePurchaseOrderNumber'] ) ) {
+					$certificate_data['Detail']['SinglePurchaseOrderNumber'] = generate_order_id();
+				}
+				
+				$this->woo->session->certificate_data = $certificate_data;
+
 			} else {
 				$certificate_data = array(
 					'CertificateID' => $this->woo->session->certificate_id,
 				);
 			}
+
 		}
 
 		return $certificate_data;

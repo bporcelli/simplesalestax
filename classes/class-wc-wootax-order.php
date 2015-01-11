@@ -30,7 +30,7 @@ class WC_WooTax_Order {
 	/**
 	 * Array of default values for some fields
 	 */
-	private $defaults = array(
+	public $defaults = array(
 		'tax_total'              => 0,
 		'shipping_tax_total'     => 0,
 		'customer_id'            => 0,
@@ -49,7 +49,7 @@ class WC_WooTax_Order {
 	/**
 	 * Customer destination address
 	 */
-	private $destination_address = array();
+	public $destination_address = array();
 
 	/**
 	 * Holds the ID of the WooTax tax rate
@@ -130,6 +130,11 @@ class WC_WooTax_Order {
 		// Add order meta
 		add_action( 'woocommerce_new_order', array( $this, 'add_order_meta' ), 10, 1 );
 
+		// Store tax item ID (2.1.x)
+		if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '<' ) ) {
+			add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'store_tax_item_id' ), 10, 1 );
+		}
+
 	}
 
 	/**
@@ -174,9 +179,6 @@ class WC_WooTax_Order {
 
 		// WC 2.1.x support
 		if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '<' ) ) {
-
-			// Store ID of WooTax tax item
-			$this->store_tax_item_id( $order_id );
 
 			// Store shipping item index 
 			$location_id = isset( $this->location_mapping_array[ WOOTAX_SHIPPING_ITEM ] ) ? $this->location_mapping_array[ WOOTAX_SHIPPING_ITEM ] : 0;
@@ -274,7 +276,7 @@ class WC_WooTax_Order {
 	 * @since 4.2
 	 * @param $order_id ID of newly created order
 	 */
-	private function store_tax_item_id( $order_id ) {
+	public function store_tax_item_id( $order_id ) {
 
 		$tax_items   = $this->order->get_taxes();
 		$tax_item_id = 0;
@@ -811,6 +813,9 @@ class WC_WooTax_Order {
 	 */
 	public function do_lookup( $items, $type_array ) {
 		
+		// Instantiate WC_WooTax_TaxCloud object
+		$this->taxcloud = get_taxcloud();
+
 		// Fire request if we are ready to do so
 		if ( $this->ready_for_lookup() ) {
 
@@ -975,14 +980,21 @@ class WC_WooTax_Order {
 		$certificate_data = NULL;
 		
 		if ( !empty( $this->woo->session->certificate_id ) ) {
+
 			if ( $this->woo->session->certificate_id == 'true' ) {
+
 				$certificate_data = $this->woo->session->certificate_data;
-				$certificate_data['Detail']['SinglePurchaseOrderNumber'] = generate_order_id();
+
+				if ( !isset( $certificate_data['Detail']['SinglePurchaseOrderNumber'] ) ) {
+					$certificate_data['Detail']['SinglePurchaseOrderNumber'] = $this->order_id;
+				}
+
 			} else {
 				$certificate_data = array(
 					'CertificateID' => $this->woo->session->certificate_id,
 				);
 			}
+
 		} else if ( !is_bool( $this->exemption_applied ) ) {
 			$certificate_data = $this->exemption_applied;
 		}
@@ -1039,8 +1051,8 @@ class WC_WooTax_Order {
 		// Construct final address arraya
 		$parsed_zip = parse_zip( $_POST['postcode'] );
 
-		$address['Address1'] = '';//$address_1;
-		$address['Address2'] = '';//$address_2;
+		$address['Address1'] = '';
+		$address['Address2'] = '';
 		$address['Country']  = $_POST['country'];
 		$address['State']    = $_POST['state'];
 		$address['City']     = $_POST['city'];
@@ -1564,9 +1576,6 @@ class WC_WooTax_Order {
 
 		// Set up WC_WooTax_Order object
 		$this->load_order( $order_id );
-
-		// Instantiate WC_WooTax_TaxCloud object
-		$this->taxcloud = get_taxcloud();
 		
 		// Update customer address
 		$this->destination_address = $this->get_destination_address();
@@ -1645,10 +1654,6 @@ class WC_WooTax_Order {
 
 				$qty = 1;
 
-				if ( isset( $items['order_item_qty'][$item_id] ) ) {
-					$qty = $items['order_item_qty'][$item_id];
-				}
-
 				if ( is_array( $items['shipping_method_id'] ) && in_array( $item_id, $items['shipping_method_id'] ) ) {
 					// Shipping method
 					$tic  = WOOTAX_SHIPPING_TIC;
@@ -1704,8 +1709,6 @@ class WC_WooTax_Order {
 
 		// Convert response array to be sent back to client
 		// @see WC_AJAX::calc_line_taxes() for inspiration
-		// TODO: UPDATE SO OTHER TAX RATES ARE INCLUDED IN CALCS?
-
 		if ( is_array( $res ) ) {
 			
 			if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ) {
