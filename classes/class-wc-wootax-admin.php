@@ -352,10 +352,7 @@ class WC_WooTax_Admin {
 		?>
 		<p>The status of this order in TaxCloud is displayed below. There are three possible values for the order status: "Pending Capture," "Captured," and "Refunded."</p>
 		<p>Eventually, all of your orders should have a status of "Captured." To mark an order as captured, set its status to "Completed" and save it.</p>
-		<p><strong><em>Please note that tax can only be recalculated using the "Calculate Taxes" button if the status below is "Pending Capture."</em></strong></p>
-        <p>
-        	<strong>TaxCloud Status:</strong> <?php echo $order->get_status(); ?><br />
-        </p>
+		<p><strong>Please note that tax can only be calculated using the "Calculate Taxes" button if the status below is "Pending Capture."</strong></p>
         <?php
 		
 		// Display a "calculate tax" button if the order has not been captured yet
@@ -366,10 +363,16 @@ class WC_WooTax_Admin {
 			
 			// Display special message for users of WooCommerce Subscriptions
 			if ( class_exists( 'WC_Subscriptions' ) && WC_Subscriptions_Order::order_contains_subscription( $order->order ) ) {
-				echo '<p><strong>Note: Recalculating taxes will only update the tax amount for the initial subscription payment. Recurring tax totals will be updated when the subscription is renewed.</strong></p>';
+				echo '<p><strong>Calculating taxes will only update the tax amount for the initial subscription payment. Recurring tax totals will be updated when the subscription is renewed.</strong></p>';
 			}
 
 		}
+
+		?>
+		<p>
+        	<strong>TaxCloud Status:</strong> <?php echo $order->get_status(); ?><br />
+        </p>
+        <?php
 
 	}
 

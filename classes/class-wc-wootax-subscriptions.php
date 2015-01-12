@@ -222,8 +222,9 @@ class WC_WooTax_Subscriptions {
 			if ( count( $order->get_items( 'recurring_tax' ) ) > 0 ) {
 
 				foreach ( $order->get_items( 'recurring_tax' ) as $item_id => $item ) {
-					wc_add_order_item_meta( $item_id, 'cart_tax', $item['tax_amount'] );
-					wc_add_order_item_meta( $item_id, 'shipping_tax', $item['shipping_tax_amount'] );
+					wc_update_order_item_meta( $item_id, 'cart_tax', $item['tax_amount'] );
+					wc_update_order_item_meta( $item_id, 'shipping_tax', $item['shipping_tax_amount'] );
+					wc_update_order_item_meta( $item_id, 'compound', true );
 				}
 
 			}
