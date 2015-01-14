@@ -421,7 +421,6 @@ class WC_WooTax_Order {
 	 */
 	public function remove_tax() {
 		
-		//TODO: TEST WITH 2.1.x
 		if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '<' ) ) {
 			$items = $this->order->get_items() + $this->order->get_fees();
 		} else {

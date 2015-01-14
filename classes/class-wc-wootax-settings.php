@@ -19,7 +19,7 @@ class WC_WooTax_Settings extends WC_Integration {
  
 		$this->id                 = 'wootax';
 		$this->method_title       = __( 'WooTax', 'woocommerce-wootax' );
-		$this->method_description = __( 'WooTax allows you to easily and accurately collect sales tax from your customers using TaxCloud. If you experience issues with WooTax, please consult the <a href="http://wootax.com/#faq" target="_blank">FAQ</a> and the <a href="http://wootax.com/installation-guide/" target="_blank">Installation Guide</a> before contacting support.', 'woocommerce-wootax' );
+		$this->method_description = __( '<p>WooTax allows you to easily and accurately collect sales tax from your customers using TaxCloud. If you experience issues with WooTax, please consult the <a href="http://wootax.com/#faq" target="_blank">FAQ</a> and the <a href="http://wootax.com/installation-guide/" target="_blank">Installation Guide</a> before contacting support.</p><p>Need help? <a href="http://wootax.com/contact-us/" target="_blank">Contact us</a>.</p>', 'woocommerce-wootax' );
  
 		// Load the settings.
 		$this->init_form_fields();

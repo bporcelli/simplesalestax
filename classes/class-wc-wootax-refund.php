@@ -103,13 +103,11 @@ function process_refund( $refund ) {
 
 	}
 
-	if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ) {
+	$id_array[ WOOTAX_SHIPPING_ITEM ] = isset( $identifiers[ WOOTAX_SHIPPING_ITEM ] ) ? $identifiers[ WOOTAX_SHIPPING_ITEM ] : WOOTAX_SHIPPING_ITEM;
+
+	if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) && !isset( $identifiers[ WOOTAX_SHIPPING_ITEM ] ) ) {
 		
 		foreach ( $order->order->get_shipping_methods() as $method_id => $method ) {
-
-			if ( isset( $identifiers[ WOOTAX_SHIPPING_ITEM ] ) ) {
-				$method_id = $identifiers[ WOOTAX_SHIPPING_ITEM ];
-			}
 
 			$id_array[ WOOTAX_SHIPPING_ITEM ] = $method_id;
 
@@ -187,11 +185,7 @@ function process_refund( $refund ) {
 
 	if ( $shipping_cost != 0 ) {
 
-		if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ) {
-			$item_id = $id_array[ WOOTAX_SHIPPING_ITEM ];
-		} else {
-			$item_id = WOOTAX_SHIPPING_ITEM;
-		}
+		$item_id = $id_array[ WOOTAX_SHIPPING_ITEM ];
 
 		$refund_items[ $first_found ][] = array(
 			'Index'  => '', 
