@@ -29,7 +29,10 @@ define( 'WOOTAX_FEE_TIC', 10010 );
 define( 'WOOTAX_VERSION', '4.2' );
 
 require 'includes/wc-wootax-functions.php';
-require 'classes/EDD_SL_Plugin_Updater.php';
+
+if ( !class_exists( 'EDD_SL_Plugin_Updater' ) ) {
+	require 'classes/EDD_SL_Plugin_Updater.php';
+}
 
 /**
  * The main WooTax class

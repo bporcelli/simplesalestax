@@ -112,7 +112,7 @@ class WC_WooTax_Order {
 		add_action( 'woocommerce_add_shipping_order_item', array( $this, 'add_shipping_meta' ), 10, 3 );
 
 		// Hide meta from users
-		//add_filter( 'woocommerce_hidden_order_itemmeta', array( $this, 'hide_order_item_meta' ), 10, 1 );
+		add_filter( 'woocommerce_hidden_order_itemmeta', array( $this, 'hide_order_item_meta' ), 10, 1 );
 
 		// Hook into WooCommerce calculate tax ajax action so we can add WooTax taxes
 		add_action( 'wp_ajax_woocommerce_calc_line_taxes', array( $this, 'ajax_update_order_tax' ), 1 );
