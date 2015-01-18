@@ -4,7 +4,7 @@
  * Plugin Name: WooTax
  * Plugin URI: http://wootax.com
  * Description: Harness the power of TaxCloud to accurately calculate sales tax for your WooCommerce store.
- * Version: 4.2
+ * Version: 4.3
  * Author: Brett Porcelli
  */
 
@@ -26,7 +26,7 @@ define( 'WOOTAX_DIR_URL', plugin_dir_url( __FILE__ ) );
 define( 'WOOTAX_SHIPPING_TIC', 11010 );
 define( 'WOOTAX_SHIPPING_ITEM', 'SHIPPING' );
 define( 'WOOTAX_FEE_TIC', 10010 );
-define( 'WOOTAX_VERSION', '4.2' );
+define( 'WOOTAX_VERSION', '4.3' );
 
 require 'includes/wc-wootax-functions.php';
 

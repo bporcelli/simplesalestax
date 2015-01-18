@@ -54,9 +54,6 @@ class WC_WooTax_Admin {
 		// Enqueue admin styles
 		add_action( 'admin_print_styles', array( $this, 'enqueue_admin_styles' ) );
 		
-		// Display warning about coupon configuration if appropriate
-		add_action( 'admin_head', array( $this, 'display_coupon_warning_message' ) );
-		
 		// Register meta boxes
 		add_action( 'add_meta_boxes', array( $this, 'register_admin_metaboxes' ) );
 		
@@ -205,21 +202,6 @@ class WC_WooTax_Admin {
 	 */
 	public function enqueue_admin_styles() {
 		wp_enqueue_style( 'wootax-admin-style', WOOTAX_DIR_URL .'css/admin.css' );
-	}
-	
-	/**
-	 * Display warning on coupon page if the "Apply before tax" setting is set to "No"
-	 *
-	 * @since 4.2
-	 */
-	public function display_coupon_warning_message() {
-
-		global $post;
-		
-		if ( is_object( $post ) && $post->post_type == 'shop_coupon' && get_post_meta( $post->ID, 'apply_before_tax', true ) != 'yes' ) {
-			wootax_add_flash_message( '<strong>WARNING:</strong> "Apply before tax" must be selected for WooTax to work properly.' );
-		}
-
 	}
 	
 	/**

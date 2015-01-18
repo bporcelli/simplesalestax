@@ -233,11 +233,10 @@ function wootax_get_option( $key = '' ) {
  * @since 4.2
  * @param $key the key of the option to be updated
  * @param $value the new value of the option
- * @param $user_id (int) the ID of the use whose settings we want to modify (for multivendor installations)
  */
-function wootax_set_option( $key = '', $value = '', $user_id = -1 ) {
+function wootax_set_option( $key = '', $value = '' ) {
 
-	$settings_key = 'woocommerce_wootax_settings'. ( $user_id == -1 ? '' : '_' . $user_id );
+	$settings_key = 'woocommerce_wootax_settings';
 
 	$settings = get_option( $settings_key );
 
