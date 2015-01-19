@@ -381,7 +381,7 @@ class WC_WooTax_Admin {
 		$origin_addresses = fetch_product_origin_addresses( $post->ID );
 
 		// Output addresses
-		echo '<select class="chosen_select" name="_wootax_origin_addresses[]" multiple>';
+		echo '<select class="wc-enhanced-select" name="_wootax_origin_addresses[]" multiple>';
 
 		if ( is_array( $this->addresses ) && count( $this->addresses ) > 0 ) {
 			foreach ( $this->addresses as $key => $address ) {

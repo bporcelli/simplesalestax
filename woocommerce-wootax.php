@@ -16,7 +16,8 @@ if( !function_exists( 'is_plugin_active' ) ) {
 	require ABSPATH . 'wp-admin/includes/plugin.php';
 }
 
-if ( !is_plugin_active( 'woocommerce/woocommerce.php' ) ) {
+// TODO: REMOVE CHECK FOR BETA
+if ( !is_plugin_active( 'woocommerce/woocommerce.php' ) && !is_plugin_active( 'woocommerce-2.3.0-beta-1/woocommerce.php' ) ) {
 	return;
 }
 
