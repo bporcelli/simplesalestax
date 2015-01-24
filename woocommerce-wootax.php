@@ -31,6 +31,14 @@ define( 'WOOTAX_VERSION', '4.3' );
 
 require 'includes/wc-wootax-functions.php';
 
+// Include TaxCloud functions if the PHP SOAP module is activated; otherwise, halt plugin execution
+if ( class_exists( 'SOAPClient' ) ) {
+	require 'includes/wc-wootax-taxcloud-functions.php';
+} else {
+	wootax_add_flash_message( '<strong>Warning! WooTax has been disabled.</strong> The SOAPClient class is required by WooTax, but it is not activated on your server. Please see <a href="#" target="_blank">this article</a> for advice on what to do next.' );
+	return;
+}
+
 if ( !class_exists( 'EDD_SL_Plugin_Updater' ) ) {
 	require 'classes/EDD_SL_Plugin_Updater.php';
 }
@@ -90,6 +98,9 @@ class WC_WooTax {
 		
 		// Run update routine if necessary
 		add_action( 'admin_init', array( $this, 'update_wootax' ) );
+
+		// Maybe show activation message
+		add_action( 'admin_init', array( $this, 'maybe_show_activation_success' ) );
 		
 		// Add custom post type for wootax orders
 		add_action( 'init', array( $this, 'add_post_type' ) );
@@ -128,21 +139,24 @@ class WC_WooTax {
 		
 		// Display taxes in "itemized" form 
 		update_option( 'woocommerce_tax_total_display', 'itemized' );
+		
+		// Set cookie so we know to show activation success message on the next page load
+		// This needs to be done because WordPress redirects immediately after activation (thereby causing the wootax flash message to be erased)
+		setcookie( 'wootax_activated', true, time() + 3600, '/' );
 
-		// Loop through all coupons; make sure "apply_before_tax" is set to "yes"
-		$coupons = new WP_Query( array(
-			'post_type' => 'shop_coupon', 
-			'post_status' => 'any', 
-			'posts_per_page' => '-1'
-		) );
-		
-		if ( $coupons->have_posts() ): while( $coupons->have_posts() ): $coupons->the_post();
-			update_post_meta( $coupons->post->ID, 'apply_before_tax', 'yes' );
-		endwhile;
-		endif;
-		
-		// Add flash message so the user can review the changes to their tax settings
-		wootax_add_flash_message( 'Your WooCommerce settings have been automatically adjusted to work with WooTax. You can review the alterations under WooCommerce -> Settings -> Tax. For help installing or configuring WooTax, please consult the <a href="http://wootax.com/installation-guide/" target="_blank">Installation Guide</a> and <a href="http://wootax.com/frequently-asked-questions/" target="_blank">FAQ</a>.', 'updated' );
+	}
+
+	/**
+	 * Maybe show activation success message 
+	 *
+	 * @since 4.3
+	 */
+	public function maybe_show_activation_success() {
+
+		if ( isset( $_COOKIE['wootax_activated'] ) ) {
+			wootax_add_flash_message( '<strong>Success!</strong> Your WooCommerce tax settings have been automatically adjusted to work with WooTax.', 'updated' );
+			setcookie( 'wootax_activated', '', time() - 3600, '/' );
+		}
 
 	}
 

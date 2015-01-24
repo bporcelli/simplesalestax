@@ -37,7 +37,7 @@ class WC_WooTax_Settings extends WC_Integration {
 		$this->exemption_text  = $this->get_option( 'exemption_text' );
 		$this->tax_based_on    = $this->get_option( 'tax_based_on' );
 		$this->log_requests    = $this->get_option( 'log_requests' );
- 
+
 		// Actions.
 		add_action( 'woocommerce_update_options_integration_' .  $this->id, array( $this, 'process_admin_options' ) );
  	
@@ -148,7 +148,7 @@ class WC_WooTax_Settings extends WC_Integration {
 			'display_settings' => array(
 				'title' 			=> 'Display Settings',
 				'type'              => 'section',
-				'description'       => __( 'Control the frontend display of WooTax.', 'woocommerce-wootax' )
+				'description'       => __( 'Control how taxes are displayed during checkout.', 'woocommerce-wootax' )
 			),
 			'show_zero_tax' => array(
 				'title' 			=> 'Show Zero Tax?',
@@ -192,7 +192,7 @@ class WC_WooTax_Settings extends WC_Integration {
 					'line-subtotal' => 'Line Subtotal',
 				),
 				'default' 			=> 'item-price',
-				'description' 		=> __( 'When the sales tax due is zero, should the "Sales Tax" line be shown?', 'woocommerce-wootax' ),
+				'description' 		=> __( '"Item Price": TaxCloud determines the taxable amount for a line item by multiplying the item price by its quantity. "Line Subtotal": the taxable amount is determined by the line subtotal. Useful in instances where rounding becomes an issue.', 'woocommerce-wootax' ),
 				'desc_tip'			=> true
 			),
 			'uninstall_button' => array(
