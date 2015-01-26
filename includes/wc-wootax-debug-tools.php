@@ -18,7 +18,7 @@ function custom_woocommerce_debug_tools( $tools ) {
 		'name'		=> __( 'Delete Tax Rates',''),
 		'button'	=> __( 'Delete ALL tax rates from WooCommerce','' ),
 		'desc'		=> __( 'This tool will delete all your tax rates allowing you to start fresh.', '' ),
-		'callback'  => 'woocommerce_delete_tax_rates',
+		'callback'  => array($this, 'woocommerce_delete_tax_rates')
 	);
 
 	return $tools;

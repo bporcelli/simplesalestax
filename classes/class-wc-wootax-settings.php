@@ -145,6 +145,13 @@ class WC_WooTax_Settings extends WC_Integration {
 				'description' 		=> __( 'Enter your company name as it should be displayed on exemption certificates.', 'woocommerce-wootax' ),
 				'desc_tip'			=> true
 			),
+			'exemption_text' => array(
+				'title'				=> 'Exemption Link Text',
+				'type'				=> 'text',
+				'default'			=> 'Click here to add or apply an exemption certificate',
+				'description' 		=> __( 'This text is displayed on the link that opens the exemption management interface. Defaults to "Click here to add or apply an exemption certificate."', 'woocommerce-wootax' ),
+				'desc_tip'			=> true
+			),
 			'display_settings' => array(
 				'title' 			=> 'Display Settings',
 				'type'              => 'section',
@@ -159,13 +166,6 @@ class WC_WooTax_Settings extends WC_Integration {
 				),
 				'default' 			=> 'false',
 				'description' 		=> __( 'When the sales tax due is zero, should the "Sales Tax" line be shown?', 'woocommerce-wootax' ),
-				'desc_tip'			=> true
-			),
-			'exemption_text' => array(
-				'title'				=> 'Exemption Link Text',
-				'type'				=> 'text',
-				'default'			=> 'Click here to add or apply an exemption certificate',
-				'description' 		=> __( 'This text is displayed on the link that opens the exemption management interface. Defaults to "Click here to add or apply an exemption certificate."', 'woocommerce-wootax' ),
 				'desc_tip'			=> true
 			),
 			'advanced_settings' => array(

@@ -21,9 +21,6 @@ function enqueue_checkout_scripts() {
 		wp_enqueue_style( 'mpop-css', WOOTAX_DIR_URL .'css/magnificPopup.css' );
 		wp_enqueue_script( 'mpop-js', WOOTAX_DIR_URL .'js/magnificPopup.js', array( 'jquery' ), '1.0', true );
 
-		// Enqueue WooTax checkout script (make sure it is placed in the header)
-		wp_enqueue_script( 'wt-checkout-js', WOOTAX_DIR_URL .'js/wt-checkout.js', array( 'jquery' ), '1.0', true );
-
 	} 
 
 }
@@ -76,14 +73,7 @@ function add_exemption_javascript() {
 				var ts = document.createElement('script'); ts.type = 'text/javascript'; ts.async = true;
 				ts.src = '{$dir_url}js/certificate-manager.js' + clearUrl; var t = document.getElementsByTagName('script')[0]; t.parentNode.insertBefore(ts, t);
 			})();
-		</script>
-
-		<style type='text/css'>
-			#wootax_exemption_link {
-				clear: both;
-				float: left;
-			}
-		</style>";
+		</script>";
 
 	}
 
@@ -92,9 +82,9 @@ function add_exemption_javascript() {
 /**
  * Displays the tax exemption link on the checkout page
  *
- * @since 1.1
+ * @since 4.3
  */
-function insert_exemption_html() {
+function maybe_display_exemption_link() {
 
 	global $woocommerce;
 
@@ -103,9 +93,10 @@ function insert_exemption_html() {
 		$raw_link_text = trim( wootax_get_option( 'exemption_text' ) );
 		$link_text = empty( $raw_link_text ) ? 'Click here to add or apply an exemption certificate.' : $raw_link_text;
 
-		echo "<span id='wootax_exemption_link'><a href='#' style='text-decoration: none;'>$link_text</a></span>";
+		$notice = 'Are you a tax exempt customer? <span id="wootax_exemption_link"><a href="#" style="text-decoration: none;">'. $link_text .'</a></span>';
+		$notice .= '<span id="wooTaxApplied" style="'. ( empty( $woocommerce->session->certificate_id ) ? 'display: none;' : '' ) .'"><br /><br />Exemption certificate applied (<a href="#" id="removeCert" style="text-decoration: none;">Remove</a>)</span>';
 
-		echo '<br /><span id="wooTaxApplied" style="'. ( empty( $woocommerce->session->certificate_id ) ? 'display: none;' : '' ) .'">Exemption certificate applied (<a href="#" id="removeCert" style="text-decoration: none;">Remove</a>)</span>';
+		echo "<div class='woocommerce-info'>$notice</div>";
 
 	}
 
@@ -456,7 +447,7 @@ function ajax_list_exemption_certificates() {
 // Hooks into WordPress/WooCommerce
 add_action( 'wp_enqueue_scripts', 'enqueue_checkout_scripts', 20 );
 add_action( 'wp_footer', 'add_exemption_javascript', 21 );
-add_action( 'woocommerce_checkout_after_customer_details', 'insert_exemption_html' );
+add_action( 'woocommerce_before_checkout_form', 'maybe_display_exemption_link', 11 );
 add_action( 'wp_ajax_nopriv_wootax-update-certificate', 'ajax_update_exemption_certificate' );
 add_action( 'wp_ajax_wootax-update-certificate', 'ajax_update_exemption_certificate' );
 add_action( 'wp_ajax_nopriv_wootax-list-certificates', 'ajax_list_exemption_certificates' );
