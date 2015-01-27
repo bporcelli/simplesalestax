@@ -152,6 +152,15 @@ class WC_WooTax_Settings extends WC_Integration {
 				'description' 		=> __( 'This text is displayed on the link that opens the exemption management interface. Defaults to "Click here to add or apply an exemption certificate."', 'woocommerce-wootax' ),
 				'desc_tip'			=> true
 			),
+			'exempt_roles' => array(
+				'title'             => 'Exempt User Roles',
+				'type'              => 'multiselect',
+				'class'             => 'wc-enhanced-select',
+				'options'           => wootax_get_user_roles(),
+				'default'           => '',
+				'description'       => 'When a user with one of these roles shops on your site, WooTax will automatically find and apply the first exemption certificate associated with their account. Convenient if you have repeat exempt customers.',
+				'desc_tip'          => true,
+			),
 			'display_settings' => array(
 				'title' 			=> 'Display Settings',
 				'type'              => 'section',

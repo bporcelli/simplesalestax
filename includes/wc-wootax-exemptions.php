@@ -94,9 +94,9 @@ function maybe_display_exemption_link() {
 		$link_text = empty( $raw_link_text ) ? 'Click here to add or apply an exemption certificate.' : $raw_link_text;
 
 		$notice = 'Are you a tax exempt customer? <span id="wootax_exemption_link"><a href="#" style="text-decoration: none;">'. $link_text .'</a></span>';
-		$notice .= '<span id="wooTaxApplied" style="'. ( empty( $woocommerce->session->certificate_id ) ? 'display: none;' : '' ) .'"><br /><br />Exemption certificate applied (<a href="#" id="removeCert" style="text-decoration: none;">Remove</a>)</span>';
-
+	
 		echo "<div class='woocommerce-info'>$notice</div>";
+		echo "<div class='woocommerce-message' id='wooTaxApplied' style='". ( empty( $woocommerce->session->certificate_id ) ? 'display: none;' : '' ) ."'>Exemption certificate applied (<a href='#' id='removeCert'>Remove</a>)</div>";
 
 	}
 
@@ -168,9 +168,7 @@ function add_exemption_certificate() {
 	);
 
 	$certificate->ExemptStates[0] = array( 
-		'StateAbbr'            => $_POST['ExemptState'],
-		'ReasonForExemption'   => '',
-		'IdentificationNumber' => '',
+		'StateAbbr' => $_POST['ExemptState'],
 	);
 
 	$certificate->PurchaserBusinessType           = $_POST['PurchaserBusinessType'];
@@ -319,26 +317,128 @@ function remove_exemption_certificate() {
  * Set exemption certificate in session
  *
  * @since 4.2
+ * @param $certID a certificate ID (optional)
  */
-function set_exemption_certificate() {
+function set_exemption_certificate( $certID = null ) {
 
 	global $woocommerce;
 
-	$cert = $_POST['cert'];
+	$cert = !empty( $certID ) ? $certID : $_POST['cert'];
 	
 	// Set certID (empty if we are removing the currently applied certificate)
 	$woocommerce->session->certificate_id = $cert;
 
 	// If we are removing the currently applied certificate, reset "certificate_data" and "certificate_applied" session variables
+	// Also, set "cert_removed" to true (this way we dont auto-apply for exempt user if they happen to remove)
 	if ( empty( $woocommerce->session->certificate_id ) ) {
-		$woocommerce->session->certificate_data = NULL;
+		$woocommerce->session->certificate_data    = NULL;
 		$woocommerce->session->certificate_applied = NULL;
-	}
+		$woocommerce->session->cert_removed        = true;
+	} 
 
 	$woocommerce->session->save_data();
 
 	// Returning true will trigger the totals to update so WooTax applies the certificate
-	die( true );
+	if ( empty( $certID ) ) {
+		die( true );
+	} else {
+		return true;
+	}
+
+}
+
+/**
+ * Get all exemption certificates for a user given their username
+ *
+ * @since 4.3
+ * @return an array of exemption certificates
+ */
+function get_user_exemption_certs( $user_login ) {
+
+	if ( empty( $user_login ) ) 
+		return array();
+
+	// Set up TaxCloud object
+	$taxcloud = get_taxcloud();
+
+	// Send GetExemptCertificates request
+	$response = $taxcloud->send_request( 'GetExemptCertificates', array( 'customerID' => $user_login ) );
+
+	if ( $response !== false ) {
+
+		$certificate_result = $response->GetExemptCertificatesResult->ExemptCertificates;
+
+		// Dump certificates into object to be returned to client
+		if ( $certificate_result != NULL ) {
+
+			$certificates = $duplicates = array();
+
+			if ( is_array( $certificate_result->ExemptionCertificate ) ) {
+
+				foreach ( $certificate_result->ExemptionCertificate as $certificate ) {
+
+					// Add this certificate to the cert_list array
+					$certificates[] = $certificate;
+
+					// Add single purchase certificates to duplicate array
+					if ( $certificate->Detail->SinglePurchase == 1 ) {
+
+						$order_number = $certificate->Detail->SinglePurchaseOrderNumber;
+
+						if ( !isset( $duplicates[$order_number] ) || !is_array( $duplicates[$order_number] ) ) {
+							$duplicates[$order_number] = array();
+						}
+
+						$duplicates[$order_number][] = $certificate->CertificateID;
+
+					}
+
+				}
+
+			} else {
+				$certificates[] = $certificate_result->ExemptionCertificate;
+			}
+
+		} 
+
+		// Isolate single certificates that should be kept
+		if ( count( $duplicates ) > 0 ) {
+			foreach ( $duplicates as &$dupes ) {
+				if ( count( $dupes ) > 1 ) {
+					$x = count( $dupes );
+
+					while( count( $dupes ) > 1 ) {
+						unset( $dupes[$x] );
+						$x--;
+					}
+				}
+			}
+		}
+
+		// Loop through cert_list and construct filtered cert_list array (duplicate single certificates removed)
+		$final_certificates = array();
+
+		foreach ( $certificates as $cert ) {
+
+			$keep = false;
+
+			if ( $cert->Detail->SinglePurchase == true && is_array( $duplicates[$cert->Detail->SinglePurchaseOrderNumber] ) && in_array( $cert->CertificateID, $duplicates[$cert->Detail->SinglePurchaseOrderNumber] ) ) {
+				$keep = true;
+			} elseif ( $cert->Detail->SinglePurchase == true && !is_array( $duplicates[$cert->Detail->SinglePurchaseOrderNumber] ) || $cert->Detail->SinglePurchase == false ) {
+				$keep = true;
+			} 
+
+			if ( $keep ) {
+				$final_certificates[] = $cert;
+			}
+
+		}
+
+		return $final_certificates;
+
+	} else {
+		return array();
+	}
 
 }
 
@@ -350,7 +450,7 @@ function set_exemption_certificate() {
  */
 function ajax_list_exemption_certificates() {
 
-	global $woocommerce, $current_user;
+	global $current_user;
 	
 	get_currentuserinfo();
 
@@ -358,78 +458,12 @@ function ajax_list_exemption_certificates() {
 
 	if ( $customer_id ) {
 
-		// Set up TaxCloud object
-		$taxcloud = get_taxcloud();
-		$response = $taxcloud->send_request( 'GetExemptCertificates', array( 'customerID' => $customer_id ) );
+		$certificates = get_user_exemption_certs( $customer_id );
 
-		if ( $response !== false ) {
+		if ( count( $certificates ) > 0 ) {
 
-			$certificate_result = $response->GetExemptCertificatesResult->ExemptCertificates;
-			
-			$certificates = new stdClass();
-			$certificates->cert_list = array();
-			$duplicates = array();
-
-			// Dump certificates into object to be returned to client
-			if ( $certificate_result != NULL ) {
-
-				if ( is_array( $certificate_result->ExemptionCertificate ) ) {
-					foreach ( $certificate_result->ExemptionCertificate as $certificate ) {
-
-						// Add this certificate to the cert_list array
-						$certificates->cert_list[] = $certificate;
-
-						// Add single purchase certificates to duplicate array
-						if ( $certificate->Detail->SinglePurchase == 1 ) {
-
-							$order_number = $certificate->Detail->SinglePurchaseOrderNumber;
-
-							if ( !isset( $duplicates[$order_number] ) || !is_array( $duplicates[$order_number] ) ) {
-								$duplicates[$order_number] = array();
-							}
-
-							$duplicates[$order_number][] = $certificate->CertificateID;
-
-						}
-
-					}
-				} else {
-					$certificates->cert_list[] = $certificate_result->ExemptionCertificate;
-				}
-
-			} 
-
-			// Isolate single certificates that should be kept
-			if ( count( $duplicates ) > 0 ) {
-				foreach ( $duplicates as &$dupes ) {
-					if ( count( $dupes ) > 1 ) {
-						$x = count( $dupes );
-
-						while( count( $dupes ) > 1 ) {
-							unset( $dupes[$x] );
-							$x--;
-						}
-					}
-				}
-			}
-
-			// Loop through cert_list and construct filtered cert_list array (duplicate single certificates removed)
 			$final_certificates = new stdClass();
-			$final_certificates->cert_list = array();
-
-			foreach ( $certificates->cert_list as $cert ) {
-				$keep = false;
-
-				if ( $cert->Detail->SinglePurchase == true && is_array( $duplicates[$cert->Detail->SinglePurchaseOrderNumber] ) && in_array( $cert->CertificateID, $duplicates[$cert->Detail->SinglePurchaseOrderNumber] ) ) {
-					$keep = true;
-				} elseif ( $cert->Detail->SinglePurchase == true && !is_array( $duplicates[$cert->Detail->SinglePurchaseOrderNumber] ) || $cert->Detail->SinglePurchase == false ) {
-					$keep = true;
-				} 
-
-				if ( $keep ) {
-					$final_certificates->cert_list[] = $cert;
-				}
-			}
+			$final_certificates->cert_list = $certificates;
 
 			// Convert to JSON and return
 			die( json_encode( $final_certificates ) );
@@ -444,10 +478,75 @@ function ajax_list_exemption_certificates() {
 
 }
 
+/**
+ * Apply exemption certificate automatically for customers marked as exempt
+ *
+ * @since 4.3
+ */
+function maybe_apply_exemption_certificate() {
+
+	global $current_user, $woocommerce;
+
+	get_currentuserinfo();
+
+	$exempt_roles = wootax_get_option( 'exempt_roles' );
+
+	if ( !$woocommerce->session->certificate_id && !$woocommerce->session->cert_removed && !is_admin() ) {
+
+		foreach ( $current_user->roles as $role ) {
+
+			if ( is_array( $exempt_roles ) && in_array( $role, $exempt_roles ) ) {
+
+				// Get all certs
+				$certs = get_user_exemption_certs( $current_user->user_login );
+		
+				// Find ID of first blanket cert
+				$first_id = -1;
+
+				foreach ( $certs as $cert ) {
+					if ( $cert->Detail->SinglePurchase !== true ) {
+						$first_id = $cert->CertificateID;
+						break;
+					}
+				}
+
+				// Apply cert
+				if ( $first_id != -1 ) {
+					set_exemption_certificate( $first_id );
+				}
+
+			}
+
+		}
+
+	}
+
+}
+
+/**
+ * Get user roles for Exempt Roles select
+ *
+ * @since 4.3
+ * @return an array of all registered user roles
+ */
+function wootax_get_user_roles() {
+
+	global $wp_roles;
+
+	if ( ! isset( $wp_roles ) )
+	    $wp_roles = new WP_Roles();
+
+	return $wp_roles->get_names();
+
+}
+
+wootax_get_user_roles();
+
 // Hooks into WordPress/WooCommerce
 add_action( 'wp_enqueue_scripts', 'enqueue_checkout_scripts', 20 );
 add_action( 'wp_footer', 'add_exemption_javascript', 21 );
 add_action( 'woocommerce_before_checkout_form', 'maybe_display_exemption_link', 11 );
+add_action( 'init', 'maybe_apply_exemption_certificate' );
 add_action( 'wp_ajax_nopriv_wootax-update-certificate', 'ajax_update_exemption_certificate' );
 add_action( 'wp_ajax_wootax-update-certificate', 'ajax_update_exemption_certificate' );
 add_action( 'wp_ajax_nopriv_wootax-list-certificates', 'ajax_list_exemption_certificates' );

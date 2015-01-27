@@ -17,7 +17,7 @@ if( !function_exists( 'is_plugin_active' ) ) {
 }
 
 // TODO: REMOVE CHECK FOR BETA
-if ( !is_plugin_active( 'woocommerce/woocommerce.php' ) && !is_plugin_active( 'woocommerce-2.3.0-beta-1/woocommerce.php' ) ) {
+if ( !is_plugin_active( 'woocommerce/woocommerce.php' ) && !is_plugin_active( 'woocommerce-2.3.0-beta-2/woocommerce.php' ) ) {
 	return;
 }
 
@@ -512,6 +512,22 @@ class WC_WooTax {
 		update_option( 'wootax_rate_id', $tax_rate_id );
 
 	}
+
+	/**
+	 * Adds a user role for tax exempt customers
+	 * Role is an exact copy of the "Customer" role
+	 *
+	 * @since 4.3
+	 */
+	public static function add_exempt_user_role() {
+
+		add_role( 'exempt-customer', __( 'Exempt Customer', 'woocommerce' ), array(
+			'read' 						=> true,
+			'edit_posts' 				=> false,
+			'delete_posts' 				=> false,
+		) );
+
+	}
 	
 }
 
@@ -556,7 +572,10 @@ add_action( 'plugins_loaded', 'load_wootax' );
 
 // Configure WooCommerce settings on activation
 function update_woocommerce_settings() {
+
 	WC_WooTax::configure_woocommerce();
+	WC_WooTax::add_exempt_user_role();
+
 }
 
 register_activation_hook( __FILE__, 'update_woocommerce_settings' );

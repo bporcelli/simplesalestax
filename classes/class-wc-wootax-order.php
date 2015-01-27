@@ -381,6 +381,7 @@ class WC_WooTax_Order {
 			$this->woo->session->certificate_applied       = '';
 			$this->woo->session->certificate_data          = '';
 			$this->woo->session->exemption_applied         = '';
+			$this->woo->session->cert_removed              = false;
 			$this->woo->session->cart_taxes                = array();
 			$this->woo->session->backend_cart_taxes        = array();
 			$this->woo->session->taxcloud_ids              = array();

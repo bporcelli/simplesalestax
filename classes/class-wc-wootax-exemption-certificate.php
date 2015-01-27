@@ -36,9 +36,9 @@ class WC_WooTax_Exemption_Certificate {
 	// Return formatted certificate ready to be sent to TaxCloud
 	public function get_formatted_certificate() {
 
-		global $woocommerce;
+		global $woocommerce, $current_user;
 
-		$customer_id = $woocommerce->session->wootax_customer_id;
+		$customer_id = is_user_logged_in() ? $current_user->user_login : $woocommerce->session->get_customer_id();
 
 		return array(
 			'customerID' => $customer_id,
