@@ -540,8 +540,6 @@ function wootax_get_user_roles() {
 
 }
 
-wootax_get_user_roles();
-
 // Hooks into WordPress/WooCommerce
 add_action( 'wp_enqueue_scripts', 'enqueue_checkout_scripts', 20 );
 add_action( 'wp_footer', 'add_exemption_javascript', 21 );
