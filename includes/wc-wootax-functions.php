@@ -13,58 +13,48 @@ if ( ! defined( 'ABSPATH' ) )
 	exit; 
 
 /**
- * Receives an Address array and runs it through the USPS address verification API; returns either the verified address or the original address on failure
+ * Receives an Address array and runs it through the USPS address verification API
+ * Returns the verified address on success, or the original address on failure
  *
  * @since 1.0
- * @param $address An Address array
+ * @param $address  array  Associative array representing address
  */
 function validate_address( $address ) {
 
 	$taxcloud = get_taxcloud();
 
-	// We will return the original address if verification fails
-	$verified_address = $address;
+	$final_address = $address;
 
-	// Prepare address for verification by executing strtolower on each array value
+	// All array values must be lowercase for validation to work properly
 	$address = array_map( 'strtolower', $address );
 
-	// Verify address if possible
 	$usps_id = wootax_get_option( 'usps_id' );
 
 	if ( $usps_id ) {
 
-		$address['uspsUserID'] = $usps_id;
+		$address['uspsUserID'] = $usps_id; // USPS Web Tools ID is required for calls to VerifyAddress
 
-		// Send request to TaxCloud
 		$res = $taxcloud->send_request( 'VerifyAddress', $address );
 
 		// Check for errors
 		if ( $res !== false ) {
-			$verified_address = $res->VerifyAddressResult;
+			unset( $res->ErrNumber );
+			unset( $res->ErrDescription );
 
-			// TaxCloud will return an ErrNumber field even when there isn't an error; remove it so only the address is returned
-			unset( $verified_address->ErrNumber );
-		} else {
-			$verified_address = $address;
-			
-			// Remove USPS ID
-			if ( isset( $verified_address['uspsUserID'] ) ) {
-				unset( $verified_address['uspsUserID'] );
+			// The address country field will not be returned by TaxCloud, but we want to return it to the calling code; re-add it here
+			if ( isset( $address['Country'] ) ) 
+				$res->Country = $address['Country'];
+
+			if( !isset( $res->Address2 ) ) {
+				$res->Address2 = '';
 			}
-		}
 
-	}
-	
-	// The address country field will not be returned by TaxCloud, but we want to return it to the calling code; re-add it here
-	if ( isset( $address['Country'] ) && is_object( $verified_address ) && !isset( $verified_address->Country ) ) {
-		$verified_address->Country = $address['Country'];
-	}
+			$final_address = $res;
+		} 
 
-	if( !isset( $verified_address->Address2 ) && is_object( $verified_address ) ) {
-		$verified_address->Address2 = '';
 	}
 		
-	return (array) $verified_address;
+	return (array) $final_address;
 
 }
 
@@ -232,9 +222,7 @@ function wootax_set_option( $key = '', $value = '' ) {
  * @since 4.2
  */
 function generate_order_id() { 
-
 	return md5( $_SERVER['REMOTE_ADDR'] . microtime() );
-
 }
 
 /**
@@ -255,15 +243,17 @@ function parse_zip( $zip ) {
 		return $parsed_zip;
 	}
 
-	$zip = str_replace( array( ' ', '-' ), '', $zip );
+	$new_zip = str_replace( array( ' ', '-' ), '', $zip );
 
-	if ( strlen( $zip ) == 5 ) {
-		$parsed_zip['zip5'] = $zip;
-	} else if ( strlen( $zip ) == 4 ) {
-		$parsed_zip['zip4'] = $zip;
-	} else if ( strlen( $zip ) == 9 ) {
-		$parsed_zip['zip5'] = substr( $zip, 0, 5 );
-		$parsed_zip['zip4'] = substr( $zip, 5, 10 );
+	if ( strlen( $new_zip ) == 5 ) {
+		$parsed_zip['zip5'] = $new_zip;
+	} else if ( strlen( $new_zip ) == 4 ) {
+		$parsed_zip['zip4'] = $new_zip;
+	} else if ( strlen( $new_zip ) == 9 ) {
+		$parsed_zip['zip5'] = substr( $new_zip, 0, 5 );
+		$parsed_zip['zip4'] = substr( $new_zip, 5, 10 );
+	} else {
+		$parsed_zip['zip5'] = $zip; // Use original ZIP if ZIP does not fit required format (i.e. if it is an international postcode)
 	}
 
 	return $parsed_zip;

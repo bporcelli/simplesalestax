@@ -995,7 +995,7 @@
       <input type="hidden" name="action" value="wootax-update-certificate" /> 
       <button type="button" id="manageCertsBtn" class="grey">Manage Certificates</button> 
       <input type="submit" class="submit floatleft" value="Save Certificate" /> 
-      <div id="loader"></div>
+      <div id="wootax-loader"></div>
     </div>
   </form>
 </body>

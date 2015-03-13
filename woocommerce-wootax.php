@@ -1,25 +1,23 @@
 <?php
 
-/*
+/**
  * Plugin Name: WooTax
  * Plugin URI: http://wootax.com
  * Description: Harness the power of TaxCloud to accurately calculate sales tax for your WooCommerce store.
- * Version: 4.3
+ * Version: 4.4
  * Author: Brett Porcelli
  */
 
 // Prevent data leaks from direct access
-if ( ! defined( 'ABSPATH' ) ) exit; 
+if ( ! defined( 'ABSPATH' ) ) 
+	exit; 
 
 // Load plugin functions; stop execution if WooCommerce not active
-if( !function_exists( 'is_plugin_active' ) ) {
+if( !function_exists( 'is_plugin_active' ) ) 
 	require ABSPATH . 'wp-admin/includes/plugin.php';
-}
 
-// TODO: REMOVE CHECK FOR BETA
-if ( !is_plugin_active( 'woocommerce/woocommerce.php' ) && !is_plugin_active( 'woocommerce-2.3.0-beta-2/woocommerce.php' ) ) {
+if ( !is_plugin_active( 'woocommerce/woocommerce.php' ) ) 
 	return;
-}
 
 // WooTax constants
 define( 'WOOTAX_PATH', plugin_dir_path( __FILE__ ) );
@@ -27,21 +25,20 @@ define( 'WOOTAX_DIR_URL', plugin_dir_url( __FILE__ ) );
 define( 'WOOTAX_SHIPPING_TIC', 11010 );
 define( 'WOOTAX_SHIPPING_ITEM', 'SHIPPING' );
 define( 'WOOTAX_FEE_TIC', 10010 );
-define( 'WOOTAX_VERSION', '4.3' );
+define( 'WOOTAX_VERSION', '4.4' );
 
 require 'includes/wc-wootax-functions.php';
 
 // Include TaxCloud functions if the PHP SOAP module is activated; otherwise, halt plugin execution
-if ( class_exists( 'SOAPClient' ) ) {
+if ( class_exists( 'SoapClient' ) ) {
 	require 'includes/wc-wootax-taxcloud-functions.php';
 } else {
 	wootax_add_flash_message( '<strong>Warning! WooTax has been disabled.</strong> The SOAPClient class is required by WooTax, but it is not activated on your server. Please see <a href="#" target="_blank">this article</a> for advice on what to do next.' );
 	return;
 }
 
-if ( !class_exists( 'EDD_SL_Plugin_Updater' ) ) {
+if ( !class_exists( 'EDD_SL_Plugin_Updater' ) ) 
 	require 'classes/EDD_SL_Plugin_Updater.php';
-}
 
 /**
  * The main WooTax class
@@ -101,9 +98,6 @@ class WC_WooTax {
 
 		// Maybe show activation message
 		add_action( 'admin_init', array( $this, 'maybe_show_activation_success' ) );
-		
-		// Add custom post type for wootax orders
-		add_action( 'init', array( $this, 'add_post_type' ) );
 
 	}
 	
@@ -435,21 +429,6 @@ class WC_WooTax {
 	}
 
 	/**
-	 * Adds a custom post type for WooTax orders (wootax_order)
-	 *
-	 * @since 4.2
-	 */
-	public function add_post_type() {
-
-		register_post_type( 'wootax_order', array(
-			'public' => false, 
-			'show_ui' => false, 
-			'supports' => array( 'title', 'editor', 'custom-fields' ),
-		) );
-
-	}
-	
-	/**
 	 * Get appropriate label for tax rate (should be Sales Tax for the tax rate applied by WooTax)
 	 *
 	 * @param $name the name of the tax (fetched from db; won't be populated in our instance)
@@ -536,7 +515,6 @@ class WC_WooTax {
 $license_key = trim( get_option( 'wootax_license_key' ) );
 		
 if ($license_key != false) {
-	
 	$edd_updater = new EDD_SL_Plugin_Updater( 'http://wootax.com', __FILE__, array( 
 		'version' 	=> WOOTAX_VERSION, 		 // current version number
 		'license' 	=> $license_key, 		 // license key (used get_option above to retrieve from DB)
@@ -544,22 +522,23 @@ if ($license_key != false) {
 		'author' 	=> 'Brett Porcelli',  	 // author of this plugin
 		'url' 		=> home_url(), 			 // url where plugin is being activated
 	) );
-	
 }
 
 // Load plugin
 function load_wootax() {
 
 	if ( version_compare( WOOCOMMERCE_VERSION, '2.1', '>=' ) ) {
-		require( 'includes/wc-wootax-exemptions.php' );
-		require( 'classes/class-wc-wootax-order.php' );
-		require( 'classes/class-wc-wootax-checkout.php' );
-		require( 'classes/class-wc-wootax-admin.php' );
-		require( 'classes/class-wc-wootax-refund.php' );
+		if ( wootax_get_option( 'show_exempt' ) == 'true' ) 
+			require 'includes/wc-wootax-exemptions.php';
+		
+		require 'includes/wc-wootax-debug-tools.php';
+		require 'classes/class-wc-wootax-order.php';
+		require 'classes/class-wc-wootax-checkout.php';
+		require 'classes/class-wc-wootax-admin.php';
+		require 'classes/class-wc-wootax-refund.php';
 
-		if ( is_plugin_active( 'woocommerce-subscriptions/woocommerce-subscriptions.php' ) ) {
+		if ( is_plugin_active( 'woocommerce-subscriptions/woocommerce-subscriptions.php' ) ) 
 			require( 'classes/class-wc-wootax-subscriptions.php' );
-		}
 
 		$WC_WooTax = new WC_WooTax();		
 	} else {
@@ -572,10 +551,8 @@ add_action( 'plugins_loaded', 'load_wootax' );
 
 // Configure WooCommerce settings on activation
 function update_woocommerce_settings() {
-
 	WC_WooTax::configure_woocommerce();
 	WC_WooTax::add_exempt_user_role();
-
 }
 
 register_activation_hook( __FILE__, 'update_woocommerce_settings' );

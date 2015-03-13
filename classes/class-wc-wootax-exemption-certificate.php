@@ -29,8 +29,8 @@ class WC_WooTax_Exemption_Certificate {
 
 	// Set up CreatedDate when object is constructed
 	public function __construct() {
-		$this->CreatedDate = new Datetime();
-		$this->CreatedDate = $this->CreatedDate->format(DateTime::ATOM);
+		$this->CreatedDate = new DateTime( 'NOW' );
+		$this->CreatedDate = $this->CreatedDate->format( DateTime::ATOM );
 	}
 
 	// Return formatted certificate ready to be sent to TaxCloud

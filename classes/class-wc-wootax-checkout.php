@@ -12,73 +12,56 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  */
 
 class WC_WooTax_Checkout {
-	/** 
-	 * WC_Cart 
-	 */
+	/** WC_Cart */
 	public $cart;
 
-	/**
-	 * Customer destination address
-	 */
+	/** Customer destination address */
 	public $destination_address = array();
 
-	/**
-	 * Holds the ID of the WooTax tax rate
-	 */
+	/** ID of the WooTax tax rate */
 	public $wootax_rate_id = '';
 
-	/**
-	 * Holds a WC_WooTax_TaxCloud object
-	 */	
+	/** WC_WooTax_TaxCloud object */	
 	public $taxcloud = false;
 
-	/**
-	 * Holds an array of business address entered by the user
-	 */
+	/** Array of business addresses entered by the store owner */
 	public $addresses = array();
 
-	/**
-	 * Holds an integer representing the ID of the "default" business address
-	 */
+	/** Integer index of the "default" business address */
 	public $default_address = 0;
 
-	/**
-	 * Applied taxes
-	 */
-	public $cart_taxes = array();
+	/** Applied taxes */
+	public $cart_taxes     = array();
+	public $shipping_taxes = array();
 
-	/**
-	 * OrderIDs/CartIDs associated with Lookup requests
-	 */
+	/** OrderIDs/CartIDs associated with Lookup requests */
 	public $taxcloud_ids = array();
 
-	/**
-	 * Array that maps item identifiers to the ID of the location from which they are being sent
-	 */
+	/** Array mapping item identifiers to the index of the location from which they are being sent */
 	public $location_mapping_array = array();
 
-	/**
-	 * Address key that fees and shipping costs are associated with
-	 */
+	/** Address key that fees and shipping costs are associated with */
 	public $first_found = 0;
 
-	/**
-	 * Array containing item IDs that are sent to TaxCloud
-	 */
+	/** Array containing item IDs sent to TaxCloud */
 	public $identifiers = array();
 
-	/**
-	 * Tax totals
-	 */
+	/** Tax totals */
 	public $shipping_tax_total = 0;
 	public $tax_total          = 0;
 	
 	/**
-	 * Constructor: Starts Lookup
+	 * Constructor: Starts Lookup and hooks into WooCommerce
 	 *
 	 * @since 4.2
 	 */
 	public function __construct() {
+		// When using Subscriptions, we need to restore the final shipping_taxes array on woocommerce_after_calculate_totals
+		// The call to WC_Cart::calculate_shipping on line 226 of class-wc-subscriptions-cart.php resets it
+		if ( is_plugin_active( 'woocommerce-subscriptions/woocommerce-subscriptions.php' ) )
+			add_action( 'woocommerce_after_calculate_totals', array( $this, 'restore_shipping_taxes' ), 10, 1 );
+
+		// Start tax lookup
 		$this->init();
 	}
 
@@ -98,10 +81,9 @@ class WC_WooTax_Checkout {
 		// Instantiate a WC_WooTax_TaxCloud for us to use
 		$this->taxcloud = get_taxcloud();
 
-		if ( !$this->taxcloud ) {
+		if ( !$this->taxcloud )
 			return;
-		}
-
+	
 		// Get WooTax tax rate id
 		$this->wootax_rate_id = get_option( 'wootax_rate_id' );
 
@@ -111,15 +93,17 @@ class WC_WooTax_Checkout {
 		$this->destination_address = $this->get_destination_address();
 
 		// Exit immediately if we do not have enough information to proceed with a lookup
-		if( !$this->ready_for_lookup() ) {
+		if( !$this->ready_for_lookup() )
 			return;
-		}
 
 		// Load data about applied tax from session if possible
 		$this->load_data_from_session();
 
 		// Issue lookup request and update cart tax totals
 		$this->do_lookup();
+
+		// Store final shipping_taxes array so it can be restored after Subscriptions overwrites it
+		$this->shipping_taxes = $this->cart->shipping_taxes;
 
 	}
 
@@ -759,12 +743,11 @@ class WC_WooTax_Checkout {
 				'cartItems'         => $items, 
 				'origin'            => $origin_address, 
 				'destination'       => $destination_address, 
-				'deliveredBySeller' => $delivered_by_seller, 
-			);		
+				'deliveredBySeller' => $delivered_by_seller,
+			);
 
-			if ( $exempt_cert != NULL ) {
+			if ( !empty( $exempt_cert ) )
 				$req['exemptCert'] = $exempt_cert;
-			}
 
 			// Send Lookup request 
 			$res = $this->taxcloud->send_request( 'Lookup', $req );
@@ -772,16 +755,15 @@ class WC_WooTax_Checkout {
 			if ( $res !== false ) {
 
 				// Initialize some vars
-				$cart_items = $res->LookupResult->CartItemsResponse->CartItemResponse;
+				$cart_items = $res->CartItemsResponse->CartItemResponse;
 
 				// Store cartID to improve efficiency of subsequent lookup requests
-				$this->taxcloud_ids[ $location_key ]['cart_id']  = $res->LookupResult->CartID;
+				$this->taxcloud_ids[ $location_key ]['cart_id']  = $res->CartID;
 
 				// If cart_items only contains one item, it will not be an array.
 				// In that case, convert to an array to avoid the need for extra code
-				if ( !is_array( $cart_items ) ) {
+				if ( !is_array( $cart_items ) ) 
 					$cart_items = array( $cart_items );
-				}
 
 				// Loop through items and update tax amounts
 				foreach ( $cart_items as &$cart_item ) {
@@ -793,36 +775,22 @@ class WC_WooTax_Checkout {
 
 					// Update item tax
 					switch ( $type ) {
-
 						case 'cart':
-							// Fetch appropriate item identifier (cart item key)
-							$item_id = $this->mapping_array[ $location_key ][ $index ]['key'];
-
-							// Apply tax to item
+							$item_id = $this->mapping_array[ $location_key ][ $index ]['key']; // Identifier is cart item key
 							$this->apply_item_tax( $item_id, $tax );
-
-							// Increment order tax total
 							$tax_total += $tax;
-						break;
+							break;
 
 						case 'shipping':
-							// Simply increment shipping tax total
-							$item_id = WOOTAX_SHIPPING_ITEM;
-
+							$item_id = WOOTAX_SHIPPING_ITEM; // Identifier is SHIPPING
 							$shipping_tax_total += $tax;
-						break;
+							break;
 
 						case 'fee':
-							// Fetch appropriate fee identifier (cart fee index)
-							$item_id = $this->mapping_array[ $location_key ][ $index ]['index'];
-
-							// Apply tax to fees
+							$item_id = $this->mapping_array[ $location_key ][ $index ]['index']; // Identifier is cart fee index
 							$this->apply_fee_tax( $item_id, $tax );
-
-							// Increment order tax total
 							$tax_total += $tax;
-						break;
-
+							break;
 					}
 					
 					// Add item tax to cart_taxes array
@@ -836,9 +804,9 @@ class WC_WooTax_Checkout {
 			} else {
 					
 				if ( function_exists( 'wc_add_notice' ) ) {
-					wc_add_notice( 'An error occurred while calculating the tax for this order: '. $this->taxcloud->get_error_message(), 'error' );
+					wc_add_notice( 'An error occurred while calculating the tax for this order. '. $this->taxcloud->get_error_message(), 'error' );
 				} else {
-					$this->woo->add_error( 'An error occurred while calculating the tax for this order: '. $this->taxcloud->get_error_message() );
+					$this->woo->add_error( 'An error occurred while calculating the tax for this order. '. $this->taxcloud->get_error_message() );
 				}
 
 				return;
@@ -1029,8 +997,12 @@ class WC_WooTax_Checkout {
 		// Get current shipping method
 		$shipping_method = $this->get_order_shipping_method();
 
+		// Filter local pickup methods so developers can use custom methods
+		// Note that you should add both the method's ID and it's name -- i.e. "local_pickup" (matched on frontend) and "Local Pickup" (matched on backend)
+		$pickup_methods = apply_filters( 'wootax_local_pickup_methods', array( 'local_pickup', 'Local Pickup' ) );
+
 		// Check if method is "local_pickup"
-		if ( $shipping_method == 'local_pickup' ) {
+		if ( in_array( $shipping_method, $pickup_methods ) ) {
 			return true;
 		} else {
 			return false;
@@ -1119,7 +1091,7 @@ class WC_WooTax_Checkout {
 		}
 
 		// Use get_tax_total to set new tax total so we don't override other rates
-		$this->cart->tax_total = $this->cart->tax->get_tax_total( $this->cart->taxes );
+		$this->cart->tax_total = version_compare( WOOCOMMERCE_VERSION, '2.3', '>=' ) ? WC_Tax::get_tax_total( $this->cart->taxes ) : $this->cart->tax->get_tax_total( $this->cart->taxes );
 
 		$this->tax_total = $new_tax;
 
@@ -1137,10 +1109,10 @@ class WC_WooTax_Checkout {
 
 		if ( wootax_get_option( 'show_zero_tax' ) != 'true' && $new_tax == 0 ) {
 			unset( $this->cart->shipping_taxes[ $this->wootax_rate_id ] );
-		}
+		} 
 
 		// Use get_tax_total to set new tax total so we don't override other rates
-		$this->cart->shipping_tax_total = $this->cart->tax->get_tax_total( $this->cart->shipping_taxes );
+		$this->cart->shipping_tax_total = version_compare( WOOCOMMERCE_VERSION, '2.3', '>=' ) ? WC_Tax::get_tax_total( $this->cart->shipping_taxes ) : $this->cart->tax->get_tax_total( $this->cart->shipping_taxes );
 
 		// Update internal shipping tax total
 		$this->shipping_tax_total = $new_tax;
@@ -1184,6 +1156,16 @@ class WC_WooTax_Checkout {
 
 	}
 
+	/**
+	 * Restores the shipping_taxes property of the cart object on woocommerce_after_calculate_totals
+	 * Only executed when WooCommerce Subscriptions is active
+	 *
+	 * @since 4.4
+	 * @param $cart   WC_Cart object
+	 */
+	public function restore_shipping_taxes( $cart ) {
+		$GLOBALS['woocommerce']->cart->shipping_taxes = $this->shipping_taxes;
+	}
 }
 
 // Instantiate WC_WooTax_Checkout object when cart totals are calculated

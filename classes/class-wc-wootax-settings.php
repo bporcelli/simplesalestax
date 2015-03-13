@@ -24,6 +24,11 @@ class WC_WooTax_Settings extends WC_Integration {
 		// Load the settings.
 		$this->init_form_fields();
 		$this->init_settings();
+
+		// Select the exempt-customer role by default
+		if ( !$this->settings[ 'exempt_roles'] ) {
+			$this->settings[ 'exempt_roles' ] = array( 'exempt-customer' );
+		}
  
 		// Define user set variables.
 		$this->tc_id           = $this->get_option( 'tc_id' );
@@ -155,11 +160,22 @@ class WC_WooTax_Settings extends WC_Integration {
 			'exempt_roles' => array(
 				'title'             => 'Exempt User Roles',
 				'type'              => 'multiselect',
-				'class'             => 'wc-enhanced-select',
+				'class'             => version_compare( WOOCOMMERCE_VERSION, '2.3', '<' ) ? 'chosen_select' : 'wc-enhanced-select',
 				'options'           => wootax_get_user_roles(),
 				'default'           => '',
 				'description'       => 'When a user with one of these roles shops on your site, WooTax will automatically find and apply the first exemption certificate associated with their account. Convenient if you have repeat exempt customers.',
 				'desc_tip'          => true,
+			),
+			'restrict_exempt' => array(
+				'title'             => 'Restrict to Exempt Roles',
+				'type'              => 'select',
+				'default'           => 'no',
+				'description'       => 'Set this to "Yes" to restrict users aside from those specified above from seeing the exemption form during checkout.',
+				'desc_tip'          => true,
+				'options'           => array(
+					'yes' => 'Yes',
+					'no'  => 'No',
+				),
 			),
 			'display_settings' => array(
 				'title' 			=> 'Display Settings',

@@ -294,6 +294,34 @@ class WC_WooTax_Subscriptions {
 		}
 
 	}
+
+	/**
+	 * Runs periodically to check for updates to tax rates
+	 * Updates recurring order totals to reflect any changes
+	 *
+	 * @since 4.4
+	 * @return void
+	 */
+	public function wootax_check_subscription_rates() {
+		// Fetch and loop through all subscription orders
+
+			// Find the subscription item in the order
+
+			// Calculate approximate tax rate by taking ratio of item tax to item total
+			// - Correct for rounding issues
+
+			// Check if a lookup has already been issued for subscription TIC
+			// - If lookup was already issued, use stored rate to calculate new tax totals
+			// - Else, issue a lookup and store the tax rate in an array (organized by TIC?)
+			
+			// If PayPal Standard, GoCardless, PayPal Digital Goods, or WorldPay is being used, send an email (only one) to warn customer
+			// about rate change; do not update order totals
+
+			// If any other gateway is being used, update the recurring totals, call WC_Order::calculate_totals(), and save changes
+
+		// End loop
+		return;
+	}
 }
 
 new WC_WooTax_Subscriptions();

@@ -20,7 +20,7 @@ jQuery(function() {
                     if (resp == 1) {
                         alert('Success! We were able to connect to TaxCloud using these settings.');
                     } else {
-                        alert('Connection to TaxCloud failed. Please verify that your API credentials are correct and try again. TaxCloud error description: ' + resp);
+                        alert('Connection to TaxCloud failed. Please verify that your API credentials are correct and try again. ' + resp);
                     }
                 }
             });

@@ -24,7 +24,7 @@
 <body id="manage-certificates">
   <h1>Manage Exemption Certificates</h1>
 
-  <div id="loading" class="hidden">
+  <div id="wootax-loading" class="hidden">
     <p>Fetching Certificates... <img src="<?php echo $_GET['pluginPath']; ?>img/ajax-loader.gif" /></p>
   </div>
 
@@ -42,6 +42,6 @@
 
   <button type="button" class="addCert">Add Certificate</button>
 
-  <div id="loader"></div>
+  <div id="wootax-loader"></div>
 </body>
 </html>

@@ -323,7 +323,7 @@ class WC_WooTax_Admin {
 
 		global $WC_WooTax_Order;
 
-		// Get wootax_order ID from shop_order post ID
+		// Get shop_order post ID
 		$id = $post->ID;
 
 		// Load order
@@ -335,25 +335,7 @@ class WC_WooTax_Admin {
 		<p>The status of this order in TaxCloud is displayed below. There are three possible values for the order status: "Pending Capture," "Captured," and "Refunded."</p>
 		<p>Eventually, all of your orders should have a status of "Captured." To mark an order as captured, set its status to "Completed" and save it.</p>
 		<p><strong>Please note that tax can only be calculated using the "Calculate Taxes" button if the status below is "Pending Capture."</strong></p>
-        <?php
-		
-		// Display a "calculate tax" button if the order has not been captured yet
-		$captured = $order->captured;
-		$refunded = $order->refunded;
-
-		if ( !$captured && !$refunded ) {
-			
-			// Display special message for users of WooCommerce Subscriptions
-			if ( class_exists( 'WC_Subscriptions' ) && WC_Subscriptions_Order::order_contains_subscription( $order->order ) ) {
-				echo '<p><strong>Calculating taxes will only update the tax amount for the initial subscription payment. Recurring tax totals will be updated when the subscription is renewed.</strong></p>';
-			}
-
-		}
-
-		?>
-		<p>
-        	<strong>TaxCloud Status:</strong> <?php echo $order->get_status(); ?><br />
-        </p>
+		<p><strong>TaxCloud Status:</strong> <?php echo $order->get_status(); ?><br /></p>
         <?php
 
 	}
@@ -381,7 +363,7 @@ class WC_WooTax_Admin {
 		$origin_addresses = fetch_product_origin_addresses( $post->ID );
 
 		// Output addresses
-		echo '<select class="wc-enhanced-select" name="_wootax_origin_addresses[]" multiple>';
+		echo '<select class="'. ( version_compare( WOOCOMMERCE_VERSION, '2.3', '<' ) ? 'chosen_select' : 'wc-enhanced-select' ) .'" name="_wootax_origin_addresses[]" multiple>';
 
 		if ( is_array( $this->addresses ) && count( $this->addresses ) > 0 ) {
 			foreach ( $this->addresses as $key => $address ) {
@@ -576,8 +558,8 @@ class WC_WooTax_Admin {
 					);
 
 					foreach ($properties as $property => $k) {
-						if ( isset( $response->VerifyAddressResult->$property ) ) {
-							$new_address[ $k ] = $response->VerifyAddressResult->$property;
+						if ( isset( $response->$property ) ) {
+							$new_address[ $k ] = $response->$property;
 						}
 					}
 

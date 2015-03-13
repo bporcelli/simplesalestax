@@ -361,14 +361,14 @@ form label
 	margin-bottom: 15px;
 }
 
-#loading
+#wootax-loading
 {
 	width: 100%;
 	float: left;
 	clear: both;
 }
 
-#loader
+#wootax-loader
 {
 	float: left;
 	margin-left: 15px;
@@ -378,12 +378,12 @@ form label
 	display: none;
 }
 
-#manage-certificates #loader
+#manage-certificates #wootax-loader
 {
 	margin-top: 10px;
 }
 
-#add-certificate #loader
+#add-certificate #wootax-loader
 {
 	margin-top: 4px;
 	margin-left: 0px;

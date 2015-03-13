@@ -1,26 +1,37 @@
 <?php
 
-// Prevent direct access to script
-if ( ! defined( 'ABSPATH' ) ) exit; 
+// Prevent direct access
+if ( ! defined( 'ABSPATH' ) ) 
+	exit; 
 
 /**
  * Utility for making TaxCloud API requests
  *
  * @since 4.2
  * @package WooTax
- * @version: 2.0
+ * @version: 2.1
  */
 
 class WC_WooTax_TaxCloud {
+	/** API Login ID and key */
 	private $login_id;
 	private $key;
-	private $client;
+
+	/** TaxCloud SOAP Endpoint */
+	private $tc_endpoint;
+
+	/** Information about last request and response */
 	private $last_request;
 	private $last_response;
-	private $last_response_headers;
+	private $last_response_code;
 	private $last_error;
+
+	/** WooCommerce logger */
 	private $logger;
-	
+
+	/** SoapClient object */
+	private $client;
+
 	/**
 	 * Class constructor
 	 *
@@ -28,25 +39,27 @@ class WC_WooTax_TaxCloud {
 	 * @param $login_id 
 	 */
 	public function __construct( $login_id = false, $key = false ) {
-
 		// Set TaxCloud properties
 		$this->login_id = $login_id;
 		$this->key      = $key;
 
-		// Set up SOAPClient
-		$this->client = new SOAPClient( 'https://api.taxcloud.net/1.0/?wsdl', array( 
+		// TaxCloud API endpoint
+		$this->tc_endpoint = 'https://api.taxcloud.net/1.0/?wsdl';
+
+		// Instantiate SoapClient
+		$this->client = new SoapClient( $this->tc_endpoint, array( 
 			'trace' => true, 
 			'soap_version' => SOAP_1_2 
-		) );
+		) ); 
 
 		// Set up logger
-		$this->logger = false;
 		$log_requests = wootax_get_option( 'log_requests' );
 
 		if ( $log_requests == 'yes' || !$log_requests ) {
 			$this->logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : $woocommerce->logger();
+		} else {
+			$this->logger = false;
 		}
-
 	}
 	
 	/**
@@ -82,37 +95,34 @@ class WC_WooTax_TaxCloud {
 	 * @return (bool) true if the response has an error, otherwise false
 	 */
 	private function is_response_error( $resp ) {
-
 		$this->last_error = false;
 
 		// Check for bool false resp/HTTP code other than 200 
-		if ( $resp == false || !stristr( $this->last_response_headers, '200 OK' ) ) {
-			$this->last_error = 'An error occurred during the last API request. Response headers indicate an HTTP failure: '. print_r( $this->last_response_headers, true );
-		}
-
-		// Check for TaxCloud error messages
-		if ( isset( $resp->ResponseType ) && $resp->ResponseType == 'Error' ) {
-
+		if ( $resp == false || $this->last_response_code != '200' ) {
+			$this->last_error = 'HTTP code '. $this->last_response_code .' received.';
+		} else {
+			// Check for TaxCloud error messages
 			$errors = '';
 
-			foreach ( $resp->Messages as $message ) {
-				$errors .= $message->ResponseType .' - '. $message->Message .'<br />';
+			if ( isset( $resp->ResponseType ) && ( $resp->ResponseType == 'Error' || $resp->ResponseType === 0 ) ) {
+				foreach ( $resp->Messages as $message ) {
+					$errors .= $message->ResponseType .' - '. $message->Message .'<br />';
+				}
+
+				$errors = substr( $errors, 0, strlen( $errors ) - 6 );
+			} else if ( isset( $resp->ErrDescription ) && !empty( $resp->ErrDescription ) ) {
+				$errors = $resp->ErrDescription;
 			}
 
-			$errors = substr( $errors, 0, strlen( $errors ) - 6 );
-			
-			$this->last_error = 'An error occurred during the last API request. TaxCloud said: '. $errors;
+			if ( !empty( $errors ) )
+				$this->last_error = 'TaxCloud said: '. $errors;
 
-		} else if ( isset( $resp->ErrDescription ) && !empty( $resp->ErrDescription ) ) {
-			$this->last_error = 'An error occurred during the last API request. TaxCloud said: ' . $resp->ErrDescription;
+			if ( $this->last_error ) {
+				return true;
+			} else {
+				return false;
+			}
 		}
-
-		if ( $this->last_error ) {
-			return true;
-		} else {
-			return false;
-		}
-
 	}
 	
 	/**
@@ -150,36 +160,34 @@ class WC_WooTax_TaxCloud {
 	 * Executed after each request to the TaxCloud API
 	 *
 	 * @since 4.2
+	 * @param $request     string   the last request in JSON format
+	 * @param $reponse     string   the last response in JSON format
+	 * @param $http_code   int      the last http code received from TaxCloud
 	 */
-	private function log_request_details() {
-
-		$this->last_request          = $this->client->__getLastRequest();
-		$this->last_response         = $this->client->__getLastResponse();
-		$this->last_response_headers = $this->client->__getLastResponseHeaders();
-
+	private function log_request_details( $request, $response, $http_code ) {
+		$this->last_request       = $request;
+		$this->last_response      = $response;
+		$this->last_response_code = $http_code;
 	}
 	
 	/**
 	 * Checks for a valid address. For an address to be valid, Country, City, State, and 5-digit ZIP must be provided
 	 *
-	 * @param Address $address
+	 * @param  $address  array  associative array representing an address
 	 * @return (bool) true if the address is valid; else, false
 	 */
 	public function is_valid_address( $address, $dest = false ) {
-
 		// Convert all array keys to lowercase for consistency
 		$address         = array_change_key_case( array_map( 'strtolower', $address ) );
 		$required_fields = array( 'country', 'city', 'state', 'zip5' );
 		
 		// Check for presence of required fields
 		foreach ( $required_fields as $required ) {
-
 			$val = isset( $address[ $required ] ) ? $address[ $required ] : '' ;
 			
 			if ( empty( $val ) ) {
 				return false;
 			}
-
 		}
 		
 		// If the destination country is not the US, return false
@@ -188,19 +196,17 @@ class WC_WooTax_TaxCloud {
 		}
 			
 		return true;
-
 	}
 	
 	/**
 	 * Send API request
 	 *
 	 * @since 4.2
-	 * @param $type (string) type of request being sent
-	 * @param $params (array) request parameters
+	 * @param $type    string  type of request being sent
+	 * @param $params  array   request parameters
 	 * @return (mixed) response result or boolean false if an error occurs
 	 */
 	public function send_request( $type, $params = array() ) {
-
 		$last_error = false;
 
 		if ( $this->logger ) {
@@ -212,10 +218,7 @@ class WC_WooTax_TaxCloud {
 		} else if ( $type == 'Lookup' && ( !$this->is_valid_address( $params['origin'] ) || !$this->is_valid_address( $params['destination'], true ) ) ) {
 			$last_error = 'Could not make '. $type .' request: Valid origin and destination addresses are required.';
 		} else {
-			// Perform some special formatting 
-			if ( $type == 'VerifyAddress' ) {
-
-				// Unset uspsUserID
+			if ( $type == 'VerifyAddress' ) { // Check for valid address before issuing VerifyAddress request
 				$user_id = '';
 
 				if ( isset( $params['uspsUserID'] ) ) {
@@ -225,7 +228,6 @@ class WC_WooTax_TaxCloud {
 
 				$params = array_change_key_case( $params );
 
-				// Check for valid address
 				if ( !$this->is_valid_address( $params ) ) {
 					$last_error = 'Could not make '. $type .' request: A valid address is required.';
 				} else {
@@ -235,12 +237,9 @@ class WC_WooTax_TaxCloud {
 					// Unset country
 					unset( $params['country'] );
 				}
-
 			}
 
-			if ( $last_error == false ) { // Prevents VerifyAddress requests from being executed when an invalid address is passed
-
-				// Add API Login ID/Key to request parameters
+			if ( $last_error == false ) { // Prevent VerifyAddress requests from being executed when an invalid address is passed
 				$request = array_merge( array( 
 					'apiLoginID' => $this->login_id, 
 					'apiKey'     => $this->key, 
@@ -250,8 +249,14 @@ class WC_WooTax_TaxCloud {
 
 					$response = $this->client->$type( $request );
 
+					// Parse out the last response HTTP code
+					$headers = $this->client->__getLastResponseHeaders();
+
+					if ( $c = preg_match_all( "/.*?\\d+.*?\\d+.*?(\\d+)/is", $headers, $matches ) )					  
+						$http_code = $matches[1][0];
+					
 					// Record request details (response headers, request/response)
-					$this->log_request_details();
+					$this->log_request_details( $request, $response, $http_code );
 
 					if ( $this->logger ) {
 						$this->logger->add( 'wootax', 'Request: '. print_r( $request, true ) );
@@ -260,8 +265,9 @@ class WC_WooTax_TaxCloud {
 
 					// Check response for errors 
 					$response_key = $type . 'Result';
+					$response = $response->$response_key; // Doing this here should make the transition to cURL easier later on
 
-					if ( $this->is_response_error( $response->$response_key ) ) {
+					if ( $this->is_response_error( $response ) ) {
 						$last_error = $this->last_error;
 					}
 
@@ -273,7 +279,6 @@ class WC_WooTax_TaxCloud {
 		}
 		
 		if ( $last_error ) {
-
 			$this->last_error = $last_error;
 
 			if ( $this->logger ) {
@@ -281,17 +286,13 @@ class WC_WooTax_TaxCloud {
 			}
 
 			return false;
-
 		} else {
-
 			if ( $this->logger ) {
 				$this->logger->add( 'wootax', 'Request succeeded!' );
 			}
 
 			return $response;
-
 		}
-
 	}
 
 }

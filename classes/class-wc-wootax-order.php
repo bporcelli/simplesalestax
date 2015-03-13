@@ -117,24 +117,25 @@ class WC_WooTax_Order {
 		// Hook into WooCommerce calculate tax ajax action so we can add WooTax taxes
 		add_action( 'wp_ajax_woocommerce_calc_line_taxes', array( $this, 'ajax_update_order_tax' ), 1 );
 
+		// Override Subscriptions calculate_recurring_line_taxes method if necessary
+		if ( is_plugin_active( 'woocommerce-subscriptions/woocommerce-subscriptions.php' ) )
+			add_action( 'wp_ajax_woocommerce_subscriptions_calculate_line_taxes', array( $this, 'ajax_update_recurring_tax' ), 1 );
+
 		// Needed for compatibility with WooCommerce 2.2+
 		if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ) {
-
 			// Adds shipping tax
 			add_action( 'woocommerce_order_add_shipping', array( $this, 'add_shipping_tax' ), 12, 3 );
 		
 			// Makes sure appropriate tax is recorded for WooTax rate
 			add_action( 'woocommerce_order_add_tax', array( $this, 'add_order_tax_rate' ), 12, 3 );
-
 		}
 
 		// Add order meta
 		add_action( 'woocommerce_new_order', array( $this, 'add_order_meta' ), 10, 1 );
 
-		// Store tax item ID (2.1.x)
-		if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '<' ) ) {
+		// Store tax item ID when order is created (WooCommerce 2.1.x)
+		if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '<' ) ) 
 			add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'store_tax_item_id' ), 10, 1 );
-		}
 
 	}
 
@@ -772,19 +773,19 @@ class WC_WooTax_Order {
 			}
 		}
 
-		// Store data and save
-		$this->lookup_data   = $data;
+		// Save mapping array/first found and return lookup data
 		$this->mapping_array = $mapping_array;
 		$this->first_found   = $first_found;
 
-		$this->generate_order_ids();
+		return $data;
 
 	}
 
 	/**
 	 * Generate an order ID for each lookup
 	 *
-	 * @since 4.2
+	 * @since  4.2
+	 * @return $taxcloud_ids   Array   array of taxcloud cart IDs and order IDs
 	 */
 	private function generate_order_ids() {
 
@@ -801,7 +802,7 @@ class WC_WooTax_Order {
 
 		}
 
-		$this->taxcloud_ids = $taxcloud_ids;
+		return $taxcloud_ids;
 
 	}
 
@@ -809,10 +810,11 @@ class WC_WooTax_Order {
 	 * Perform a lookup for the order and update tax totals
 	 *
 	 * @since 4.2
-	 * @param $items an array of CartItems
-	 * @param $type_array an array mapping item IDs to item types (cart/shipping)
+	 * @param $items           array     an array of CartItems
+	 * @param $type_array      array     an array mapping item IDs to item types (cart/shipping)
+	 * @param $subscription    boolean   is this lookup for a subscription renewal order?
 	 */
-	public function do_lookup( $items, $type_array ) {
+	public function do_lookup( $items, $type_array, $subscription = false ) {
 		
 		// Instantiate WC_WooTax_TaxCloud object
 		$this->taxcloud = get_taxcloud();
@@ -820,11 +822,23 @@ class WC_WooTax_Order {
 		// Fire request if we are ready to do so
 		if ( $this->ready_for_lookup() ) {
 
-			// Remove currently applied taxes (delete order item instead?)
-			$this->remove_tax();
+			$taxcloud_ids = $lookup_data = array();
 
-			// Generate lookup data
-			$this->generate_lookup_data( $items );
+			if ( !$subscription ) {
+				// Remove currently applied taxes (delete order item instead?)
+				$this->remove_tax();
+
+				// Generate lookup data
+				$this->lookup_data = $this->generate_lookup_data( $items );
+				$lookup_data       = $this->lookup_data;
+
+				// Generate TaxCloud Cart/Order IDs
+				$this->taxcloud_ids = $this->generate_order_ids();
+				$taxcloud_ids       = $this->taxcloud_ids;
+			} else {
+				// Only generate lookup data
+				$lookup_data = $this->generate_lookup_data( $items );
+			}
 
 			// Retrieve validated destination addresses
 			$destination_address = validate_address( $this->destination_address );
@@ -832,18 +846,18 @@ class WC_WooTax_Order {
 			// Used in every tax lookup
 			$all_cart_items = array();
 			$tax_total      = $shipping_tax_total = 0;
-			$taxcloud_ids   = $this->taxcloud_ids;
+			//$taxcloud_ids   = $this->taxcloud_ids;
 
 			// Fetch some information about the order
 			$exempt_cert         = $this->get_exemption_certificate();
 			$customer_id         = $this->get_customer_id();
 			$delivered_by_seller = $this->is_delivered_by_seller();
-			
+
 			// Loop through locations in lookup_data array and send a Lookup request for each
-			foreach ( $this->lookup_data as $location_key => $items ) {
+			foreach ( $lookup_data as $location_key => $items ) {
 
 				// Fetch cart_id
-				$cart_id = isset( $this->taxcloud_ids[ $location_key ]['cart_id'] ) ? $this->taxcloud_ids[ $location_key ]['cart_id'] : '';
+				$cart_id = isset( $taxcloud_ids[ $location_key ]['cart_id'] ) ? $taxcloud_ids[ $location_key ]['cart_id'] : '';
 
 				// Get the origin address
 				$origin_address = validate_address( $this->get_origin_address( $location_key ) );
@@ -855,12 +869,11 @@ class WC_WooTax_Order {
 					'cartItems'         => $items, 
 					'origin'            => $origin_address, 
 					'destination'       => $destination_address, 
-					'deliveredBySeller' => $delivered_by_seller, 
+					'deliveredBySeller' => $delivered_by_seller,
 				);	
 
-				if ( $exempt_cert != NULL ) {
+				if ( !empty( $exempt_cert ) )
 					$req['exemptCert'] = $exempt_cert;
-				}
 
 				// Send Lookup request 
 				$res = $this->taxcloud->send_request( 'Lookup', $req );
@@ -868,16 +881,15 @@ class WC_WooTax_Order {
 				if ( $res !== false ) {
 
 					// Initialize some vars
-					$cart_items = $res->LookupResult->CartItemsResponse->CartItemResponse;
+					$cart_items = $res->CartItemsResponse->CartItemResponse;
 
 					// Store the returned CartID for later use
-					$taxcloud_ids[ $location_key ]['cart_id'] = $res->LookupResult->CartID;
+					$taxcloud_ids[ $location_key ]['cart_id'] = $res->CartID;
 
-					// If cart_items only contains one item, it will not be an array. In that case, convert to an array to avoid 
-					// the need for separate code to handle this case
-					if ( !is_array( $cart_items ) ) {
+					// If cart_items only contains one item, it will not be an array. 
+					// In that case, convert to an array 
+					if ( !is_array( $cart_items ) ) 
 						$cart_items = array( $cart_items );
-					}
 
 					// Loop through items and update tax amounts
 					foreach ( $cart_items as &$cart_item ) {
@@ -889,7 +901,8 @@ class WC_WooTax_Order {
 						$tax     = $cart_item->TaxAmount;
 
 						// Update item tax
-						$this->apply_item_tax( $item_id, $tax );
+						if ( !$subscription )
+							$this->apply_item_tax( $item_id, $tax );
 
 						// Keep track of cart tax/shipping tax totals
 						if ( $type == 'cart' ) {
@@ -913,45 +926,47 @@ class WC_WooTax_Order {
 
 			}
 
-			// Save updated tax totals
-			$this->update_tax_totals( $tax_total, $shipping_tax_total );
+			if ( !$subscription ) {
+				// Save updated tax totals
+				$this->update_tax_totals( $tax_total, $shipping_tax_total );
 
-			// Update TaxCloud IDs array
-			$this->taxcloud_ids = $taxcloud_ids;
+				// Update TaxCloud IDs array
+				$this->taxcloud_ids = $taxcloud_ids;
 
-			// Reset identifiers array (only useful before first lookup from "edit order" screen)
-			$this->identifiers = array();
+				// Reset identifiers array (only useful before first lookup from "edit order" screen)
+				$this->identifiers = array();
 
-			// Store mapping array in reverse order (map item ids to item indexes)
-			$new_mapping_array = array();
+				// Store mapping array in reverse order (map item ids to item indexes)
+				$new_mapping_array = array();
 
-			foreach ( $this->mapping_array as $location => $mappings ) {
-				foreach ( $mappings as $item_index => $item_id ) {
+				foreach ( $this->mapping_array as $location => $mappings ) {
+					foreach ( $mappings as $item_index => $item_id ) {
 
-					if ( !isset( $new_mapping_array[ $location ] ) ) {
-						$new_mapping_array[ $location ] = array();
+						if ( !isset( $new_mapping_array[ $location ] ) ) {
+							$new_mapping_array[ $location ] = array();
+						}
+
+						$new_mapping_array[ $location ][ $item_id ] = $item_index;
+
 					}
-
-					$new_mapping_array[ $location ][ $item_id ] = $item_index;
-
 				}
-			}
 
-			$this->mapping_array = $new_mapping_array;
+				$this->mapping_array = $new_mapping_array;
 
-			// Update index/location mappings
-			foreach ( $this->lookup_data as $address_key => $items ) {
-				foreach ( $items as $item ) {
+				// Update index/location mappings
+				foreach ( $this->lookup_data as $address_key => $items ) {
+					foreach ( $items as $item ) {
 
-					$item_id = $item['ItemID'];
+						$item_id = $item['ItemID'];
 
-					if ( $item_id == WOOTAX_SHIPPING_ITEM ) { // WC 2.1 shipping
-						$this->shipping_index = $item['Index'];
-					} else {
-						wc_update_order_item_meta( $item_id, '_wootax_location_id', $address_key );
-						wc_update_order_item_meta( $item_id, '_wootax_index', $item['Index'] );
+						if ( $item_id == WOOTAX_SHIPPING_ITEM ) { // WC 2.1 shipping
+							$this->shipping_index = $item['Index'];
+						} else {
+							wc_update_order_item_meta( $item_id, '_wootax_location_id', $address_key );
+							wc_update_order_item_meta( $item_id, '_wootax_index', $item['Index'] );
+						}
+
 					}
-
 				}
 			}
 
@@ -1039,28 +1054,44 @@ class WC_WooTax_Order {
 	public function get_destination_address() {
 		
 		// Retrieve "tax based on" option
-		$tax_based_on = wootax_get_option( 'tax_based_on' );
+		$tax_based_on = get_option( 'woocommerce_tax_based_on' );
 
 		// Return origin address if this is a local pickup order
 		if ( $this->is_local_pickup() || $tax_based_on == 'base' ) {
 			return $this->get_origin_address( $this->default_address );
 		}
 
-		// Initialize blank address array
-		$address = array();
-		
-		// Construct final address arraya
-		$parsed_zip = parse_zip( $_POST['postcode'] );
+		// Attempt to fetch preferred address according to "tax based on" option; return billing by default
+		$address_1 = $this->order->billing_address_1;
+		$address_2 = $this->order->billing_address_2;
+		$country   = $this->order->billing_country;
+		$state     = $this->order->billing_state;
+		$city      = $this->order->billing_city;
+		$zip5      = $this->order->billing_postcode;
+				
+		if ( $tax_based_on == 'shipping' ) {
+			$address_1 = !empty( $this->order->shipping_address_1 ) ? $this->order->shipping_address_1 : $address_1;
+			$address_2 = !empty( $this->order->shipping_address_2 ) ? $this->order->shipping_address_2 : $address_2;
+			$country   = !empty( $this->order->shipping_country ) ? $this->order->shipping_country : $country;
+			$state     = !empty( $this->order->shipping_state ) ? $this->order->shipping_state : $state;
+			$city      = !empty( $this->order->shipping_city ) ? $this->order->shipping_city : $city;
+			$zip5      = !empty( $this->order->shipping_postcode ) ? $this->order->shipping_postcode : $zip5;
+		} 
 
-		$address['Address1'] = '';
-		$address['Address2'] = '';
-		$address['Country']  = $_POST['country'];
-		$address['State']    = $_POST['state'];
-		$address['City']     = $_POST['city'];
-		$address['Zip5']     = $parsed_zip['zip5'];
-		$address['Zip4']     = $parsed_zip['zip4']; 
+		// Parse ZIP code, splitting it into its 5 and 4-digit components
+		$parsed_zip = parse_zip( !empty( $zip5 ) ? $zip5 : $_POST['postcode'] );
 
 		// Return final address
+		$address = array(
+			'Address1' => !empty( $address_1 ) ? $address_1 : '',
+			'Address2' => !empty( $address_2 ) ? $address_2 : '',
+			'Country'  => !empty( $country ) ? $country : $_POST['country'],
+			'State'    => !empty( $state ) ? $state : $_POST['state'],
+			'City'     => !empty( $city ) ? $city : $_POST['city'],
+			'Zip5'     => $parsed_zip['zip5'],
+			'Zip4'     => $parsed_zip['zip4'],
+		);
+
 		return $address;
 
 	}
@@ -1076,8 +1107,11 @@ class WC_WooTax_Order {
 		// Get current shipping method
 		$shipping_method = $this->get_order_shipping_method();
 
+		// Filter local pickup methods so developers can use custom methods
+		$pickup_methods = apply_filters( 'wootax_local_pickup_methods', array( 'local_pickup', 'Local Pickup' ) );
+
 		// Check if method is "local_pickup"
-		if ( $shipping_method == 'local_pickup' || $shipping_method == 'Local Pickup' ) {
+		if ( in_array( $shipping_method, $pickup_methods ) ) {
 			return true;
 		} else {
 			return false;
@@ -1271,16 +1305,20 @@ class WC_WooTax_Order {
 		
 		global $woocommerce;
 
+		// Fetch customer address
+		$this->destination_address = $this->get_destination_address();
+
+		// Do not act on the refund if the order was placed by a customer in another country OR there are no items to refund
+		if ( count( $refund_items ) == 0 || isset( $this->destination_address['Country'] ) && !in_array( $this->destination_address['Country'], array( 'United States', 'US' ) ) ) {
+			return true;
+		}
+
 		if ( !$this->captured ) {
 			return 'You must set this order\'s status to "completed" before refunding any items.';
 		}
 
 		if ( !is_array( $refund_items ) ) {
 			return 'Error: No items to refund. Please try again.';
-		}
-
-		if ( count( $refund_items ) == 0 ) {
-			return true; // Bypasses the entire refund attempt when there are no items to refund
 		}
 
 		// Instantiate WC_WooTax_TaxCloud object
@@ -1829,6 +1867,172 @@ class WC_WooTax_Order {
 		}
 
 	}
+
+	/**
+	 * Calculate recurring line taxes via AJAX
+	 * Based on the original @see calculate_recurring_line_taxes() function in class-wc-wootax-subscriptions-order.php
+	 * 
+	 * @since 4.4
+	 */
+	public function ajax_update_recurring_tax() {
+
+		global $woocommerce, $wpdb;
+
+		$woo_23_plus = version_compare( WOOCOMMERCE_VERSION, '2.3', '>=' );
+
+		check_ajax_referer( 'woocommerce-subscriptions', 'security' );
+
+		$order_id  = absint( $_POST['order_id'] );
+		$country   = strtoupper( esc_attr( $_POST['country'] ) );
+
+		// Step out of the way if the customer is not located in the US
+		if ( $country != 'US' )
+			return;
+
+		$shipping      = $_POST['shipping'];
+		$line_subtotal = isset( $_POST['line_subtotal'] ) ? esc_attr( $_POST['line_subtotal'] ) : 0;
+		$line_total    = isset( $_POST['line_total'] ) ? esc_attr( $_POST['line_total'] ) : 0;
+
+		// Set up WC_WooTax_Order object
+		$this->load_order( $order_id );
+		
+		// Update customer address
+		$this->destination_address = $this->get_destination_address();
+
+		// We only need to instantiate a WC_Tax object if we are using WooCommerce < 2.3
+		if ( !$woo_23_plus )
+			$tax = new WC_Tax();
+
+		$taxes      = $shipping_taxes = array();
+	    $return     = array();
+	 	$item_data  = array();
+	 	$type_array = array();
+
+		$product_id = '';
+
+		if ( isset( $_POST['order_item_id'] ) ) {
+			$product_id = woocommerce_get_order_item_meta( $_POST['order_item_id'], '_product_id' );
+		} elseif ( isset( $_POST['product_id'] ) ) {
+			$product_id = esc_attr( $_POST['product_id'] );
+		}
+
+		if ( ! empty( $product_id ) && WC_Subscriptions_Product::is_subscription( $product_id ) ) {
+
+			// Get product details
+			$product         = WC_Subscriptions::get_product( $product_id );
+			$item_tax_status = $product->get_tax_status();
+
+			// Add product to items array
+			if ( $item_tax_status == 'taxable' ) {
+				$tic = get_post_meta( $product->id, 'wootax_tic', true );
+
+				$item_info = array(
+					'Index'  => '', // Leave Index blank because it is reassigned when WooTaxOrder::generate_lookup_data() is called
+					'ItemID' => isset( $_POST['order_item_id'] ) ? $_POST['order_item_id'] : $product_id, 
+					'Qty'    => 1, 
+					'Price'  => $line_subtotal > 0 ? $line_subtotal : $product->get_price(),	
+					'Type'   => 'cart',
+				);
+
+				if ( !empty( $tic ) && $tic )
+					$item_info['TIC'] = $tic;
+
+				$item_data[] = $item_info;
+
+				$type_array[ $_POST['order_item_id'] ] = 'cart';
+			}
+
+			// Add shipping to items array
+			if ( $shipping > 0 ) {
+				$item_data[] = array(
+					'Index'  => '', // Leave Index blank because it is reassigned when WooTaxOrder::generate_lookup_data() is called
+					'ItemID' => WOOTAX_SHIPPING_ITEM, 
+					'TIC'    => WOOTAX_SHIPPING_TIC,
+					'Qty'    => 1, 
+					'Price'  => $shipping,	
+					'Type'   => 'shipping',
+				);
+
+				$type_array[ WOOTAX_SHIPPING_ITEM ] = 'shipping';
+			}
+
+			// Issue Lookup request
+			$res = $this->do_lookup( $item_data, $type_array, true );
+
+			if ( is_array( $res ) ) {
+
+				$return['recurring_shipping_tax']      = 0;
+				$return['recurring_line_subtotal_tax'] = 0;
+				$return['recurring_line_tax']          = 0;
+
+				foreach ( $res as $item ) {
+
+					$item_id  = $item->ItemID;
+					$item_tax = $item->TaxAmount;
+
+					if ( $item_id == WOOTAX_SHIPPING_ITEM ) {
+						$return['recurring_shipping_tax'] += $item_tax;
+					} else {
+						$return['recurring_line_subtotal_tax'] += $item_tax;
+						$return['recurring_line_tax']          += $item_tax;
+					}
+
+				}
+
+				$taxes[ $this->wootax_rate_id ]          = $return['recurring_line_tax'];
+				$shipping_taxes[ $this->wootax_rate_id ] = $return['recurring_shipping_tax'];
+
+			 	// Get tax rates
+				$tax_codes = array( $this->wootax_rate_id => 'WOOTAX-RATE-DO-NOT-REMOVE' );
+
+				// Remove old tax rows
+				$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}woocommerce_order_itemmeta WHERE order_item_id IN ( SELECT order_item_id FROM {$wpdb->prefix}woocommerce_order_items WHERE order_id = %d AND order_item_type = 'recurring_tax' )", $order_id ) );
+				$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}woocommerce_order_items WHERE order_id = %d AND order_item_type = 'recurring_tax'", $order_id ) );
+
+				// Now merge to keep tax rows
+				ob_start();
+
+				foreach ( array_keys( $taxes + $shipping_taxes ) as $key ) {
+					$item                        = array();
+					$item['rate_id']             = $key;
+					$item['name']                = $tax_codes[ $key ];
+					$item['label']               = $woo_23_plus ? WC_Tax::get_rate_label( $key ) : $tax->get_rate_label( $key );
+					$item['compound']            = $woo_23_plus ? WC_Tax::is_compound( $key ) : $tax->is_compound( $key ) ? 1 : 0;
+					$item['tax_amount']          = $woo_23_plus ? WC_Tax::round( isset( $taxes[ $key ] ) ? $taxes[ $key ] : 0 ) : $tax->round( isset( $taxes[ $key ] ) ? $taxes[ $key ] : 0 );
+					$item['shipping_tax_amount'] = $woo_23_plus ? WC_Tax::round( isset( $shipping_taxes[ $key ] ) ? $shipping_taxes[ $key ] : 0 ) : $tax->round( isset( $shipping_taxes[ $key ] ) ? $shipping_taxes[ $key ] : 0 );
+
+					if ( ! $item['label'] )
+						$item['label'] = $woocommerce->countries->tax_or_vat();
+
+					// Add line item
+					$item_id = woocommerce_add_order_item( $order_id, array(
+						'order_item_name' => $item['name'],
+						'order_item_type' => 'recurring_tax'
+					) );
+
+					// Add line item meta
+					if ( $item_id ) {
+						woocommerce_add_order_item_meta( $item_id, 'rate_id', $item['rate_id'] );
+						woocommerce_add_order_item_meta( $item_id, 'label', $item['label'] );
+						woocommerce_add_order_item_meta( $item_id, 'compound', $item['compound'] );
+						woocommerce_add_order_item_meta( $item_id, 'tax_amount', $item['tax_amount'] );
+						woocommerce_add_order_item_meta( $item_id, 'shipping_tax_amount', $item['shipping_tax_amount'] );
+					}
+
+					include( plugin_dir_path( WC_Subscriptions::$plugin_file ) . 'templates/admin/post-types/writepanels/order-tax-html.php' );
+				}
+
+				$return['tax_row_html'] = ob_get_clean();
+
+				echo json_encode( $return );
+
+			}
+
+		}
+
+		die();
+	}
+
 
 	/**
 	 * Add correct tax to order post-checkout; store tax item ID
