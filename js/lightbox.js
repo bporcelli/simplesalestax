@@ -124,7 +124,7 @@ var certManagerBox = {
     previewInit: function() {
         var certArr = jQuery.map( certManagerBox.certManager.certificates, function(value, key) { return value });
         var cert    = certArr[ certInd ];
-        var date    = new Date( parseInt( cert.Detail.CreatedDate ) );
+        var date    = certManagerBox.parseDate( cert.Detail.CreatedDate );
 
         jQuery( '.certID' ).text( cert.CertificateID );
 

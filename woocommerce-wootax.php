@@ -33,7 +33,7 @@ require 'includes/wc-wootax-functions.php';
 if ( class_exists( 'SoapClient' ) ) {
 	require 'includes/wc-wootax-taxcloud-functions.php';
 } else {
-	wootax_add_flash_message( '<strong>Warning! WooTax has been disabled.</strong> The SOAPClient class is required by WooTax, but it is not activated on your server. Please see <a href="#" target="_blank">this article</a> for advice on what to do next.' );
+	wootax_add_flash_message( '<strong>Warning! WooTax has been disabled.</strong> The SoapClient class is required by WooTax, but it is not activated on your server. Please see <a href="#" target="_blank">this article</a> for advice on what to do next.' );
 	return;
 }
 
@@ -55,7 +55,6 @@ class WC_WooTax {
 	 * @since 4.2
 	 */
 	public function __construct() {	
-		
 		global $woocommerce;
 
 		// Give class methods access to WooCommerce global
@@ -64,7 +63,6 @@ class WC_WooTax {
 		// Hook into WooCommerce and WordPress
 		$this->hook_wordpress();
 		$this->hook_woocommerce();
-
 	}
 	
 	/**
@@ -73,7 +71,6 @@ class WC_WooTax {
 	 * @since 4.2
 	 */
 	private function hook_woocommerce() {
-
 		if ( get_option( 'wootax_license_key' ) != false && wootax_get_option( 'tc_key' ) != false && wootax_get_option( 'tc_id' ) != false ) {
 			
 			// Display correct rate label for older versions of WooCommerce
@@ -83,7 +80,6 @@ class WC_WooTax {
 			add_filter( 'woocommerce_rate_code', array( $this, 'get_rate_code' ), 12, 2 );
 
 		} 
-
 	}
 	
 	/**
@@ -92,13 +88,11 @@ class WC_WooTax {
 	 * @since 4.2
 	 */
 	private function hook_wordpress() {
-		
 		// Run update routine if necessary
 		add_action( 'admin_init', array( $this, 'update_wootax' ) );
 
 		// Maybe show activation message
 		add_action( 'admin_init', array( $this, 'maybe_show_activation_success' ) );
-
 	}
 	
 	/**
@@ -108,7 +102,6 @@ class WC_WooTax {
 	 * @since 4.2
 	 */
  	public static function configure_woocommerce() {
-
 		// Enable tax calculations
 		update_option( 'woocommerce_calc_taxes', 'yes' );
 		
@@ -137,7 +130,6 @@ class WC_WooTax {
 		// Set cookie so we know to show activation success message on the next page load
 		// This needs to be done because WordPress redirects immediately after activation (thereby causing the wootax flash message to be erased)
 		setcookie( 'wootax_activated', true, time() + 3600, '/' );
-
 	}
 
 	/**
@@ -146,12 +138,10 @@ class WC_WooTax {
 	 * @since 4.3
 	 */
 	public function maybe_show_activation_success() {
-
 		if ( isset( $_COOKIE['wootax_activated'] ) ) {
 			wootax_add_flash_message( '<strong>Success!</strong> Your WooCommerce tax settings have been automatically adjusted to work with WooTax.', 'updated' );
 			setcookie( 'wootax_activated', '', time() - 3600, '/' );
 		}
-
 	}
 
 	/**
@@ -161,7 +151,6 @@ class WC_WooTax {
 	 * @since 4.2
 	 */
 	public function update_wootax() {
-
 		global $wpdb;
 
 		$version = get_option( 'wootax_version' );
@@ -187,9 +176,8 @@ class WC_WooTax {
 			}
 
 			// Delete deprecated "wootax_shipping_taxable" option if it still exists
-			if ( get_option( 'wootax_shipping_taxable' ) ) {
+			if ( get_option( 'wootax_shipping_taxable' ) )
 				delete_option( 'wootax_shipping_taxable' );
-			}
 
 			// Transfer settings so they can be used with WooCommerce settings API
 			$options = array(
@@ -396,10 +384,8 @@ class WC_WooTax {
 
 		}
 
-		if ( !$this->has_tax_rate() ) {
+		if ( !$this->has_tax_rate() ) 
 			$this->add_rate_code();
-		} 
-
 	}
 	
 	/**
@@ -409,7 +395,6 @@ class WC_WooTax {
 	 * @return bool true/false
 	 */
 	private function has_tax_rate() {
-
 		global $wpdb;
 
 		$wootax_rate_id = get_option( 'wootax_rate_id' );
@@ -425,7 +410,6 @@ class WC_WooTax {
 		}
 
 		return true;
-
 	}
 
 	/**
@@ -435,7 +419,6 @@ class WC_WooTax {
 	 * @param $key the tax key (we want to return the appropriate name for the wootax rate)
 	 */
 	public function get_rate_label( $name, $key = NULL ) {
-
 		$rate_id = get_option( 'wootax_rate_id' );
 
 		if ( $name == $rate_id || $key == $rate_id ) {
@@ -443,7 +426,6 @@ class WC_WooTax {
 		} else {
 			return $name;
 		}
-
 	}
 
 	/**
@@ -453,13 +435,11 @@ class WC_WooTax {
 	 * @param $key - the tax rate id; compare to stored wootax rate id and return 'WOOTAX-RATE-DO-NOT-REMOVE' if match is found
 	 */
 	public function get_rate_code( $code, $key ) {
-
 		if ( $key == get_option( 'wootax_rate_id' ) ) {
 			return 'WOOTAX-RATE-DO-NOT-REMOVE';
 		} else {
 			return $code;
 		}
-
 	}
 
 	/**
@@ -468,7 +448,6 @@ class WC_WooTax {
 	 * @since 4.0
 	 */
 	private function add_rate_code() {
-
 		global $wpdb;
 
 		// Add new rate 
@@ -489,7 +468,6 @@ class WC_WooTax {
 		$tax_rate_id = $wpdb->insert_id;
 
 		update_option( 'wootax_rate_id', $tax_rate_id );
-
 	}
 
 	/**
@@ -499,13 +477,35 @@ class WC_WooTax {
 	 * @since 4.3
 	 */
 	public static function add_exempt_user_role() {
-
 		add_role( 'exempt-customer', __( 'Exempt Customer', 'woocommerce' ), array(
 			'read' 						=> true,
 			'edit_posts' 				=> false,
 			'delete_posts' 				=> false,
 		) );
+	}
 
+	/**
+	 * Schedule events for the WooTax order checker and recurring payments updater
+	 *
+	 * @since 4.4
+	 */
+	public static function schedule_wootax_events() {
+		// Ensure that all orders are properly synced with TaxCloud
+		wp_schedule_event( time() + DAY_IN_SECONDS, 'daily', 'wootax_check_orders' ); 
+
+		// Update recurring tax amounts if necessary
+		wp_schedule_event( time() + HOUR_IN_SECONDS * 12, 'twicedaily', 'wootax_update_recurring_tax' );
+	}
+
+	/**
+	 * Unschedule events for the WooTax order checker and recurring payments updater
+	 * Hooks to be cleared are wootax_check_orders and wootax_update_recurring_tax
+	 *
+	 * @since 4.4
+	 */
+	public static function unschedule_wootax_events() {
+		wp_clear_scheduled_hook( 'wootax_check_orders' );
+		wp_clear_scheduled_hook( 'wootax_update_recurring_tax' );
 	}
 	
 }
@@ -526,16 +526,15 @@ if ($license_key != false) {
 
 // Load plugin
 function load_wootax() {
-
 	if ( version_compare( WOOCOMMERCE_VERSION, '2.1', '>=' ) ) {
 		if ( wootax_get_option( 'show_exempt' ) == 'true' ) 
 			require 'includes/wc-wootax-exemptions.php';
 		
-		require 'includes/wc-wootax-debug-tools.php';
 		require 'classes/class-wc-wootax-order.php';
 		require 'classes/class-wc-wootax-checkout.php';
 		require 'classes/class-wc-wootax-admin.php';
 		require 'classes/class-wc-wootax-refund.php';
+		require 'includes/wc-wootax-cron-tasks.php';
 
 		if ( is_plugin_active( 'woocommerce-subscriptions/woocommerce-subscriptions.php' ) ) 
 			require( 'classes/class-wc-wootax-subscriptions.php' );
@@ -544,15 +543,22 @@ function load_wootax() {
 	} else {
 		wootax_add_flash_message( '<strong>Warning: WooTax has been disabled.</strong> This version of WooTax requires WooCommerce 2.1 or newer.' );
 	}
-	
 }
 
 add_action( 'plugins_loaded', 'load_wootax' );
 
-// Configure WooCommerce settings on activation
-function update_woocommerce_settings() {
+// WooTax activation routine
+function activate_wootax() {
 	WC_WooTax::configure_woocommerce();
 	WC_WooTax::add_exempt_user_role();
+	WC_WooTax::schedule_wootax_events();
 }
 
-register_activation_hook( __FILE__, 'update_woocommerce_settings' );
+register_activation_hook( __FILE__, 'activate_wootax' );
+
+// WooTax deactivation routine
+function deactivate_wootax() {
+	WC_WooTax::unschedule_wootax_events();
+}
+
+register_deactivation_hook( __FILE__, 'deactivate_wootax' );

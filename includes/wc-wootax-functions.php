@@ -259,3 +259,20 @@ function parse_zip( $zip ) {
 	return $parsed_zip;
 
 }
+
+/**
+ * Get user roles for Exempt Roles select
+ *
+ * @since 4.3
+ * @return an array of all registered user roles
+ */
+function wootax_get_user_roles() {
+
+	global $wp_roles;
+
+	if ( ! isset( $wp_roles ) )
+	    $wp_roles = new WP_Roles();
+
+	return $wp_roles->get_names();
+
+}

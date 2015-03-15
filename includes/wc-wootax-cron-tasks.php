@@ -1,31 +1,10 @@
 <?php
 
 /**
- * Contains custom WooCommerce debug tools for WooTax
- *
- * @package WooTax
- * @since 4.2
- */
-
-/**
- * Add "Check WooTax Orders" debug tool
+ * WooTax cronjobs
  *
  * @since 4.4
- * @param $tools  array   array of debug tools
- * @return modified array of debug tools
- */ 
-function wootax_debug_tool_check_orders( $tools ) {
-
-	$tools['wootax_check_orders'] = array(
-		'name'		=> __( 'Check WooTax Orders',''),
-		'button'	=> __( 'Check orders','woocommerce-wootax' ),
-		'desc'		=> __( 'This tool checks your orders to make sure they are synced with TaxCloud.', '' ),
-		'callback'  => 'wootax_check_orders',
-	);
-
-	return $tools;
-
-}
+ */
 
 /**
  * Check WooTax Orders
@@ -40,7 +19,6 @@ function wootax_debug_tool_check_orders( $tools ) {
  * @return void
  */
 function wootax_check_orders() {
-
 	$query = new WP_Query( array(
 		'post_type'   => 'shop_order',
 		'post_status' => 'wc-completed',
@@ -62,8 +40,19 @@ function wootax_check_orders() {
 		}
 		echo '</p></div>';
 	}
-	
 }
 
-// Hook into WordPress/WooCommerce
-add_filter( 'woocommerce_debug_tools', 'wootax_debug_tool_check_orders' );
+add_action( 'wootax_check_orders', 'wootax_check_orders' );
+
+/**
+ * Update recurring tax for subscriptions
+ * Not executed if Subscriptions plugin is not active
+ *
+ * @since 4.4
+ * @return void
+ */
+function wootax_update_recurring_tax() {
+
+}
+
+add_action( 'wootax_update_recurring_tax', 'wootax_update_recurring_tax' );

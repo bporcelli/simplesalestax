@@ -505,23 +505,6 @@ function maybe_apply_exemption_certificate() {
 
 }
 
-/**
- * Get user roles for Exempt Roles select
- *
- * @since 4.3
- * @return an array of all registered user roles
- */
-function wootax_get_user_roles() {
-
-	global $wp_roles;
-
-	if ( ! isset( $wp_roles ) )
-	    $wp_roles = new WP_Roles();
-
-	return $wp_roles->get_names();
-
-}
-
 // Hooks into WordPress/WooCommerce
 add_action( 'wp_enqueue_scripts', 'enqueue_checkout_scripts', 20 );
 add_action( 'wp_footer', 'add_exemption_javascript', 21 );

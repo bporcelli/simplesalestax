@@ -1091,7 +1091,7 @@ class WC_WooTax_Checkout {
 		}
 
 		// Use get_tax_total to set new tax total so we don't override other rates
-		$this->cart->tax_total = version_compare( WOOCOMMERCE_VERSION, '2.3', '>=' ) ? WC_Tax::get_tax_total( $this->cart->taxes ) : $this->cart->tax->get_tax_total( $this->cart->taxes );
+		$this->cart->tax_total = version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ? WC_Tax::get_tax_total( $this->cart->taxes ) : $this->cart->tax->get_tax_total( $this->cart->taxes );
 
 		$this->tax_total = $new_tax;
 
@@ -1112,7 +1112,7 @@ class WC_WooTax_Checkout {
 		} 
 
 		// Use get_tax_total to set new tax total so we don't override other rates
-		$this->cart->shipping_tax_total = version_compare( WOOCOMMERCE_VERSION, '2.3', '>=' ) ? WC_Tax::get_tax_total( $this->cart->shipping_taxes ) : $this->cart->tax->get_tax_total( $this->cart->shipping_taxes );
+		$this->cart->shipping_tax_total = version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ? WC_Tax::get_tax_total( $this->cart->shipping_taxes ) : $this->cart->tax->get_tax_total( $this->cart->shipping_taxes );
 
 		// Update internal shipping tax total
 		$this->shipping_tax_total = $new_tax;
