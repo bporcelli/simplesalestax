@@ -12,24 +12,16 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  */
 
 class WC_WooTax_Order {
-	/**
-	 * The ID of the order
-	 */
+	/** The ID of the order (shop_order post) */
 	public $order_id;
 	
-	/**
-	 * WC_Order object
-	 */
+	/** WC_Order object */
 	public $order;
 	
-	/**
-	 * Global WooCommerce object
-	 */
+	/** Global WooCommerce object */
 	private $woo;
 
-	/**
-	 * Array of default values for some fields
-	 */
+	/** Array of default values for WooTax meta fields */
 	public $defaults = array(
 		'tax_total'              => 0,
 		'shipping_tax_total'     => 0,
@@ -47,29 +39,19 @@ class WC_WooTax_Order {
 		'identifiers'            => array(),
 	);
 
-	/**
-	 * Customer destination address
-	 */
+	/** Customer destination address */
 	public $destination_address = array();
 
-	/**
-	 * Holds the ID of the WooTax tax rate
-	 */
+	/** Holds the ID of the WooTax tax rate */
 	private $wootax_rate_id = '';
 
-	/**
-	 * Holds a WC_WooTax_TaxCloud object
-	 */	
+	/** Holds a WC_WooTax_TaxCloud object */	
 	private $taxcloud = false;
 
-	/**
-	 * Holds an array of business address entered by the user
-	 */
+	/** Holds an array of business address entered by the user */
 	private $addresses = array();
 
-	/**
-	 * Holds an integer representing the ID of the "default" business address
-	 */
+	/** Holds an integer representing the ID of the "default" business address */
 	private $default_address = -1;
 	
 	/**
@@ -846,7 +828,6 @@ class WC_WooTax_Order {
 			// Used in every tax lookup
 			$all_cart_items = array();
 			$tax_total      = $shipping_tax_total = 0;
-			//$taxcloud_ids   = $this->taxcloud_ids;
 
 			// Fetch some information about the order
 			$exempt_cert         = $this->get_exemption_certificate();
@@ -1185,12 +1166,15 @@ class WC_WooTax_Order {
 	 * Completes an order by sending an AuthorizeWithCapture request to TaxCloud
 	 *
 	 * @since 4.2
-	 * @param $order_id the WooCommerce order ID
+	 * @param $order_id   int       the WooCommerce order ID
+	 * @param $cron       boolean   is this method being called from inside a WooTax cronjob? Default: false
 	 */
-	public function complete( $order_id ) {
+	public function complete( $order_id, $cron = false ) {
 
-		// Load order
-		$this->load_order( $order_id );
+		// Load order if necessary
+		if ( $this->order_id != $order_id ) {
+			$this->load_order( $order_id );
+		}
 
 		// Exit if the order has already been captured or contains no taxable items 
 		if ( $this->captured ) { 
@@ -1222,14 +1206,19 @@ class WC_WooTax_Order {
 
 			// Check for errors
 			if ( $res == false ) {
-				wootax_add_flash_message( 'There was an error while marking the order as Captured. '. $this->taxcloud->get_error_message() );
-				return;
+				if ( !$cron ) {
+					wootax_add_flash_message( 'There was an error while marking the order as Captured. '. $this->taxcloud->get_error_message() );
+					return;
+				} else {
+					return $this->taxcloud->get_error_message();
+				}
 			}
 
 		}
 
 		// Mark order as captured
 		$this->captured = true;
+		return true;
 
 	}
 	
@@ -1238,18 +1227,24 @@ class WC_WooTax_Order {
 	 * Resets order meta and sends Refunded request to TaxCloud
 	 *
 	 * @since 4.2
-	 * @param $order_id the WooCommerce order ID
+	 * @param $order_id   int   the WooCommerce order ID
+	 * @param $cron       boolean   is this method being called from a WooTax cronjob? Default: false
 	 */
-	public function refund( $order_id ) {
+	public function refund( $order_id, $cron = false ) {
 
 		// Load order
-		$this->load_order( $order_id );
+		if ( $this->order_id != $order_id ) {
+			$this->load_order( $order_id );
+		}
 
 		// Exit if the order has already been refunded or has not yet been captured
 		if ( $this->refunded ) {
 			return;
 		} else if( !$this->captured ) {
-			wootax_add_flash_message( '<strong>WARNING:</strong> The order was not refunded through TaxCloud because it has not been captured yet. To fix this issue, save the order as completed before marking it as refunded.', 'update-nag' );
+			if ( !$cron ) {
+				wootax_add_flash_message( '<strong>WARNING:</strong> The order was not refunded through TaxCloud because it has not been captured yet. To fix this issue, save the order as completed before marking it as refunded.', 'update-nag' );
+			}
+
 			return;
 		}
 		
@@ -1275,8 +1270,12 @@ class WC_WooTax_Order {
 			
 			// Check for errors
 			if ( $res == false ) {
-				wootax_add_flash_message( 'There was an error while refunding the order. '. $this->taxcloud->get_error_message() );
-				break;
+				if ( !$cron ) {
+					wootax_add_flash_message( 'There was an error while refunding the order. '. $this->taxcloud->get_error_message() );
+					break;
+				} else {
+					return $this->taxcloud->get_error_message();
+				}
 			}
 
 		}
@@ -1291,6 +1290,7 @@ class WC_WooTax_Order {
 		
 		// Mark order as refunded
 		$this->refunded = true;
+		return true;
 
 	}
 

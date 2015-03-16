@@ -276,3 +276,27 @@ function wootax_get_user_roles() {
 	return $wp_roles->get_names();
 
 }
+
+/**
+ * Returns the email to which WooTax notifications should be sent
+ * If the notification_email is not set explicitly, return first admin email
+ *
+ * @since 4.4
+ * @return email address (string)
+ */
+function wootax_get_notification_email() {
+
+	$email = wootax_get_option( 'notification_email' );
+
+	if ( $email ) {
+		return $email;
+	}
+
+	$all_admins = get_users( array( 
+		'role'   => 'administrator', 
+		'number' => 1,
+	) );
+
+	return $all_admins[0]->user_email;
+
+} 

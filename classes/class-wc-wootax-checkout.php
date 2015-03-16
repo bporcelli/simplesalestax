@@ -1,7 +1,8 @@
 <?php
 
 // Prevent data leaks
-if ( ! defined( 'ABSPATH' ) ) exit; 
+if ( ! defined( 'ABSPATH' ) ) 
+	exit; 
 
 /**
  * WC_WooTax_Checkout Object

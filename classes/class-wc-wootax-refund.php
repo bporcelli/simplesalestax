@@ -54,9 +54,10 @@ function get_refund_classname( $classname ) {
  * Process partial refunds created on the edit order screen
  * 
  * @since 4.0
- * @param $refund the WC_Order_Refund object that was just created
+ * @param $refund   WC_Order_Refund   refund object that was just created
+ * @param $cron     boolean           is this method being called from a WooTax cronjob? Default: false.
  */
-function process_refund( $refund ) {
+function process_refund( $refund, $cron = false ) {
 
 	global $WC_WooTax_Order;
 
@@ -200,7 +201,7 @@ function process_refund( $refund ) {
 	// Process refund
 	$res = $order->refund_items( $refund_items );
 
-	if ( $res !== true ) {
+	if ( $res !== true && !$cron ) {
 		
 		// Delete refund
 		wp_delete_post( $refund->post->ID );
@@ -208,6 +209,10 @@ function process_refund( $refund ) {
 		// Throw exception so refund is halted
 		throw new Exception('Refund failed: '. $res);
 		
+	} else if ( $res !== true && $cron ) {
+		return $res;
+	} else if ( $cron ) {
+		return true;
 	}
 
 }

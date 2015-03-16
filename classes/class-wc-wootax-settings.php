@@ -31,17 +31,20 @@ class WC_WooTax_Settings extends WC_Integration {
 		}
  
 		// Define user set variables.
-		$this->tc_id           = $this->get_option( 'tc_id' );
-		$this->tc_key          = $this->get_option( 'tc_key' );
-		$this->usps_id         = $this->get_option( 'usps_id' );
-		$this->addresses       = $this->get_option( 'addresses' );
-		$this->default_address = $this->get_option( 'default_address' );
-		$this->show_exempt     = $this->get_option( 'show_exempt' );
-		$this->company_name    = $this->get_option( 'company_name' );
-		$this->show_zero_tax   = $this->get_option( 'show_zero_tax' );
-		$this->exemption_text  = $this->get_option( 'exemption_text' );
-		$this->tax_based_on    = $this->get_option( 'tax_based_on' );
-		$this->log_requests    = $this->get_option( 'log_requests' );
+		$this->tc_id              = $this->get_option( 'tc_id' );
+		$this->tc_key             = $this->get_option( 'tc_key' );
+		$this->usps_id            = $this->get_option( 'usps_id' );
+		$this->addresses          = $this->get_option( 'addresses' );
+		$this->default_address    = $this->get_option( 'default_address' );
+		$this->show_exempt        = $this->get_option( 'show_exempt' );
+		$this->company_name       = $this->get_option( 'company_name' );
+		$this->show_zero_tax      = $this->get_option( 'show_zero_tax' );
+		$this->exemption_text     = $this->get_option( 'exemption_text' );
+		$this->tax_based_on       = $this->get_option( 'tax_based_on' );
+		$this->log_requests       = $this->get_option( 'log_requests' );
+		$this->check_orders       = $this->get_option( 'check_orders' );
+		$this->send_notifications = $this->get_option( 'send_notifications' );
+		$this->notification_email = $this->get_option( 'notification_email' );
 
 		// Actions.
 		add_action( 'woocommerce_update_options_integration_' .  $this->id, array( $this, 'process_admin_options' ) );
@@ -218,6 +221,35 @@ class WC_WooTax_Settings extends WC_Integration {
 				),
 				'default' 			=> 'item-price',
 				'description' 		=> __( '"Item Price": TaxCloud determines the taxable amount for a line item by multiplying the item price by its quantity. "Line Subtotal": the taxable amount is determined by the line subtotal. Useful in instances where rounding becomes an issue.', 'woocommerce-wootax' ),
+				'desc_tip'			=> true
+			),
+			'check_orders' => array(
+				'title' 			=> 'Enable Error Checking',
+				'type' 				=> 'select',
+				'options'			=> array(
+					'yes' => 'Yes',
+					'no'  => 'No',
+				),
+				'default' 			=> 'yes',
+				'description' 		=> __( 'When set to "Yes," WooTax will check for TaxCloud synchronization errors and attempt to correct them automatically.', 'woocommerce-wootax' ),
+				'desc_tip'			=> true
+			),
+			'send_notifications' => array(
+				'title' 			=> 'Email Error Notifications',
+				'type' 				=> 'select',
+				'options'			=> array(
+					'yes' => 'Yes',
+					'no'  => 'No',
+				),
+				'default' 			=> 'yes',
+				'description' 		=> __( 'If this is set to "Yes," WooTax will notify you at a specified email address if it detects an error that cannot be resolved automatically.', 'woocommerce-wootax' ),
+				'desc_tip'			=> true
+			),
+			'notification_email' => array(
+				'title'				=> 'Error Notification Email',
+				'type'				=> 'text',
+				'default'			=> wootax_get_notification_email(),
+				'description' 		=> __( 'When "Email Error Notifications" is set to "Yes," notifications will be sent to this email address.', 'woocommerce-wootax' ),
 				'desc_tip'			=> true
 			),
 			'uninstall_button' => array(
