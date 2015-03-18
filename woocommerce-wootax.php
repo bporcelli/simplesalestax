@@ -491,10 +491,10 @@ class WC_WooTax {
 	 */
 	public static function schedule_wootax_events() {
 		// Ensure that all orders are properly synced with TaxCloud
-		wp_schedule_event( time() + DAY_IN_SECONDS, 'daily', 'wootax_check_orders' ); 
+		wp_schedule_event( time(), 'daily', 'wootax_check_orders' ); 
 
 		// Update recurring tax amounts if necessary
-		wp_schedule_event( time() + HOUR_IN_SECONDS * 12, 'twicedaily', 'wootax_update_recurring_tax' );
+		wp_schedule_event( time(), 'twicedaily', 'wootax_update_recurring_tax' );
 	}
 
 	/**

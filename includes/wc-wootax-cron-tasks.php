@@ -12,37 +12,56 @@
  * Checks to make sure that all orders are updated in TaxCloud
  * - Orders that are marked as refunded should have the TaxCloud status "Refunded"
  * - Orders that are completed should have the TaxCloud status "Completed"
+ * - Orders that have more than one associated refund order should have TaxCloud status "Refunded"
  *
  * If orders are found that are not updated in TaxCloud, add them to a queue to be updated
  *
  * @since 4.4
- * @param $last_checked   int   last checked order index
+ * @param $last_checked   int   the last checked order index
  * @return void
  */
 function wootax_check_orders( $last_checked = 0 ) {
-	global $wpdb;
+	global $wpdb, $woocommerce;
 
-	if ( wootax_get_option( 'check_orders' ) == 'no' )
+	if ( wootax_get_option( 'check_orders' ) == 'no' ) {
 		return;
+	}
 
-	$order_count = 50; // Number of posts to check at one time
-	$orders      = $wpdb->get_results( "SELECT ID, post_status FROM $wpdb->posts WHERE ID IN ( SELECT DISTINCT(post_id) FROM $wpdb->postmeta WHERE meta_key = '_wootax_pass_check' AND meta_value != 1 ) LIMIT $last_checked, $order_count ORDER BY ID DESC" );
-	
-	// Get order update queue
-	$needs_update = get_option( 'wootax_needs_update' );
-	$needs_update = !is_array( $needs_update ) ? array() : $needs_update;
+	// Set up logger
+	$logger = false;
+
+	if ( wootax_get_option( 'log_requests' ) != 'no' ) {
+		$logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : $woocommerce->logger();
+
+		if ( $last_checked == 0 ) {
+			$logger->add( 'wootax', 'Starting order check.' );
+		}
+	}	
+
+	// Get time stamp for 12am n days ago
+	$n_days     = 3;
+	$n_days_ago = mktime( 00, 00, 00, date('n'), date('j') - $n_days, date('Y') );
+
+	// Fetch $order_count posts that are less than n days old
+	$order_count = 25;
+	$orders      = $wpdb->get_results( "SELECT ID, post_status FROM $wpdb->posts WHERE post_date >= $n_days_ago AND post_type = 'shop_order' LIMIT $last_checked, $order_count" );
+
+	// Get order update queue (reset to empty array first time method is called)
+	$needs_update = $last_checked == 0 ? array() : get_option( 'wootax_needs_update' );
 
 	if ( count( $orders ) > 0 ) {
 		foreach ( $orders as $order ) {
 			// Skip processing if order is already in queue (could this happen?)
-			if ( in_array( $order->ID, $needs_update ) )
+			if ( in_array( $order->ID, $needs_update ) ) {
 				continue;
+			}
 
 			// If the _wootax_taxcloud_ids meta key is an empty array, WooTax is not acting on this order. Skip it
-			$taxcloud_ids = get_post_meta( $order->ID, '_wootax_taxclou_ids', true );
+			$taxcloud_ids = get_post_meta( $order->ID, '_wootax_taxcloud_ids', true );
 			
-			if ( !is_array( $taxcloud_ids ) || count( $taxcloud_ids ) == 0 )
+			if ( !is_array( $taxcloud_ids ) || count( $taxcloud_ids ) == 0 ) {
 				continue;
+			}
 
 			$woocommerce_status = $order->post_status;
 
@@ -56,14 +75,14 @@ function wootax_check_orders( $last_checked = 0 ) {
 			$woocommerce_status = 'wc-' === substr( $woocommerce_status, 0, 3 ) ? substr( $woocommerce_status, 3 ) : $woocommerce_status;
 
 			// Compare WooCommerce order status to TaxCloud status; add order to queue if the two do not correspond
-			if ( ( $woocommerce_status == 'refunded' || $woocommerce_status == 'cancelled' ) && get_post_meta( $order->ID, '_wootax_refunded', true ) !== true ) {
+			if ( ( $woocommerce_status == 'refunded' || $woocommerce_status == 'cancelled' ) && get_post_meta( $order->ID, '_wootax_refunded', true ) != true ) {
 				$needs_update[] = $order->ID;
-			} else if ( $woocommerce_status == 'completed' && get_post_meta( $order->ID, '_wootax_captured', true ) !== true ) {
+			} else if ( $woocommerce_status == 'completed' && get_post_meta( $order->ID, '_wootax_captured', true ) != true ) {
 				$needs_update[] = $order->ID;
-			} else {
-				// Set _wootax_pass_check to 1 to avoid checking this order again
-				update_post_meta( $order->ID, '_wootax_pass_check', 1 );
+			} else if ( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(ID) FROM $wpdb->posts WHERE post_type = 'shop_order_refund' AND post_parent = %d", $order->ID ) ) > 0 && get_post_meta( $order->ID, '_wootax_refunded', true ) != true ) {
+				$needs_update[] = $order->ID;
 			}
+
 		}
 
 		$last_checked += $order_count;
@@ -74,6 +93,10 @@ function wootax_check_orders( $last_checked = 0 ) {
 		// Schedule processing of next batch of orders
 		wp_schedule_single_event( time(), 'wootax_check_orders', array( $last_checked ) );
 	} else {
+		if ( $logger ) {
+			$logger->add( 'wootax', 'Order check complete. '. count( $needs_update ) .' orders need to be synced.' );
+		}
+
 		// Schedule order synchronization
 		wp_schedule_single_event( time(), 'wootax_sync_orders' );
 	}
@@ -92,7 +115,7 @@ add_action( 'wootax_check_orders', 'wootax_check_orders' );
 function wootax_sync_orders( $last_checked = 0 ) {
 	global $wpdb, $WC_WooTax_Order;
 
-	$order_count = 20; // Number of orders to sync at one time; may need to be decreased in a low resource environment
+	$order_count = 10; // Number of orders to sync at one time; may need to be decreased in a low resource environment
 	$refunded    = 0;
 	$captured    = 0;
 
@@ -100,9 +123,8 @@ function wootax_sync_orders( $last_checked = 0 ) {
 	$needs_sync = get_option( 'wootax_needs_update' );
 	$needs_sync = !is_array ( $needs_sync ) ? array() : $needs_sync;
 
-	// Fetch sync errors array
-	$sync_errors = get_option( 'wootax_sync_errors' );
-	$sync_errors = !is_array( $sync_errors ) ? array() : $sync_errors;
+	// Fetch sync errors array (reset on first iteration)
+	$sync_errors = $last_checked == 0 ? array() : get_option( 'wootax_sync_errors' );
 
 	// Set up logger
 	$logger = false;
@@ -124,13 +146,16 @@ function wootax_sync_orders( $last_checked = 0 ) {
 	if ( $last_checked == 0 && $logger ) {
 		$logger->add( 'wootax', 'Starting order synchronization: '. count( $needs_sync ) .' orders to sync.' );
 	} else if ( $last_checked > 0 && $logger ) {
-		$logger->add( 'wootax', 'Syncing '. $order_count .' more orders.' );
+		$logger->add( 'wootax', 'Syncing '. $order_count .' more orders. Last checked order index: '. $last_checked .'.' );
 	}
 
-	$order = $WC_WooTax_Order;
+	$order   = $WC_WooTax_Order;	
+	$checked = 0; 
+	$last    = $last_checked;
 
-	for ( $i = $last_checked; $i < $last_checked + $order_count && $i < count( $needs_sync ); $i++ ) {
-		$order_id = $needs_sync[$i];
+	while ( count( $needs_sync ) > 0 && $checked < $order_count ) {
+
+		$order_id = $needs_sync[ $last ];
 
 		// Load order
 		$order->load_order( $order_id );
@@ -150,20 +175,17 @@ function wootax_sync_orders( $last_checked = 0 ) {
 				}
 			} 
 
-			// Get price
+			// Get price (MAKE SURE line_subtotal/qty EXIST FOR 2.1 - 2.3)
 			$price = $item['line_subtotal'] / $item['qty'];
 
 			// Get TIC
 			$tic = get_post_meta( $product_id, 'wootax_tic', true );
 			$tic = $tic == false ? '' : $tic;
 
-			// Get quantity
-			$qty = $item['qty'];
-
 			$item_data = array(
 				'Index'  => '', // Leave Index blank because it is reassigned when WooTaxOrder::generate_lookup_data() is called
 				'ItemID' => $item_id, 
-				'Qty'    => $qty, 
+				'Qty'    => $item['qty'], 
 				'Price'  => $price,	
 				'Type'   => 'cart',
 			);
@@ -190,121 +212,48 @@ function wootax_sync_orders( $last_checked = 0 ) {
 			$type_array[ $item_id ] = 'cart';
 		}
 
-		// Add shipping cost
-		if ( $order->order->get_total_shipping() > 0 ) {
+		// Add shipping costs
+		// MAKE SURE 'cost' INDEX IS SET IN 2.1+
+		foreach ( $order->order->get_shipping_methods() as $item_id => $shipping ) {
 			$final_items[] = array(
 				'Index'  => '', // Leave Index blank because it is reassigned when WooTaxOrder::generate_lookup_data() is called
-				'ItemID' => WOOTAX_SHIPPING_ITEM, 
+				'ItemID' => $item_id, 
 				'Qty'    => 1, 
-				'Price'  => $order->order->get_total_shipping(),	
+				'Price'  => $shipping['cost'],	
 				'Type'   => 'shipping',
 				'TIC'    => WOOTAX_SHIPPING_TIC,
 			);
 
-			$type_array[ WOOTAX_SHIPPING_ITEM ] = 'shipping';
+			$type_array[ $item_id ] = 'shipping';
 		}
+
+		// Update order destination address
+		$order->destination_address = $order->get_destination_address();
 
 		// Issue Lookup
 		$res = $order->do_lookup( $final_items, $type_array );
 
 		if ( is_array( $res ) ) {
-
-			$order->order->calculate_totals(); 
+			$order->order->calculate_totals( false ); // False flag prevents WooCommerce from calculating taxes
 			
 			// Determine normalized order (post) status
-			$order_status = get_post_status( $order_id );
+			$order_status = $order->order->post->post_status;
 
 			if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '<' ) ) {
-				$terms = wp_get_object_terms( $order->ID, 'shop_order_status', array( 'fields' => 'slugs' ) );
+				$terms = wp_get_object_terms( $order_id, 'shop_order_status', array( 'fields' => 'slugs' ) );
 				$order_status = count( $terms > 0 ) ? $terms[0] : '';
 			} 
 
 			// Normalize status name
 			$order_status = 'wc-' === substr( $order_status, 0, 3 ) ? substr( $order_status, 3 ) : $order_status;
 
-			// If status is "refunded," issue a full or partial refund
-			// Otherwise, call WC_WooTax_Order->complete() to capture the order
-			if ( $order_status == 'refunded' ) {
+			// Send AuthorizeWithCapture or Returned request for each order, as is necessary
+			if ( $order_status == 'completed' ) {
 
-				// If order has not been captured, attempt to capture before refunding
-				if ( !$order->captured ) {
-					$res = $order->complete( $order_id, true );
-
-					if ( $res !== true ) {
-						$error = 'Syncing order '. $order_id .' failed [Refund]. Couldn\'t capture order. TaxCloud said: '. $res;
-
-						if ( $logger ) {
-							$logger->add( 'wootax', $error );
-						}
-
-						$sync_errors[ $order_id ] = $error;
-
-						continue;
-					}
-				}
-
-				$full_refund = true;
-
-				if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ) {
-					$full_refund = $order->order->get_total_refunded() == $order->order->get_total();
-				}
-
-				if ( $full_refund ) {
-
-					// Perform full refund
-					$res = $order->refund( $order_id, true );
-
-					if ( $res !== true ) {
-						$error = 'Syncing order '. $order_id .' failed [Refund]. Couldn\'t refund order. TaxCloud said: '. $res;
-
-						if ( $logger ) {
-							$logger->add( 'wootax', $error );
-						}
-
-						$sync_errors[ $order_id ] = $error;
-
-						continue;
-					} else {
-						$refunded++;
-					}
-
-				} else {
-
-					// Perform partial refund(s)
-					$refunds = $order->order->get_refunds();
-
-					if ( count( $refunds ) == 0 ) {
-						$refunded++;
-					} else {
-
-						// Loop through refunds and send partial refund request for each
-						foreach ( $refunds as $refund ) {
-							$res = process_refund( $refund, true );
-
-							if ( $res !== true ) {
-								$error = 'Syncing order '. $order_id .' failed [Partial Refund]. Couldn\'t refund order. TaxCloud said: '. $res;
-
-								if ( $logger ) {
-									$logger->add( 'wootax', $error );
-								}
-
-								$sync_errors[ $order_id ] = $error;
-							}
-						}
-
-						if ( !isset( $sync_errors[ $order_id ] ) ) {
-							$refunded++;
-						}
-
-					}
-
-				}
-
-			} else {
 				$res = $order->complete( $order_id, true );
 
 				if ( $res !== true ) {
-					$error = 'Syncing order '. $order_id .' failed [Captured]. TaxCloud said: '. $res;
+					$error = 'Syncing order failed [Captured].';
 
 					if ( $logger ) {
 						$logger->add( 'wootax', $error );
@@ -314,10 +263,87 @@ function wootax_sync_orders( $last_checked = 0 ) {
 				} else {
 					$captured++;
 				}
-			}
+
+			} else {
+
+				// If order has not been captured, attempt to capture before refunding
+				if ( !$order->captured ) {
+					$res = $order->complete( $order_id, true );
+
+					if ( $res !== true ) {
+						$error = 'Syncing order failed [Refund]. Couldn\'t capture order.';
+
+						if ( $logger ) {
+							$logger->add( 'wootax', $error );
+						}
+
+						$sync_errors[ $order_id ] = $error;
+					}
+				}
+
+				// Process full or partial refund if no errors have occurred
+				if ( !isset( $sync_errors[ $order_id ] ) ) {
+					$full_refund = true;
+
+					if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) && $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(ID) FROM $wpdb->posts WHERE post_type = 'shop_order_refund' AND post_parent = %d", $order_id ) ) > 0 ) {
+						$full_refund = $order->order->get_total_refunded() == $order->order->get_total();
+					}
+
+					if ( $full_refund ) {
+
+						// Perform full refund
+						$res = $order->refund( $order_id, true );
+
+						if ( $res !== true ) {
+							$error = 'Syncing order failed [Refund]. Couldn\'t refund order.';
+
+							if ( $logger ) {
+								$logger->add( 'wootax', $error );
+							}
+
+							$sync_errors[ $order_id ] = $error;
+						} else {
+							$refunded++;
+						}
+
+					} else {
+
+						// Perform partial refund(s)
+						$refunds = $order->order->get_refunds();
+
+						if ( count( $refunds ) == 0 ) {
+							$refunded++;
+						} else {
+
+							// Loop through refunds and send partial refund request for each
+							foreach ( $refunds as $refund ) {
+								$res = process_refund( $refund, true );
+
+								if ( $res !== true ) {
+									$error = 'Syncing order failed [Partial Refund]. Couldn\'t refund order.';
+
+									if ( $logger ) {
+										$logger->add( 'wootax', $error );
+									}
+
+									$sync_errors[ $order_id ] = $error;
+								}
+							}
+
+							if ( !isset( $sync_errors[ $order_id ] ) ) {
+								$refunded++;
+							}
+
+						}
+
+					}
+
+				}
+
+			} 
 
 		} else {
-			$error = 'Syncing order '. $order_id .' failed [Lookup]. TaxCloud said: '. $res;
+			$error = 'Syncing order failed [Lookup].';
 
 			if ( $logger ) {
 				$logger->add( 'wootax', $error );
@@ -326,18 +352,25 @@ function wootax_sync_orders( $last_checked = 0 ) {
 			$sync_errors[ $order_id ] = $error;
 		}
 
-		unset( $needs_sync[ $i ] );
+		unset( $needs_sync[ $last ] );
+
+		$last++;
+		$checked++;
+
 	}
 
 	if ( $logger ) {
-		$logger->add( 'wootax', 'Done. '. $refunded .' orders refunded and '. $captured .' orders captured. Scheduling next sync.');
+		$logger->add( 'wootax', $refunded .' orders refunded and '. $captured .' orders captured.');
 	}
 
 	// If no orders are remaining in the processing queue, notify the site admin of any errors that occurred during the sync process
 	if ( count ( $needs_sync ) == 0 ) {
 
-		if ( wootax_get_option( 'send_notifications' ) != 'no' ) {
+		if ( $logger ) {
+			$logger->add( 'wootax', 'Sync complete.' );
+		}
 
+		if ( wootax_get_option( 'send_notifications' ) != 'no' && count( $sync_errors ) > 0 ) {
 			$email = wootax_get_notification_email();
 
 			if ( !empty( $email ) && is_email( $email ) ) {
@@ -345,19 +378,25 @@ function wootax_sync_orders( $last_checked = 0 ) {
 				$message = 'Hello,' ."\r\n\r\n" . 'You are receiving this message because you opted to receive WooTax error notifications at this email address. During the last order synchronization check, performed on '. date( 'm/d/Y' ) .', '. count( $sync_errors ) .' errors occurred. The specific errors are as follows:' ."\r\n\r\n";
 
 				foreach ( $sync_errors as $order_id => $error ) {
-					$message .= "- <strong>Order $order_id</strong>: ". $error ."\r\n";
+					$message .= "- Order $order_id: $error\r\n";
 				}
 
-				$message .= "\r\n" . 'For assistance, please contact the WooTax support team at sales@wootax.com. To turn off these email notifications, deselect "Send me error notifications" under "Email Settings" on the WooTax settings page.';
-			
+				$message .= "\r\n" . 'For assistance, please contact the WooTax support team at sales@wootax.com. To turn off these email notifications, set the "Email Error Notifications" setting to "No."';
+
 				wp_mail( $email, $subject, $message );
 			}
 
+			// Reset sync errors
+			$sync_errors = array();
 		}
 
 	} else {
+		if ( $logger ) {
+			$logger->add( 'wootax', 'Scheduling next sync.' );
+		}
+
 		// Schedule processing of next batch of orders
-		wp_schedule_single_event( time(), 'wootax_sync_orders', array( $last_checked + $order_count ) );
+		wp_schedule_single_event( time(), 'wootax_sync_orders', array( $last ) );
 	}
 
 	// Update needs_sync array
@@ -377,7 +416,246 @@ add_action( 'wootax_sync_orders', 'wootax_sync_orders' );
  * @return void
  */
 function wootax_update_recurring_tax() {
+	global $wpdb, $WC_WooTax_Order;
 
+	// Exit if subs is not active
+	if ( !is_plugin_active( 'woocommerce-subscriptions/woocommerce-subscriptions.php' ) ) {
+		return;
+	}
+
+	$twelve_hours = mktime( date('H') + 12 );
+
+	// Set up logger
+	$logger = false;
+
+	if ( wootax_get_option( 'log_requests' ) != 'no' ) {
+		$logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : $woocommerce->logger();
+	}
+
+	if ( $logger ) {
+		$logger->add( 'wootax', 'Starting recurring tax update. Subscriptions with payments due before '. date('c', $twelve_hours) .' are being considered.' );
+	}
+
+	// Get all scheduled "scheduled_subscription_payment" actions with post_date <= $twelve_hours
+	$scheduled = $wpdb->get_results( "SELECT ID, post_content FROM $wpdb->posts WHERE post_type = 'scheduled-action' AND post_date <= $twelve_hours AND post_status = 'pending' AND post_title = 'scheduled_subscription_payment'" );
+
+	// Update recurring totals if necessary
+	if ( count( $scheduled ) > 0 ) {
+
+		$order = $WC_WooTax_Order;
+
+		// This will hold any warning messages that need to be sent to the admin
+		$warnings      = array();
+		$warning_count = 0;
+
+		// Instantiate WC_Tax object if we are running WC < 2.2
+		$wc_tax = false;
+
+		if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '<' ) ) {
+			$wc_tax = new WC_Tax();
+		}
+
+		foreach ( $scheduled as $action ) {
+
+			// Unserialize post_content to get user_id and subscription_key
+			$args = maybe_unserialize( $action->post_content );
+
+			// Parse subscription_key to get order_id/product_id (format: ORDERID_PRODUCTID)
+			$subscription_key = $args['subscription_key'];
+			$key_parts        = explode( '_', $subscription_key );
+			
+			$order_id         = $key_parts[0];
+			$product_id       = $key_parts[1];
+
+			$warnings[ $order_id ] = array(); 
+
+			// Determine if changes to subscription amounts are allowed by the current gateway
+			$chosen_gateway    = WC_Subscriptions_Payment_Gateways::get_payment_gateway( get_post_meta( $order_id, '_recurring_payment_method', true ) );
+			$manual_renewal    = self::requires_manual_renewal( $order_id );
+			$changes_supported = ( $chosen_gateway === false || $manual_renewal == 'true' || $chosen_gateway->supports( 'subscription_amount_changes' ) ) ? true : false;
+
+			// Load order using global WC_WooTax_Order object
+			$order->load_order( $order_id );
+			$order->destination_address = $order->get_destination_address();
+
+			// Collect data for Lookup request
+			$item_data = $type_array = array();
+
+			// Add subscription
+			$product         = WC_Subscriptions::get_product( $product_id );
+			$item_tax_status = $product->get_tax_status();
+		
+			if ( $item_tax_status == 'taxable' ) {
+				// Get order item ID
+				// TODO: IF THIS DOESN'T WORK, USE A SUBQUERY
+				$item_id = $wpdb->get_var( "SELECT i.order_item_id FROM {$wpdb->prefix}woocommerce_order_items i LEFT JOIN {$wpdb->prefix}woocommerce_order_itemmeta im ON im.order_item_id = i.order_item_id WHERE im.meta_key = '_product_id' AND im.meta_value = $product_id AND i.order_id = $order_id" );
+
+				$logger->add( 'wootax', 'Found item ID for sub: '. $item_id ); // TODO: REMOVE
+
+				// Get price
+				$recurring_subtotal = $order->get_item_meta( $item_id, '_recurring_line_subtotal' );
+				$regular_subtotal   = $order->get_item_meta( $item_id, '_line_subtotal' );
+
+				$price = !empty( $recurring_subtotal ) && $recurring_subtotal ? $recurring_subtotal : $regular_subtotal;
+
+				$item_info = array(
+					'Index'  => '', // Leave Index blank because it is reassigned when WooTaxOrder::generate_lookup_data() is called
+					'ItemID' => $item_id, 
+					'Qty'    => 1, 
+					'Price'  => $price,	
+					'Type'   => 'cart',
+				);	
+
+				$tic = get_post_meta( $product_id, 'wootax_tic', true );
+
+				if ( !empty( $tic ) && $tic ) {
+					$item_info['TIC'] = $tic;
+				}
+
+				$item_data[] = $item_info;
+
+				$type_array[ $item_id ] = 'cart';
+			}
+
+			// Add recurring shipping items
+			foreach ( $order->order->get_items( 'recurring_shipping' ) as $item_id => $shipping ) {
+				$item_data[] = array(
+					'Index'  => '', // Leave Index blank because it is reassigned when WooTaxOrder::generate_lookup_data() is called
+					'ItemID' => $item_id, 
+					'TIC'    => WOOTAX_SHIPPING_TIC,
+					'Qty'    => 1, 
+					'Price'  => $shipping['cost'],	
+					'Type'   => 'shipping',
+				);
+
+				$type_array[ $item_id ] = 'shipping';
+			}
+
+			// Issue Lookup request
+			$res = $this->do_lookup( $item_data, $type_array, true );
+
+			// If lookup is successful, use result to update recurring tax totals as described here: http://docs.woothemes.com/document/subscriptions/add-or-modify-a-subscription/#change-recurring-total
+			if ( is_array ( $res ) ) {
+
+				$tax = $shipping_tax = $old_tax = $old_shipping_tax = 0;
+
+				// Update _recurring_line_tax meta for each item
+				foreach ( $res as $item ) {
+
+					$item_id  = $item->ItemID;
+					$item_tax = $item->TaxAmount;
+
+					// Determine old tax amount
+					$prev_recurring_tax = $order->get_item_meta( $item_id, '_recurring_line_tax', true );
+					$prev_tax_regular   = $order->get_item_meta( $item_id, '_line_tax', true );
+					$prev_tax           = !empty( $prev_recurring_tax ) && $prev_recurring_tax ? $prev_recurring_tax : $prev_tax_regular;
+
+					if ( $type_array[ $item_id ] == 'shipping' ) {
+						$shipping_tax     += $item_tax;
+						$old_shipping_tax += $prev_tax;
+					} else {
+						$tax     += $item_tax;
+						$old_tax += $prev_tax;
+					}
+
+					if ( $prev_tax != $item_tax ) {
+						if ( $changes_supported ) {
+							wc_update_order_item_meta( $item_id, '_recurring_line_tax', $item_tax );
+							wc_update_order_item_meta( $item_id, '_recurring_line_subtotal_tax', $item_tax );
+						} else {
+							$prev_tax = $wc_tax ? $wc_tax->round( $prev_tax ) : WC_Tax::round( $prev_tax );
+							$item_tax = $wc_tax ? $wc_tax->round( $item_tax ) : WC_Tax::round( $item_tax );
+
+							$warnings[ $order_id ][] = 'Recurring tax for subscription item #'. $item_id .' changed from '. $prev_tax .' to '. $item_tax;
+							$warning_count++;
+						}
+					}
+
+				}
+
+				// Update recurring tax item
+				if ( ( $old_tax != $tax || $old_shipping_tax != $shipping_tax ) && $changes_supported ) {
+
+					$recurring_taxes = $order->order->get_items( 'recurring_tax' );
+					
+					$wootax_rate_id = get_option( 'wootax_rate_id' );
+					$wootax_item_id = -1;
+					
+					foreach ( $recurring_taxes as $item_id => $item ) {
+						$rate_id = $order->get_item_meta( $item_id, 'rate_id' );
+
+						if ( $rate_id == $wootax_rate_id ) {
+							$wootax_item_id = $item_id;
+							break;
+						}
+					}
+
+					if ( $wootax_item_id != -1 ) {
+						wc_update_order_item_meta( $wootax_item_id, 'tax_amount', $tax );
+						wc_update_order_item_meta( $wootax_item_id, 'cart_tax', $tax );
+
+						wc_update_order_item_meta( $wootax_item_id, 'shipping_tax_amount', $shipping_tax );
+						wc_update_order_item_meta( $wootax_item_id, 'shipping_tax', $shipping_tax );
+					}
+
+					// Determine rounded difference in old/new tax totals
+					// TODO: MAKE SURE THIS WON'T CAUSE ROUNDING ERROR (WILL NEGATIVES BE AN ISSUE?)
+					$tax_diff         = ( $tax + $shipping_tax ) - ( $old_tax + $old_shipping_tax );
+					$rounded_tax_diff = $wc_tax ? $wc_tax->round( $tax_diff ) : WC_Tax::round( $tax_diff );
+
+					// Set new recurring total by adding difference between old and new tax to existing total
+					$new_recurring_total = get_post_meta( $order_id, '_order_recurring_total', true ) + $rounded_tax_diff;
+					update_post_meta( $order_id, '_order_recurring_total',  $new_recurring_total );
+
+				} else if ( $old_tax != $tax || $old_shipping_tax != $shipping_tax ) {
+
+					$old_tax          = $wc_tax ? $wc_tax->round( $old_tax ) : WC_Tax::round( $old_tax );
+					$old_shipping_tax = $wc_tax ? $wc_tax->round( $old_shipping_tax ) : WC_Tax::round( $old_shipping_tax );
+
+					$tax          = $wc_tax ? $wc_tax->round( $tax ) : WC_Tax::round( $tax );
+					$shipping_tax = $wc_tax ? $wc_tax->round( $shipping_tax ) : WC_Tax::round( $shipping_tax );
+
+					$warnings[ $order_id ][] = 'Total recurring tax changed from '. $old_tax .' to '. $tax;
+					$warnings[ $order_id ][] = 'Total recurring shipping tax changed from '. $old_shipping_tax .' to '. $shipping_tax;
+					
+					$warning_count++;
+				
+				}
+
+			}	
+
+		}
+
+		// Send out a single warning email to the admin if necessary
+		// This will be sent, for example, if a recurring tax amount needs to be changed and the gateway used doesn't support it
+		if ( $warning_count > 0 ) {
+
+			$email = wootax_get_notification_email();
+
+			if ( !empty( $email ) && is_email( $email ) ) {
+				$subject = 'WooTax Warning: Recurring Tax Totals Need To Be Updated';
+				$message = 'Hello,' ."\r\n\r\n" . 'During a routine check on '. date( 'm/d/Y') .', WooTax discovered '. count( $warnings ) .' subscription orders whose recurring tax totals need to be updated. Unfortunately, the payment gateway you are using does not allow subscription details to be altered, so the required changes must be implemented manually. All changes are listed below for your convenience.' ."\r\n\r\n";
+
+				foreach ( $warnings as $order_id => $errors ) {
+					$message .= 'Order '. $order_id .': '. "\r\n\r\n";
+						
+					foreach ( $errors as $error ) {
+						$message .= '- '. $error . "\r\n";
+					}
+
+					$message .= "\r\n\r\n";
+				}
+
+				$message .= 'For assistance, please contact the WooTax support team at sales@wootax.com.';
+
+				wp_mail( $email, $subject, $message );
+			}
+
+		} 
+
+	} else {
+		$logger->add( 'wootax', 'Ending recurring tax update. No subscriptions due before '. date('c', $twelve_hours) .'.' );
+	}
 }
 
 add_action( 'wootax_update_recurring_tax', 'wootax_update_recurring_tax' );

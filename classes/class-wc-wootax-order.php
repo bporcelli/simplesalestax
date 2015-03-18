@@ -460,7 +460,7 @@ class WC_WooTax_Order {
 			// Calculate new tax values
 			$line_subtotal_tax = $this->get_item_meta( $item_id, '_line_subtotal_tax' ) + $amt;
 			$line_tax 		   = $this->get_item_meta( $item_id, '_line_tax' ) + $amt;
-				
+
 			// Save new tax values
 			wc_update_order_item_meta( $item_id, '_line_tax', $line_tax );
 			wc_update_order_item_meta( $item_id, '_line_subtotal_tax', $line_subtotal_tax );
@@ -510,7 +510,7 @@ class WC_WooTax_Order {
 	 * @param $meta_key (mixed) meta key
 	 * @param $single (bool) retrieve a single meta value?
 	 */
-	private function get_item_meta( $item_id, $meta_key, $single = true ) {
+	public function get_item_meta( $item_id, $meta_key, $single = true ) {
 
 		if ( !$this->order instanceof WC_Order ) {
 			return false;
@@ -1401,9 +1401,6 @@ class WC_WooTax_Order {
 		// Set the order status to refunded so the user cannot calculate the tax due anymore
 		$this->refunded = true;
 
-		// Save refunded items array
-		$this->refunded_items = $refunded_items; // Eliminate?
-
 		return true;
 		
 	}
@@ -1878,7 +1875,7 @@ class WC_WooTax_Order {
 
 		global $woocommerce, $wpdb;
 
-		$woo_23_plus = version_compare( WOOCOMMERCE_VERSION, '2.3', '>=' );
+		$woo_22_plus = version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' );
 
 		check_ajax_referer( 'woocommerce-subscriptions', 'security' );
 
@@ -1900,7 +1897,7 @@ class WC_WooTax_Order {
 		$this->destination_address = $this->get_destination_address();
 
 		// We only need to instantiate a WC_Tax object if we are using WooCommerce < 2.3
-		if ( !$woo_23_plus )
+		if ( !$woo_22_plus )
 			$tax = new WC_Tax();
 
 		$taxes      = $shipping_taxes = array();
@@ -1996,10 +1993,10 @@ class WC_WooTax_Order {
 					$item                        = array();
 					$item['rate_id']             = $key;
 					$item['name']                = $tax_codes[ $key ];
-					$item['label']               = $woo_23_plus ? WC_Tax::get_rate_label( $key ) : $tax->get_rate_label( $key );
-					$item['compound']            = $woo_23_plus ? WC_Tax::is_compound( $key ) : $tax->is_compound( $key ) ? 1 : 0;
-					$item['tax_amount']          = $woo_23_plus ? WC_Tax::round( isset( $taxes[ $key ] ) ? $taxes[ $key ] : 0 ) : $tax->round( isset( $taxes[ $key ] ) ? $taxes[ $key ] : 0 );
-					$item['shipping_tax_amount'] = $woo_23_plus ? WC_Tax::round( isset( $shipping_taxes[ $key ] ) ? $shipping_taxes[ $key ] : 0 ) : $tax->round( isset( $shipping_taxes[ $key ] ) ? $shipping_taxes[ $key ] : 0 );
+					$item['label']               = $woo_22_plus ? WC_Tax::get_rate_label( $key ) : $tax->get_rate_label( $key );
+					$item['compound']            = $woo_22_plus ? WC_Tax::is_compound( $key ) : $tax->is_compound( $key ) ? 1 : 0;
+					$item['tax_amount']          = $woo_22_plus ? WC_Tax::round( isset( $taxes[ $key ] ) ? $taxes[ $key ] : 0 ) : $tax->round( isset( $taxes[ $key ] ) ? $taxes[ $key ] : 0 );
+					$item['shipping_tax_amount'] = $woo_22_plus ? WC_Tax::round( isset( $shipping_taxes[ $key ] ) ? $shipping_taxes[ $key ] : 0 ) : $tax->round( isset( $shipping_taxes[ $key ] ) ? $shipping_taxes[ $key ] : 0 );
 
 					if ( ! $item['label'] )
 						$item['label'] = $woocommerce->countries->tax_or_vat();
