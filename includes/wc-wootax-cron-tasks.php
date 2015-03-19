@@ -54,11 +54,6 @@ function wootax_check_orders( $last_checked = 0 ) {
 
 	if ( count( $orders ) > 0 ) {
 		foreach ( $orders as $order ) {
-			// Skip processing if order is already in queue (could this happen?)
-			if ( in_array( $order->ID, $needs_update ) ) {
-				continue;
-			}
-
 			// If the _wootax_taxcloud_ids meta key is an empty array, WooTax is not acting on this order. Skip it
 			$taxcloud_ids = get_post_meta( $order->ID, '_wootax_taxcloud_ids', true );
 			
@@ -78,12 +73,10 @@ function wootax_check_orders( $last_checked = 0 ) {
 			$woocommerce_status = 'wc-' === substr( $woocommerce_status, 0, 3 ) ? substr( $woocommerce_status, 3 ) : $woocommerce_status;
 
 			// Compare WooCommerce order status to TaxCloud status; add order to queue if the two do not correspond
-			if ( ( $woocommerce_status == 'refunded' || $woocommerce_status == 'cancelled' ) && get_post_meta( $order->ID, '_wootax_refunded', true ) != true ) {
-				$needs_update[] = $order->ID;
+			if ( ( $woocommerce_status == 'refunded' || $woocommerce_status == 'cancelled' || $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(ID) FROM $wpdb->posts WHERE post_type = 'shop_order_refund' AND post_parent = %d", $order->ID ) ) > 0 ) && get_post_meta( $order->ID, '_wootax_refunded', true ) != true ) {
+				$needs_update[] = array( 'id' => $order->ID, 'type' => 'refund' );
 			} else if ( $woocommerce_status == 'completed' && get_post_meta( $order->ID, '_wootax_captured', true ) != true ) {
-				$needs_update[] = $order->ID;
-			} else if ( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(ID) FROM $wpdb->posts WHERE post_type = 'shop_order_refund' AND post_parent = %d", $order->ID ) ) > 0 && get_post_meta( $order->ID, '_wootax_refunded', true ) != true ) {
-				$needs_update[] = $order->ID;
+				$needs_update[] = array( 'id' => $order->ID, 'type' => 'capture' );
 			}
 
 		}
@@ -158,7 +151,10 @@ function wootax_sync_orders( $last_checked = 0 ) {
 
 	while ( count( $needs_sync ) > 0 && $checked < $order_count ) {
 
-		$order_id = $needs_sync[ $last ];
+		$order_data = $needs_sync[ $last ];
+
+		$order_id = $order_data['id'];
+		$type     = $order_data['type'];
 
 		// Load order
 		$order->load_order( $order_id );
@@ -238,20 +234,9 @@ function wootax_sync_orders( $last_checked = 0 ) {
 
 		if ( is_array( $res ) ) {
 			$order->order->calculate_totals( false ); // False flag prevents WooCommerce from calculating taxes
-			
-			// Determine normalized order (post) status
-			$order_status = $order->order->post->post_status;
-
-			if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '<' ) ) {
-				$terms = wp_get_object_terms( $order_id, 'shop_order_status', array( 'fields' => 'slugs' ) );
-				$order_status = count( $terms > 0 ) ? $terms[0] : '';
-			} 
-
-			// Normalize status name
-			$order_status = 'wc-' === substr( $order_status, 0, 3 ) ? substr( $order_status, 3 ) : $order_status;
 
 			// Send AuthorizeWithCapture or Returned request for each order, as is necessary
-			if ( $order_status == 'completed' ) {
+			if ( $type == 'capture' ) {
 
 				$res = $order->complete( $order_id, true );
 
@@ -427,7 +412,7 @@ function wootax_update_recurring_tax() {
 	}
 
 	// Find date/time 12 hours from now
-	$twelve_hours = mktime( date('H') + 24 ); // TODO: CHANGE BACK TO 12!
+	$twelve_hours = mktime( date('H') + 12 );
 
 	$date = new DateTime( date( 'c', $twelve_hours ) ); 
 	$date = $date->format( 'Y-m-d H:i:s' );
@@ -437,10 +422,6 @@ function wootax_update_recurring_tax() {
 
 	if ( wootax_get_option( 'log_requests' ) != 'no' ) {
 		$logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : $woocommerce->logger();
-	}
-
-	if ( $logger ) {
-		$logger->clear( 'wootax' ); // TODO: REMOVE
 		$logger->add( 'wootax', 'Starting recurring tax update. Subscriptions with payments due before '. $date .' are being considered.' );
 	}
 
@@ -453,19 +434,12 @@ function wootax_update_recurring_tax() {
 		$order = $WC_WooTax_Order;
 
 		// This will hold any warning messages that need to be sent to the admin
-		$warnings      = array();
-		$warning_count = 0;
-
-		// Instantiate WC_Tax object if we are running WC < 2.2
-		$wc_tax = false;
-
-		if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '<' ) ) {
-			$wc_tax = new WC_Tax();
-		}
-
-		$logger->add( 'wootax', 'Found actions: '. print_r( $scheduled, true ) );
+		$warnings = array();
 
 		foreach ( $scheduled as $action ) {
+
+			$temp_warnings = array();
+			$show_warnings = false;
 
 			// Run json_decode on post_content to extract user_id and subscription_key
 			$args = json_decode( $action->post_content );
@@ -474,20 +448,17 @@ function wootax_update_recurring_tax() {
 			$subscription_key = $args->subscription_key;
 			$key_parts        = explode( '_', $subscription_key );
 			
-			$order_id         = $key_parts[0];
-			$product_id       = $key_parts[1];
+			$order_id   = (int) $key_parts[0];
+			$product_id = (int) $key_parts[1];
 
-			$logger->add( 'wootax', 'Order ID '. var_export( $order_id, true ) ); // TODO: REMOVE
-			$logger->add( 'wootax', 'Product ID '. var_export( $product_id, true ) ); // TODO: REMOVE
-
-			$warnings[ $order_id ] = array(); 
+			if ( get_post_status( $order_id ) == false ) {
+				continue; // Skip if the order no longer exists
+			}
 
 			// Determine if changes to subscription amounts are allowed by the current gateway
 			$chosen_gateway    = WC_Subscriptions_Payment_Gateways::get_payment_gateway( get_post_meta( $order_id, '_recurring_payment_method', true ) );
 			$manual_renewal    = WC_Subscriptions_Order::requires_manual_renewal( $order_id );
 			$changes_supported = ( $chosen_gateway === false || $manual_renewal == 'true' || $chosen_gateway->supports( 'subscription_amount_changes' ) ) ? true : false;
-
-			$logger->add( 'wootax', 'Changes supported? '. var_export( $changes_supported, true ) ); // TODO: REMOVE
 
 			// Load order using global WC_WooTax_Order object
 			$order->load_order( $order_id );
@@ -497,18 +468,15 @@ function wootax_update_recurring_tax() {
 			$item_data = $type_array = array();
 
 			// Add subscription
-			$product         = WC_Subscriptions::get_product( $product_id );
-			$item_tax_status = $product->get_tax_status();
-		
-			if ( $item_tax_status == 'taxable' ) {
+			$product = WC_Subscriptions::get_product( $product_id );
+
+			if ( $product->get_tax_status() == 'taxable' ) {
 				// Get order item ID
 				$item_id = $wpdb->get_var( "SELECT i.order_item_id FROM {$wpdb->prefix}woocommerce_order_items i LEFT JOIN {$wpdb->prefix}woocommerce_order_itemmeta im ON im.order_item_id = i.order_item_id WHERE im.meta_key = '_product_id' AND im.meta_value = $product_id AND i.order_id = $order_id" );
 
-				$logger->add( 'wootax', 'Found item ID for sub: '. $item_id ); // TODO: REMOVE
-
 				// Get price
-				$recurring_subtotal = $order->get_item_meta( $item_id, '_recurring_line_subtotal' );
-				$regular_subtotal   = $order->get_item_meta( $item_id, '_line_subtotal' );
+				$recurring_subtotal = (float) $order->get_item_meta( $item_id, '_recurring_line_subtotal' );
+				$regular_subtotal   = (float) $order->get_item_meta( $item_id, '_line_subtotal' );
 
 				$price = !empty( $recurring_subtotal ) && $recurring_subtotal ? $recurring_subtotal : $regular_subtotal;
 
@@ -531,8 +499,6 @@ function wootax_update_recurring_tax() {
 				$type_array[ $item_id ] = 'cart';
 			}
 
-			$logger->add( 'wootax', 'Finished adding sub item' ); // TODO: REMOVE
-
 			// Add recurring shipping items
 			foreach ( $order->order->get_items( 'recurring_shipping' ) as $item_id => $shipping ) {
 				$item_data[] = array(
@@ -547,8 +513,6 @@ function wootax_update_recurring_tax() {
 				$type_array[ $item_id ] = 'shipping';
 			}
 
-			$logger->add( 'wootax', 'Finished adding shipping. Starting lookup.' ); // TODO: REMOVE
-
 			// Reset "captured" meta so lookup always sent
 			$captured = $order->captured;
 			$order->captured = false;
@@ -561,21 +525,19 @@ function wootax_update_recurring_tax() {
 
 			// If lookup is successful, use result to update recurring tax totals as described here: http://docs.woothemes.com/document/subscriptions/add-or-modify-a-subscription/#change-recurring-total
 			if ( is_array ( $res ) ) {
+
 				// Find recurring tax item and determine original tax/shipping tax totals
 				$wootax_rate_id = get_option( 'wootax_rate_id' );
 				$wootax_item_id = $wpdb->get_var( $wpdb->prepare( "SELECT i.order_item_id FROM {$wpdb->prefix}woocommerce_order_items i LEFT JOIN {$wpdb->prefix}woocommerce_order_itemmeta im ON im.order_item_id = i.order_item_id WHERE im.meta_key = %s AND im.meta_value = %d AND i.order_id = %d AND i.order_item_type = %s", "rate_id", $wootax_rate_id, $order_id, "recurring_tax" ) );
-
-				$logger->add( 'wootax', 'WooTax Item ID: '. var_export( $wootax_item_id, true ) ); // TODO: REMOVE
 				
-				$old_tax          = empty( $wootax_item_id ) ? 0 : $order->get_item_meta( $wootax_item_id, 'tax_amount' );
-				$old_shipping_tax = empty( $wootax_item_id ) ? 0 : $order->get_item_meta( $wootax_item_id, 'shipping_tax_amount' );
+				$old_tax          = empty( $wootax_item_id ) ? 0 : (float) $order->get_item_meta( $wootax_item_id, 'tax_amount' );
+				$old_shipping_tax = empty( $wootax_item_id ) ? 0 : (float) $order->get_item_meta( $wootax_item_id, 'shipping_tax_amount' );
 
 				// Find new tax/shipping tax totals
 				// Update _recurring_line_tax meta for each item
 				$tax = $shipping_tax = 0;
 
 				foreach ( $res as $item ) {
-
 					$item_id  = $item->ItemID;
 					$item_tax = $item->TaxAmount;
 
@@ -589,74 +551,60 @@ function wootax_update_recurring_tax() {
 						wc_update_order_item_meta( $item_id, '_recurring_line_tax', $item_tax );
 						wc_update_order_item_meta( $item_id, '_recurring_line_subtotal_tax', $item_tax );
 					} else {
-						$item_tax = $wc_tax ? $wc_tax->round( $item_tax ) : WC_Tax::round( $item_tax );
-
-						$warnings[ $order_id ][] = 'Recurring tax for subscription item #'. $item_id .' changed to '. $item_tax;
-						$warning_count++;
+						$temp_warnings[] = 'Recurring tax for item #'. $item_id .' changed to '. wc_round_tax_total( $item_tax );
 					}
-
 				}
-
-				$logger->add( 'wootax', 'Old order tax: '. var_export( $old_tax, true ) ); // TODO: REMOVE
-				$logger->add( 'wootax', 'New order tax '. var_export( $tax, true ) ); // TODO: REMOVE
-				$logger->add( 'wootax', 'Old shipping tax: '. var_export( $old_shipping_tax, true ) ); // TODO: REMOVE
-				$logger->add( 'wootax', 'New shipping tax: '. var_export( $shipping_tax, true ) ); // TODO: REMOVE
 
 				// Update recurring tax item
 				if ( ( $old_tax != $tax || $old_shipping_tax != $shipping_tax ) && $changes_supported ) {
-
 					if ( !empty( $wootax_item_id ) ) {
-						wc_update_order_item_meta( $wootax_item_id, 'tax_amount', $tax );
-						wc_update_order_item_meta( $wootax_item_id, 'cart_tax', $tax );
+						$rounded_tax          = wc_round_tax_total( $tax );
+						$rounded_shipping_tax = wc_round_tax_total( $shipping_tax );
 
-						wc_update_order_item_meta( $wootax_item_id, 'shipping_tax_amount', $shipping_tax );
-						wc_update_order_item_meta( $wootax_item_id, 'shipping_tax', $shipping_tax );
+						wc_update_order_item_meta( $wootax_item_id, 'tax_amount', $rounded_tax );
+						wc_update_order_item_meta( $wootax_item_id, 'cart_tax', $rounded_tax );
+
+						wc_update_order_item_meta( $wootax_item_id, 'shipping_tax_amount', $rounded_shipping_tax );
+						wc_update_order_item_meta( $wootax_item_id, 'shipping_tax', $rounded_shipping_tax );
 					}
 
 					// Determine rounded difference in old/new tax totals
-					// TODO: MAKE SURE THIS WON'T CAUSE ROUNDING ERROR (WILL NEGATIVES BE AN ISSUE?)
 					$tax_diff         = ( $tax + $shipping_tax ) - ( $old_tax + $old_shipping_tax );
-					$rounded_tax_diff = $wc_tax ? $wc_tax->round( $tax_diff ) : WC_Tax::round( $tax_diff );
-
-					$logger->add( 'wootax', 'Rounded tax difference: '. var_export( $rounded_tax_diff, true ) ); // TODO: REMOVE
+					$rounded_tax_diff = wc_round_tax_total( $tax_diff );
 
 					// Set new recurring total by adding difference between old and new tax to existing total
-					$new_recurring_total = get_post_meta( $order_id, '_order_recurring_total', true ) + $rounded_tax_diff;
+					$new_recurring_total = (float) get_post_meta( $order_id, '_order_recurring_total', true ) + $rounded_tax_diff;
 					update_post_meta( $order_id, '_order_recurring_total',  $new_recurring_total );
 
+					if ( $logger ) {
+						$logger->add( 'wootax', 'Set recurring total for order '. $order_id .' to: '. $new_recurring_total );
+					}
 				} else if ( $old_tax != $tax || $old_shipping_tax != $shipping_tax ) {
-
-					$old_tax          = $wc_tax ? $wc_tax->round( $old_tax ) : WC_Tax::round( $old_tax );
-					$old_shipping_tax = $wc_tax ? $wc_tax->round( $old_shipping_tax ) : WC_Tax::round( $old_shipping_tax );
-
-					$tax          = $wc_tax ? $wc_tax->round( $tax ) : WC_Tax::round( $tax );
-					$shipping_tax = $wc_tax ? $wc_tax->round( $shipping_tax ) : WC_Tax::round( $shipping_tax );
-
-					$warnings[ $order_id ][] = 'Total recurring tax changed from '. $old_tax .' to '. $tax;
-					$warnings[ $order_id ][] = 'Total recurring shipping tax changed from '. $old_shipping_tax .' to '. $shipping_tax;
+					$temp_warnings[] = 'Total recurring tax changed from '. wc_round_tax_total( $old_tax ) .' to '. wc_round_tax_total( $tax );
+					$temp_warnings[] = 'Total recurring shipping tax changed from '. wc_round_tax_total( $old_shipping_tax ) .' to '. wc_round_tax_total( $shipping_tax );
 					
-					$warning_count++;
-				
+					$show_warnings = true;
 				}
+
+				// Add to warnings array if necessary
+				if ( $show_warnings ) {
+					$warnings[ $order_id ] = $temp_warnings;
+				}
+
 			}
 
 		}
 
 		// Send out a single warning email to the admin if necessary
-		// This will be sent, for example, if a recurring tax amount needs to be changed and the gateway used doesn't support it
-		if ( $warning_count > 0 ) {
-
+		// Ex: Email sent if a change in tax rates is detected and the gateway used by an order doesn't allow modification of sub. details
+		if ( count( $warnings ) > 0 ) {
 			$email = wootax_get_notification_email();
 
 			if ( !empty( $email ) && is_email( $email ) ) {
 				$subject = 'WooTax Warning: Recurring Tax Totals Need To Be Updated';
-				$message = 'Hello,' ."\r\n\r\n" . 'During a routine check on '. date( 'm/d/Y') .', WooTax discovered '. $warning_count .' subscription orders whose recurring tax totals need to be updated. Unfortunately, the payment gateway you are using does not allow subscription details to be altered, so the required changes must be implemented manually. All changes are listed below for your convenience.' ."\r\n\r\n";
+				$message = 'Hello,' ."\r\n\r\n" . 'During a routine check on '. date( 'm/d/Y') .', WooTax discovered '. count( $warnings ) .' subscription orders whose recurring tax totals need to be updated. Unfortunately, the payment gateway(s) used for these orders does not allow subscription details to be altered, so the required changes must be implemented manually. All changes are listed below for your convenience.' ."\r\n\r\n";
 
 				foreach ( $warnings as $order_id => $errors ) {
-					if ( count( $errors ) == 0 ) {
-						continue;
-					}
-
 					$message .= 'Order '. $order_id .': '. "\r\n\r\n";
 						
 					foreach ( $errors as $error ) {
@@ -670,10 +618,9 @@ function wootax_update_recurring_tax() {
 
 				wp_mail( $email, $subject, $message );
 			}
-
 		} 
 
-	} else {
+	} else if ( $logger ) {
 		$logger->add( 'wootax', 'Ending recurring tax update. No subscriptions due before '. $date .'.' );
 	}
 }

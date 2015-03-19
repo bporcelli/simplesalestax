@@ -1995,11 +1995,12 @@ class WC_WooTax_Order {
 					$item['name']                = $tax_codes[ $key ];
 					$item['label']               = $woo_22_plus ? WC_Tax::get_rate_label( $key ) : $tax->get_rate_label( $key );
 					$item['compound']            = $woo_22_plus ? WC_Tax::is_compound( $key ) : $tax->is_compound( $key ) ? 1 : 0;
-					$item['tax_amount']          = $woo_22_plus ? WC_Tax::round( isset( $taxes[ $key ] ) ? $taxes[ $key ] : 0 ) : $tax->round( isset( $taxes[ $key ] ) ? $taxes[ $key ] : 0 );
-					$item['shipping_tax_amount'] = $woo_22_plus ? WC_Tax::round( isset( $shipping_taxes[ $key ] ) ? $shipping_taxes[ $key ] : 0 ) : $tax->round( isset( $shipping_taxes[ $key ] ) ? $shipping_taxes[ $key ] : 0 );
+					$item['tax_amount']          = wc_round_tax_total( isset( $taxes[ $key ] ) ? $taxes[ $key ] : 0 );
+					$item['shipping_tax_amount'] = wc_round_tax_total( isset( $shipping_taxes[ $key ] ) ? $shipping_taxes[ $key ] : 0 );
 
-					if ( ! $item['label'] )
+					if ( !$item['label'] ) {
 						$item['label'] = $woocommerce->countries->tax_or_vat();
+					}
 
 					// Add line item
 					$item_id = woocommerce_add_order_item( $order_id, array(
