@@ -8,111 +8,99 @@
  * @since 4.2
  */
 
-// Prevent data leaks
-if ( ! defined( 'ABSPATH' ) ) 
-	exit; 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Do not all direct access
+}
 
 /**
- * Receives an Address array and runs it through the USPS address verification API
- * Returns the verified address on success, or the original address on failure
+ * Determine if a given address needs to be validated
+ *
+ * @since 4.4
+ * @param $address_hash (String) hashed address
+ * @param $order_id (int) -1 during checkout, otherwise the current order ID.
+ * @return (boolean) true or false
+ */
+function address_needs_validation( $address_hash, $order_id = -1 ) {
+	if ( $order_id == -1 ) {
+		$validated_addresses = isset( WC()->session->validated_addresses ) ? WC()->session->validated_addresses : array();
+	} else {
+		$validated_addresses = get_post_meta( $order_id, '_wootax_validated_addresses', true );
+		$validated_addresses = !is_array( $validated_addresses ) ? array() : $validated_addresses;
+	}
+
+	return !array_key_exists( $address_hash, $validated_addresses );
+}
+
+/**
+ * If the passed address has not been validated already, run it through
+ * TaxCloud's VerifyAddress API
  *
  * @since 1.0
- * @param $address  array  Associative array representing address
+ * @param $address (array) Associative array representing address
+ * @param $order_id (int) -1 if the function is called during checkout. Otherwise, curent order ID.
+ * @return (array) modified address array
  */
-function validate_address( $address ) {
+function maybe_validate_address( $address, $order_id = -1 ) {
+	// TODO: Evaluate effiency of this method
+	$hash = md5( json_encode( $address ) );
 
-	$taxcloud = get_taxcloud();
+	// Determine if validation is necessary
+	$needs_validate = address_needs_validation( $hash, $order_id );
 
-	$final_address = $address;
-
-	// All array values must be lowercase for validation to work properly
-	$address = array_map( 'strtolower', $address );
-
-	$usps_id = wootax_get_option( 'usps_id' );
-
-	if ( $usps_id ) {
-
-		$address['uspsUserID'] = $usps_id; // USPS Web Tools ID is required for calls to VerifyAddress
-
-		$res = $taxcloud->send_request( 'VerifyAddress', $address );
-
-		// Check for errors
-		if ( $res !== false ) {
-			unset( $res->ErrNumber );
-			unset( $res->ErrDescription );
-
-			// The address country field will not be returned by TaxCloud, but we want to return it to the calling code; re-add it here
-			if ( isset( $address['Country'] ) ) 
-				$res->Country = $address['Country'];
-
-			if( !isset( $res->Address2 ) ) {
-				$res->Address2 = '';
-			}
-
-			$final_address = $res;
-		} 
-
+	if ( $order_id == -1 ) {
+		$validated_addresses = isset( WC()->session->validated_addresses ) ? WC()->session->validated_addresses : array();
+	} else {
+		$validated_addresses = get_post_meta( $order_id, '_wootax_validated_addresses', true );
+		$validated_addresses = !is_array( $validated_addresses ) ? array() : $validated_addresses;
 	}
+
+	if ( !$needs_validate ) {
+		return $validated_addresses[ $hash ];
+	} else {
+		$taxcloud = get_taxcloud();
+
+		$final_address = $address;
+
+		// All array values must be lowercase for validation to work properly
+		$address = array_map( 'strtolower', $address );
+
+		$usps_id = wootax_get_option( 'usps_id' );
+
+		if ( $usps_id ) {
+			$address['uspsUserID'] = $usps_id; // USPS Web Tools ID is required for calls to VerifyAddress
+
+			$res = $taxcloud->send_request( 'VerifyAddress', $address );
+
+			// Check for errors
+			if ( $res !== false ) {
+				unset( $res->ErrNumber );
+				unset( $res->ErrDescription );
+
+				if ( !isset( $res->Country ) ) {
+					$res->Country = $address['Country'];
+				}
+
+				if ( !isset( $res->Address2 ) ) {
+					$res->Address2 = '';
+				}
+
+				$final_address = (array) $res;
+			} 
+		}
+
+		// Update address in $validated_addresses array
+		$validated_addresses[ $hash ] = $final_address;
+
+		// Store validated addresses in session or order meta depending on context
+		if ( $order_id == -1 ) {
+			WC()->session->validated_addresses = $validated_addresses;
+		} else {
+			update_post_meta( $order_id, '_wootax_validated_addresses', $validated_addresses );
+		}
+	} 
 		
-	return (array) $final_address;
-
+	return $final_address;
 }
-
-/**
- * Add flash message to be displayed on admin side
- * 
- * @since 3.5
- */
-function wootax_add_flash_message( $content, $type = 'error' ) {
-
-	// Fetch current message array (stored in transient wootax_flash_messages)
-	$messages = get_transient( 'wootax_flash_messages' ) == false ? array() : get_transient( 'wootax_flash_messages' );
-	
-	// Add new message
-	$messages[] = array('content' => $content, 'type' => $type);
-	
-	// Update transient
-	set_transient( 'wootax_flash_messages', $messages );
-
-}
-
-/**
- * Display flash messages 
- * This is best placed here because it needs to run regardless of whether or not WooCommerce is activated and the WooTax admin class
- * is only loaded when Woo is active
- *
- * @since 4.2
- */
-function wootax_display_flash_messages() {
-
-	$messages = get_transient( 'wootax_flash_messages' );
-		
-	// Exit if we don't have messages to display
-	if ( $messages == false || is_array( $messages ) && count( $messages ) == 0 ) {
-		return;
-	}
-	
-	// Loop through messages and output
-	foreach ( $messages as $message ) {
-		echo '<div class="'. $message['type'] .'"><p>'. $message['content'] .'</p></div>';
-	}
-
-}
-
-add_action( 'admin_notices', 'wootax_display_flash_messages' );
-
-/**
- * Removes flash messages after page load
- *
- * @since 4.2
- */
-function wootax_remove_flash_messages() {
-
-	delete_transient( 'wootax_flash_messages' );
-
-}
-
-add_action( 'shutdown', 'wootax_remove_flash_messages' );
 
 /**
  * Fetches valid origin addresses for a given product
@@ -123,7 +111,6 @@ add_action( 'shutdown', 'wootax_remove_flash_messages' );
  * @return an array of origin address IDs
  */
 function fetch_product_origin_addresses( $product_id ) {
-
 	// We might receive a product variation id; to ensure that we have the actual product id, instantiate a WC_Product object
 	$product = get_product( $product_id );
 	$id = isset( $product->parent ) ? $product->parent->id : $product_id;
@@ -140,7 +127,6 @@ function fetch_product_origin_addresses( $product_id ) {
 	} 
 
 	return $origin_addresses;
-
 }
 
 /**
@@ -150,7 +136,6 @@ function fetch_product_origin_addresses( $product_id ) {
  * @return an array of origin addresses
  */
 function fetch_business_addresses() {
-
 	$addresses = wootax_get_option( 'addresses' );
 
 	// Ensures that users who upgraded from older versions of the plugin are still good to go
@@ -169,7 +154,6 @@ function fetch_business_addresses() {
 	}
 
 	return $addresses;
-
 }
 
 /**
@@ -180,7 +164,6 @@ function fetch_business_addresses() {
  * @return requested option or boolean false if it isn't set
  */
 function wootax_get_option( $key = '' ) {
-
 	$settings_key = 'woocommerce_wootax_settings';
 
 	$settings = get_option( $settings_key );
@@ -190,7 +173,6 @@ function wootax_get_option( $key = '' ) {
 	} else {
 		return $settings[$key];
 	}
-
 }
 
 /**
@@ -201,7 +183,6 @@ function wootax_get_option( $key = '' ) {
  * @param $value the new value of the option
  */
 function wootax_set_option( $key = '', $value = '' ) {
-
 	$settings_key = 'woocommerce_wootax_settings';
 
 	$settings = get_option( $settings_key );
@@ -213,7 +194,6 @@ function wootax_set_option( $key = '', $value = '' ) {
 	$settings[$key] = $value;
 
 	update_option( $settings_key, $settings );
-
 }
 
 /** 
@@ -221,7 +201,7 @@ function wootax_set_option( $key = '', $value = '' ) {
  *
  * @since 4.2
  */
-function generate_order_id() { 
+function wootax_generate_order_id() { 
 	return md5( $_SERVER['REMOTE_ADDR'] . microtime() );
 }
 
@@ -233,7 +213,6 @@ function generate_order_id() {
  * @return an array with two keys: 'zip5' and 'zip4'
  */
 function parse_zip( $zip ) {
-
 	$parsed_zip = array( 
 		'zip5' => '',
 		'zip4' => '',
@@ -257,7 +236,6 @@ function parse_zip( $zip ) {
 	}
 
 	return $parsed_zip;
-
 }
 
 /**
@@ -267,14 +245,12 @@ function parse_zip( $zip ) {
  * @return an array of all registered user roles
  */
 function wootax_get_user_roles() {
-
 	global $wp_roles;
 
 	if ( ! isset( $wp_roles ) )
 	    $wp_roles = new WP_Roles();
 
 	return $wp_roles->get_names();
-
 }
 
 /**
@@ -285,7 +261,6 @@ function wootax_get_user_roles() {
  * @return email address (string)
  */
 function wootax_get_notification_email() {
-
 	$email = wootax_get_option( 'notification_email' );
 
 	if ( $email ) {
@@ -298,5 +273,24 @@ function wootax_get_notification_email() {
 	) );
 
 	return $all_admins[0]->user_email;
-
 } 
+
+/**
+ * Get a TaxCloud object 
+ *
+ * @since 4.2
+ * @return (mixed) WC_WooTax_TaxCloud object or boolean false if the user hasn't configured their TaxCloud API creds yet
+ */
+function get_taxcloud() {
+	$taxcloud_id  = wootax_get_option( 'tc_id' );
+	$taxcloud_key = wootax_get_option( 'tc_key' );
+
+	// If we have a valid configuration, initialize a WC_WooTax_TaxCloud object
+	if ( !empty( $taxcloud_id ) && !empty( $taxcloud_key ) ) {
+		$taxcloud = new WC_WooTax_TaxCloud( $taxcloud_id, $taxcloud_key );
+	} else {
+		$taxcloud = false;
+	}
+
+	return $taxcloud;
+}

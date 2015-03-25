@@ -169,3 +169,9 @@ a.remove_address.disabled {
 .help_tip {
     vertical-align: middle;
 }
+
+.wp-core-ui .button-secondary.wootax-button {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: .5em;
+}

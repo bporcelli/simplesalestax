@@ -1,8 +1,5 @@
 <?php
 
-// Prevent data leaks
-if ( ! defined( 'ABSPATH' ) ) exit; 
-
 /**
  * WC_WooTax_Order Object
  * Contains all methods for manipulating order taxes 
@@ -10,6 +7,10 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  * @since 4.2
  * @version 2.0
  */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Do not all direct access
+}
 
 class WC_WooTax_Order {
 	/** The ID of the order (shop_order post) */
@@ -131,7 +132,7 @@ class WC_WooTax_Order {
 		
 		// Display an error message if no order ID is passed
 		if ( $order_id == -1 ) {
-			wootax_add_flash_message( 'There was an error while updating the order. No order ID was passed to WooTax. Please try again.' );
+			wootax_add_message( 'There was an error while updating the order. No order ID was passed to WooTax. Please try again.' );
 		} else {
 
 			// Set order id
@@ -165,10 +166,10 @@ class WC_WooTax_Order {
 		if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '<' ) ) {
 
 			// Store shipping item index 
-			$location_id = isset( $this->location_mapping_array[ WOOTAX_SHIPPING_ITEM ] ) ? $this->location_mapping_array[ WOOTAX_SHIPPING_ITEM ] : 0;
+			$location_id = isset( $this->location_mapping_array[ WT_SHIPPING_ITEM ] ) ? $this->location_mapping_array[ WT_SHIPPING_ITEM ] : 0;
 
-			if ( isset( $this->mapping_array[ $location_id ][ WOOTAX_SHIPPING_ITEM ] ) ) {
-				$this->shipping_index = $this->mapping_array[ $location_id ][ WOOTAX_SHIPPING_ITEM ];
+			if ( isset( $this->mapping_array[ $location_id ][ WT_SHIPPING_ITEM ] ) ) {
+				$this->shipping_index = $this->mapping_array[ $location_id ][ WT_SHIPPING_ITEM ];
 			}
 
 		}
@@ -244,9 +245,9 @@ class WC_WooTax_Order {
 	 */
 	public function add_shipping_meta( $order_id, $item_id, $package_key ) {
 
-		$location_id = isset( $this->location_mapping_array[ WOOTAX_SHIPPING_ITEM ] ) ? $this->location_mapping_array[ WOOTAX_SHIPPING_ITEM ] : 0;
-		$tax_amount  = isset( $this->cart_taxes[ WOOTAX_SHIPPING_ITEM ] ) ? $this->cart_taxes[ WOOTAX_SHIPPING_ITEM ] : 0;
-		$item_index  = isset( $this->mapping_array[ $location_id ][ WOOTAX_SHIPPING_ITEM ] ) ? $this->mapping_array[ $location_id ][ WOOTAX_SHIPPING_ITEM ] : 0;
+		$location_id = isset( $this->location_mapping_array[ WT_SHIPPING_ITEM ] ) ? $this->location_mapping_array[ WT_SHIPPING_ITEM ] : 0;
+		$tax_amount  = isset( $this->cart_taxes[ WT_SHIPPING_ITEM ] ) ? $this->cart_taxes[ WT_SHIPPING_ITEM ] : 0;
+		$item_index  = isset( $this->mapping_array[ $location_id ][ WT_SHIPPING_ITEM ] ) ? $this->mapping_array[ $location_id ][ WT_SHIPPING_ITEM ] : 0;
 
 		wc_add_order_item_meta( $item_id, '_wootax_location_id', $location_id );
 		wc_add_order_item_meta( $item_id, '_wootax_tax_amount', $tax_amount );
@@ -323,6 +324,7 @@ class WC_WooTax_Order {
 			$this->shipping_tax_total     = $this->woo->session->wootax_shipping_tax_total;
 			$this->identifiers            = $this->woo->session->item_ids;
 			$this->first_found            = $this->woo->session->first_found_key;
+			$this->validated_addresses    = $this->woo->session->validated_addresses;
 
 			// Store mapping array in flipped order
 			$mapping_array = array();
@@ -360,17 +362,18 @@ class WC_WooTax_Order {
 
 		if ( $this->woo->session instanceof WC_Session_Handler ) {
 
-			$this->woo->session->certificate_id            = '';
-			$this->woo->session->certificate_applied       = '';
-			$this->woo->session->certificate_data          = '';
-			$this->woo->session->exemption_applied         = '';
-			$this->woo->session->cert_removed              = false;
-			$this->woo->session->cart_taxes                = array();
-			$this->woo->session->backend_cart_taxes        = array();
-			$this->woo->session->taxcloud_ids              = array();
-			$this->woo->session->backend_location_mapping  = array();
-			$this->woo->session->wootax_tax_total          = 0;
-			$this->woo->session->wootax_shipping_tax_total = 0;
+			$this->woo->session->certificate_id             = '';
+			$this->woo->session->certificate_applied        = '';
+			$this->woo->session->certificate_data           = '';
+			$this->woo->session->exemption_applied          = '';
+			$this->woo->session->cert_removed               = false;
+			$this->woo->session->cart_taxes                 = array();
+			$this->woo->session->backend_cart_taxes         = array();
+			$this->woo->session->taxcloud_ids               = array();
+			$this->woo->session->backend_location_mapping   = array();
+			$this->woo->session->wootax_validated_addresses = array();
+			$this->woo->session->wootax_tax_total           = 0;
+			$this->woo->session->wootax_shipping_tax_total  = 0;
 
 			$this->woo->session->save_data();
 
@@ -389,7 +392,7 @@ class WC_WooTax_Order {
 		if ( isset( $this->mapping_array[ $item_id ] ) ) {
 			return $this->mapping_array[ $item_id ];
 		} else {
-			if ( $item_id == WOOTAX_SHIPPING_ITEM ) { // WC 2.1 shipping
+			if ( $item_id == WT_SHIPPING_ITEM ) { // WC 2.1 shipping
 				return $this->shipping_index;
 			} else {
 				return $this->get_item_meta( $item_id, '_wootax_index' );
@@ -432,7 +435,7 @@ class WC_WooTax_Order {
 
 		$tax = 0;
 
-		if ( $item_id == WOOTAX_SHIPPING_ITEM ) { // This will occur for WooCommerce 2.1.x
+		if ( $item_id == WT_SHIPPING_ITEM ) { // This will occur for WooCommerce 2.1.x
 			$tax = $this->shipping_tax_total;
 		} else if ( $this->get_item_meta( $item_id, '_wootax_tax_amount' ) ) {
 			$tax = $this->get_item_meta( $item_id, '_wootax_tax_amount' );
@@ -451,7 +454,7 @@ class WC_WooTax_Order {
 	 */
 	private function apply_item_tax( $item_id, $amt ) {
 
-		if ( $item_id == WOOTAX_SHIPPING_ITEM ) { // WooCommerce 2.1.x shipping 
+		if ( $item_id == WT_SHIPPING_ITEM ) { // WooCommerce 2.1.x shipping 
 
 			$this->shipping_tax_total = $this->shipping_tax_total + $amt;
 
@@ -533,7 +536,7 @@ class WC_WooTax_Order {
 
 		if ( $applied_tax != 0 ) {
 
-			if ( $item_id == WOOTAX_SHIPPING_ITEM ) { // WooCommerce 2.1.x shipping charges
+			if ( $item_id == WT_SHIPPING_ITEM ) { // WooCommerce 2.1.x shipping charges
 
 				$this->shipping_tax_total = 0;
 
@@ -769,7 +772,7 @@ class WC_WooTax_Order {
 	 * @since  4.2
 	 * @return $taxcloud_ids   Array   array of taxcloud cart IDs and order IDs
 	 */
-	private function generate_order_ids() {
+	private function wootax_generate_order_ids() {
 
 		$taxcloud_ids = $this->taxcloud_ids;
 
@@ -778,7 +781,7 @@ class WC_WooTax_Order {
 			if ( !isset( $taxcloud_ids[ $location ] ) ) {
 				$taxcloud_ids[ $location ] = array(
 					'cart_id'  => '',
-					'order_id' => generate_order_id(),
+					'order_id' => wootax_generate_order_id(),
 				);
 			}
 
@@ -815,7 +818,7 @@ class WC_WooTax_Order {
 				$lookup_data       = $this->lookup_data;
 
 				// Generate TaxCloud Cart/Order IDs
-				$this->taxcloud_ids = $this->generate_order_ids();
+				$this->taxcloud_ids = $this->wootax_generate_order_ids();
 				$taxcloud_ids       = $this->taxcloud_ids;
 			} else {
 				// Only generate lookup data
@@ -823,7 +826,7 @@ class WC_WooTax_Order {
 			}
 
 			// Retrieve validated destination addresses
-			$destination_address = validate_address( $this->destination_address );
+			$destination_address = maybe_validate_address( $this->destination_address, $this->order_id );
 
 			// Used in every tax lookup
 			$all_cart_items = array();
@@ -841,7 +844,7 @@ class WC_WooTax_Order {
 				$cart_id = isset( $taxcloud_ids[ $location_key ]['cart_id'] ) ? $taxcloud_ids[ $location_key ]['cart_id'] : '';
 
 				// Get the origin address
-				$origin_address = validate_address( $this->get_origin_address( $location_key ) );
+				$origin_address = $this->get_origin_address( $location_key );
 
 				// Build request array 
 				$req = array(
@@ -940,7 +943,7 @@ class WC_WooTax_Order {
 
 						$item_id = $item['ItemID'];
 
-						if ( $item_id == WOOTAX_SHIPPING_ITEM ) { // WC 2.1 shipping
+						if ( $item_id == WT_SHIPPING_ITEM ) { // WC 2.1 shipping
 							$this->shipping_index = $item['Index'];
 						} else {
 							wc_update_order_item_meta( $item_id, '_wootax_location_id', $address_key );
@@ -1039,7 +1042,7 @@ class WC_WooTax_Order {
 
 		// Return origin address if this is a local pickup order
 		if ( $this->is_local_pickup() || $tax_based_on == 'base' ) {
-			return $this->get_origin_address( $this->default_address );
+			return $this->get_origin_address( apply_filters( 'wootax_pickup_address', $this->default_address, $this->addresses, $this->order_id ) );
 		}
 
 		// Attempt to fetch preferred address according to "tax based on" option; return billing by default
@@ -1207,7 +1210,7 @@ class WC_WooTax_Order {
 			// Check for errors
 			if ( $res == false ) {
 				if ( !$cron ) {
-					wootax_add_flash_message( 'There was an error while marking the order as Captured. '. $this->taxcloud->get_error_message() );
+					wootax_add_message( 'There was an error while marking the order as Captured. '. $this->taxcloud->get_error_message() );
 					return;
 				} else {
 					return $this->taxcloud->get_error_message();
@@ -1242,7 +1245,7 @@ class WC_WooTax_Order {
 			return;
 		} else if( !$this->captured ) {
 			if ( !$cron ) {
-				wootax_add_flash_message( '<strong>WARNING:</strong> The order was not refunded through TaxCloud because it has not been captured yet. To fix this issue, save the order as completed before marking it as refunded.', 'update-nag' );
+				wootax_add_message( '<strong>WARNING:</strong> The order was not refunded through TaxCloud because it has not been captured yet. To fix this issue, save the order as completed before marking it as refunded.', 'update-nag' );
 			}
 
 			return;
@@ -1271,7 +1274,7 @@ class WC_WooTax_Order {
 			// Check for errors
 			if ( $res == false ) {
 				if ( !$cron ) {
-					wootax_add_flash_message( 'There was an error while refunding the order. '. $this->taxcloud->get_error_message() );
+					wootax_add_message( 'There was an error while refunding the order. '. $this->taxcloud->get_error_message() );
 					break;
 				} else {
 					return $this->taxcloud->get_error_message();
@@ -1655,8 +1658,8 @@ class WC_WooTax_Order {
 				// Add item for shipping cost
 				if ( isset( $_POST['shipping'] ) && $_POST['shipping'] != 0 ) {
 
-					$items['shipping_cost'][WOOTAX_SHIPPING_ITEM] = $_POST['shipping'];
-					$items['shipping_method_id'][]                = WOOTAX_SHIPPING_ITEM;
+					$items['shipping_cost'][WT_SHIPPING_ITEM] = $_POST['shipping'];
+					$items['shipping_method_id'][]                = WT_SHIPPING_ITEM;
 
 				}
 
@@ -1692,7 +1695,7 @@ class WC_WooTax_Order {
 
 				if ( is_array( $items['shipping_method_id'] ) && in_array( $item_id, $items['shipping_method_id'] ) ) {
 					// Shipping method
-					$tic  = WOOTAX_SHIPPING_TIC;
+					$tic  = WT_SHIPPING_TIC;
 					$cost = $items['shipping_cost'][$item_id];
 					$type = 'shipping';
 				} else if ( isset( $items['order_item_qty'][$item_id] ) ) {
@@ -1702,7 +1705,7 @@ class WC_WooTax_Order {
 					$type = 'cart';
 				} else {
 					// Fee
-					$tic  = WOOTAX_FEE_TIC;
+					$tic  = WT_FEE_TIC;
 					$cost = $items['line_total'][$item_id];
 					$type = 'fee';
 				}
@@ -1799,7 +1802,7 @@ class WC_WooTax_Order {
 					$id  = $item->ItemID;
 					$tax = $item->TaxAmount; 
 
-					if ( $id == WOOTAX_SHIPPING_ITEM ) {
+					if ( $id == WT_SHIPPING_ITEM ) {
 						$shipping_tax += $tax;
 					} else {
 
@@ -1943,14 +1946,14 @@ class WC_WooTax_Order {
 			if ( $shipping > 0 ) {
 				$item_data[] = array(
 					'Index'  => '', // Leave Index blank because it is reassigned when WooTaxOrder::generate_lookup_data() is called
-					'ItemID' => WOOTAX_SHIPPING_ITEM, 
-					'TIC'    => WOOTAX_SHIPPING_TIC,
+					'ItemID' => WT_SHIPPING_ITEM, 
+					'TIC'    => WT_SHIPPING_TIC,
 					'Qty'    => 1, 
 					'Price'  => $shipping,	
 					'Type'   => 'shipping',
 				);
 
-				$type_array[ WOOTAX_SHIPPING_ITEM ] = 'shipping';
+				$type_array[ WT_SHIPPING_ITEM ] = 'shipping';
 			}
 
 			// Issue Lookup request
@@ -1967,7 +1970,7 @@ class WC_WooTax_Order {
 					$item_id  = $item->ItemID;
 					$item_tax = $item->TaxAmount;
 
-					if ( $item_id == WOOTAX_SHIPPING_ITEM ) {
+					if ( $item_id == WT_SHIPPING_ITEM ) {
 						$return['recurring_shipping_tax'] += $item_tax;
 					} else {
 						$return['recurring_line_subtotal_tax'] += $item_tax;

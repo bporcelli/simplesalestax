@@ -1,9 +1,9 @@
 <?php
 
 // Prevent direct access to script
-if ( ! defined( 'ABSPATH' ) ) exit; 
-
-if ( is_admin() ):
+if ( ! defined( 'ABSPATH' ) || !is_admin() )  {
+	exit; 
+}
 
 // Load integration class
 require( 'class-wc-wootax-settings.php' );
@@ -61,7 +61,7 @@ class WC_WooTax_Admin {
 		add_action( 'save_post', array( $this, 'save_product_meta' ) );
 
 		// Add "settings" link to plugins page
-		add_filter( 'plugin_action_links_' . plugin_basename( WOOTAX_PATH . '/woocommerce-wootax.php' ), array( $this, 'add_settings_link' ) );
+		add_filter( 'plugin_action_links_' . plugin_basename( WT_PLUGIN_PATH . '/woocommerce-wootax.php' ), array( $this, 'add_settings_link' ) );
 
 		// Verify TaxCloud settings via AJAX
 		add_action( 'wp_ajax_wootax-verify-taxcloud', array( $this, 'verify_taxcloud_settings' ) );
@@ -126,16 +126,16 @@ class WC_WooTax_Admin {
 				$license_data = json_decode( wp_remote_retrieve_body( $response ) );
 				
 				// $license_data->license will be either "valid" or "invalid"
-				if ($license_data->license == "valid") {
+				if ( $license_data->license == "valid" ) {
 					update_option( 'wootax_license_key', $license );
 				} else {
 					update_option( 'wootax_license_key', false );
 
 					// Display message
-					wootax_add_flash_message( 'The license key you entered is invalid. Please try again.' );
+					wootax_add_message( 'The license key you entered is invalid. Please try again.' );
 				}
 			} else {
-				wootax_add_flash_message( 'Please enter your license key.' );
+				wootax_add_message( 'Please enter your license key.' );
 			}
 
 		} 
@@ -181,10 +181,10 @@ class WC_WooTax_Admin {
 	public function enqueue_admin_scripts() {
 
 		// WooTax admin JS
-		wp_enqueue_script( 'wootax-admin', WOOTAX_DIR_URL .'js/admin.js', array( 'jquery', 'jquery-tiptip' ), '1.0' );
+		wp_enqueue_script( 'wootax-admin', WT_PLUGIN_DIR_URL .'js/admin.js', array( 'jquery', 'jquery-tiptip' ), '1.0' );
 
 		// JavaScript for TIC selector
-		wp_enqueue_script( 'jquery-tic', WOOTAX_DIR_URL .'js/jquery-tic.js', array( 'jquery', 'wootax-admin' ) );
+		wp_enqueue_script( 'jquery-tic', WT_PLUGIN_DIR_URL .'js/jquery-tic.js', array( 'jquery', 'wootax-admin' ) );
 
 		// We need to let our admin script access some important data...
 		$admin_data = array(
@@ -201,7 +201,7 @@ class WC_WooTax_Admin {
 	 * @since 4.2
 	 */
 	public function enqueue_admin_styles() {
-		wp_enqueue_style( 'wootax-admin-style', WOOTAX_DIR_URL .'css/admin.css' );
+		wp_enqueue_style( 'wootax-admin-style', WT_PLUGIN_DIR_URL .'css/admin.css' );
 	}
 	
 	/**
@@ -485,98 +485,6 @@ class WC_WooTax_Admin {
 	}
 
 	/**
-	 * Validates each of the user's entered origin addresses
-	 * 
-	 * @since 1.0
-	 * @return JSON object with status (success | error) and message (array of validated addresses | error message)
-	 */
-	public function verify_origin_addresses() {
-
-		$taxcloud = $this->taxcloud;
-
-		// Collect TaxCloud credentials and USPS ID
-		$taxcloud_id  = trim( $_POST['wootax_tc_id'] );
-		$taxcloud_key = trim( $_POST['wootax_tc_key'] );
-		$usps_id      = trim( $_POST['wootax_usps_id'] );
-		$addresses    = array();
-
-		if ( !empty( $taxcloud_id ) && !empty( $taxcloud_key ) && !empty( $usps_id ) ) {
-
-			// Dump address data into an array
-			$address_count = count( $_POST['wootax_address1'] );
-
-			for($i = 0; $i < $address_count; $i++) {
-				$address = array(
-					'address_1' => $_POST['wootax_address1'][ $i ],
-					'address_2' => $_POST['wootax_address2'][ $i ],
-					'country' 	=> 'United States', // hardcoded because this is the only option as of right now
-					'state'		=> $_POST['wootax_state'][ $i ],
-					'city' 		=> $_POST['wootax_city'][ $i ],
-					'zip5'		=> $_POST['wootax_zip5'][ $i ],
-					'zip4'		=> $_POST['wootax_zip4'][ $i ],
-				);
-
-				$addresses[] = $address;
-			}
-
-			// Before the user saves their settings, the global $taxcloud object will not be set; if we need to, initialize it here
-			if ( !is_object( $taxcloud ) ) {
-				$taxcloud = new WC_WooTax_TaxCloud( $taxcloud_id, $taxcloud_key );
-			} else {
-				$taxcloud->set_id( $taxcloud_id );
-				$taxcloud->set_key( $taxcloud_key );
-			}
-
-			// Loop through addresses and attempt to verify each
-			foreach ($addresses as $key => $address) {
-
-				$req = array(
-					'uspsUserID' => $usps_id, 
-					'Address1'   => strtolower( $address['address_1'] ), 
-					'Address2'   => strtolower( $address['address_2'] ), 
-					'Country'    => 'US', 
-					'City'       => $address['city'], 
-					'State'      => $address['state'], 
-					'Zip5'       => $address['zip5'], 
-					'Zip4'       => $address['zip4'],
-				);
-
-				// Attempt to verify address 
-				$response = $taxcloud->send_request( 'VerifyAddress', $req );
-
-				if ( $response !== false ) {
-					$new_address = array();
-
-					$properties = array(
-						'Address1' => 'address_1', 
-						'Address2' => 'address_2',
-						'Country'  => 'country',
-						'City'     => 'city',
-						'State'    => 'state',
-						'Zip5'     => 'zip5',
-						'Zip4'     => 'zip4'
-					);
-
-					foreach ($properties as $property => $k) {
-						if ( isset( $response->$property ) ) {
-							$new_address[ $k ] = $response->$property;
-						}
-					}
-
-					$addresses[ $key ] = $new_address;			
-				} 
-
-			}
-
-			die( json_encode( array( 'status' => 'success', 'message' => $addresses ) ) ); 
-
-		} else {
-			die( json_encode( array( 'status' => 'error', 'message' => 'A valid API Login ID, API Key, and USPS ID are required.' ) ) );
-		}
-
-	}
-
-	/**
 	 * Deactivate the user's license on this domain
 	 * Called on AJAX action: wootax-deactivate-license
 	 *
@@ -724,9 +632,9 @@ class WC_WooTax_Admin {
 		$rates_checked = get_option( 'wootax_rates_checked' );
 
 		if ( !$license_key ) {
-			include( WOOTAX_PATH .'templates/admin/license-activation.php' );
+			include( WT_PLUGIN_PATH .'templates/admin/license-activation.php' );
 		} else if ( !$rates_checked ) {
-			include( WOOTAX_PATH .'templates/admin/delete-rates.php' );
+			include( WT_PLUGIN_PATH .'templates/admin/delete-rates.php' );
 		} 
 
 	}
@@ -774,13 +682,13 @@ class WC_WooTax_Admin {
 			return;
 		} 
 
-		include( WOOTAX_PATH .'/templates/admin/rate-table-header.php' );
+		include( WT_PLUGIN_PATH .'/templates/admin/rate-table-header.php' );
 
 		foreach ( $rate_counts as $rate => $data ) {
 			$GLOBALS['rate'] = $rate;
 			$GLOBALS['data'] = $data;
 
-			include( WOOTAX_PATH .'/templates/admin/rate-table-row.php' );
+			include( WT_PLUGIN_PATH .'/templates/admin/rate-table-row.php' );
 		}
 	
 		echo '</tbody>';
@@ -791,5 +699,3 @@ class WC_WooTax_Admin {
 
 // Set up admin
 $WC_WooTax_Admin = new WC_WooTax_Admin();
-
-endif;

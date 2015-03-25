@@ -7,7 +7,7 @@
  * @since 4.2
  */
 
-require( WOOTAX_PATH .'classes/class-wc-wootax-exemption-certificate.php' );
+require( WT_PLUGIN_PATH .'classes/class-wc-wootax-exemption-certificate.php' );
 
 /**
  * Enqueue scripts required for exemption management on the checkout page
@@ -15,8 +15,8 @@ require( WOOTAX_PATH .'classes/class-wc-wootax-exemption-certificate.php' );
 function enqueue_checkout_scripts() {
 	if ( !is_admin() && is_checkout() || is_cart() ) {
 		// Enqueue Magnific Popup
-		wp_enqueue_style( 'mpop-css', WOOTAX_DIR_URL .'css/magnificPopup.css' );
-		wp_enqueue_script( 'mpop-js', WOOTAX_DIR_URL .'js/magnificPopup.js', array( 'jquery' ), '1.0', true );
+		wp_enqueue_style( 'mpop-css', WT_PLUGIN_DIR_URL .'css/magnificPopup.css' );
+		wp_enqueue_script( 'mpop-js', WT_PLUGIN_DIR_URL .'js/magnificPopup.js', array( 'jquery' ), '1.0', true );
 	} 
 }
 
@@ -29,7 +29,7 @@ function add_exemption_javascript() {
 
 		// Insert the exemption code (taken from Appendix C of the TaxCloud developer documentation)
 		$merchant_name = wootax_get_option( 'company_name' );
-		$dir_url = WOOTAX_DIR_URL;
+		$dir_url = WT_PLUGIN_DIR_URL;
 		$home_path = ABSPATH;
 		$allow_blanket_certificates = is_user_logged_in();
 

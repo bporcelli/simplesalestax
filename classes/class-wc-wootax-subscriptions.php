@@ -1,7 +1,9 @@
 <?php
 
 // Prevent data leaks
-if ( ! defined( 'ABSPATH' ) ) exit; 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+} 
 
 /**
  * WC_WooTax_Subscriptions
@@ -123,11 +125,11 @@ class WC_WooTax_Subscriptions {
 			switch ( $type ) {
 
 				case 'shipping':
-					$tic  = WOOTAX_SHIPPING_TIC;
+					$tic  = WT_SHIPPING_TIC;
 					$type = 'shipping';
 					break;
 				case 'fee':
-					$tic  = WOOTAX_FEE_TIC;
+					$tic  = WT_FEE_TIC;
 					$type = 'fee';
 					break;
 				case 'line_item':
@@ -172,14 +174,14 @@ class WC_WooTax_Subscriptions {
 
 				$item_data = array(
 					'Index'  => '', // Leave Index blank because it is reassigned when WooTaxOrder::generate_lookup_data() is called
-					'ItemID' => WOOTAX_SHIPPING_ITEM, 
+					'ItemID' => WT_SHIPPING_ITEM, 
 					'Qty'    => 1, 
 					'Price'  => $order->order->get_total_shipping(),	
 					'Type'   => 'shipping',
-					'TIC'    => WOOTAX_SHIPPING_TIC
+					'TIC'    => WT_SHIPPING_TIC
 				);	
 
-				$type_array[ WOOTAX_SHIPPING_ITEM ] = 'shipping';
+				$type_array[ WT_SHIPPING_ITEM ] = 'shipping';
 
 				$final_items[] = $item_data;
 
@@ -294,34 +296,7 @@ class WC_WooTax_Subscriptions {
 		}
 
 	}
-
-	/**
-	 * Runs periodically to check for updates to tax rates
-	 * Updates recurring order totals to reflect any changes
-	 *
-	 * @since 4.4
-	 * @return void
-	 */
-	public function wootax_check_subscription_rates() {
-		// Fetch and loop through all subscription orders
-
-			// Find the subscription item in the order
-
-			// Calculate approximate tax rate by taking ratio of item tax to item total
-			// - Correct for rounding issues
-
-			// Check if a lookup has already been issued for subscription TIC
-			// - If lookup was already issued, use stored rate to calculate new tax totals
-			// - Else, issue a lookup and store the tax rate in an array (organized by TIC?)
-			
-			// If PayPal Standard, GoCardless, PayPal Digital Goods, or WorldPay is being used, send an email (only one) to warn customer
-			// about rate change; do not update order totals
-
-			// If any other gateway is being used, update the recurring totals, call WC_Order::calculate_totals(), and save changes
-
-		// End loop
-		return;
-	}
+	
 }
 
 new WC_WooTax_Subscriptions();

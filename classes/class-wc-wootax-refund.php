@@ -104,13 +104,13 @@ function process_refund( $refund, $cron = false ) {
 
 	}
 
-	$id_array[ WOOTAX_SHIPPING_ITEM ] = isset( $identifiers[ WOOTAX_SHIPPING_ITEM ] ) ? $identifiers[ WOOTAX_SHIPPING_ITEM ] : WOOTAX_SHIPPING_ITEM;
+	$id_array[ WT_SHIPPING_ITEM ] = isset( $identifiers[ WT_SHIPPING_ITEM ] ) ? $identifiers[ WT_SHIPPING_ITEM ] : WT_SHIPPING_ITEM;
 
-	if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) && !isset( $identifiers[ WOOTAX_SHIPPING_ITEM ] ) ) {
+	if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) && !isset( $identifiers[ WT_SHIPPING_ITEM ] ) ) {
 		
 		foreach ( $order->order->get_shipping_methods() as $method_id => $method ) {
 
-			$id_array[ WOOTAX_SHIPPING_ITEM ] = $method_id;
+			$id_array[ WT_SHIPPING_ITEM ] = $method_id;
 
 		}
 
@@ -174,7 +174,7 @@ function process_refund( $refund, $cron = false ) {
 		$refund_items[ $first_found ][] = array(
 			'Index'  => '', 
 			'ItemID' => $real_id, 
-			'TIC'    => WOOTAX_FEE_TIC,
+			'TIC'    => WT_FEE_TIC,
 			'Qty'    => 1, 
 			'Price'  => $fee['line_total'] * -1,
 		);
@@ -186,12 +186,12 @@ function process_refund( $refund, $cron = false ) {
 
 	if ( $shipping_cost != 0 ) {
 
-		$item_id = $id_array[ WOOTAX_SHIPPING_ITEM ];
+		$item_id = $id_array[ WT_SHIPPING_ITEM ];
 
 		$refund_items[ $first_found ][] = array(
 			'Index'  => '', 
 			'ItemID' => $item_id, 
-			'TIC'    => WOOTAX_SHIPPING_TIC, 
+			'TIC'    => WT_SHIPPING_TIC, 
 			'Qty'    => 1, 
 			'Price'  => $shipping_cost * -1,
 		);

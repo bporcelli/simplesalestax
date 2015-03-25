@@ -6,6 +6,10 @@
  * @since 4.4
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Do not all direct access 
+}
+
 /**
  * Check WooTax Orders
  *
@@ -205,7 +209,7 @@ function wootax_sync_orders( $last_checked = 0 ) {
 				'Qty'    => 1, 
 				'Price'  => $fee['line_subtotal'],	
 				'Type'   => 'fee',
-				'TIC'    => WOOTAX_FEE_TIC,
+				'TIC'    => WT_FEE_TIC,
 			);
 
 			$type_array[ $item_id ] = 'cart';
@@ -220,7 +224,7 @@ function wootax_sync_orders( $last_checked = 0 ) {
 				'Qty'    => 1, 
 				'Price'  => $shipping['cost'],	
 				'Type'   => 'shipping',
-				'TIC'    => WOOTAX_SHIPPING_TIC,
+				'TIC'    => WT_SHIPPING_TIC,
 			);
 
 			$type_array[ $item_id ] = 'shipping';
@@ -504,7 +508,7 @@ function wootax_update_recurring_tax() {
 				$item_data[] = array(
 					'Index'  => '', // Leave Index blank because it is reassigned when WooTaxOrder::generate_lookup_data() is called
 					'ItemID' => $item_id, 
-					'TIC'    => WOOTAX_SHIPPING_TIC,
+					'TIC'    => WT_SHIPPING_TIC,
 					'Qty'    => 1, 
 					'Price'  => $shipping['cost'],	
 					'Type'   => 'shipping',

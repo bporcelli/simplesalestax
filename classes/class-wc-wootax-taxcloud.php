@@ -1,8 +1,9 @@
 <?php
 
 // Prevent direct access
-if ( ! defined( 'ABSPATH' ) ) 
+if ( ! defined( 'ABSPATH' ) ) {
 	exit; 
+}
 
 /**
  * Utility for making TaxCloud API requests

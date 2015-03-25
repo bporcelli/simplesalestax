@@ -1,8 +1,9 @@
 <?php
 
 // Prevent data leaks
-if ( ! defined( 'ABSPATH' ) ) 
+if ( ! defined( 'ABSPATH' ) ) {
 	exit; 
+}
 
 /**
  * WC_WooTax_Checkout Object
@@ -50,6 +51,9 @@ class WC_WooTax_Checkout {
 	/** Tax totals */
 	public $shipping_tax_total = 0;
 	public $tax_total          = 0;
+
+	/** Empty string if Lookup has not been sent yet; otherwise, combined hash of address info and item info */
+	private $lookup_sent = "";
 	
 	/**
 	 * Constructor: Starts Lookup and hooks into WooCommerce
@@ -59,8 +63,9 @@ class WC_WooTax_Checkout {
 	public function __construct() {
 		// When using Subscriptions, we need to restore the final shipping_taxes array on woocommerce_after_calculate_totals
 		// The call to WC_Cart::calculate_shipping on line 226 of class-wc-subscriptions-cart.php resets it
-		if ( is_plugin_active( 'woocommerce-subscriptions/woocommerce-subscriptions.php' ) )
+		if ( is_plugin_active( 'woocommerce-subscriptions/woocommerce-subscriptions.php' ) ) {
 			add_action( 'woocommerce_after_calculate_totals', array( $this, 'restore_shipping_taxes' ), 10, 1 );
+		}
 
 		// Start tax lookup
 		$this->init();
@@ -82,8 +87,9 @@ class WC_WooTax_Checkout {
 		// Instantiate a WC_WooTax_TaxCloud for us to use
 		$this->taxcloud = get_taxcloud();
 
-		if ( !$this->taxcloud )
+		if ( !$this->taxcloud ) {
 			return;
+		}
 	
 		// Get WooTax tax rate id
 		$this->wootax_rate_id = get_option( 'wootax_rate_id' );
@@ -94,17 +100,26 @@ class WC_WooTax_Checkout {
 		$this->destination_address = $this->get_destination_address();
 
 		// Exit immediately if we do not have enough information to proceed with a lookup
-		if( !$this->ready_for_lookup() )
+		if( !$this->ready_for_lookup() ) {
 			return;
+		} else {
+			// Load data about applied tax from session if possible
+			$this->load_data_from_session();
 
-		// Load data about applied tax from session if possible
-		$this->load_data_from_session();
+			// Generate lookup data
+			$this->generate_lookup_data();
 
-		// Issue lookup request and update cart tax totals
-		$this->do_lookup();
+			if ( $this->needs_lookup() ) {
+				// Issue lookup request and update cart tax totals
+				$this->do_lookup();
 
-		// Store final shipping_taxes array so it can be restored after Subscriptions overwrites it
-		$this->shipping_taxes = $this->cart->shipping_taxes;
+				// Store final shipping_taxes array so it can be restored after Subscriptions overwrites it
+				$this->shipping_taxes = $this->cart->shipping_taxes;
+			} else {
+				// We need to manually restore the item taxes when lookup is skipped; WooCommerce removes them
+				$this->restore_order_taxes();
+			}
+		}
 
 	}
 
@@ -116,15 +131,25 @@ class WC_WooTax_Checkout {
 	public function load_data_from_session() {
 
 		if ( $this->woo->session instanceof WC_Session_Handler ) {
-
-			if ( isset( $this->woo->session->wootax_cart_taxes ) ) {
-				$this->cart_taxes = $this->woo->session->wootax_cart_taxes;
+			if ( isset( $this->woo->session->cart_taxes ) ) {
+				$this->cart_taxes = $this->woo->session->cart_taxes;
 			}
 
 			if ( isset( $this->woo->session->taxcloud_ids ) ) {
 				$this->taxcloud_ids = $this->woo->session->taxcloud_ids;
 			}
 
+			if ( isset( $this->woo->session->wootax_lookup_sent ) ) {
+				$this->lookup_sent = $this->woo->session->wootax_lookup_sent;
+			}
+
+			if ( isset( $this->Woo->session->mapping_array ) ) {
+				$this->mapping_array = $this->woo->session->mapping_array;
+			}
+
+			if ( isset( $this->Woo->session->lookup_data ) ) {
+				$this->lookup_data = $this->woo->session->lookup_data;
+			}
 		} 
 
 	}
@@ -137,7 +162,6 @@ class WC_WooTax_Checkout {
 	public function save_session_data() {
 
 		if ( $this->woo->session instanceof WC_Session_Handler ) {
-
 			$this->woo->session->location_mapping_array    = $this->location_mapping_array;
 			$this->woo->session->mapping_array             = $this->mapping_array;
 			$this->woo->session->lookup_data               = $this->lookup_data;
@@ -147,7 +171,7 @@ class WC_WooTax_Checkout {
 			$this->woo->session->wootax_shipping_tax_total = $this->shipping_tax_total;
 			$this->woo->session->item_ids                  = $this->identifiers;
 			$this->woo->session->first_found_key           = $this->first_found;
-
+			$this->woo->session->wootax_lookup_sent        = $this->lookup_sent;
 		}
 
 	}
@@ -554,7 +578,7 @@ class WC_WooTax_Checkout {
 		$this->mapping_array = $mapping_array;
 		$this->first_found   = $first_found;
 
-		$this->generate_order_ids();
+		$this->wootax_generate_order_ids();
 
 	}
 
@@ -563,7 +587,7 @@ class WC_WooTax_Checkout {
 	 *
 	 * @since 4.2
 	 */
-	private function generate_order_ids() {
+	private function wootax_generate_order_ids() {
 
 		$taxcloud_ids = $this->taxcloud_ids;
 
@@ -572,7 +596,7 @@ class WC_WooTax_Checkout {
 			if ( !isset( $taxcloud_ids[ $location ] ) ) {
 				$taxcloud_ids[ $location ] = array(
 					'cart_id'  => '',
-					'order_id' => generate_order_id(),
+					'order_id' => wootax_generate_order_id(),
 				);
 			}
 
@@ -668,7 +692,7 @@ class WC_WooTax_Checkout {
 				$final_items[ $fee_id ] = array(
 					'Index'  => NULL, 
 					'ItemID' => $fee_id, 
-					'TIC'    => WOOTAX_FEE_TIC,
+					'TIC'    => WT_FEE_TIC,
 					'Qty'    => 1, 
 					'Price'  => $amt,
 					'Type'   => 'fee',
@@ -684,10 +708,10 @@ class WC_WooTax_Checkout {
 		if ( $shipping_total > 0 ) {
 
 			// Add a shipping item to the final items array (we assume that only one shipping method is being used per order)
-			$final_items[ WOOTAX_SHIPPING_ITEM ] = array(
+			$final_items[ WT_SHIPPING_ITEM ] = array(
 				'Index'  => NULL, 
-				'ItemID' => WOOTAX_SHIPPING_ITEM, 
-				'TIC'    => WOOTAX_SHIPPING_TIC, 
+				'ItemID' => WT_SHIPPING_ITEM, 
+				'TIC'    => WT_SHIPPING_TIC, 
 				'Qty'    => 1, 
 				'Price'  => $shipping_total,
 				'Type'   => 'shipping',
@@ -709,11 +733,8 @@ class WC_WooTax_Checkout {
 		// Remove currently applied taxes
 		$this->remove_tax();
 
-		// Generate lookup data
-		$this->generate_lookup_data();
-
 		// Retrieve validated destination addresses
-		$destination_address = validate_address( $this->destination_address );
+		$destination_address = maybe_validate_address( $this->destination_address );
 
 		// Define some variable used in every tax lookup
 		$tax_array          = array();
@@ -735,7 +756,7 @@ class WC_WooTax_Checkout {
 			$cart_id = isset( $this->taxcloud_ids[ $location_key ] ) ? $this->taxcloud_ids[ $location_key ]['cart_id'] : '';
 
 			// Get the origin address
-			$origin_address = validate_address( $this->get_origin_address( $location_key ) );
+			$origin_address = $this->get_origin_address( $location_key );
 
 			// Build Lookup request (cartID empty for first request)
 			$req = array(
@@ -747,8 +768,9 @@ class WC_WooTax_Checkout {
 				'deliveredBySeller' => $delivered_by_seller,
 			);
 
-			if ( !empty( $exempt_cert ) )
+			if ( !empty( $exempt_cert ) ) {
 				$req['exemptCert'] = $exempt_cert;
+			}
 
 			// Send Lookup request 
 			$res = $this->taxcloud->send_request( 'Lookup', $req );
@@ -783,7 +805,7 @@ class WC_WooTax_Checkout {
 							break;
 
 						case 'shipping':
-							$item_id = WOOTAX_SHIPPING_ITEM; // Identifier is SHIPPING
+							$item_id = WT_SHIPPING_ITEM; // Identifier is SHIPPING
 							$shipping_tax_total += $tax;
 							break;
 
@@ -822,6 +844,9 @@ class WC_WooTax_Checkout {
 		// Save updated tax totals
 		$this->update_tax_totals( $tax_total, $shipping_tax_total );
 
+		// Set value of lookup_sent to prevent duplicate lookups
+		$this->lookup_sent = $this->get_order_hash();
+		
 		// Save checkout data in session
 		$this->save_session_data();
 
@@ -849,7 +874,7 @@ class WC_WooTax_Checkout {
 		}
 
 		// Add shipping
-		$identifiers[ WOOTAX_SHIPPING_ITEM ] = WOOTAX_SHIPPING_ITEM;
+		$identifiers[ WT_SHIPPING_ITEM ] = WT_SHIPPING_ITEM;
 
 		$this->identifiers = $identifiers;
 
@@ -872,7 +897,7 @@ class WC_WooTax_Checkout {
 				$certificate_data = $this->woo->session->certificate_data;
 
 				if ( !isset( $certificate_data['Detail']['SinglePurchaseOrderNumber'] ) ) {
-					$certificate_data['Detail']['SinglePurchaseOrderNumber'] = generate_order_id();
+					$certificate_data['Detail']['SinglePurchaseOrderNumber'] = wootax_generate_order_id();
 				}
 				
 				$this->woo->session->certificate_data = $certificate_data;
@@ -928,7 +953,7 @@ class WC_WooTax_Checkout {
 
 		// Return origin address if this is a local pickup order
 		if ( $this->is_local_pickup() || $tax_based_on == 'base' ) {
-			return $this->get_origin_address( $this->default_address );
+			return $this->get_origin_address( apply_filters( 'wootax_pickup_address', $this->default_address, $this->addresses, -1 ) );
 		}
 
 		// Initialize blank address array
@@ -988,10 +1013,10 @@ class WC_WooTax_Checkout {
 	}
 	
 	/**
-	 * Determines if an order is using the "local_pickup" shipping method
+	 * Determines if an order is using a local pickup shipping method
 	 *
 	 * @since 4.2
-	 * @return true if the shipping method is "local_pickup.", else false
+	 * @return (boolean) true if a registered Local Pickup shipping method is selected; else, false
 	 */
 	private function is_local_pickup() {
 
@@ -1016,7 +1041,7 @@ class WC_WooTax_Checkout {
 	 * Determines if an order is delivered by the seller
 	 *
 	 * @since 4.2
-	 * @return boolean true if selected shipping method is "local_delivery"; else, false
+	 * @return (boolean) true if selected shipping method is "local_delivery"; else, false
 	 */
 	private function is_delivered_by_seller() {
 
@@ -1038,7 +1063,7 @@ class WC_WooTax_Checkout {
 	 * - The customer's full address is available (and in the United States)
 	 *
 	 * @since 4.2
-	 * @return boolean true if the order is ready for a tax lookup; otherwise, false
+	 * @return (boolean) true if the order is ready for a tax lookup; otherwise, false
 	 */
 	private function ready_for_lookup() {
 
@@ -1055,7 +1080,7 @@ class WC_WooTax_Checkout {
 		return true;
 
 	}
-	
+
 	/**
 	 * Get customerID for order and store it in the session
 	 * 
@@ -1166,6 +1191,80 @@ class WC_WooTax_Checkout {
 	 */
 	public function restore_shipping_taxes( $cart ) {
 		$GLOBALS['woocommerce']->cart->shipping_taxes = $this->shipping_taxes;
+	}
+
+	/**
+	 * Set order taxes from session if a Lookup is skipped
+	 *
+	 * @since 4.4
+	 */
+	private function restore_order_taxes() {
+
+		$tax_total = $shipping_tax_total = 0;
+
+		foreach ( $this->lookup_data as $location_key => $items ) {
+			foreach ( $items as $index => $item ) {
+				$type = $this->mapping_array[ $location_key ][ $index ]['type'];
+
+				// Update item taxes
+				switch ( $type ) {
+					case 'cart':
+						$item_id = $this->mapping_array[ $location_key ][ $index ]['key']; // Identifier is cart item key
+						
+						$tax = $this->cart_taxes[ $item_id ];
+
+						$this->apply_item_tax( $item_id, $tax );
+						$tax_total += $tax;
+						break;
+
+					case 'shipping':
+						$item_id = WT_SHIPPING_ITEM; // Identifier is SHIPPING
+						
+						$tax = $this->cart_taxes[ $item_id ];
+
+						$shipping_tax_total += $tax;
+						break;
+
+					case 'fee':
+						$item_id = $this->mapping_array[ $location_key ][ $index ]['index']; // Identifier is cart fee index
+						
+						$tax = $this->cart_taxes[ $item_id ];
+
+						$this->apply_fee_tax( $item_id, $tax );
+						$tax_total += $tax;
+						break;
+				}
+
+				// Update tax totals
+				$this->update_tax_totals( $tax_total, $shipping_tax_total );
+			}
+		}
+	}
+
+	/**
+	 * Determines whether or not a lookup needs to be sent by checking the
+	 * value of the wootax_lookup_sent session parameter
+	 *
+	 * @since 4.4
+	 * @return (boolean)
+	 */
+	private function needs_lookup() {
+		if ( empty( $this->lookup_sent ) ) {
+			return true;
+		} else {
+			return !( $this->get_order_hash() == $this->lookup_sent );
+		}
+	}
+
+	/**
+	 * Gets hash representing this unique order
+	 * Order is considered unique if it has different items (Lookup data) or destination address
+	 *
+	 * @since 4.4
+	 * @return String
+	 */
+	private function get_order_hash() {
+		return md5( json_encode( $this->destination_address ) . json_encode( $this->lookup_data ) );
 	}
 }
 

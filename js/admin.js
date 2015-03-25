@@ -421,6 +421,27 @@ jQuery(function() {
             'delay' : 200
         });
     }
+
+    /**
+     * Dismiss persistent admin message
+     */
+    jQuery( '.dismissable button' ).click( function() {
+        var $parent = jQuery(this).closest( '.wootax-message' );
+        var id      = $parent.data('id');
+
+        jQuery.ajax({
+            type: 'POST',
+            url: MyAjax.ajaxURL,
+            data: 'action=wootax-remove-message&message_id='+ id,
+            success: function(resp) {
+                if ( resp == true ) {
+                    $parent.fadeOut( 'fast', function() {
+                        jQuery(this).remove();
+                    } );
+                }
+            }
+        });
+    } );
 });
 
 var currentTic = '';
