@@ -16,8 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Determine if a given address needs to be validated
  *
  * @since 4.4
- * @param $address_hash (String) hashed address
- * @param $order_id (int) -1 during checkout, otherwise the current order ID.
+ * @param (string) $address_hash hashed address
+ * @param (int) $order_id -1 during checkout, otherwise the current order ID.
  * @return (boolean) true or false
  */
 function address_needs_validation( $address_hash, $order_id = -1 ) {
@@ -36,8 +36,8 @@ function address_needs_validation( $address_hash, $order_id = -1 ) {
  * TaxCloud's VerifyAddress API
  *
  * @since 1.0
- * @param $address (array) Associative array representing address
- * @param $order_id (int) -1 if the function is called during checkout. Otherwise, curent order ID.
+ * @param (array) $address Associative array representing address
+ * @param (int) $order_id -1 if the function is called during checkout. Otherwise, curent order ID.
  * @return (array) modified address array
  */
 function maybe_validate_address( $address, $order_id = -1 ) {
@@ -57,19 +57,17 @@ function maybe_validate_address( $address, $order_id = -1 ) {
 	if ( !$needs_validate ) {
 		return $validated_addresses[ $hash ];
 	} else {
-		$taxcloud = get_taxcloud();
-
 		$final_address = $address;
 
 		// All array values must be lowercase for validation to work properly
 		$address = array_map( 'strtolower', $address );
 
-		$usps_id = wootax_get_option( 'usps_id' );
+		$usps_id = WC_WooTax::get_option( 'usps_id' );
 
 		if ( $usps_id ) {
 			$address['uspsUserID'] = $usps_id; // USPS Web Tools ID is required for calls to VerifyAddress
 
-			$res = $taxcloud->send_request( 'VerifyAddress', $address );
+			$res = TaxCloud()->send_request( 'VerifyAddress', $address );
 
 			// Check for errors
 			if ( $res !== false ) {
@@ -107,8 +105,8 @@ function maybe_validate_address( $address, $order_id = -1 ) {
  * Returns an array with the default origin address if the user has not set an origin address for a product
  *
  * @since 3.8
- * @param $product_id a product (post) ID
- * @return an array of origin address IDs
+ * @param (int) $product_id a product (post) ID
+ * @return (array) an array of origin address IDs
  */
 function fetch_product_origin_addresses( $product_id ) {
 	// We might receive a product variation id; to ensure that we have the actual product id, instantiate a WC_Product object
@@ -120,7 +118,7 @@ function fetch_product_origin_addresses( $product_id ) {
 
 	// Set origin address array to default if it hasn't been configured for this product
 	if ( !is_array( $raw_origin_addresses ) || count( $raw_origin_addresses ) == 0 ) {
-		$default_address = wootax_get_option( 'default_address' ) == false ? 0 : wootax_get_option( 'default_address' );
+		$default_address = WC_WooTax::get_option( 'default_address' ) == false ? 0 : WC_WooTax::get_option( 'default_address' );
 		$origin_addresses = array( $default_address );
 	} else {
 		$origin_addresses = $raw_origin_addresses;
@@ -133,10 +131,10 @@ function fetch_product_origin_addresses( $product_id ) {
  * Returns an array of all business addresses added by the user
  *
  * @since 3.8
- * @return an array of origin addresses
+ * @return (array) an array of origin addresses
  */
 function fetch_business_addresses() {
-	$addresses = wootax_get_option( 'addresses' );
+	$addresses = WC_WooTax::get_option( 'addresses' );
 
 	// Ensures that users who upgraded from older versions of the plugin are still good to go
 	if ( !is_array( $addresses ) ) {
@@ -157,49 +155,21 @@ function fetch_business_addresses() {
 }
 
 /**
- * Wrapper around get_option to make it easier to get WooTax settings
+ * Converts Address array into a formatted address string
  *
- * @since 4.2
- * @param $key the key of the option to be fetched
- * @return requested option or boolean false if it isn't set
+ * @since 4.4
+ * @param (array) $address an Address array
+ * @return (string) the input address as a string
  */
-function wootax_get_option( $key = '' ) {
-	$settings_key = 'woocommerce_wootax_settings';
-
-	$settings = get_option( $settings_key );
-
-	if ( !isset( $settings[$key] ) || !$settings[$key] ) {
-		return false;
-	} else {
-		return $settings[$key];
-	}
-}
-
-/**
- * Wrapper around update_option to make it easier to change WooTax settings
- *
- * @since 4.2
- * @param $key the key of the option to be updated
- * @param $value the new value of the option
- */
-function wootax_set_option( $key = '', $value = '' ) {
-	$settings_key = 'woocommerce_wootax_settings';
-
-	$settings = get_option( $settings_key );
-
-	if( !is_array( $settings ) ) {
-		$settings = array();
-	}
-
-	$settings[$key] = $value;
-
-	update_option( $settings_key, $settings );
+function get_formatted_address( $address ) {
+	return $address['address_1'] .', '. $address['city'] .', '. $address['state'] .' '. $address['zip5'];
 }
 
 /** 
  * Generates an order ID for requests sent to TaxCloud
  *
  * @since 4.2
+ * @return (string) order ID
  */
 function wootax_generate_order_id() { 
 	return md5( $_SERVER['REMOTE_ADDR'] . microtime() );
@@ -209,8 +179,8 @@ function wootax_generate_order_id() {
  * Parse a ZIP code and return its 5 and 4 digit parts
  *
  * @since 4.2
- * @param $zip the original ZIP code
- * @return an array with two keys: 'zip5' and 'zip4'
+ * @param (mixed) $zip the original ZIP code
+ * @return (array) an associative array with two keys: 'zip5' and 'zip4'
  */
 function parse_zip( $zip ) {
 	$parsed_zip = array( 
@@ -242,13 +212,14 @@ function parse_zip( $zip ) {
  * Get user roles for Exempt Roles select
  *
  * @since 4.3
- * @return an array of all registered user roles
+ * @return (array) an array of all registered user roles
  */
 function wootax_get_user_roles() {
 	global $wp_roles;
 
-	if ( ! isset( $wp_roles ) )
+	if ( ! isset( $wp_roles ) ) {
 	    $wp_roles = new WP_Roles();
+	}
 
 	return $wp_roles->get_names();
 }
@@ -258,10 +229,10 @@ function wootax_get_user_roles() {
  * If the notification_email is not set explicitly, return first admin email
  *
  * @since 4.4
- * @return email address (string)
+ * @return (string) email address
  */
 function wootax_get_notification_email() {
-	$email = wootax_get_option( 'notification_email' );
+	$email = WC_WooTax::get_option( 'notification_email' );
 
 	if ( $email ) {
 		return $email;
@@ -273,24 +244,60 @@ function wootax_get_notification_email() {
 	) );
 
 	return $all_admins[0]->user_email;
-} 
+}
 
 /**
- * Get a TaxCloud object 
+ * Return business address with given index as an array
  *
- * @since 4.2
- * @return (mixed) WC_WooTax_TaxCloud object or boolean false if the user hasn't configured their TaxCloud API creds yet
+ * @since 4.4
+ * @param (int) $index the index of the address to return
+ * @param (array) $addresses the array of addresses to search for the address at $index
+ * @return (array) the address as an associative array
  */
-function get_taxcloud() {
-	$taxcloud_id  = wootax_get_option( 'tc_id' );
-	$taxcloud_key = wootax_get_option( 'tc_key' );
+function wootax_get_address( $index ) {
+	$addresses = fetch_business_addresses();
 
-	// If we have a valid configuration, initialize a WC_WooTax_TaxCloud object
-	if ( !empty( $taxcloud_id ) && !empty( $taxcloud_key ) ) {
-		$taxcloud = new WC_WooTax_TaxCloud( $taxcloud_id, $taxcloud_key );
-	} else {
-		$taxcloud = false;
+	$address = array(
+		'Address1' => '',
+		'Address2' => '',
+		'Country'  => '',
+		'State'    => '',
+		'City'     => '',
+		'Zip5'     => '',
+		'Zip4'     => '',
+	);
+
+	if ( is_array( $addresses ) && isset( $addresses[ $index ] ) ) {
+		$address['Address1'] = $addresses[ $index ]['address_1'];
+		$address['Address2'] = $addresses[ $index ]['address_2'];
+		$address['Country']  = $addresses[ $index ]['country'];
+		$address['State']    = $addresses[ $index ]['state'];
+		$address['City']     = $addresses[ $index ]['city'];
+		$address['Zip5']     = $addresses[ $index ]['zip5'];
+		$address['Zip4']     = $addresses[ $index ]['zip4'];
 	}
 
-	return $taxcloud;
+	return $address;
+}
+
+/**
+ * Determines if the provided shipping method is a registered local pickup method
+ *
+ * @since 4.4
+ * @param (string) $method name of shipping method to check
+ * @return (boolean) true if $method is local pickup method; else false
+ */
+function wt_is_local_pickup( $method ) {
+	return in_array( $method, apply_filters( 'wootax_local_pickup_methods', array( 'local_pickup', 'Local Pickup' ) ) );
+}
+
+/**
+ * Determines if the provided shipping method is a registered local delivery method
+ *
+ * @since 4.4
+ * @param (string) $method name of shipping method to check
+ * @return (boolean) true if $method is local delivery method; else false
+ */
+function wt_is_local_delivery( $method ) {
+	return in_array( $method, apply_filters( 'wootax_local_delivery_methods', array( 'local_delivery', 'Local Delivery' ) ) );
 }

@@ -18,7 +18,7 @@ if( !function_exists( 'is_plugin_active' ) ) {
 	require ABSPATH . 'wp-admin/includes/plugin.php';
 }
 
-// Seems weird to include this here... think of a better way
+// Seems weird to include this here... try to think of a better way in the future
 require 'includes/wc-wootax-messages.php';
 
 /**
@@ -30,6 +30,12 @@ require 'includes/wc-wootax-messages.php';
 class WC_WooTax {
 	/** Current plugin version */
 	private static $version = 4.4;
+
+	/** Key of option where plugin settings are stored */
+	private static $settings_key = 'woocommerce_wootax_settings';
+
+	/** Plugin settings */
+	private static $settings = array();
 
 	/**
 	 * Initialize plugin
@@ -53,7 +59,7 @@ class WC_WooTax {
 
 	/**
 	 * Determine if WooTax is ready to run
-	 * WooCommerce must be active
+	 * WooCommerce must be active and a valid TaxCloud API Key and Login ID (at the least) must be set
 	 *
 	 * @since 4.4
 	 */
@@ -63,6 +69,8 @@ class WC_WooTax {
 			return false;
 		} else if ( !is_plugin_active( 'woocommerce/woocommerce.php' ) || !version_compare( WOOCOMMERCE_VERSION, '2.1', '>=' ) ) {
 			wootax_add_message( '<strong>Warning: WooTax has been disabled.</strong> WooCommerce version 2.1 or greater must be activated for WooTax to work properly.' );
+			return false;
+		} else if ( !self::get_option( 'tc_id' ) || !self::get_option( 'tc_key' ) ) {
 			return false;
 		}
 
@@ -79,8 +87,12 @@ class WC_WooTax {
 		self::define( 'WT_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
 		self::define( 'WT_PLUGIN_DIR_URL', plugin_dir_url( __FILE__ ) );
 		self::define( 'WT_SHIPPING_TIC', apply_filters( 'wootax_shipping_tic', 11010 ) );
-		self::define( 'WT_SHIPPING_ITEM', "SHIPPING" );
+		self::define( 'WT_SHIPPING_ITEM', 'SHIPPING' );
 		self::define( 'WT_FEE_TIC', apply_filters( 'wootax_fee_tic', 10010 ) );
+		self::define( 'WT_RATE_ID', get_option( 'wootax_rate_id' ) );
+		self::define( 'WT_DEFAULT_ADDRESS', WC_WooTax::get_option( 'default_address' ) == false ? 0 : WC_WooTax::get_option( 'default_address' ) );
+		self::define( 'WT_SUBS_ACTIVE', is_plugin_active( 'woocommerce-subscriptions/woocommerce-subscriptions.php' ) );
+		self::define( 'WT_LOG_REQUESTS', WC_WooTax::get_option( 'log_requests' ) == 'no' ? false : true );
 	}
 
 	/**
@@ -140,7 +152,7 @@ class WC_WooTax {
 
 		// Used on frontend
 		if ( self::is_request( 'frontend' ) ) {
-			if ( wootax_get_option( 'show_exempt' ) == 'true' ) {
+			if ( WC_WooTax::get_option( 'show_exempt' ) == 'true' ) {
 				require 'includes/wc-wootax-exemptions.php';
 			} 
 			
@@ -150,14 +162,17 @@ class WC_WooTax {
 		// Frontend and admin panel
 		if ( self::is_request( 'frontend' ) || self::is_request( 'admin' ) ) {
 			require 'classes/class-wc-wootax-order.php';
+			require 'classes/class-wt-orders.php';
 
-			if ( is_plugin_active( 'woocommerce-subscriptions/woocommerce-subscriptions.php' ) ) { 
+			if ( WT_SUBS_ACTIVE ) {
 				require 'classes/class-wc-wootax-subscriptions.php';
 			}
 		}
 
 		// Strictly admin panel
 		if ( self::is_request( 'admin' ) ) {
+			require 'classes/class-wc-wootax-upgrade.php';
+			require 'classes/class-wc-wootax-settings.php';
 			require 'classes/class-wc-wootax-admin.php';
 			require 'classes/class-wc-wootax-refund.php';
 
@@ -237,7 +252,7 @@ class WC_WooTax {
 	private static function has_tax_rate() {
 		global $wpdb;
 
-		$wootax_rate_id = get_option( 'wootax_rate_id' );
+		$wootax_rate_id = WT_RATE_ID;
 
 		if ( !$wootax_rate_id ) {
 			return false;
@@ -259,9 +274,7 @@ class WC_WooTax {
 	 * @param $key - the tax key (we want to return the appropriate name for the wootax rate)
 	 */
 	public static function get_rate_label( $name, $key = NULL ) {
-		$rate_id = get_option( 'wootax_rate_id' );
-
-		if ( $name == $rate_id || $key == $rate_id ) {
+		if ( $name == WT_RATE_ID || $key == WT_RATE_ID ) {
 			return 'Sales Tax';
 		} else {
 			return $name;
@@ -275,7 +288,7 @@ class WC_WooTax {
 	 * @param $key - the tax rate id; compare to stored wootax rate id and return 'WOOTAX-RATE-DO-NOT-REMOVE' if match is found
 	 */
 	public static function get_rate_code( $code, $key ) {
-		if ( $key == get_option( 'wootax_rate_id' ) ) {
+		if ( $key == WT_RATE_ID ) {
 			return 'WOOTAX-RATE-DO-NOT-REMOVE';
 		} else {
 			return $code;
@@ -371,7 +384,42 @@ class WC_WooTax {
 			) );
 		}
 	}
-	
+
+	/**
+	 * Get the value of a WooTax option
+	 *
+	 * @since 4.2
+	 * @param (mixed) $key the key of the option to be fetched
+	 * @return (mixed) requested option or boolean false if it isn't set
+	 */
+	public static function get_option( $key ) {
+		if ( count( self::$settings ) == 0 ) {
+			self::$settings = get_option( self::$settings_key );
+		}
+		
+		if ( !isset( self::$settings[ $key ] ) || !self::$settings[ $key ] ) {
+			return false;
+		} else {
+			return self::$settings[ $key ];
+		}
+	}
+
+	/**
+	 * Set the value of a WooTax option
+	 *
+	 * @since 4.2
+	 * @param (mixed) $key the key of the option to be updated
+	 * @param (mixed) $value the new value of the option
+	 */
+	public static function set_option( $key, $value ) {
+		if ( count( self::$settings ) == 0 ) {
+			self::$settings = get_option( self::$settings_key );
+		}
+
+		self::$settings[ $key ] = $value;
+
+		update_option( self::$settings_key, self::$settings );
+	}
 }
 
 add_action( 'plugins_loaded', array( 'WC_WooTax', 'init' ) );

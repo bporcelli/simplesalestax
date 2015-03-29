@@ -12,263 +12,351 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class WC_WooTax_Upgrade {
-	// SHOULD RUN ON ADMIN INIT, CHECK IF UPDATE IS NECESSARY
-	// IF SO, USE WOOTAX_ADD_MESSAGE TO ADD PERSISTENT, NON-DISMISSABLE MESSAGE THAT ASKS TO UPGRADE
-	// NEED TO ADD A HIDDEN ADMIN PAGE WHERE THE USER CAN BE REDIRECTED TO START THE UPGRADE
-	// THEN, WE WILL USE A REDIRECT LOOP TO GO THROUGH ALL POSTS AND UPGRADE UNTIL ALL HAVE BEEN HANDLED
-	
-	/**
-	 * Hooks into WordPress actions/filters
-	 *
-	 * @since 4.2
-	 */
-	private function hook_wordpress() {
-		// Run update routine if necessary
-		add_action( 'admin_init', array( $this, 'update_wootax' ) );
+	/** Stored plugin version */
+	private $db_version;
 
-		// Maybe show activation message
-		add_action( 'admin_init', array( $this, 'maybe_show_activation_success' ) );
+	/**
+	 * Initialize updater
+	 *
+	 * @since 4.4
+	 */
+	public static function init() {
+		self::$db_version = get_option( 'wootax_version' );
+		self::hooks();
 	}
 
 	/**
-	 * Handles updates
-	 * Only runs if the value of the wootax_version option does not match the current plugin version OR no WooTax tax rate is detected
+	 * Hooks into WordPress actions/filters
 	 *
-	 * @since 4.2
+	 * @since 4.4
 	 */
-	public function update_wootax() {
+	private static function hooks() {
+		// Maybe trigger update on activation
+		register_activation_hook( __FILE__, array( __CLASS__, 'maybe_update_wootax' ) );
+
+		// Add admin page for data update process to occur on
+		add_action( 'admin_menu', array( __CLASS__, 'add_admin_page' ) );
+
+		// Dismiss data update message when user begins update
+		add_action( 'current_screen', array( __CLASS__, 'maybe_dismiss_update_message' ) );
+
+		// AJAX hook for data update process
+		add_action( 'ajax_wootax-update-data', array( __CLASS__, 'update_post_data' ) );
+	}
+
+	/**
+	 * Add admin page for data update process to occur on
+	 *
+	 * @since 4.4
+	 */
+	public static function add_admin_page() {
+		add_submenu_page( '_nonexistent', 'WooTax Data Update', 'WooTax Data Update', 'manage_options', 'wt-update', array( __CLASS__, 'display_admin_page' ) );
+	}
+
+	/**
+	 * Dismiss update nag message when admin starts the data update process
+	 *
+	 * @since 4.4
+	 */
+	public static function maybe_dismiss_update_message( $screen ) {
+		if ( $screen->id == 'wt-update' ) {
+			wootax_remove_message( 'upgrade-message' );
+		}
+	}
+
+	/**
+	 * Display data update interface
+	 *
+	 * @since 4.4
+	 */
+	public static function display_admin_page() {
+		include WT_PLUGIN_PATH .'includes/templates/admin/data-update.php';
+	}
+
+	/**
+	 * Determines whether or not WooTax needs to be updated
+	 * If a data update is necessary, initiates update by warning admin
+	 *
+	 * @since 4.4
+	 */
+	public static function maybe_update_wootax() {
 		global $wpdb;
 
-		$version = get_option( 'wootax_version' );
+		if ( version_compare( self::$db_version, WT_VERSION, '=' ) ) {
+			return;
+		} else {
+			self::maybe_update_addresses();
+			self::maybe_update_settings();
 
-		if ( !$version || version_compare( $version, WT_VERSION, '<' ) ) {
-
-			// Upgrade old addresses to use new multi-address system
-			$old_address_field = get_option( 'wootax_address1' );
-
-			if ( $old_address_field ) {
-
-				// Set new address array 
-				wootax_set_option( 'wootax_addresses', fetch_business_addresses() );
-
-				// Delete old options
-				delete_option( 'wootax_address1' );
-				delete_option( 'wootax_address2' );
-				delete_option( 'wootax_state' );
-				delete_option( 'wootax_city' );
-				delete_option( 'wootax_zip5' );
-				delete_option( 'wootax_zip4' );
-
+			if ( self::needs_data_update() ) {
+				wootax_add_message( '<strong>Important:</strong> WooTax needs to update its data. Please backup your database and click the button to the right to complete the upgrade. <a class="button button-primary" href="'. get_admin_url( 'admin.php?page=wt-update' ) .'">Update Data</a>', 'update-nag', 'upgrade-message', true, false );
+			} else {
+				update_option( 'wootax_version', WT_VERSION );
 			}
-
-			// Delete deprecated "wootax_shipping_taxable" option if it still exists
-			if ( get_option( 'wootax_shipping_taxable' ) )
-				delete_option( 'wootax_shipping_taxable' );
-
-			// Transfer settings so they can be used with WooCommerce settings API
-			$options = array(
-				'tc_id',
-				'tc_key',
-				'usps_id',
-				'show_exempt',
-				'exemption_text',
-				'company_name',
-				'show_zero_tax',
-				'tax_based_on',
-				'addresses',
-				'default_address',
-			);
-			
-			foreach ( $options as $option ) {
-				if ( get_option( 'wootax_' . $option ) ) {
-					wootax_set_option( $option, get_option( 'wootax_' . $option ) );
-					delete_option( 'wootax_' . $option );
-				}
-			}
-
-			// Loop through all wootax_order posts; transfer metadata to associated shop_order
-			// This completes the upgrade from WooTax 4.1 to WooTax 4.2
-			$wootax_orders = new WP_Query( array(
-				'post_type'      => 'wootax_order',
-				'post_status'    => 'any',
-				'posts_per_page' => -1,
-			) );
-
-			if ( $wootax_orders->have_posts() ) {
-
-				while ( $wootax_orders->have_posts() ) { 
-
-					$wootax_orders->the_post();
-
-					// Get info about original order
-					$wt_order_id = $wootax_orders->post->ID;
-					$wc_order_id = get_post_meta( $wt_order_id, '_wootax_wc_order_id', true );
-
-					if ( !$wc_order_id ) 
-						continue;
-
-					$wc_order = new WC_Order( $wc_order_id );
-
-					// Transfer meta that doesn't need to be changed
-					$direct_meta_keys = array( 'tax_total', 'shipping_tax_total', 'captured', 'refunded', 'customer_id', 'tax_item_id', 'exemption_applied' );
-
-					foreach ( $direct_meta_keys as $key ) {
-						update_post_meta( $wc_order_id, '_wootax_' . $key, get_post_meta( $wt_order_id, '_wootax_' . $key, true ) );
-					}
-
-					// Update _wootax_index, _wootax_location_id, _wootax_tax_amount meta for order items, fees, and shipping methods (in 2.2.x)
-					// Also, update mapping array and taxcloud_ids array
-					$lookup_data = get_post_meta( $wt_order_id, '_wootax_lookup_data', true );
-					$cart_taxes  = get_post_meta( $wt_order_id, '_wootax_cart_taxes', true );
-
-					$new_mapping_array = array();
-					$new_tc_ids        = array();
-					$identifiers       = array();
-
-					if ( is_array( $lookup_data ) ) {
-
-						$order_items = $wc_order->get_items();
-						$order_fees  = $wc_order->get_fees();
-
-						foreach ( $lookup_data as $location_key => $items ) {
-
-							if ( !isset( $new_mapping_array[ $location_key ] ) ) {
-								$new_mapping_array[ $location_key ] = array();
-							}
-
-							foreach ( $items as $index => $item ) {
-
-								if ( !is_array( $item ) ) 
-									continue;
-
-								$tax_amount = isset( $cart_taxes[ $location_key ][ $index ] ) ? $cart_taxes[ $location_key ][ $index ] : 0;
-								$item_ident = $item['ItemID'];
-
-								if ( $item_ident == 99999 ) {
-
-									$shipping_item_id = -1;
-
-									// Shipping
-									if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '<' ) ) {
-
-										$shipping_item_id = WT_SHIPPING_ITEM;
-
-										update_post_meta( $wc_order_id, '_wootax_first_found', $location_key );
-										update_post_meta( $wc_order_id, '_wootax_shipping_index', $index );
-
-									} else {
-
-										$shipping_methods = $wc_order->get_items( 'shipping' );
-
-										foreach ( $shipping_methods as $item_id => $method ) {
-
-											if ( $shipping_item_id == -1 ) {
-
-												$shipping_item_id = $item_id;
-
-												wc_update_order_item_meta( $item_id, '_wootax_index', $index );
-												wc_update_order_item_meta( $item_id, '_wootax_tax_amount', $tax_amount );
-												wc_update_order_item_meta( $item_id, '_wootax_location_id', $location_key );
-
-											}
-											
-										}
-
-									}	
-
-									if ( $shipping_item_id != -1 ) {
-										$new_mapping_array[ $location_key ][ $item_ident ] = $index;
-										$identifiers[ WT_SHIPPING_ITEM ] = $item_ident;
-									}
-
-								} else if ( in_array( get_post_type( $item_ident ), array( 'product', 'product-variation' ) ) ) {
-
-									// Cart item
-									$cart_item_id = -1;
-
-									if ( get_post_type( $item_ident ) == 'product' ) {
-										$product_id   = $item_ident;
-										$variation_id = '';
-									} else if ( get_post_type( $item_ident ) == 'product-variation' ) {
-										$variation_id = $item_ident;
-										$product_id   = wp_get_post_parent_id( $variation_id );
-									}
-
-									foreach ( $order_items as $item_id => $item_data ) {
-
-										if ( !empty( $item_data['variation_id'] ) && $item_data['variation_id'] == $variation_id || $item_data['product_id'] == $product_id ) {
-											$cart_item_id = $item_id;
-											break;
-										}
-
-									}
-
-									if ( $cart_item_id != -1 ) {
-
-										wc_update_order_item_meta( $cart_item_id, '_wootax_index', $index );
-										wc_update_order_item_meta( $cart_item_id, '_wootax_tax_amount', $tax_amount );
-										wc_update_order_item_meta( $cart_item_id, '_wootax_location_id', $location_key );
-
-										$new_mapping_array[ $location_key ][ $item_ident ] = $index;
-										$identifiers[ $item_ident ] = $item_ident;
-
-									} 
-
-								} else {
-
-									// Fee
-									$fee_id = -1;
-
-									foreach ( $order_fees as $item_id => $item_data ) {
-
-										if ( sanitize_title( $item_data['name'] ) == $item_ident ) {
-											$fee_id = $item_id;
-										}
-
-									}
-
-									if ( $fee_id != -1 ) {
-
-										wc_update_order_item_meta( $fee_id, '_wootax_index', $index );
-										wc_update_order_item_meta( $fee_id, '_wootax_tax_amount', $tax_amount );
-										wc_update_order_item_meta( $fee_id, '_wootax_location_id', $location_key );
-
-										$new_mapping_array[ $location_key ][ $item_ident ] = $index;
-										$identifiers[ $item_ident ] = $item_ident;
-
-									}
-
-								}
-
-							}
-
-						}
-
-					}
-
-					// Update TaxCloud Ids
-					$new_tc_ids[ $location_key ]['cart_id']  = $items['cart_id'];
-					$new_tc_ids[ $location_key ]['order_id'] = $items['order_id'];
-
-					update_post_meta( $wc_order_id, '_wootax_taxcloud_ids', $new_tc_ids );
-
-					// Update mapping array
-					update_post_meta( $wc_order_id, '_wootax_mapping_array', $new_mapping_array );
-
-					// Update item identifiers
-					update_post_meta( $wc_order_id, '_wootax_identifiers', $identifiers );
-
-				}
-
-				// Delete all wootax_order posts and any associated meta
-				$wpdb->query( "DELETE p, pm FROM {$wpdb->posts} p LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID WHERE p.post_type = 'wootax_order'" );
-			
-			}
-
-			// Update current version to avoid running the upgrade routine multiple times
-			update_option( 'wootax_version', WT_VERSION );
-
+		}
+	}
+
+	/**
+	 * Maybe update address system from old, single address system to newer multi-address system
+	 *
+	 * @since 4.4
+	 */
+	private static function maybe_update_addresses() {
+		if ( get_option( 'wootax_address1' ) ) {
+			// Set new address array 
+			WC_WooTax::set_option( 'wootax_addresses', fetch_business_addresses() );
+
+			// Delete old options
+			delete_option( 'wootax_address1' );
+			delete_option( 'wootax_address2' );
+			delete_option( 'wootax_state' );
+			delete_option( 'wootax_city' );
+			delete_option( 'wootax_zip5' );
+			delete_option( 'wootax_zip4' );
+		}
+	}
+
+	/**
+	 * Transfer settings from old option fields to new system based on WC Settings API
+	 *
+	 * @since 4.4
+	 */
+	private static function maybe_update_settings() {
+		// Delete deprecated "wootax_shipping_taxable" option if it still exists
+		if ( get_option( 'wootax_shipping_taxable' ) ) {
+			delete_option( 'wootax_shipping_taxable' );
 		}
 
+		// Transfer settings so they can be used with WooCommerce settings API
+		$options = array(
+			'tc_id',
+			'tc_key',
+			'usps_id',
+			'show_exempt',
+			'exemption_text',
+			'company_name',
+			'show_zero_tax',
+			'tax_based_on',
+			'addresses',
+			'default_address',
+		);
+		
+		foreach ( $options as $option ) {
+			if ( get_option( 'wootax_' . $option ) ) {
+				WC_WooTax::set_option( $option, get_option( 'wootax_' . $option ) );
+				delete_option( 'wootax_' . $option );
+			}
+		}
+	}
+
+	/** 
+	 * Determine if a data update is necessary
+	 *
+	 * @return (bool) 
+	 */
+	private static function needs_data_update() {
+		$needs_update = false;
+
+		// In version 4.2, major changes were made to how data is stored; wootax_order post type was eliminated
+		if ( version_compare( self::$db_version, '4.2', '<' ) || !self::$db_version ) {
+			$needs_update = count( get_posts( 'post_type=wootax_order&posts_per_page=1&post_status=any' ) ) == 1;
+		}
+
+		return $needs_update;
+	}
+
+	/**
+	 * Perform data update
+	 *
+	 * @return JSON object with information about number of posts remaining, current update status
+	 */
+	public static function update_post_data() {
+		global $wpdb;
+
+		// Number of posts to process at once
+		$posts_per_page = 10;
+
+		// Index of last processed post
+		$last_post = $_POST['last_post'];
+
+		// Page counters
+		$total_pages  = $last_page == 0 ? 0 : $_POST['total_pages'];
+		$current_page = $last_page == 0 ? 1 : $_POST['current_page'];
+
+		// On first run, determine $total_count/$total_pages
+		if ( $last_post == 0 ) {
+			$total_count = $wpdb->get_var( "SELECT COUNT(ID) FROM $wpdb->posts WHERE post_type = 'wootax_order'" );
+	
+			if ( $total_count == 0 ) {
+				update_option( 'wootax_version', WT_VERSION );
+
+				die ( json_encode( array( 
+					'status'   => 'done', 
+					'message'  => 'No more posts to update. Redirecting...',
+					'redirect' => get_admin_url( 'plugins.php' ),
+				) ) );
+			}
+			
+			$total_pages = ceil( $total_pages / $posts_per_page );
+		}
+
+		// Select posts from index $last_post to $posts_per_page for processing
+		$posts = $wpdb->get_results( "SELECT p.ID AS WTID, pm.meta_value AS WCID FROM $wpdb->posts p LEFT JOIN $wpdb->postmeta pm ON pm.post_id = p.ID WHERE p.post_type = 'wootax_order' AND pm.meta_key = '_wootax_wc_order_id' ORDER BY p.ID ASC LIMIT $last_post, $posts_per_page" );
+
+		if ( count ( $posts ) == 0 ) {
+			update_option( 'wootax_version', WT_VERSION );
+
+			wootax_add_message( '<strong>Woohoo!</strong> WooTax has been updated successfully.' );
+
+			die ( json_encode( array( 
+				'status'   => 'done', 
+				'message'  => 'No more posts to update. Redirecting...',
+				'redirect' => get_admin_url( 'plugins.php' ),
+			) ) );
+		}
+
+		// Loop through posts and update
+		foreach ( $posts as $post ) {
+			$wt_order_id = $post->WTID;
+			$wc_order_id = $post->WCID;
+
+			// Transfer meta that doesn't need to be changed
+			$direct_meta_keys = array( 'tax_total', 'shipping_tax_total', 'captured', 'refunded', 'customer_id', 'tax_item_id', 'exemption_applied' );
+
+			foreach ( $direct_meta_keys as $key ) {
+				update_post_meta( $wc_order_id, '_wootax_' . $key, get_post_meta( $wt_order_id, '_wootax_' . $key, true ) );
+			}
+
+			// WooTax order item meta and mapping array structure was changed drastically in 4.2; update accordingly
+			$lookup_data = get_post_meta( $wt_order_id, '_wootax_lookup_data', true );
+			$cart_taxes  = get_post_meta( $wt_order_id, '_wootax_cart_taxes', true );
+
+			$new_mapping_array = array();
+			$new_tc_ids        = array();
+			$identifiers       = array();
+
+			if ( is_array( $lookup_data ) ) {
+				$order_items = $wc_order->get_items();
+				$order_fees  = $wc_order->get_fees();
+
+				foreach ( $lookup_data as $location_key => $items ) {
+					if ( !isset( $new_mapping_array[ $location_key ] ) ) {
+						$new_mapping_array[ $location_key ] = array();
+					}
+
+					foreach ( $items as $index => $item ) {
+						if ( !is_array( $item ) ) {
+							continue;
+						}
+
+						$tax_amount = isset( $cart_taxes[ $location_key ][ $index ] ) ? $cart_taxes[ $location_key ][ $index ] : 0;
+						$item_ident = $item['ItemID'];
+
+						if ( $item_ident == 99999 ) {
+							$shipping_item_id = -1;
+
+							// Shipping
+							if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '<' ) ) {
+								$shipping_item_id = WT_SHIPPING_ITEM;
+
+								update_post_meta( $wc_order_id, '_wootax_first_found', $location_key );
+								update_post_meta( $wc_order_id, '_wootax_shipping_index', $index );
+							} else {
+								$shipping_methods = $wc_order->get_items( 'shipping' );
+
+								foreach ( $shipping_methods as $item_id => $method ) {
+									if ( $shipping_item_id == -1 ) {
+										$shipping_item_id = $item_id;
+
+										wc_update_order_item_meta( $item_id, '_wootax_index', $index );
+										wc_update_order_item_meta( $item_id, '_wootax_tax_amount', $tax_amount );
+										wc_update_order_item_meta( $item_id, '_wootax_location_id', $location_key );
+									}									
+								}
+							}	
+
+							if ( $shipping_item_id != -1 ) {
+								$new_mapping_array[ $location_key ][ $item_ident ] = $index;
+
+								$identifiers[ WT_SHIPPING_ITEM ] = $item_ident;
+							}
+						} else if ( in_array( get_post_type( $item_ident ), array( 'product', 'product-variation' ) ) ) {
+							// Cart item
+							$cart_item_id = -1;
+
+							if ( get_post_type( $item_ident ) == 'product' ) {
+								$product_id   = $item_ident;
+								$variation_id = '';
+							} else if ( get_post_type( $item_ident ) == 'product-variation' ) {
+								$variation_id = $item_ident;
+								$product_id   = wp_get_post_parent_id( $variation_id );
+							}
+
+							foreach ( $order_items as $item_id => $item_data ) {
+								if ( !empty( $item_data['variation_id'] ) && $item_data['variation_id'] == $variation_id || $item_data['product_id'] == $product_id ) {
+									$cart_item_id = $item_id;
+									break;
+								}
+							}
+
+							if ( $cart_item_id != -1 ) {
+								wc_update_order_item_meta( $cart_item_id, '_wootax_index', $index );
+								wc_update_order_item_meta( $cart_item_id, '_wootax_tax_amount', $tax_amount );
+								wc_update_order_item_meta( $cart_item_id, '_wootax_location_id', $location_key );
+
+								$new_mapping_array[ $location_key ][ $item_ident ] = $index;
+
+								$identifiers[ $item_ident ] = $item_ident;
+							} 
+						} else {
+							// Fee
+							$fee_id = -1;
+
+							foreach ( $order_fees as $item_id => $item_data ) {
+								if ( sanitize_title( $item_data['name'] ) == $item_ident ) {
+									$fee_id = $item_id;
+								}
+							}
+
+							if ( $fee_id != -1 ) {
+								wc_update_order_item_meta( $fee_id, '_wootax_index', $index );
+								wc_update_order_item_meta( $fee_id, '_wootax_tax_amount', $tax_amount );
+								wc_update_order_item_meta( $fee_id, '_wootax_location_id', $location_key );
+
+								$new_mapping_array[ $location_key ][ $item_ident ] = $index;
+
+								$identifiers[ $item_ident ] = $item_ident;
+							}
+						}
+					}
+				}
+			}
+
+			// Update TaxCloud Ids
+			$new_tc_ids[ $location_key ]['cart_id']  = $items['cart_id'];
+			$new_tc_ids[ $location_key ]['order_id'] = $items['order_id'];
+
+			update_post_meta( $wc_order_id, '_wootax_taxcloud_ids', $new_tc_ids );
+
+			// Update mapping array
+			update_post_meta( $wc_order_id, '_wootax_mapping_array', $new_mapping_array );
+
+			// Update item identifiers
+			update_post_meta( $wc_order_id, '_wootax_identifiers', $identifiers );
+		}
+
+		// Delete wootax_order_posts from this round
+		$wpdb->query( "DELETE p, pm FROM $wpdb->posts p LEFT JOIN $wpdb->postmeta pm ON pm.post_id = p.ID WHERE p.post_type = 'wootax_order' ORDER BY p.ID ASC LIMIT $last_post, $posts_per_page" );
+	
+		// Notify client that processing has succeeded and continue processing
+		$last_post += $posts_per_page;
+		$current_page++;
+
+		die( json_encode( array( 
+			'status'       => 'working', 
+			'last_post'    => $last_post, 
+			'current_page' => $current_page, 
+			'total_pages'  => $total_pages,
+		) ) );
 	}
 }

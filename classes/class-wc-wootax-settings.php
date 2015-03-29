@@ -12,13 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  
 if ( ! class_exists( 'WC_WooTax_Settings' ) ) :
  
-class WC_WooTax_Settings extends WC_Integration {
- 
+class WC_WooTax_Settings extends WC_Integration { 
 	/**
 	 * Init and hook in the integration.
 	 */
 	public function __construct() {
-
 		global $woocommerce;
  
 		$this->id                 = 'wootax';
@@ -55,7 +53,6 @@ class WC_WooTax_Settings extends WC_Integration {
  	
  		// Filters.
 		add_filter( 'woocommerce_settings_api_sanitized_fields_' . $this->id, array( $this, 'sanitize_settings' ) );
-
 	}
  	
  	/**
@@ -64,7 +61,6 @@ class WC_WooTax_Settings extends WC_Integration {
  	 * @since 4.2
  	 */
  	public function admin_options() {
-
  		$license       = get_option( 'wootax_license_key' );
 		$rates_checked = get_option( 'wootax_rates_checked' );
 
@@ -77,14 +73,12 @@ class WC_WooTax_Settings extends WC_Integration {
 		} else {
 			parent::admin_options();
 		}
-
  	}
 
 	/**
 	 * Initialize integration settings form fields.
 	 */
 	public function init_form_fields() {
-
 		$this->form_fields = array(
 			'taxcloud_settings' => array(
 				'title'             => 'TaxCloud Settings',
@@ -129,7 +123,7 @@ class WC_WooTax_Settings extends WC_Integration {
 			'business_addresses_settings' => array(
 				'title' 			=> 'Business Addresses',
 				'type'              => 'section',
-				'description'       => __( 'You must enter at least one business address for WooTax to work properly. <strong>Important:</strong> Any addresses you enter here should also be registered as <a href="https://taxcloud.net/account/locations/" target="_blank">locations</a> through TaxCloud.', 'woocommerce-wootax' )
+				'description'       => __( 'You must enter at least one business address for WooTax to work properly. <strong>Important:</strong> Any addresses you enter here should also be registered as <a href="https://taxcloud.net/account/locations/" target="_blank">locations</a> in TaxCloud.', 'woocommerce-wootax' )
 			),
 			'addresses' => array(
 				'type' => 'address_table'
@@ -274,14 +268,12 @@ class WC_WooTax_Settings extends WC_Integration {
 				'desc_tip'			=> true,
 			), 
 		);
-
 	}
  	
  	/**
  	 * Output section HTML
  	 */
  	public function generate_section_html( $key, $data ) {
-
  		ob_start();
  		?>
  		<tr valign="top">
@@ -292,14 +284,12 @@ class WC_WooTax_Settings extends WC_Integration {
  		</tr>
  		<?php
  		return ob_get_clean();
-
  	}
 
  	/**
  	 * Output HTML for button 
  	 */
  	public function generate_button_html( $key, $data ) {
-
  		$field = $this->plugin_id . $this->id . '_' . $key;
 
  		ob_start();
@@ -327,14 +317,12 @@ class WC_WooTax_Settings extends WC_Integration {
 		</tr>
 		<?php
 		return ob_get_clean();
-
  	}
 
  	/**
  	 * Output address table
  	 */
  	public function generate_address_table_html( $key, $data ) {
-
  		$woocommerce_path = plugin_dir_url('woocommerce/woocommerce.php');
 
  		ob_start();
@@ -437,7 +425,7 @@ class WC_WooTax_Settings extends WC_Integration {
 							<input type="text" name="wootax_zip5[<?php echo $i; ?>]" class="wootax_zip5" value="<?php echo $address['zip5']; ?>" /> - <input type="text" name="wootax_zip4[<?php echo $i; ?>]" value="<?php echo $address['zip4']; ?>" placeholder="(Optional)" class="wootax_zip4" />
 						</td>
 						<td>
-							<input type="radio" name="wootax_default_address" value="<?php echo $i; ?>"<?php echo (wootax_get_option('default_address') == $i || wootax_get_option('default_address') == '' && $i == 0) ? ' checked' : ''; ?> />
+							<input type="radio" name="wootax_default_address" value="<?php echo $i; ?>"<?php echo (WC_WooTax::get_option('default_address') == $i || WC_WooTax::get_option('default_address') == '' && $i == 0) ? ' checked' : ''; ?> />
 						</td>
 						<td>
 							<a class="remove_address<?php echo $i == 0 ? ' disabled' : ''; ?>">x</a>
@@ -451,17 +439,14 @@ class WC_WooTax_Settings extends WC_Integration {
 		<table class="form-table">
  		<?php
  		return ob_get_clean();
-
  	}
 
  	/**
  	 * Process address fields so they can be stored correctly
  	 */
  	public function sanitize_settings( $settings ) {
-
  		// Prevent this from running except on the main settings page
  		if ( isset( $_POST['wootax_address1'] ) ) {
-
 	 		// Fetch all addresses and dump into array
 	 		$new_addresses = array();
 			$address_count = count( $_POST['wootax_address1'] );
@@ -480,63 +465,56 @@ class WC_WooTax_Settings extends WC_Integration {
 				$new_addresses[] = $address;
 			}
 
-			$taxcloud     = get_taxcloud();
 			$taxcloud_id  = trim( $_POST['wootax_tc_id'] );
 			$taxcloud_key = trim( $_POST['wootax_tc_key'] );
 			$usps_id      = trim( $_POST['wootax_usps_id'] );
 
-			// Set up TaxCloud object
-			if ( $taxcloud_id && $taxcloud_key ) {
-				if ( !is_object( $taxcloud ) ) {
-					$taxcloud = new WC_WooTax_TaxCloud( $taxcloud_id, $taxcloud_key );
-				} else {
-					$taxcloud->set_id( $taxcloud_id );
-					$taxcloud->set_key( $taxcloud_key );
-				}
-			}
-
-			// Validate addresses using USPS Web Tools API
-			foreach ( $new_addresses as $key => $address ) {
-				$req = array(
-					'uspsUserID' => $usps_id, 
-					'Address1'   => strtolower( $address['address_1'] ), 
-					'Address2'   => strtolower( $address['address_2'] ), 
-					'Country'    => 'US', 
-					'City'       => $address['city'], 
-					'State'      => $address['state'], 
-					'Zip5'       => $address['zip5'], 
-					'Zip4'       => $address['zip4'],
-				);
-
-				// Attempt to verify address 
-				$response = $taxcloud->send_request( 'VerifyAddress', $req );
-
-				if ( $response !== false ) {
-					$new_address = array();
-
-					$properties = array(
-						'Address1' => 'address_1', 
-						'Address2' => 'address_2',
-						'Country'  => 'country',
-						'City'     => 'city',
-						'State'    => 'state',
-						'Zip5'     => 'zip5',
-						'Zip4'     => 'zip4'
+			// Validate addresses using USPS Web Tools API if possible
+			if ( $taxcloud_id && $taxcloud_key && $usps_id ) {
+				$taxcloud = TaxCloud( $taxcloud_id, $taxcloud_key );
+				
+				foreach ( $new_addresses as $key => $address ) {
+					$req = array(
+						'uspsUserID' => $usps_id, 
+						'Address1'   => strtolower( $address['address_1'] ), 
+						'Address2'   => strtolower( $address['address_2'] ), 
+						'Country'    => 'US', 
+						'City'       => $address['city'], 
+						'State'      => $address['state'], 
+						'Zip5'       => $address['zip5'], 
+						'Zip4'       => $address['zip4'],
 					);
 
-					foreach ( $properties as $property => $k ) {
-						if ( isset( $response->$property ) ) {
-							$new_address[ $k ] = $response->$property;
-						}
-					}
+					// Attempt to verify address 
+					$response = $taxcloud->send_request( 'VerifyAddress', $req );
 
-					// Reset country field
-					if ( !isset( $new_address['country'] ) ) {
-						$new_address['country'] = $req['Country'];
-					}
-					
-					$new_addresses[ $key ] = $new_address;			
-				} 
+					if ( $response !== false ) {
+						$new_address = array();
+
+						$properties = array(
+							'Address1' => 'address_1', 
+							'Address2' => 'address_2',
+							'Country'  => 'country',
+							'City'     => 'city',
+							'State'    => 'state',
+							'Zip5'     => 'zip5',
+							'Zip4'     => 'zip4'
+						);
+
+						foreach ( $properties as $property => $k ) {
+							if ( isset( $response->$property ) ) {
+								$new_address[ $k ] = $response->$property;
+							}
+						}
+
+						// Reset country field
+						if ( !isset( $new_address['country'] ) ) {
+							$new_address['country'] = $req['Country'];
+						}
+						
+						$new_addresses[ $key ] = $new_address;			
+					} 
+				}
 			}
 
 			// Set addresses option 
@@ -544,11 +522,9 @@ class WC_WooTax_Settings extends WC_Integration {
 
 			// Next, update the default address
 			$settings['default_address'] = empty( $_POST['wootax_default_address'] ) ? 0 : $_POST['wootax_default_address'];
-
 		}
 
 		return $settings;
-
  	}
 }
  

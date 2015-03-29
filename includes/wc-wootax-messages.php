@@ -15,11 +15,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Adds a WooTax admin message
  *
  * @since 4.4
- * @param $content (string) the message content
- * @param $type (string) the message type (updated, error, update-nag) @see https://codex.wordpress.org/Plugin_API/Action_Reference/admin_notices
- * @param $id (string) a unique identifier for the message (used to programatically dismiss messages)
- * @param $persistent (boolean) should this message persist through page loads?
- * @param $dismissable (boolean) should we give the user an option to dismiss the message?
+ * @param (string) $content the message content
+ * @param (string) $type the message type (updated, error, update-nag) @see https://codex.wordpress.org/Plugin_API/Action_Reference/admin_notices
+ * @param (string) $id a unique identifier for the message (used to programatically dismiss messages)
+ * @param (boolean) $persistent should this message persist through page loads?
+ * @param (boolean) $dismissable should we give the user an option to dismiss the message?
  * @return void
  */
 function wootax_add_message( $content, $type = "error", $id = "", $persistent = false, $dismissable = false ) {
@@ -56,7 +56,7 @@ function wootax_add_message( $content, $type = "error", $id = "", $persistent = 
  * Remove a persistent WooTax admin message
  *
  * @since 4.4
- * @param $id (string) unique identifier for message to remove
+ * @param (string) $id unique identifier for message to remove
  * @return void
  */
 function wootax_remove_message( $id ) {
@@ -68,6 +68,7 @@ function wootax_remove_message( $id ) {
 	} else {
 		if ( isset( $all_messages['persistent'][ $id ] ) ) {
 			unset( $all_messages['persistent'][ $id ] );
+			
 			set_transient( 'wootax_messages', $all_messages );
 		}
 	}

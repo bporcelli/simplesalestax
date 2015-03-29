@@ -5,7 +5,6 @@
  * Contains all methods for manipulating order taxes 
  *
  * @since 4.2
- * @version 2.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -18,387 +17,45 @@ class WC_WooTax_Order {
 	
 	/** WC_Order object */
 	public $order;
-	
-	/** Global WooCommerce object */
-	private $woo;
-
-	/** Array of default values for WooTax meta fields */
-	public $defaults = array(
-		'tax_total'              => 0,
-		'shipping_tax_total'     => 0,
-		'customer_id'            => 0,
-		'tax_item_id'            => 0,
-		'exemption_applied'      => false,
-		'captured'               => false,
-		'refunded'               => false,
-		'first_found'            => '',
-		'shipping_index'         => '',
-		'mapping_array'          => array(),
-		'location_mapping_array' => array(),
-		'lookup_data'            => array(),
-		'taxcloud_ids'			 => array(),
-		'identifiers'            => array(),
-	);
 
 	/** Customer destination address */
 	public $destination_address = array();
 
-	/** Holds the ID of the WooTax tax rate */
-	private $wootax_rate_id = '';
-
-	/** Holds a WC_WooTax_TaxCloud object */	
-	private $taxcloud = false;
-
-	/** Holds an array of business address entered by the user */
-	private $addresses = array();
-
-	/** Holds an integer representing the ID of the "default" business address */
-	private $default_address = -1;
-	
 	/**
-	 * Class constructor: Hook into WooCommerce
+	 * Load the order with given ID
 	 *
+	 * @param (int) $order_id ID of order to load 
 	 * @since 4.2
 	 */
-	public function __construct() {
-
-		global $woocommerce;
-
-		// Set up class properties
-		$this->woo = &$woocommerce;
-
-		// Set rate ID
-		$this->wootax_rate_id = get_option( 'wootax_rate_id' );
-
-		// Hook into WooCommerce
-		$this->hook_woocommerce();
-
-	}
-	
-	/**
-	 * Hook into WooCommerce
-	 *
-	 * @since 4.2c
-	 */
-	public function hook_woocommerce() {
-
-		// Sends AuthorizedWithCapture request to TaxCloud when order is marked as completed via the Woo interface 
-		add_action( 'woocommerce_order_status_completed', array( $this, 'complete' ) );
-		
-		// Marks order as Refunded within TaxCloud when order status is changed to refunded or cancelled
-		add_action( 'woocommerce_order_status_refunded', array( $this, 'refund' ) );
-		add_action( 'woocommerce_order_status_cancelled', array( $this, 'refund' ) );
-
-		// Add meta to order items
-		add_action( 'woocommerce_add_order_item_meta', array( $this, 'add_cart_item_meta' ), 10, 3 );
-		add_action( 'woocommerce_add_order_fee_meta', array( $this, 'add_fee_meta' ), 10, 4 );
-		add_action( 'woocommerce_add_shipping_order_item', array( $this, 'add_shipping_meta' ), 10, 3 );
-
-		// Hide meta from users
-		add_filter( 'woocommerce_hidden_order_itemmeta', array( $this, 'hide_order_item_meta' ), 10, 1 );
-
-		// Hook into WooCommerce calculate tax ajax action so we can add WooTax taxes
-		add_action( 'wp_ajax_woocommerce_calc_line_taxes', array( $this, 'ajax_update_order_tax' ), 1 );
-
-		// Override Subscriptions calculate_recurring_line_taxes method if necessary
-		if ( is_plugin_active( 'woocommerce-subscriptions/woocommerce-subscriptions.php' ) )
-			add_action( 'wp_ajax_woocommerce_subscriptions_calculate_line_taxes', array( $this, 'ajax_update_recurring_tax' ), 1 );
-
-		// Needed for compatibility with WooCommerce 2.2+
-		if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ) {
-			// Adds shipping tax
-			add_action( 'woocommerce_order_add_shipping', array( $this, 'add_shipping_tax' ), 12, 3 );
-		
-			// Makes sure appropriate tax is recorded for WooTax rate
-			add_action( 'woocommerce_order_add_tax', array( $this, 'add_order_tax_rate' ), 12, 3 );
-		}
-
-		// Add order meta
-		add_action( 'woocommerce_new_order', array( $this, 'add_order_meta' ), 10, 1 );
-
-		// Store tax item ID when order is created (WooCommerce 2.1.x)
-		if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '<' ) ) 
-			add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'store_tax_item_id' ), 10, 1 );
-
-	}
-
-	/**
-	 * Loads data from an order with given ID
-	 *
-	 * @since 4.2
-	 * @param $order_id (int) the ID of a shop_order post 
-	 */
-	public function load_order( $order_id = -1 ) {
-		
-		// Display an error message if no order ID is passed
+	public function load( $order_id = -1 ) {
 		if ( $order_id == -1 ) {
-			wootax_add_message( 'There was an error while updating the order. No order ID was passed to WooTax. Please try again.' );
+			return;
 		} else {
-
-			// Set order id
 			$this->order_id = $order_id;
+			$this->order    = wc_get_order( $this->order_id );
 
-			// Other important properties
-			$this->addresses 	   = fetch_business_addresses();
-			$this->default_address = wootax_get_option( 'default_address' );
-
-			// Load WC_Order object
-			$this->order = new WC_Order( $this->order_id );
-
+			$this->set_destination_address();
 		}
-
-	}
-
-	/**
-	 * Add WooTax meta data to a newly created order
-	 * Also, determine the ID of the WooTax tax item if WC 2.1.x
-	 *
-	 * @since 4.2
-	 * @param $order_id ID of newly created order
-	 */
-	public function add_order_meta( $order_id ) {
-
-		// Load order/session data
-		$this->load_order( $order_id );
-		$this->store_session_data();
-
-		// WC 2.1.x support
-		if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '<' ) ) {
-
-			// Store shipping item index 
-			$location_id = isset( $this->location_mapping_array[ WT_SHIPPING_ITEM ] ) ? $this->location_mapping_array[ WT_SHIPPING_ITEM ] : 0;
-
-			if ( isset( $this->mapping_array[ $location_id ][ WT_SHIPPING_ITEM ] ) ) {
-				$this->shipping_index = $this->mapping_array[ $location_id ][ WT_SHIPPING_ITEM ];
-			}
-
-		}
-
-		// Log tax total/shipping tax total at time of order creation for reference
-		$log_requests = wootax_get_option( 'log_requests' );
-
-		if ( $log_requests == 'yes' || !$log_requests ) {
-
-			$logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : $woocommerce->logger();
-			$logger->add( 'wootax', 'New order with ID '. $order_id .' created. Tax total: '. $this->tax_total .'; Shipping tax total: '. $this->shipping_tax_total );
-
-		}
-
-	}
-
-	/**
-	 * Add WooTax meta to order cart items:
-	 * - Location associated with item
-	 * - Tax applied by WooTax
-	 *
-	 * @since 4.2
-	 * @param $item_id order item id
-	 * @param $values cart item data
-	 * @param $cart_item_key cart item key
-	 */
-	public function add_cart_item_meta( $item_id, $values, $cart_item_key ) {
-
-		$location_id = isset( $this->location_mapping_array[ $cart_item_key ] ) ? $this->location_mapping_array[ $cart_item_key ] : 0;
-		$tax_amount  = isset( $this->cart_taxes[ $cart_item_key ] ) ? $this->cart_taxes[ $cart_item_key ] : 0;
-		$item_index  = isset( $this->mapping_array[ $location_id ][ $cart_item_key ] ) ? $this->mapping_array[ $location_id ][ $cart_item_key ] : 0;
-
-		wc_add_order_item_meta( $item_id, '_wootax_location_id', $location_id );
-		wc_add_order_item_meta( $item_id, '_wootax_tax_amount', $tax_amount );
-		wc_add_order_item_meta( $item_id, '_wootax_index', $item_index );
-
-	}
-
-	/**
-	 * Add WooTax meta to order fees:
-	 * - Location associated with fee
-	 * - Tax applied by WooTax
-	 *
-	 * @since 4.2
-	 * @param $order_id WooCommerce order id
-	 * @param $item_id order item id
-	 * @param $fee fee data
-	 * @param $fee_key fee key
-	 */
-	public function add_fee_meta( $order_id, $item_id, $fee, $fee_key ) {
-
-		$location_id = isset( $this->location_mapping_array[ $fee_key ] ) ? $this->location_mapping_array[ $fee_key ] : 0;
-		$tax_amount  = isset( $this->cart_taxes[ $fee_key ] ) ? $this->cart_taxes[ $fee_key ] : 0;
-		$item_index  = isset( $this->mapping_array[ $location_id ][ $fee_key ] ) ? $this->mapping_array[ $location_id ][ $fee_key ] : 0;
-
-		wc_add_order_item_meta( $item_id, '_wootax_location_id', $location_id );
-		wc_add_order_item_meta( $item_id, '_wootax_tax_amount', $tax_amount );
-		wc_add_order_item_meta( $item_id, '_wootax_index', $item_index );
-
-	}
-
-	/**
-	 * Add WooTax meta to order shipping methods:
-	 * - Location associated with method
-	 * - Tax applied by WooTax
-	 *
-	 * We will assume there is only one shipping method for each order.
-	 *
-	 * @since 4.2
-	 * @param $order_id WooCommerce order id
-	 * @param $item_id order item id
-	 * @param $package_key shipping package key
-	 */
-	public function add_shipping_meta( $order_id, $item_id, $package_key ) {
-
-		$location_id = isset( $this->location_mapping_array[ WT_SHIPPING_ITEM ] ) ? $this->location_mapping_array[ WT_SHIPPING_ITEM ] : 0;
-		$tax_amount  = isset( $this->cart_taxes[ WT_SHIPPING_ITEM ] ) ? $this->cart_taxes[ WT_SHIPPING_ITEM ] : 0;
-		$item_index  = isset( $this->mapping_array[ $location_id ][ WT_SHIPPING_ITEM ] ) ? $this->mapping_array[ $location_id ][ WT_SHIPPING_ITEM ] : 0;
-
-		wc_add_order_item_meta( $item_id, '_wootax_location_id', $location_id );
-		wc_add_order_item_meta( $item_id, '_wootax_tax_amount', $tax_amount );
-		wc_add_order_item_meta( $item_id, '_wootax_index', $item_index );
-
-	}
-
-	/**
-	 * Store the ID of the first tax item with a rate ID matching WooTax's rate ID
-	 *
-	 * @since 4.2
-	 * @param $order_id ID of newly created order
-	 */
-	public function store_tax_item_id( $order_id ) {
-
-		$tax_items   = $this->order->get_taxes();
-		$tax_item_id = 0;
-
-		if ( count( $tax_items ) > 0 ) {
-
-			// Find first rate with matching rate id
-			foreach ( $tax_items as $key => $data ) {
-				if ( $data['rate_id'] == $this->wootax_rate_id ) {
-					$tax_item_id = $key;
-					break;
-				}
-			}
-
-		}
-
-		$this->tax_item_id = $tax_item_id;
-
-		// Subscriptions support
-		if ( class_exists( 'WC_Subscriptions' ) ) {
-			wc_add_order_item_meta( $tax_item_id, 'cart_tax', wc_format_decimal( $this->tax_total ) );
-			wc_add_order_item_meta( $tax_item_id, 'shipping_tax', wc_format_decimal( $this->shipping_tax_total ) );
-		}
-
-	}
-
-	/**
-	 * Hide order item meta 
-	 *
-	 * @since 4.2
-	 * @param $to_hide array of meta fields to hide
-	 * @return array of meta fields to hide
-	 */
-	public function hide_order_item_meta( $to_hide ) {
-
-		$to_hide[] = '_wootax_tax_amount';
-		$to_hide[] = '_wootax_location_id';
-		$to_hide[] = '_wootax_index';
-
-		return $to_hide;
-
-	}
-
-	/**
-	 * Store session data added by WooTax during checkout. TaxCloud IDs, cart taxes, customer ID, applied exemption certificate, tax totals most important
-	 * Afterward, erase data
-	 * 
-	 * @since 4.2
-	 */
-	public function store_session_data() {
-
-		if ( $this->woo->session instanceof WC_Session_Handler ) {
-
-			$this->exemption_applied      = $this->get_exemption_certificate();
-			$this->taxcloud_ids           = $this->woo->session->taxcloud_ids;
-			$this->cart_taxes             = $this->woo->session->cart_taxes;
-			$this->location_mapping_array = $this->woo->session->location_mapping_array;
-			$this->customer_id            = $this->woo->session->wootax_customer_id;
-			$this->tax_total              = $this->woo->session->wootax_tax_total;
-			$this->shipping_tax_total     = $this->woo->session->wootax_shipping_tax_total;
-			$this->identifiers            = $this->woo->session->item_ids;
-			$this->first_found            = $this->woo->session->first_found_key;
-			$this->validated_addresses    = $this->woo->session->validated_addresses;
-
-			// Store mapping array in flipped order
-			$mapping_array = array();
-
-			if ( isset( $this->woo->session->mapping_array ) ) {
-
-				foreach ( $this->woo->session->mapping_array as $address_key => $mappings ) {
-
-					$new_mappings = array();
-
-					foreach ( $mappings as $index => $item ) {
-						$new_mappings[ $item['id'] ] = $index;
-					}
-
-					$mapping_array[ $address_key ] = $new_mappings;
-
-				}
-
-			}
-
-			$this->mapping_array = $mapping_array;
-
-			$this->remove_session_data();
-
-		}
-
-	}
-
-	/**
-	 * Removes all WooTax data from the session post-checkout
-	 *
-	 * @since 4.2
-	 */
-	public function remove_session_data() {
-
-		if ( $this->woo->session instanceof WC_Session_Handler ) {
-
-			$this->woo->session->certificate_id             = '';
-			$this->woo->session->certificate_applied        = '';
-			$this->woo->session->certificate_data           = '';
-			$this->woo->session->exemption_applied          = '';
-			$this->woo->session->cert_removed               = false;
-			$this->woo->session->cart_taxes                 = array();
-			$this->woo->session->backend_cart_taxes         = array();
-			$this->woo->session->taxcloud_ids               = array();
-			$this->woo->session->backend_location_mapping   = array();
-			$this->woo->session->wootax_validated_addresses = array();
-			$this->woo->session->wootax_tax_total           = 0;
-			$this->woo->session->wootax_shipping_tax_total  = 0;
-
-			$this->woo->session->save_data();
-
-		}
-
 	}
 
 	/**
 	 * Get index of item as sent to TaxCloud
 	 *
 	 * @since 4.2
-	 * @param $item_id (int) an item id
+	 * @param (int) $item_id an order item id
 	 */
 	public function get_item_index( $item_id ) {
+		$mapping_array = WT_Orders::get_meta( $this->order_id, 'mapping_array' );
 
-		if ( isset( $this->mapping_array[ $item_id ] ) ) {
-			return $this->mapping_array[ $item_id ];
+		if ( isset( $mapping_array[ $item_id ] ) ) {
+			return $mapping_array[ $item_id ];
 		} else {
 			if ( $item_id == WT_SHIPPING_ITEM ) { // WC 2.1 shipping
-				return $this->shipping_index;
+				return WT_Orders::get_meta( $this->order_id, 'shipping_index' );
 			} else {
 				return $this->get_item_meta( $item_id, '_wootax_index' );
 			}
 		}
-
 	}
 	
 	/**
@@ -406,8 +63,7 @@ class WC_WooTax_Order {
 	 * 
 	 * @since 4.2
 	 */
-	public function remove_tax() {
-		
+	public function remove_tax() {		
 		if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '<' ) ) {
 			$items = $this->order->get_items() + $this->order->get_fees();
 		} else {
@@ -421,7 +77,6 @@ class WC_WooTax_Order {
 
 		// Update tax totals
 		$this->update_tax_totals();
-
 	}
 
 	/**
@@ -432,17 +87,15 @@ class WC_WooTax_Order {
 	 * @return int 0 if tax amount cannot be retrieved; otherwise, the tax amount as a float
 	 */
 	public function get_item_tax( $item_id ) {
-
 		$tax = 0;
 
 		if ( $item_id == WT_SHIPPING_ITEM ) { // This will occur for WooCommerce 2.1.x
-			$tax = $this->shipping_tax_total;
+			$tax = WT_Orders::get_meta( $this->order_id, 'shipping_tax_total' );
 		} else if ( $this->get_item_meta( $item_id, '_wootax_tax_amount' ) ) {
 			$tax = $this->get_item_meta( $item_id, '_wootax_tax_amount' );
 		}
 
 		return $tax;
-
 	}
 	
 	/**
@@ -453,13 +106,9 @@ class WC_WooTax_Order {
 	 * @param $amt (float) the tax amount to apply
 	 */
 	private function apply_item_tax( $item_id, $amt ) {
-
 		if ( $item_id == WT_SHIPPING_ITEM ) { // WooCommerce 2.1.x shipping 
-
-			$this->shipping_tax_total = $this->shipping_tax_total + $amt;
-
+			WT_Orders::update_meta( $this->order_id, 'shipping_tax_total', WT_Orders::get_meta( $this->order_id, 'shipping_tax_total' ) + $amt );
 		} else {
-
 			// Calculate new tax values
 			$line_subtotal_tax = $this->get_item_meta( $item_id, '_line_subtotal_tax' ) + $amt;
 			$line_tax 		   = $this->get_item_meta( $item_id, '_line_tax' ) + $amt;
@@ -471,56 +120,46 @@ class WC_WooTax_Order {
 
 			// Update the "tax_data" array if we are dealing with WooCommerce 2.2+
 			if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ) {
-
 				$tax_data = $this->get_item_meta( $item_id, '_line_tax_data' );
 				$taxes    = $this->get_item_meta( $item_id, 'taxes' );
 
 				if ( $taxes ) {
-
 					// Shipping item
-					if ( isset( $taxes[ $this->wootax_rate_id ] ) ) {
-						$taxes[ $this->wootax_rate_id ] = $amt;
+					if ( isset( $taxes[ WT_RATE_ID ] ) ) {
+						$taxes[ WT_RATE_ID ] = $amt;
 					}
 
 					wc_update_order_item_meta( $item_id, 'taxes', $taxes );
-
 				} else {
-
 					if ( isset( $tax_data['total'] ) ) {
 						// Cart items
-						$tax_data['subtotal'][$this->wootax_rate_id] = $amt;
-						$tax_data['total'][$this->wootax_rate_id]    = $amt;
+						$tax_data['subtotal'][ WT_RATE_ID ] = $amt;
+						$tax_data['total'][ WT_RATE_ID ]    = $amt;
 					} else {
 						// Fee
-						$tax_data[$this->wootax_rate_id] = $amt;
+						$tax_data[ WT_RATE_ID ] = $amt;
 					}
 
 					wc_update_order_item_meta( $item_id, '_line_tax_data', $tax_data );
-
 				}
-
 			}
-
 		}
-
 	}
 	
 	/**
 	 * Get item meta data
 	 *
 	 * @since 4.2
-	 * @param $item_id (int) item id
-	 * @param $meta_key (mixed) meta key
-	 * @param $single (bool) retrieve a single meta value?
+	 * @param (int) $item_id item id
+	 * @param (mixed) $meta_key meta key
+	 * @param (bool) $single retrieve a single meta value?
 	 */
 	public function get_item_meta( $item_id, $meta_key, $single = true ) {
-
 		if ( !$this->order instanceof WC_Order ) {
 			return false;
 		} else {
 			return $this->order->get_item_meta( $item_id, $meta_key, $single );
 		}
-
 	}
 
 	/**
@@ -529,19 +168,14 @@ class WC_WooTax_Order {
 	 * @since 4.2
 	 * @param $item_id (int) the ID of the item
 	 */
-	private function remove_item_tax( $item_id ) {
-		
+	private function remove_item_tax( $item_id ) {		
 		// Fetch applied tax
 		$applied_tax = $this->get_item_tax( $item_id );
 
 		if ( $applied_tax != 0 ) {
-
 			if ( $item_id == WT_SHIPPING_ITEM ) { // WooCommerce 2.1.x shipping charges
-
-				$this->shipping_tax_total = 0;
-
+				WT_Orders::update_meta( $this->order_id, 'shipping_tax_total', 0 );
 			} else {
-
 				// Calculate new tax values
 				$line_subtotal_tax = $this->get_item_meta( $item_id, '_line_subtotal_tax' ) - $applied_tax;
 				$line_tax          = $this->get_item_meta( $item_id, '_line_tax' ) - $applied_tax;
@@ -557,59 +191,31 @@ class WC_WooTax_Order {
 
 				// Update the "tax_data" array if we are dealing with WooCommerce 2.2+
 				if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ) {
-
 					$tax_data = $this->get_item_meta( $item_id, '_line_tax_data' );
 					$taxes    = $this->get_item_meta( $item_id, 'taxes' );
 
 					if ( $taxes ) {
-
 						// Shipping item
-						if ( isset( $taxes[ $this->wootax_rate_id ] ) ) {
-							$taxes[ $this->wootax_rate_id ] = 0;
+						if ( isset( $taxes[ WT_RATE_ID ] ) ) {
+							$taxes[ WT_RATE_ID ] = 0;
 						}
 
 						wc_update_order_item_meta( $item_id, 'taxes', $taxes );
-
 					} else {
-
 						if ( isset( $tax_data['total'] ) ) {
 							// Cart items
-							$tax_data['subtotal'][$this->wootax_rate_id] = 0;
-							$tax_data['total'][$this->wootax_rate_id]    = 0;
+							$tax_data['subtotal'][ WT_RATE_ID ] = 0;
+							$tax_data['total'][ WT_RATE_ID ]    = 0;
 						} else {
 							// Fee
-							$tax_data[$this->wootax_rate_id] = 0;
+							$tax_data[ WT_RATE_ID ] = 0;
 						}
 
 						wc_update_order_item_meta( $item_id, '_line_tax_data', $tax_data );
-
-					}
-					
+					}					
 				}
-
 			}
-
 		}
-
-	}
-	
-	/**
-	 * Determines if an order is delivered by the seller
-	 *
-	 * @since 4.2
-	 * @return boolean true if selected shipping method is "local_delivery"; else, false
-	 */
-	private function is_delivered_by_seller() {
-
-		$shipping_method = $this->get_order_shipping_method();
-		
-		if ( $shipping_method == 'local_delivery' ) {
-			return true;
-		}
-		
-		// Return false by default
-		return false;
-
 	}
 
 	/**
@@ -618,13 +224,13 @@ class WC_WooTax_Order {
 	 * @since 4.2
 	 */
 	private function generate_lookup_data( $items = NULL ) {
-
 		// Fetch order items
 		$order_items = $items;
 
 		// Exit if we do not have any items
 		if ( count( $order_items ) == 0 ) {
-			$this->lookup_data = $this->mapping_array = array();
+			WT_Orders::update_meta( $this->order_id, 'lookup_data', array() );
+			WT_Orders::update_meta( $this->order_id, 'mapping_array', array() );
 
 			return;
 		}
@@ -641,12 +247,10 @@ class WC_WooTax_Order {
 
 		// Loop through order items; group items by their shipping origin address and format data for tax lookup
 		foreach ( $order_items as $item_key => $item ) {
-
 			$item_id = $item['ItemID'];
 			$type    = $item['Type'];
 
 			switch( $type ) {
-
 				case 'cart':
 					// Fetch shipping origin addresses for this product_id
 					$item_ids = array( 
@@ -656,7 +260,7 @@ class WC_WooTax_Order {
 
 					$product          = $this->order->get_product_from_item( $item_ids );
 					$origin_addresses = fetch_product_origin_addresses( $product->id );
-					$address_found    = empty( $this->default_address ) ? 0 : $this->default_address;
+					$address_found    = WT_DEFAULT_ADDRESS;
 
 					/**
 					 * Attempt to find proper origin address
@@ -670,7 +274,7 @@ class WC_WooTax_Order {
 					} else {
 						// Find an address in the customer's state if possible
 						foreach ( $origin_addresses as $key ) {
-							if ( isset( $this->addresses[ $key ]['state'] ) && $this->addresses[ $key ]['state'] == $customer_state ) {
+							if ( isset( WT_Orders::$addresses[ $key ]['state'] ) && WT_Orders::$addresses[ $key ]['state'] == $customer_state ) {
 								$address_found = $key;
 								break;
 							}
@@ -728,9 +332,7 @@ class WC_WooTax_Order {
 					// Update fee counter
 					$fee_counter++;
 				break;
-
 			}
-
 		}
 
 		// Attach shipping items and fees to the first daughter order
@@ -759,54 +361,44 @@ class WC_WooTax_Order {
 		}
 
 		// Save mapping array/first found and return lookup data
-		$this->mapping_array = $mapping_array;
-		$this->first_found   = $first_found;
+		WT_Orders::update_meta( $this->order_id, 'mapping_array', $mapping_array );
+		WT_Orders::update_meta( $this->order_id, 'first_found', $first_found );
 
 		return $data;
-
 	}
 
 	/**
 	 * Generate an order ID for each lookup
 	 *
 	 * @since  4.2
-	 * @return $taxcloud_ids   Array   array of taxcloud cart IDs and order IDs
+	 * @return (array) $taxcloud_ids array of taxcloud cart IDs and order IDs
 	 */
-	private function wootax_generate_order_ids() {
+	private function generate_order_ids() {		
+		$taxcloud_ids = WT_Orders::get_meta( $this->order_id, 'taxcloud_ids' );
 
-		$taxcloud_ids = $this->taxcloud_ids;
-
-		foreach ( $this->lookup_data as $location => $items ) {
-
+		foreach ( WT_Orders::get_meta( $this->order_id, 'lookup_data' ) as $location => $items ) {
 			if ( !isset( $taxcloud_ids[ $location ] ) ) {
 				$taxcloud_ids[ $location ] = array(
 					'cart_id'  => '',
 					'order_id' => wootax_generate_order_id(),
 				);
 			}
-
 		}
 
 		return $taxcloud_ids;
-
 	}
 
 	/**
 	 * Perform a lookup for the order and update tax totals
 	 *
 	 * @since 4.2
-	 * @param $items           array     an array of CartItems
-	 * @param $type_array      array     an array mapping item IDs to item types (cart/shipping)
-	 * @param $subscription    boolean   is this lookup for a subscription renewal order?
+	 * @param (array) $items an array of CartItems
+	 * @param (array) $type_array an array mapping item IDs to item types (cart/shipping)
+	 * @param (boolean) is this lookup for a subscription renewal order?
 	 */
 	public function do_lookup( $items, $type_array, $subscription = false ) {
-		
-		// Instantiate WC_WooTax_TaxCloud object
-		$this->taxcloud = get_taxcloud();
-
 		// Fire request if we are ready to do so
 		if ( $this->ready_for_lookup() ) {
-
 			$taxcloud_ids = $lookup_data = array();
 
 			if ( !$subscription ) {
@@ -814,16 +406,18 @@ class WC_WooTax_Order {
 				$this->remove_tax();
 
 				// Generate lookup data
-				$this->lookup_data = $this->generate_lookup_data( $items );
-				$lookup_data       = $this->lookup_data;
+				$lookup_data = $this->generate_lookup_data( $items );
+				WT_Orders::update_meta( $this->order_id, 'lookup_data', $lookup_data );
 
 				// Generate TaxCloud Cart/Order IDs
-				$this->taxcloud_ids = $this->wootax_generate_order_ids();
-				$taxcloud_ids       = $this->taxcloud_ids;
+				$taxcloud_ids = $this->generate_order_ids();
+				WT_Orders::update_meta( $this->order_id, 'taxcloud_ids', $taxcloud_ids );
 			} else {
 				// Only generate lookup data
 				$lookup_data = $this->generate_lookup_data( $items );
 			}
+
+			$mapping_array = WT_Orders::get_meta( $this->order_id, 'mapping_array' );
 
 			// Retrieve validated destination addresses
 			$destination_address = maybe_validate_address( $this->destination_address, $this->order_id );
@@ -835,16 +429,15 @@ class WC_WooTax_Order {
 			// Fetch some information about the order
 			$exempt_cert         = $this->get_exemption_certificate();
 			$customer_id         = $this->get_customer_id();
-			$delivered_by_seller = $this->is_delivered_by_seller();
+			$delivered_by_seller = wt_is_local_delivery( $this->get_shipping_method() );
 
 			// Loop through locations in lookup_data array and send a Lookup request for each
 			foreach ( $lookup_data as $location_key => $items ) {
-
 				// Fetch cart_id
 				$cart_id = isset( $taxcloud_ids[ $location_key ]['cart_id'] ) ? $taxcloud_ids[ $location_key ]['cart_id'] : '';
 
 				// Get the origin address
-				$origin_address = $this->get_origin_address( $location_key );
+				$origin_address = wootax_get_address( $location_key );
 
 				// Build request array 
 				$req = array(
@@ -856,14 +449,14 @@ class WC_WooTax_Order {
 					'deliveredBySeller' => $delivered_by_seller,
 				);	
 
-				if ( !empty( $exempt_cert ) )
+				if ( !empty( $exempt_cert ) ) {
 					$req['exemptCert'] = $exempt_cert;
+				}
 
 				// Send Lookup request 
-				$res = $this->taxcloud->send_request( 'Lookup', $req );
+				$res = TaxCloud()->send_request( 'Lookup', $req );
 
 				if ( $res !== false ) {
-
 					// Initialize some vars
 					$cart_items = $res->CartItemsResponse->CartItemResponse;
 
@@ -872,21 +465,23 @@ class WC_WooTax_Order {
 
 					// If cart_items only contains one item, it will not be an array. 
 					// In that case, convert to an array 
-					if ( !is_array( $cart_items ) ) 
+					if ( !is_array( $cart_items ) ) {
 						$cart_items = array( $cart_items );
+					}
 
 					// Loop through items and update tax amounts
 					foreach ( $cart_items as &$cart_item ) {
 
 						// Fetch item info
 						$index   = $cart_item->CartItemIndex;
-						$item_id = $this->mapping_array[ $location_key ][ $index ];
+						$item_id = $mapping_array[ $location_key ][ $index ];
 						$type    = isset( $type_array[ $item_id ] ) ? $type_array[ $item_id ] : 'cart';
 						$tax     = $cart_item->TaxAmount;
 
 						// Update item tax
-						if ( !$subscription )
+						if ( !$subscription ) {
 							$this->apply_item_tax( $item_id, $tax );
+						}
 
 						// Keep track of cart tax/shipping tax totals
 						if ( $type == 'cart' ) {
@@ -897,17 +492,14 @@ class WC_WooTax_Order {
 
 						// Add ItemID property so @see $this->ajax_update_order_tax() can work as expected
 						$cart_item->ItemID = $item_id;
-
 					}
-
 				} else {
 					// Return error
-					return $this->taxcloud->get_error_message();
+					return TaxCloud()->get_error_message();
 				}
 
 				// Add cart_items to all_cart_items array
 				$all_cart_items[] = $cart_items;
-
 			}
 
 			if ( !$subscription ) {
@@ -915,41 +507,37 @@ class WC_WooTax_Order {
 				$this->update_tax_totals( $tax_total, $shipping_tax_total );
 
 				// Update TaxCloud IDs array
-				$this->taxcloud_ids = $taxcloud_ids;
+				WT_Orders::update_meta( $this->order_id, 'taxcloud_ids', $taxcloud_ids );
 
 				// Reset identifiers array (only useful before first lookup from "edit order" screen)
-				$this->identifiers = array();
+				WT_Orders::update_meta( $this->order_id, 'identifiers', array() );
 
 				// Store mapping array in reverse order (map item ids to item indexes)
 				$new_mapping_array = array();
 
-				foreach ( $this->mapping_array as $location => $mappings ) {
+				foreach ( $mapping_array as $location => $mappings ) {
 					foreach ( $mappings as $item_index => $item_id ) {
-
 						if ( !isset( $new_mapping_array[ $location ] ) ) {
 							$new_mapping_array[ $location ] = array();
 						}
 
 						$new_mapping_array[ $location ][ $item_id ] = $item_index;
-
 					}
 				}
 
-				$this->mapping_array = $new_mapping_array;
+				WT_Orders::update_meta( $this->order_id, 'mapping_array', $new_mapping_array );
 
 				// Update index/location mappings
-				foreach ( $this->lookup_data as $address_key => $items ) {
+				foreach ( $lookup_data as $address_key => $items ) {
 					foreach ( $items as $item ) {
-
 						$item_id = $item['ItemID'];
 
 						if ( $item_id == WT_SHIPPING_ITEM ) { // WC 2.1 shipping
-							$this->shipping_index = $item['Index'];
+							WT_Orders::update_meta( $this->order_id, 'shipping_index', $item['Index'] );
 						} else {
 							wc_update_order_item_meta( $item_id, '_wootax_location_id', $address_key );
 							wc_update_order_item_meta( $item_id, '_wootax_index', $item['Index'] );
 						}
-
 					}
 				}
 			}
@@ -962,11 +550,9 @@ class WC_WooTax_Order {
 			}
 
 			return $return_arr;
-
 		} else {
 			return 'An error occurred while calculating order taxes. It is possible that the order has already been "completed" or that no customer shipping address is available. Please try again.';
 		}
-
 	}
 	
 	/**
@@ -976,73 +562,30 @@ class WC_WooTax_Order {
 	 * @return an array of information about the certificate, the certificate's ID, or null
 	 */
 	public function get_exemption_certificate() {
-
-		$certificate_data = NULL;
+		$certificate = WT_Orders::get_meta( $this->order, 'exemption_applied' );
 		
-		if ( !empty( $this->woo->session->certificate_id ) ) {
-
-			if ( $this->woo->session->certificate_id == 'true' ) {
-
-				$certificate_data = $this->woo->session->certificate_data;
-
-				if ( !isset( $certificate_data['Detail']['SinglePurchaseOrderNumber'] ) ) {
-					$certificate_data['Detail']['SinglePurchaseOrderNumber'] = $this->order_id;
-				}
-
-			} else {
-				$certificate_data = array(
-					'CertificateID' => $this->woo->session->certificate_id,
-				);
-			}
-
-		} else if ( !is_bool( $this->exemption_applied ) ) {
-			$certificate_data = $this->exemption_applied;
+		if ( !is_bool( $certificate ) ) {
+			return $certificate;
 		}
 		
-		return $certificate_data;
-
-	}
-	
-	/**
-	 * Get origin address for order given location key
-	 * 
-	 * @since 4.2
-	 * @param $location_key - the id of the location whose address information is desired
-	 * @return an array containing information about the origin address
-	 */
-	public function get_origin_address( $location_key ) {
-
-		// Initialize blank address array
-		$address = array();
-		
-		// Populate array
-		$address['Address1'] = $this->addresses[ $location_key ]['address_1'];
-		$address['Address2'] = $this->addresses[ $location_key ]['address_2'];
-		$address['Country']  = $this->addresses[ $location_key ]['country'];
-		$address['State']    = $this->addresses[ $location_key ]['state'];
-		$address['City']     = $this->addresses[ $location_key ]['city'];
-		$address['Zip5']     = $this->addresses[ $location_key ]['zip5'];
-		$address['Zip4']     = $this->addresses[ $location_key ]['zip4'];
-
-		// Return the final address array
-		return $address;
-
+		return NULL;
 	}
 	
 	/** 
-	 * Get destination address for order
+	 * Set destination address for order
+	 * This is either the customer billing address or shipping address depending on the shop settings
+	 * Can also be a business address if a local pickup method is being used
 	 *
 	 * @since 4.2
-	 * @return an array containing information about the customer's billing or shipping address (depending on store settings)
+	 * @return void
 	 */
-	public function get_destination_address() {
-		
+	public function set_destination_address() {
 		// Retrieve "tax based on" option
 		$tax_based_on = get_option( 'woocommerce_tax_based_on' );
 
 		// Return origin address if this is a local pickup order
-		if ( $this->is_local_pickup() || $tax_based_on == 'base' ) {
-			return $this->get_origin_address( apply_filters( 'wootax_pickup_address', $this->default_address, $this->addresses, $this->order_id ) );
+		if ( wt_is_local_pickup( $this->get_shipping_method() ) || $tax_based_on == 'base' ) {
+			return wootax_get_address( apply_filters( 'wootax_pickup_address', WT_DEFAULT_ADDRESS, WT_Orders::$addresses, $this->order_id ) );
 		}
 
 		// Attempt to fetch preferred address according to "tax based on" option; return billing by default
@@ -1076,31 +619,7 @@ class WC_WooTax_Order {
 			'Zip4'     => $parsed_zip['zip4'],
 		);
 
-		return $address;
-
-	}
-	
-	/**
-	 * Determines if an order is using the "local_pickup" shipping method
-	 *
-	 * @since 4.2
-	 * @return true if the shipping method is "local_pickup.", else false
-	 */
-	private function is_local_pickup() {
-
-		// Get current shipping method
-		$shipping_method = $this->get_order_shipping_method();
-
-		// Filter local pickup methods so developers can use custom methods
-		$pickup_methods = apply_filters( 'wootax_local_pickup_methods', array( 'local_pickup', 'Local Pickup' ) );
-
-		// Check if method is "local_pickup"
-		if ( in_array( $shipping_method, $pickup_methods ) ) {
-			return true;
-		} else {
-			return false;
-		}
-
+		$this->destination_address = $address;
 	}
 	
 	/** 
@@ -1114,36 +633,34 @@ class WC_WooTax_Order {
 	 * @return boolean true if the order is ready for a tax lookup; otherwise, false
 	 */
 	private function ready_for_lookup() {
-
 		// Check for orders that are already captured
-		if ( $this->captured ) {
+		if ( WT_Orders::get_meta( $this->order_id, 'captured' ) ) {
 			return false;
 		}
 
 		// Verify that one origin address (at least) is available for use
-		if ( !is_array( $this->addresses ) || count( $this->addresses ) == 0 ) {
+		if ( !is_array( WT_Orders::$addresses ) || count( WT_Orders::$addresses ) == 0 ) {
 			return false;
 		}
 
 		// Check for a valid destinaton address
-		if ( !$this->taxcloud->is_valid_address( $this->destination_address, true ) ) {
+		if ( !TaxCloud()->is_valid_address( $this->destination_address, true ) ) {
 			return false;
 		}
 		
 		return true;
-
 	}
 	
 	/**
 	 * Get customerID for order
 	 */
 	private function get_customer_id() {
-
 		global $current_user;
 
-		// Fetch and/or generate customerID
-		if ( $this->customer_id === false || empty( $this->customer_id ) ) {
+		$customer_id = WT_Orders::get_meta( $this->order_id, 'customer_id' );
 
+		// Fetch and/or generate customerID
+		if ( $customer_id === false || empty( $customer_id ) ) {
 			// Generate new customer id if one isn't associated with the order already
 			$current_user_id = $this->order->user_id;
 
@@ -1155,377 +672,95 @@ class WC_WooTax_Order {
 			}
 			
 			// Save generated ID
-			$this->customer_id = $customer_id;
+			WT_Orders::update_meta( $this->order_id, 'customer_id', $customer_id );
 			
 			return $customer_id;
-
 		} else {
-			return $this->customer_id;
-		}
-	
+			return $customer_id;
+		}	
 	}
 	
 	/**
-	 * Completes an order by sending an AuthorizeWithCapture request to TaxCloud
+	 * Update order shipping/cart tax total
 	 *
-	 * @since 4.2
-	 * @param $order_id   int       the WooCommerce order ID
-	 * @param $cron       boolean   is this method being called from inside a WooTax cronjob? Default: false
+	 * @since 4.4
+	 * @param (string) $type "shipping" to update shipping tax total; "cart" to update cart tax total
+	 * @param (float) $new_tax new value for tax
 	 */
-	public function complete( $order_id, $cron = false ) {
-
-		// Load order if necessary
-		if ( $this->order_id != $order_id ) {
-			$this->load_order( $order_id );
+	private function update_tax_total( $type, $new_tax ) {
+		if ( $type == "shipping" ) {
+			$wootax_key      = 'shipping_tax_total';
+			$woocommerce_key = '_order_shipping_tax';
+		} else {
+			$wootax_key      = 'tax_total';
+			$woocommerce_key = '_order_tax';
 		}
 
-		// Exit if the order has already been captured or contains no taxable items 
-		if ( $this->captured ) { 
-			return;
-		}
-
-		// Instantiate WC_WooTax_TaxCloud object
-		$this->taxcloud = get_taxcloud();
-
-		// Loop orders and mark as captured
-		foreach ( $this->taxcloud_ids as $address_key => $data ) {
-
-			// Get cart id/order_id
-			$cart_id  = $data['cart_id'];
-			$order_id = $data['order_id'];
-
-			// Send captured request
-			$authorized_date = date( 'c' );
-
-			$req = array(
-				'cartID'         => $cart_id, 
-				'customerID'     => $this->customer_id, 
-				'orderID'        => $order_id, 
-				'dateAuthorized' => $authorized_date, 
-				'dateCaptured'   => $authorized_date,
-			);
-
-			$res = $this->taxcloud->send_request( 'AuthorizedWithCapture', $req );
-
-			// Check for errors
-			if ( $res == false ) {
-				if ( !$cron ) {
-					wootax_add_message( 'There was an error while marking the order as Captured. '. $this->taxcloud->get_error_message() );
-					return;
-				} else {
-					return $this->taxcloud->get_error_message();
-				}
-			}
-
-		}
-
-		// Mark order as captured
-		$this->captured = true;
-		return true;
-
-	}
-	
-	/** 
-	 * Refunds an entire order
-	 * Resets order meta and sends Refunded request to TaxCloud
-	 *
-	 * @since 4.2
-	 * @param $order_id   int   the WooCommerce order ID
-	 * @param $cron       boolean   is this method being called from a WooTax cronjob? Default: false
-	 */
-	public function refund( $order_id, $cron = false ) {
-
-		// Load order
-		if ( $this->order_id != $order_id ) {
-			$this->load_order( $order_id );
-		}
-
-		// Exit if the order has already been refunded or has not yet been captured
-		if ( $this->refunded ) {
-			return;
-		} else if( !$this->captured ) {
-			if ( !$cron ) {
-				wootax_add_message( '<strong>WARNING:</strong> The order was not refunded through TaxCloud because it has not been captured yet. To fix this issue, save the order as completed before marking it as refunded.', 'update-nag' );
-			}
-
-			return;
-		}
-		
-		// Instantiate WC_WooTax_TaxCloud object
-		$this->taxcloud = get_taxcloud();
-
-		// Loop through daughter orders and mark as refunded
-		foreach ( $this->taxcloud_ids as $address_key => $ids ) {
-
-			// Get order ID
-			$order_id = $ids['order_id'];
-
-			// Send Returned request
-			$date = new DateTime( 'NOW' );
-			
-			$req = array(
-				'retCartItems' => NULL, 
-				'returnedDate' => $date->format( DateTime::ATOM ), 
-				'orderID'      => $order_id,
-			);
-			
-			$res = $this->taxcloud->send_request( 'Returned', $req );
-			
-			// Check for errors
-			if ( $res == false ) {
-				if ( !$cron ) {
-					wootax_add_message( 'There was an error while refunding the order. '. $this->taxcloud->get_error_message() );
-					break;
-				} else {
-					return $this->taxcloud->get_error_message();
-				}
-			}
-
-		}
-
-		// Remove applied tax completely
-		$this->remove_tax();
-		
-		// Reset meta values to default 
-		foreach ( $this->defaults as $key => $val ) {
-			$this->$key = $val;
-		}
-		
-		// Mark order as refunded
-		$this->refunded = true;
-		return true;
-
-	}
-
-	/**
-	 * Refunds specific order items
-	 * 
-	 * @since 4.2
-	 * @param Array $refund_items: an array of CartItems
-	 * @return bool true or error message
-	 */
-	public function refund_items( $refund_items ) {
-		
-		global $woocommerce;
-
-		// Fetch customer address
-		$this->destination_address = $this->get_destination_address();
-
-		// Do not act on the refund if the order was placed by a customer in another country OR there are no items to refund
-		if ( count( $refund_items ) == 0 || isset( $this->destination_address['Country'] ) && !in_array( $this->destination_address['Country'], array( 'United States', 'US' ) ) ) {
-			return true;
-		}
-
-		if ( !$this->captured ) {
-			return 'You must set this order\'s status to "completed" before refunding any items.';
-		}
-
-		if ( !is_array( $refund_items ) ) {
-			return 'Error: No items to refund. Please try again.';
-		}
-
-		// Instantiate WC_WooTax_TaxCloud object
-		$this->taxcloud = get_taxcloud();
-		$locations      = array();
-
-		// Construct mapping array
-		$mapping_array = $this->mapping_array;
-
-		if ( count( $mapping_array ) == 0 ) {
-
-			foreach ( $refund_items as $location => $items ) {
-
-				$mapping_array[ $location ] = array();
-
-				foreach ( $items as $item ) {
-					$mapping_array[ $location ][ $item['ItemID'] ] = $this->get_item_index( $item['ItemID'] );
-				}
-
-			}
-
-		} 
-
-		// Refund items as necessary
-		foreach ( $this->taxcloud_ids as $address_key => $ids ) {
-
-			if ( isset( $refund_items[ $address_key ] ) ) {
-
-				$items = array();
-
-				// Get items in appropriate format
-				foreach ( $refund_items [ $address_key ] as $item ) {
-
-					$item_id = $item['ItemID'];
-					$item['Index'] = $mapping_array[ $address_key ][ $item_id ];
-					$items[] = $item;
-
-				}
-
-				// Get oID
-				$order_id = $this->taxcloud_ids[ $address_key ]['order_id'];
-
-				// Send Returned request
-				$date = new DateTime('NOW');
-
-				$req = array(
-					'cartItems'    => $items, 
-					'returnedDate' => $date->format( DateTime::ATOM ), 
-					'orderID'      => $order_id,
-				);	
-
-				// Send request
-				$res = $this->taxcloud->send_request( 'Returned', $req );
-
-				// Check for errors
-				if ( $res == false ) {
-
-					return $this->taxcloud->get_error_message();
-
-				}
-
-			} else {
-
-				$log_requests = wootax_get_option( 'log_requests' );
-
-				if ( $log_requests == 'yes' || !$log_requests ) {
-
-					$logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : $woocommerce->logger();
-
-					$logger->add( 'wootax', 'Didn\'t process refund for order '. $this->order_id .', location '. $address_key .': No items in location.' );
-					$logger->add( 'wootax', 'Refund items array: '. print_r( $refund_items, true ) );
-					$logger->add( 'wootax', 'IDs array: '. print_r( $this->taxcloud_ids, true ) );
-
-				}
-
-			}
-			
-		}
-
-		// Set the order status to refunded so the user cannot calculate the tax due anymore
-		$this->refunded = true;
-
-		return true;
-		
-	}
-	
-	/**
-	 * Update the cart tax total for a given order
-	 *
-	 * @since 4.2
-	 * @param $new_tax - new value for WooTax cart tax
-	 */
-	private function update_cart_tax_total( $new_tax ) {
-
-		// Fetch cart tax added by WooTax
-		$current_tax = $this->tax_total;
-
-		// Get current cart tax value as float
-		$cart_tax_total = (float) get_post_meta( $this->order_id, '_order_tax', true );
-
-		// Calculate new cart tax value
-		$new_cart_tax_total = $cart_tax_total == 0 ? $new_tax : ( $cart_tax_total - $current_tax ) + $new_tax;
-
-		// Zero tax total if we have a negative result
-		$new_cart_tax_total = $new_cart_tax_total < 0 ? 0 : $new_cart_tax_total;
-
-		// Update order meta to reflect changes
-		update_post_meta( $this->order_id, '_order_tax', $new_cart_tax_total );
-
-		// Update internal "tax_total" property
-		$this->tax_total = $new_tax;
-
-	}
-	
-	/**
-	 * Update the shipping tax total for a given order
-	 *
-	 * @since 4.2
-	 * @param $new_tax - new value for WooTax shipping tax
-	 */
-	private function update_shipping_tax_total( $new_tax ) {
-
-		// Fetch shipping tax added by WooTax
-		$current_tax = $this->shipping_tax_total;
-		
-		// Get current shipping tax total as float
-		$shipping_tax_total = (float) get_post_meta( $this->order_id, '_order_shipping_tax', true );
-
-		// Calculate new tax 
-		$new_shipping_tax_total = $shipping_tax_total == 0 ? $new_tax : ($shipping_tax_total - $current_tax) + $new_tax;
-
-		// Zero tax if we have a negative result
-		$new_shipping_tax_total = $new_shipping_tax_total < 0 ? 0 : $new_shipping_tax_total;
-
-		// Update order meta to reflect changes
-		update_post_meta( $this->order_id, '_order_shipping_tax', $new_shipping_tax_total );
-
-		// Update internal shipping tax total
-		$this->shipping_tax_total = $new_tax;
-
+		// Get current tax/tax total
+		$tax       = WT_Orders::get_meta( $this->order_id, $wootax_key );
+		$tax_total = get_post_meta( $this->order_id, $woocommerce_key );
+
+		// Calculate new tax total
+		$new_tax_total = $tax_total == 0 ? $new_tax : ( $tax_total - $tax ) + $new_tax;
+		$new_tax_total = $new_tax_total < 0 ? 0 : $new_tax_total;
+
+		update_post_meta( $this->order_id, $woocommerce_key, $new_tax_total );
+		WT_Orders::update_meta( $this->order_id, 'tax_total', $new_tax );
 	}
 
 	/**
 	 * Updates the cart tax/shipping tax totals for the order
 	 * Triggers an update of the order tax item if we are in the backend
-	 *
+	 * 
 	 * @since 4.2
-	 * @param $cart_tax - the total cart tax added by WooTax
-	 * @param $shipping_tax - the total shipping tax added by WooTax
+	 * @param (float) $cart_tax the total cart tax added by WooTax
+	 * @param (float) $shipping_tax the total shipping tax added by WooTax
 	 */
-	private function update_tax_totals( $cart_tax  = 0, $shipping_tax  = 0 ) {
-		
-		// Update cart tax
-		$this->update_cart_tax_total( $cart_tax );
-
-		// Update shipping tax
-		$this->update_shipping_tax_total( $shipping_tax );
-
-		// Update tax item if necessary
-		$this->update_tax_item();
-		
+	private function update_tax_totals( $cart_tax  = 0.0, $shipping_tax  = 0.0 ) {
+		$this->update_tax_total( 'cart', $cart_tax );
+		$this->update_tax_total( 'shipping', $shipping_tax );
+		$this->update_tax_item();		
 	}
 	
 	/**
-	 * Updates tax item added by WooTax to a Woo order
-	 * Adds one if we haven't already done so
+	 * Updates WooTax tax item to reflect changes in cart/shipping tax totals
 	 *
 	 * @since 4.2
 	 */
 	private function update_tax_item() {
-
 		global $wpdb;
 
-		// Add a new tax item if we haven't already added one
-		if ( $this->tax_item_id == 0 || $this->tax_item_id == NULL ) {
+		// Add a new tax item if necessary
+		$tax_item_id = WT_Orders::get_meta( $this->order_id, 'tax_item_id' );
 
-			// Add new tax item
+		if ( $tax_item_id == 0 || $tax_item_id == NULL ) {
 			$wpdb->insert( "{$wpdb->prefix}woocommerce_order_items", array(
 				'order_item_type' => 'tax', 
 				'order_item_name' => 'WOOTAX-RATE-DO-NOT-REMOVE', 
 				'order_id'        => $this->order_id
 			) );
 
-			// Update tax item id
-			$this->tax_item_id = $wpdb->insert_id;
+			// Store new tax item ID
+			$tax_item_id = $wpdb->insert_id;
 
+			WT_Orders::update_meta( $this->order_id, 'tax_item_id', $tax_item_id );
 		}
-		
+
 		// Update tax item meta
-		$item_id = $this->tax_item_id;
+		$cart_tax     = WT_Orders::get_meta( $this->order_id, 'tax_total' );
+		$shipping_tax = WT_Orders::get_meta( $this->order_id, 'shipping_tax_total' );
 
-		wc_update_order_item_meta( $item_id, 'rate_id', $this->wootax_rate_id );
-		wc_update_order_item_meta( $item_id, 'label', 'Sales Tax' );
-		wc_update_order_item_meta( $item_id, 'name', 'Sales Tax' );
-		wc_update_order_item_meta( $item_id, 'compound', true );
-		wc_update_order_item_meta( $item_id, 'tax_amount', $this->tax_total );
-		wc_update_order_item_meta( $item_id, 'shipping_tax_amount', $this->shipping_tax_total );
+		wc_update_order_item_meta( $tax_item_id, 'rate_id', WT_RATE_ID );
+		wc_update_order_item_meta( $tax_item_id, 'label', 'Sales Tax' );
+		wc_update_order_item_meta( $tax_item_id, 'name', 'Sales Tax' );
+		wc_update_order_item_meta( $tax_item_id, 'compound', true );
+		wc_update_order_item_meta( $tax_item_id, 'tax_amount', $cart_tax );
+		wc_update_order_item_meta( $tax_item_id, 'shipping_tax_amount', $shipping_tax );
 
-		// Added for WooCommerce Subscriptions support
-		if ( class_exists( 'WC_Subscriptions' ) ) {
-			wc_update_order_item_meta( $item_id, 'cart_tax', $this->tax_total );
-			wc_update_order_item_meta( $item_id, 'shipping_tax', $this->shipping_tax_total );
+		if ( WT_SUBS_ACTIVE ) {
+			wc_update_order_item_meta( $tax_item_id, 'cart_tax', $cart_tax );
+			wc_update_order_item_meta( $tax_item_id, 'shipping_tax', $shipping_tax );
 		}
-
 	}
 	
 	/**
@@ -1535,8 +770,7 @@ class WC_WooTax_Order {
 	 * @since 4.2
 	 * @return chosen shipping method (string)
 	 */
-	private function get_order_shipping_method() {
-
+	private function get_shipping_method() {
 		if ( isset( $_POST['shipping_methods'] ) && !empty( $_POST['shipping_methods'] ) ) {
 			$shipping_methods = !strstr( $_POST['shipping_methods'], ',' ) ? $_POST['shipping_methods'] : explode( ',', $_POST['shipping_methods'] );
 
@@ -1545,7 +779,6 @@ class WC_WooTax_Order {
 		} else {
 			return $this->order->get_shipping_method();
 		}
-
 	}
 	
 	/**
@@ -1553,550 +786,17 @@ class WC_WooTax_Order {
 	 * Three possible return values: Pending Capture, Captured, Returned
 	 *
 	 * @since 4.2
-	 * @return order status (string)
+	 * @return (string) order status
 	 */
 	public function get_status() {
-			
-		// Order has been returned
-		if ( $this->refunded == true ) {
+		if ( WT_Orders::get_meta( $this->order_id, 'refunded' ) == true ) {
 			return 'Refunded';
 		}
-			
-		// Return 'Pending Capture' if captured is set to bool false
-		if ( $this->captured == false ) {
+
+		if ( WT_Orders::get_meta( $this->order_id, 'captured' ) == false ) {
 			return 'Pending Capture';
-		}
-		
-		// Return 'Captured' if captured is set to bool true
-		if ( $this->captured == true )  {
+		} else {
 			return 'Captured';
 		}
-
 	}
-
-	/**
-	 * Added for WooCommerce 2.2 support
-	 * Updates the "taxes" meta value for shipping items
-	 * Assumes that only one shipping method is used per order
-	 *
-	 * @since 4.2
-	 * @param $order_id the id of the WooCommerce order
-	 * @param $item_id the id of the item inserted into the database
-	 * @param $shipping_rate the actual shipping rate (object)
-	 */
-	public function add_shipping_tax( $order_id, $item_id, $shipping_rate )  {
-
-		$this->load_order( $order_id );
-
-		// Fetch taxes array
-		$taxes = array_map( 'wc_format_decimal', $shipping_rate->taxes );
-
-		// Add WooTax tax rate
-		$taxes[ $this->wootax_rate_id ] = $this->shipping_tax_total;
-
-		// Update meta
-		wc_update_order_item_meta( $item_id, 'taxes', $taxes );
-
-	}
-
-	/**
-	 * Update order tax via AJAX
-	 * Called on hook 'wootax-update-tax'
-	 *
-	 * @since 4.2
-	 * @return JSON object with status (error | success) and status message
-	 */
-	public function ajax_update_order_tax() {
-
-		global $wpdb;
-
-		$order_id = absint( $_POST['order_id'] );
-		$country  = strtoupper( esc_attr( $_POST['country'] ) );
-
-		// Set up WC_WooTax_Order object
-		$this->load_order( $order_id );
-		
-		// Update customer address
-		$this->destination_address = $this->get_destination_address();
-		$initial_tax_item_id       = $this->tax_item_id;
-
-		// Use default tax calculation mechanism for international orders; otherwise, use WooTax
-		if ( $country != 'US' ) {
-
-			return; // Returning here allows WC_AJAX::calc_line_taxes to execute.
-
-		} else {
-
-			if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ) {
-				
-				// Parse items array from JSON
-			    parse_str( $_POST['items'], $items );
-
-			} else if ( version_compare( WOOCOMMERCE_VERSION, '2.1.0', '>=' ) ) {
-				
-				$items = array(
-					'order_item_id'      => array(),
-					'order_item_qty'     => array(),
-					'line_total'         => array(),
-					'shipping_method_id' => array(),
-					'shipping_cost'      => array(),
-				);
-
-				// Add cart items/fees
-				foreach ( $_POST['items'] as $item_id => $item ) {
-
-					$items['order_item_id'][] = $item_id;
-
-					if ( get_post_type( $this->get_item_meta( $item_id, '_product_id' ) ) == 'product' ) {
-						$items['order_item_qty'][$item_id] = isset( $item['quantity'] ) ? $item['quantity'] : 1;
-					}
-
-					$items['line_total'][$item_id] = $item['line_total'];
-
-				}
-
-				// Add item for shipping cost
-				if ( isset( $_POST['shipping'] ) && $_POST['shipping'] != 0 ) {
-
-					$items['shipping_cost'][WT_SHIPPING_ITEM] = $_POST['shipping'];
-					$items['shipping_method_id'][]                = WT_SHIPPING_ITEM;
-
-				}
-
-			}
-
-			$order_items = array();
-			$final_items = array();
-
-			// Add cart items and fees
-			$order_items = array_merge( $items['order_item_id'], $order_items );
-
-			// Add shipping items
-			if ( isset( $items['shipping_method_id'] ) ) {
-				$order_items = array_merge( $items['shipping_method_id'], $order_items );
-			}
-
-			// Construct items array from POST data
-			foreach ( $order_items as $item_id ) {
-
-				$product_id = $this->get_item_meta( $item_id, '_product_id' );
-
-				if ( get_post_type( $product_id ) == 'product' ) {
-
-					$product = new WC_Product( $product_id );
-						
-					if ( !$product->is_taxable() ) {
-						continue;
-					}
-
-				} 
-
-				$qty = 1;
-
-				if ( is_array( $items['shipping_method_id'] ) && in_array( $item_id, $items['shipping_method_id'] ) ) {
-					// Shipping method
-					$tic  = WT_SHIPPING_TIC;
-					$cost = $items['shipping_cost'][$item_id];
-					$type = 'shipping';
-				} else if ( isset( $items['order_item_qty'][$item_id] ) ) {
-					// Cart item
-					$tic  = get_post_meta( $product_id, 'wootax_tic', true );
-					$cost = $items['line_total'][$item_id];
-					$type = 'cart';
-				} else {
-					// Fee
-					$tic  = WT_FEE_TIC;
-					$cost = $items['line_total'][$item_id];
-					$type = 'fee';
-				}
-
-				// Calculate unit price
-				$unit_price = $cost / $qty;
-
-				// Add item to final items array
-				if ( $unit_price != 0 ) {
-
-					// Map item_id to item type 
-					$type_array[ $item_id ] = $type == 'shipping' ? 'shipping' : 'cart';
-				
-					// Add tax amount to tax array
-					$old_taxes[ $item_id ] = $this->get_item_tax( $item_id );
-					
-					// Add to items array 
-					$item_data = array(
-						'Index'  => '', // Leave Index blank because it is reassigned when WooTaxOrder::generate_lookup_data() is called
-						'ItemID' => $item_id, 
-						'Qty'    => $qty, 
-						'Price'  => $unit_price,	
-						'Type'   => $type,
-					);	
-
-					if ( !empty( $tic ) && $tic ) {
-						$item_data['TIC'] = $tic;
-					}
-
-					$final_items[] = $item_data;
-
-				}
-
-			}
-
-		}
-		
-		// Send lookup request using the generated items and mapping array
-		$res = $this->do_lookup( $final_items, $type_array );
-
-		// Convert response array to be sent back to client
-		// @see WC_AJAX::calc_line_taxes() for inspiration
-		if ( is_array( $res ) ) {
-			
-			if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ) {
-
-				if ( !isset( $items['line_tax'] ) ) {
-					$items['line_tax'] = array();
-				}
-
-				if ( !isset( $items['line_subtotal_tax'] ) ) {
-					$items['line_subtotal_tax'] = array();
-				}
-
-				$items['order_taxes'] = array();
-
-				foreach ( $res as $item )  {
-
-					$id  = $item->ItemID;
-					$tax = $item->TaxAmount; 
-
-					if ( is_array( $items['shipping_method_id'] ) && in_array( $id, $items['shipping_method_id'] ) ) {
-						$items['shipping_taxes'][ $id ][ $this->wootax_rate_id ] = $tax;
-					} else {
-						$items['line_tax'][ $id ][ $this->wootax_rate_id ] = $tax;
-						$items['line_subtotal_tax'][ $id ][ $this->wootax_rate_id ] = $tax;
-					}
-
-				}
-
-				$items['order_taxes'][ $this->tax_item_id ] = absint( $this->wootax_rate_id ); // Correct?
-
-				wc_save_order_items( $this->order_id, $items );
-
-				// Return HTML items
-				$order = $this->order;
-				$data  = get_post_meta( $order->id );
-				include( ABSPATH . '/'. PLUGINDIR . '/woocommerce/includes/admin/meta-boxes/views/html-order-items.php' );
-
-				die();
-
-			} else if ( version_compare( WOOCOMMERCE_VERSION, '2.1', '>=' ) ) {
-
-				// We are going to send back a JSON response
-				header( 'Content-Type: application/json; charset=utf-8' );
-
-				$item_tax = $shipping_tax = 0;
-				$tax_row_html = '';
-				$item_taxes = array();
-
-				// Update item taxes
-				foreach ( $res as $item ) {
-
-					$id  = $item->ItemID;
-					$tax = $item->TaxAmount; 
-
-					if ( $id == WT_SHIPPING_ITEM ) {
-						$shipping_tax += $tax;
-					} else {
-
-						$item_taxes[ $id ] = array(
-							'line_subtotal_tax' => wc_format_localized_price( $tax ),
-							'line_tax'          => wc_format_localized_price( $tax ),
-						);
-
-						$item_tax += $tax;
-
-					}	
-
-				}
-
-				// Fetch array mapping tax rate ids to tax codes
-				$tax_codes = array();
-				$taxes     = $this->order->get_taxes();
-
-				foreach ( $taxes as $item_id => $data ) {
-					
-					$code = array();
-
-					$rate_id   = $data['rate_id'];
-					$rate_data = $wpdb->get_row( "SELECT * FROM {$wpdb->prefix}woocommerce_tax_rates WHERE tax_rate_id = '$rate_id'" );
-
-					$code[] = $rate_data->tax_rate_country;
-					$code[] = $rate_data->tax_rate_state;
-					$code[] = $rate_data->tax_rate_name ? sanitize_title( $rate_data->tax_rate_name ) : 'TAX';
-					$code[] = absint( $rate_data->tax_rate_priority );
-
-					$tax_codes[ $rate_id ] = strtoupper( implode( '-', array_filter( $code ) ) );
-
-				}
-
-				// Loop through tax items to build tax row HTML
-				ob_start();
-
-				foreach ( $taxes as $item_id => $item ) {
-					include( ABSPATH . '/'. PLUGINDIR . '/woocommerce/includes/admin/post-types/meta-boxes/views/html-order-tax.php' );
-				}
-
-				$tax_row_html = ob_get_clean();
-
-				// Return
-				echo json_encode( array(
-					'item_tax' 		=> $item_tax,
-					'item_taxes' 	=> $item_taxes,
-					'shipping_tax' 	=> $shipping_tax,
-					'tax_row_html' 	=> $tax_row_html,
-				) );
-
-				// Quit out
-				die();
-
-			} 
-
-		} else {
-			die( json_encode( array( 
-				'status'  => 'error', 
-				'message' => $res,
-			) ) ); 
-		}
-
-	}
-
-	/**
-	 * Calculate recurring line taxes via AJAX
-	 * Based on the original @see calculate_recurring_line_taxes() function in class-wc-wootax-subscriptions-order.php
-	 * 
-	 * @since 4.4
-	 */
-	public function ajax_update_recurring_tax() {
-
-		global $woocommerce, $wpdb;
-
-		$woo_22_plus = version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' );
-
-		check_ajax_referer( 'woocommerce-subscriptions', 'security' );
-
-		$order_id  = absint( $_POST['order_id'] );
-		$country   = strtoupper( esc_attr( $_POST['country'] ) );
-
-		// Step out of the way if the customer is not located in the US
-		if ( $country != 'US' )
-			return;
-
-		$shipping      = $_POST['shipping'];
-		$line_subtotal = isset( $_POST['line_subtotal'] ) ? esc_attr( $_POST['line_subtotal'] ) : 0;
-		$line_total    = isset( $_POST['line_total'] ) ? esc_attr( $_POST['line_total'] ) : 0;
-
-		// Set up WC_WooTax_Order object
-		$this->load_order( $order_id );
-		
-		// Update customer address
-		$this->destination_address = $this->get_destination_address();
-
-		// We only need to instantiate a WC_Tax object if we are using WooCommerce < 2.3
-		if ( !$woo_22_plus )
-			$tax = new WC_Tax();
-
-		$taxes      = $shipping_taxes = array();
-	    $return     = array();
-	 	$item_data  = array();
-	 	$type_array = array();
-
-		$product_id = '';
-
-		if ( isset( $_POST['order_item_id'] ) ) {
-			$product_id = woocommerce_get_order_item_meta( $_POST['order_item_id'], '_product_id' );
-		} elseif ( isset( $_POST['product_id'] ) ) {
-			$product_id = esc_attr( $_POST['product_id'] );
-		}
-
-		if ( ! empty( $product_id ) && WC_Subscriptions_Product::is_subscription( $product_id ) ) {
-
-			// Get product details
-			$product         = WC_Subscriptions::get_product( $product_id );
-			$item_tax_status = $product->get_tax_status();
-
-			// Add product to items array
-			if ( $item_tax_status == 'taxable' ) {
-				$tic = get_post_meta( $product->id, 'wootax_tic', true );
-
-				$item_info = array(
-					'Index'  => '', // Leave Index blank because it is reassigned when WooTaxOrder::generate_lookup_data() is called
-					'ItemID' => isset( $_POST['order_item_id'] ) ? $_POST['order_item_id'] : $product_id, 
-					'Qty'    => 1, 
-					'Price'  => $line_subtotal > 0 ? $line_subtotal : $product->get_price(),	
-					'Type'   => 'cart',
-				);
-
-				if ( !empty( $tic ) && $tic )
-					$item_info['TIC'] = $tic;
-
-				$item_data[] = $item_info;
-
-				$type_array[ $_POST['order_item_id'] ] = 'cart';
-			}
-
-			// Add shipping to items array
-			if ( $shipping > 0 ) {
-				$item_data[] = array(
-					'Index'  => '', // Leave Index blank because it is reassigned when WooTaxOrder::generate_lookup_data() is called
-					'ItemID' => WT_SHIPPING_ITEM, 
-					'TIC'    => WT_SHIPPING_TIC,
-					'Qty'    => 1, 
-					'Price'  => $shipping,	
-					'Type'   => 'shipping',
-				);
-
-				$type_array[ WT_SHIPPING_ITEM ] = 'shipping';
-			}
-
-			// Issue Lookup request
-			$res = $this->do_lookup( $item_data, $type_array, true );
-
-			if ( is_array( $res ) ) {
-
-				$return['recurring_shipping_tax']      = 0;
-				$return['recurring_line_subtotal_tax'] = 0;
-				$return['recurring_line_tax']          = 0;
-
-				foreach ( $res as $item ) {
-
-					$item_id  = $item->ItemID;
-					$item_tax = $item->TaxAmount;
-
-					if ( $item_id == WT_SHIPPING_ITEM ) {
-						$return['recurring_shipping_tax'] += $item_tax;
-					} else {
-						$return['recurring_line_subtotal_tax'] += $item_tax;
-						$return['recurring_line_tax']          += $item_tax;
-					}
-
-				}
-
-				$taxes[ $this->wootax_rate_id ]          = $return['recurring_line_tax'];
-				$shipping_taxes[ $this->wootax_rate_id ] = $return['recurring_shipping_tax'];
-
-			 	// Get tax rates
-				$tax_codes = array( $this->wootax_rate_id => 'WOOTAX-RATE-DO-NOT-REMOVE' );
-
-				// Remove old tax rows
-				$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}woocommerce_order_itemmeta WHERE order_item_id IN ( SELECT order_item_id FROM {$wpdb->prefix}woocommerce_order_items WHERE order_id = %d AND order_item_type = 'recurring_tax' )", $order_id ) );
-				$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}woocommerce_order_items WHERE order_id = %d AND order_item_type = 'recurring_tax'", $order_id ) );
-
-				// Now merge to keep tax rows
-				ob_start();
-
-				foreach ( array_keys( $taxes + $shipping_taxes ) as $key ) {
-					$item                        = array();
-					$item['rate_id']             = $key;
-					$item['name']                = $tax_codes[ $key ];
-					$item['label']               = $woo_22_plus ? WC_Tax::get_rate_label( $key ) : $tax->get_rate_label( $key );
-					$item['compound']            = $woo_22_plus ? WC_Tax::is_compound( $key ) : $tax->is_compound( $key ) ? 1 : 0;
-					$item['tax_amount']          = wc_round_tax_total( isset( $taxes[ $key ] ) ? $taxes[ $key ] : 0 );
-					$item['shipping_tax_amount'] = wc_round_tax_total( isset( $shipping_taxes[ $key ] ) ? $shipping_taxes[ $key ] : 0 );
-
-					if ( !$item['label'] ) {
-						$item['label'] = $woocommerce->countries->tax_or_vat();
-					}
-
-					// Add line item
-					$item_id = woocommerce_add_order_item( $order_id, array(
-						'order_item_name' => $item['name'],
-						'order_item_type' => 'recurring_tax'
-					) );
-
-					// Add line item meta
-					if ( $item_id ) {
-						woocommerce_add_order_item_meta( $item_id, 'rate_id', $item['rate_id'] );
-						woocommerce_add_order_item_meta( $item_id, 'label', $item['label'] );
-						woocommerce_add_order_item_meta( $item_id, 'compound', $item['compound'] );
-						woocommerce_add_order_item_meta( $item_id, 'tax_amount', $item['tax_amount'] );
-						woocommerce_add_order_item_meta( $item_id, 'shipping_tax_amount', $item['shipping_tax_amount'] );
-					}
-
-					include( plugin_dir_path( WC_Subscriptions::$plugin_file ) . 'templates/admin/post-types/writepanels/order-tax-html.php' );
-				}
-
-				$return['tax_row_html'] = ob_get_clean();
-
-				echo json_encode( $return );
-
-			}
-
-		}
-
-		die();
-	}
-
-
-	/**
-	 * Add correct tax to order post-checkout; store tax item ID
-	 *
-	 * @since 4.2
-	 * @param $order_id (int) the order ID, $item_id (tax item id), $tax_rate_id (tax rate id; look for wootax_rate_id)
-	 */
-	public function add_order_tax_rate( $order_id, $item_id, $tax_rate_id ) {
-
-		if( $tax_rate_id != get_option( 'wootax_rate_id' ) ) {
-			return;
-		}
-
-		// Store tax item id
-		$this->tax_item_id = $item_id;
-
-		// Update tax amount to match that for this order
-		wc_add_order_item_meta( $item_id, 'tax_amount', wc_format_decimal( $this->tax_total ) );
-		wc_add_order_item_meta( $item_id, 'shipping_tax_amount', wc_format_decimal( $this->shipping_tax_total ) );
-
-		if ( class_exists( 'WC_Subscriptions' ) ) {
-			wc_add_order_item_meta( $item_id, 'cart_tax', wc_format_decimal( $this->tax_total ) );
-			wc_add_order_item_meta( $item_id, 'shipping_tax', wc_format_decimal( $this->shipping_tax_total ) );
-		}
-
-	}
-
-	/**
-	 * Setter: Directly updates order meta values
-	 * 
-	 * @since 4.2
-	 */
-	public function __set( $key, $value ) {
-
-		update_post_meta( $this->order_id, '_wootax_'. $key, $value );
-
-	}
-	
-	/**
-	 * Getter: Returns meta key OR default value if the option has not been set
-	 *
-	 * @since 4.2
-	 */
-	public function __get( $key ) {
-
-		if ( !isset( $this->order_id ) ) {
-			return NULL;
-		}
-		
-		$meta_value = get_post_meta( $this->order_id, '_wootax_' . $key, true );
-		$meta_value = ( $meta_value !== false ) ? $meta_value : ( isset( $this->defaults[ $key ] ) ? $this->defaults[ $key ] : NULL );
-			
-		return $meta_value;
-
-	}
-
-}
-
-// Initialize WC_WooTax_Order object 
-add_action( 'init', 'initialize_order_object' );
-
-function initialize_order_object() {
-	global $WC_WooTax_Order;
-
-	$WC_WooTax_Order = new WC_WooTax_Order();
 }

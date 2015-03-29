@@ -24,11 +24,9 @@ function enqueue_checkout_scripts() {
  * Adds exemption code to the header on the checkout page and enqueues WooTax frontend CSS
  */
 function add_exemption_javascript() {
-
 	if ( is_checkout() ) {
-
 		// Insert the exemption code (taken from Appendix C of the TaxCloud developer documentation)
-		$merchant_name = wootax_get_option( 'company_name' );
+		$merchant_name = WC_WooTax::get_option( 'company_name' );
 		$dir_url = WT_PLUGIN_DIR_URL;
 		$home_path = ABSPATH;
 		$allow_blanket_certificates = is_user_logged_in();
@@ -60,9 +58,7 @@ function add_exemption_javascript() {
 				ts.src = '{$dir_url}js/certificate-manager.js' + clearUrl; var t = document.getElementsByTagName('script')[0]; t.parentNode.insertBefore(ts, t);
 			})();
 		</script>";
-
 	}
-
 }
 
 /**
@@ -71,28 +67,24 @@ function add_exemption_javascript() {
  * @since 4.3
  */
 function maybe_display_exemption_link() {
+	global $current_user;
 
-	global $woocommerce, $current_user;
+	$restricted   = WC_WooTax::get_option( 'restrict_exempt' ) == 'yes' ? true : false;
+	$exempt_roles = is_array( WC_WooTax::get_option( 'exempt_roles' ) ) ? WC_WooTax::get_option( 'exempt_roles' ) : array();
 
-	$restricted   = wootax_get_option( 'restrict_exempt' ) == 'yes' ? true : false;
-	$exempt_roles = is_array( wootax_get_option( 'exempt_roles' ) ) ? wootax_get_option( 'exempt_roles' ) : array();
-
-	if ( wootax_get_option( 'show_exempt' ) == 'true' ) {
-
+	if ( WC_WooTax::get_option( 'show_exempt' ) == 'true' ) {
 		if ( $restricted === true && ( !is_user_logged_in() || count( array_intersect( $exempt_roles, $current_user->roles ) ) == 0 ) ) {
 			return;
 		}
 
-		$raw_link_text = trim( wootax_get_option( 'exemption_text' ) );
+		$raw_link_text = trim( WC_WooTax::get_option( 'exemption_text' ) );
 		$link_text = empty( $raw_link_text ) ? 'Click here to add or apply an exemption certificate.' : $raw_link_text;
 
 		$notice = 'Are you a tax exempt customer? <span id="wootax_exemption_link"><a href="#" style="text-decoration: none;">'. $link_text .'</a></span>';
 	
 		echo "<div class='woocommerce-info'>$notice</div>";
-		echo "<div class='woocommerce-message' id='wooTaxApplied' style='". ( empty( $woocommerce->session->certificate_id ) ? 'display: none;' : '' ) ."'>Exemption certificate applied (<a href='#' id='removeCert'>Remove</a>)</div>";
-
+		echo "<div class='woocommerce-message' id='wooTaxApplied' style='". ( empty( WC()->session->certificate_id ) ? 'display: none;' : '' ) ."'>Exemption certificate applied (<a href='#' id='removeCert'>Remove</a>)</div>";
 	}
-
 }
 
 /**
@@ -102,11 +94,9 @@ function maybe_display_exemption_link() {
  * @since 4.2
  */
 function ajax_update_exemption_certificate() {
-
 	$action = esc_attr( $_POST['act'] );
 
 	switch ( $action ) {
-
 		case 'add':
 			add_exemption_certificate();
 			break;
@@ -119,9 +109,7 @@ function ajax_update_exemption_certificate() {
 		case 'set': 
 			set_exemption_certificate();
 			break;
-
 	}
-
 }
 
 /**
@@ -130,12 +118,6 @@ function ajax_update_exemption_certificate() {
  * @since 4.2
  */
 function add_exemption_certificate() {
-
-	global $woocommerce;
-
-	// Set up TaxCloud object
-	$taxcloud = get_taxcloud();
-
 	// Build WC_WooTax_Exemption_Certificate object
 	$certificate = new WC_WooTax_Exemption_Certificate();
 
@@ -168,21 +150,18 @@ function add_exemption_certificate() {
 
 	// If this certificate will only be used for a single purchase, store it in the session; Else, send AddCertificate request to TaxCloud
 	if ( true == $certificate->SinglePurchase ) {
-
 		// Save cert to session for use during checkout
-		$woocommerce->session->certificate_data = $final_certificate['exemptCert'];
-		$woocommerce->session->save_data();
+		WC()->session->certificate_data = $final_certificate['exemptCert'];
+		WC()->session->save_data();
 
 		// Send back success response; for single certificates, this should trigger the lightbox to close and cause cart totals to be recalculated
 		die( json_encode( array( 
 			'status' => 'success', 
 			'message' => ''
 		) ) );
-
 	} else {
-
 		// Send request
-		$res = $taxcloud->send_request( 'AddExemptCertificate', $final_certificate );
+		$res = TaxCloud()->send_request( 'AddExemptCertificate', $final_certificate );
 
 		// Check for errors
 		if ( $res !== false ) {
@@ -196,12 +175,10 @@ function add_exemption_certificate() {
 		} else {
 			die( json_encode( array( 
 				'status'  => 'error', 
-				'message' => 'There was an error while saving this certificate: ' . $taxcloud->get_error_message() 
+				'message' => 'There was an error while saving this certificate: ' . TaxCloud()->get_error_message() 
 			) ) );
 		}
-
 	}
-
 }
 
 /**
@@ -210,40 +187,31 @@ function add_exemption_certificate() {
  * @since 4.2
  */
 function remove_exemption_certificate() {
-
-	global $woocommerce;
-
-	// Set up TaxCloud object
-	$taxcloud = get_taxcloud();
-
 	// Collect vars
 	$certificate_id = esc_attr( $_POST['certificateID'] );
 	$single         = esc_attr( $_POST['single'] );
 
 	// Fetch customer ID
-	$customer_id = $woocommerce->session->wootax_customer_id;
+	$customer_id = WC()->session->wootax_customer_id;
 	
 	// If this is a "single purchase" cert, we need to remove all certificates with the same OrderID
-	if ( $single == 'true' || intval( $single ) == 1 ) {
-		
-		$response = $taxcloud->send_request( 'GetExemptCertificates', array( 'customerID' => $customer_id ) );
-		
-		if ( $response !== false ) {
+	if ( $single == 'true' || intval( $single ) == 1 ) {		
+		$response = TaxCloud()->send_request( 'GetExemptCertificates', array( 'customerID' => $customer_id ) );
 
+		if ( $response !== false ) {
 			$certificates = $response->ExemptCertificates;
 			$duplicates = array();
 
 			// Dump certificates into object to be returned to client
 			if ( $certificates != NULL && is_object( $certificates ) ) {
-
 				foreach ( $certificates->ExemptionCertificate as $certificate ) {
 					// Add single purchase certificates to duplicate array
 					if ( $certificate->Detail->SinglePurchase == 1 ) {
 						$orderNum = $certificate->Detail->SinglePurchaseOrderNumber;
 						
 						if ( !isset( $duplicates[$orderNum] ) || !is_array( $duplicates[$orderNum] ) )
-							$duplicates[$orderNum]   = array();
-							$duplicates[$orderNum][] = $certificate->CertificateID;
+							$duplicates[ $orderNum ]   = array();
+							$duplicates[ $orderNum ][] = $certificate->CertificateID;
 						}
 					}
 				}
@@ -251,15 +219,15 @@ function remove_exemption_certificate() {
 				// Loop through dupes array; delete all exemption certificates that share the orderID of cert with ID certificateID
 				foreach ($duplicates as $dupes) {
 					if ( in_array( $certificate_id, $dupes ) ) {
-						foreach ($dupes as $certID) {
+						foreach ( $dupes as $certID ) {
 							// Send request
-							$res = $taxcloud->send_request( 'DeleteExemptCertificate', array( 'certificateID' => $certID ) );
+							$res = TaxCloud()->send_request( 'DeleteExemptCertificate', array( 'certificateID' => $certID ) );
 							
 							// Check for errors
 							if ( $res == false ) {
 								die( json_encode( array( 
 									'status'  => 'error', 
-									'message' => 'There was an error while removing this certificate: ' . $taxcloud->get_error_message() 
+									'message' => 'There was an error while removing this certificate: ' . TaxCloud()->get_error_message() 
 								) ) );
 							}
 						}
@@ -270,18 +238,15 @@ function remove_exemption_certificate() {
 					'status'  => 'success', 
 					'message' => 'Certificate ' . $certificate_id . ' removed successfully.' 
 				) ) );
-
 		} else {
 			die( json_encode( array( 
 				'status'  => 'error', 
-				'message' => 'There was an error while removing this certificate: ' . $taxcloud->get_error_message() 
+				'message' => 'There was an error while removing this certificate: ' . TaxCloud()->get_error_message() 
 			) ) );
 		}
-
 	} else {
-
 		// Send request
-		$res = $taxcloud->send_request( 'DeleteExemptCertificate', array( 'certificateID' => $certificate_id ) );
+		$res = TaxCloud()->send_request( 'DeleteExemptCertificate', array( 'certificateID' => $certificate_id ) );
 
 		// Check for errors
 		if ( $res !== false ) {
@@ -292,12 +257,10 @@ function remove_exemption_certificate() {
 		} else {
 			die( json_encode( array( 
 				'status'  => 'error', 
-				'message' => 'There was an error while removing this certificate: ' . $taxcloud->get_error_message() 
+				'message' => 'There was an error while removing this certificate: ' . TaxCloud()->get_error_message() 
 			) ) );
 		}
-
 	}
-
 }
 
 /**
@@ -307,23 +270,20 @@ function remove_exemption_certificate() {
  * @param $certID a certificate ID (optional)
  */
 function set_exemption_certificate( $certID = null ) {
-
-	global $woocommerce;
-
 	$cert = !empty( $certID ) ? $certID : ( isset( $_POST['cert'] ) ? esc_attr( $_POST['cert'] ) : null );
 	
 	// Set certID (empty if we are removing the currently applied certificate)
-	$woocommerce->session->certificate_id = $cert;
+	WC()->session->certificate_id = $cert;
 
 	// If we are removing the currently applied certificate, reset "certificate_data" and "certificate_applied" session variables
 	// Also, set "cert_removed" to true (this way we dont auto-apply for exempt user if they happen to remove)
-	if ( empty( $woocommerce->session->certificate_id ) ) {
-		$woocommerce->session->certificate_data    = null;
-		$woocommerce->session->certificate_applied = null;
-		$woocommerce->session->cert_removed        = true;
+	if ( empty( WC()->session->certificate_id ) ) {
+		WC()->session->certificate_data    = null;
+		WC()->session->certificate_applied = null;
+		WC()->session->cert_removed        = true;
 	} 
 
-	$woocommerce->session->save_data();
+	WC()->session->save_data();
 
 	// Returning true will trigger the totals to update so WooTax applies the certificate
 	if ( empty( $certID ) ) {
@@ -331,7 +291,6 @@ function set_exemption_certificate( $certID = null ) {
 	} else {
 		return true;
 	}
-
 }
 
 /**
@@ -341,23 +300,20 @@ function set_exemption_certificate( $certID = null ) {
  * @return an array of exemption certificates
  */
 function get_user_exemption_certs( $user_login ) {
-
-	if ( empty( $user_login ) ) 
+	if ( empty( $user_login ) ) {
 		return array();
-
-	// Set up TaxCloud object
-	$taxcloud = get_taxcloud();
+	}
 
 	// Send GetExemptCertificates request
-	$response = $taxcloud->send_request( 'GetExemptCertificates', array( 'customerID' => $user_login ) );
+	$response = TaxCloud()->send_request( 'GetExemptCertificates', array( 'customerID' => $user_login ) );
 
 	if ( $response !== false ) {
-
 		$certificate_result = is_object( $response->ExemptCertificates ) ? $response->ExemptCertificates->ExemptionCertificate : '';
 
 		// Convert response to array if only a single certificate is returned
-		if ( !is_array( $certificate_result ) )
+		if ( !is_array( $certificate_result ) ) {
 			$certificate_result = array( $certificate_result );
+		}
 
 		// Dump certificates into object to be returned to client
 		$certificates = $duplicates = array();
@@ -400,8 +356,9 @@ function get_user_exemption_certs( $user_login ) {
 		$final_certificates = array();
 
 		foreach ( $certificates as $cert ) {
-			if ( !is_object( $cert ) )
+			if ( !is_object( $cert ) ) {
 				continue;
+			}
 
 			$keep = false;
 
@@ -417,11 +374,9 @@ function get_user_exemption_certs( $user_login ) {
 		}
 
 		return $final_certificates;
-
 	} else {
 		return array();
 	}
-
 }
 
 /**
@@ -431,33 +386,27 @@ function get_user_exemption_certs( $user_login ) {
  * @return JSONP object with exemption certificates
  */
 function ajax_list_exemption_certificates() {
-
 	global $current_user;
 	
-	get_currentuserinfo();
+	//get_currentuserinfo();
 
 	$customer_id = is_user_logged_in() ? $current_user->user_login : '';
 
 	if ( $customer_id ) {
-
 		$certificates = get_user_exemption_certs( $customer_id );
 
 		if ( count( $certificates ) > 0 ) {
-
 			$final_certificates = new stdClass();
 			$final_certificates->cert_list = $certificates;
 
 			// Convert to JSON and return
 			die( json_encode( $final_certificates ) );
-
 		} else {
 			die( '{cert_list:[]}' );
 		}
-
 	} else {
 		die( '{cert_list:[]}' );
 	}
-
 }
 
 /**
@@ -466,19 +415,15 @@ function ajax_list_exemption_certificates() {
  * @since 4.3
  */
 function maybe_apply_exemption_certificate() {
+	global $current_user;
 
-	global $current_user, $woocommerce;
+	//get_currentuserinfo();
 
-	get_currentuserinfo();
+	$exempt_roles = WC_WooTax::get_option( 'exempt_roles' );
 
-	$exempt_roles = wootax_get_option( 'exempt_roles' );
-
-	if ( is_object( $woocommerce->session ) && !$woocommerce->session->certificate_id && !$woocommerce->session->cert_removed && in_array( site_url( $_SERVER['REQUEST_URI'] ), array( get_permalink( wc_get_page_id( 'cart' ) ), get_permalink( wc_get_page_id( 'checkout' ) ) ) ) ) {
-
+	if ( is_object( WC()->session ) && !WC()->session->certificate_id && !WC()->session->cert_removed && in_array( site_url( $_SERVER['REQUEST_URI'] ), array( get_permalink( wc_get_page_id( 'cart' ) ), get_permalink( wc_get_page_id( 'checkout' ) ) ) ) ) {
 		foreach ( $current_user->roles as $role ) {
-
 			if ( is_array( $exempt_roles ) && in_array( $role, $exempt_roles ) ) {
-
 				// Get all certs
 				$certs = get_user_exemption_certs( $current_user->user_login );
 		
@@ -496,13 +441,9 @@ function maybe_apply_exemption_certificate() {
 				if ( $first_id != -1 ) {
 					set_exemption_certificate( $first_id );
 				}
-
 			}
-
 		}
-
 	}
-
 }
 
 // Hooks into WordPress/WooCommerce

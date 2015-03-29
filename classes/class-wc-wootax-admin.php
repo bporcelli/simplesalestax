@@ -1,108 +1,86 @@
 <?php
 
-// Prevent direct access to script
-if ( ! defined( 'ABSPATH' ) || !is_admin() )  {
-	exit; 
-}
-
-// Load integration class
-require( 'class-wc-wootax-settings.php' );
-
 /**
- * WC_WooTax_Admin class
- * Contains all methods relevant to the admin interface and actions performed within the WordPress admin panel
+ * Contains all methods for actions performed within the WordPress admin panel
  *
  * @package WooTax
  * @since 4.2
  */
+
+if ( ! defined( 'ABSPATH' ) )  {
+	exit; // Prevent direct access to script
+}
+
 class WC_WooTax_Admin {
 	/**
-	 * Class constructor
+	 * Initialize class
 	 *
-	 * @since 4.2
+	 * @since 4.4
 	 */
-	public function __construct() {
-
-		// Give access to taxcloud object
-		$this->taxcloud = get_taxcloud();
-
-		// Hook WordPress/WooCommerce
-		$this->hook_wordpress();
-		$this->hook_woocommerce();
-
+	public static function init() {
+		self::hooks();
 	}
 	
 	/**
-	 * Hook into WordPress
+	 * Hook into WordPress actions/filters
 	 * 
 	 * @since 4.2
 	 */
-	private function hook_wordpress() {
-		
+	private static function hooks() {		
 		// Register WooTax integration to build settings page
-		add_filter( 'woocommerce_integrations', array( $this, 'add_integration' ) );
+		add_filter( 'woocommerce_integrations', array( __CLASS__, 'add_integration' ) );
 
-		// Add installation page
-		add_action( 'admin_menu', array( $this, 'admin_menu' ), 20 );
+		// Add "Install WooTax" menu item
+		add_action( 'admin_menu', array( __CLASS__, 'admin_menu' ), 20 );
 
 		// Update installation progress
-		add_action( 'init', array( $this, 'update_installation_progress' ) );
+		add_action( 'init', array( __CLASS__, 'maybe_update_installation_progress' ) );
+		add_action( 'init', array( __CLASS__, 'maybe_download_log_file' ) );
 
-		// Enqueue admin scripts 
-		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ), 20 );
+		// Enqueue admin scripts/styles
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_scripts_and_styles' ), 20 );
+
+		// Register WooTax meta boxes
+		add_action( 'add_meta_boxes', array( __CLASS__, 'register_admin_metaboxes' ) );
 		
-		// Enqueue admin styles
-		add_action( 'admin_print_styles', array( $this, 'enqueue_admin_styles' ) );
-		
-		// Register meta boxes
-		add_action( 'add_meta_boxes', array( $this, 'register_admin_metaboxes' ) );
-		
-		// Save custom product meta (TIC/shipping origin addresses)
-		add_action( 'save_post', array( $this, 'save_product_meta' ) );
+		// Save custom product meta
+		add_action( 'save_post', array( __CLASS__, 'save_product_meta' ) );
 
 		// Add "settings" link to plugins page
-		add_filter( 'plugin_action_links_' . plugin_basename( WT_PLUGIN_PATH . '/woocommerce-wootax.php' ), array( $this, 'add_settings_link' ) );
-
-		// Verify TaxCloud settings via AJAX
-		add_action( 'wp_ajax_wootax-verify-taxcloud', array( $this, 'verify_taxcloud_settings' ) );
-
-		// Verify origin addressses via AJAX
-		add_action( 'wp_ajax_wootax-verify-address', array( $this, 'verify_origin_addresses' ) );
-
-		// Uninstall WooTax
-		add_action( 'wp_ajax_wootax-uninstall', array( $this, 'uninstall_wootax' ) );
-
-		// Delete tax rates from specified tax classes
-		add_action( 'wp_ajax_wootax-delete-rates', array($this, 'wootax_delete_tax_rates') );
-		
-	}
-	
-	/**
-	 * Hook into WooCommerce
-	 * 
-	 * @since 4.2
-	 */
-	private function hook_woocommerce() {
+		add_filter( 'plugin_action_links_' . plugin_basename( WT_PLUGIN_PATH . '/woocommerce-wootax.php' ), array( __CLASS__, 'add_settings_link' ) );
 
 		// Allow for bulk editing of TICs
-		add_action( 'woocommerce_product_bulk_edit_start', array( $this, 'bulk_edit_tic_field' ) );
-		add_action( 'woocommerce_product_bulk_edit_save', array( $this, 'bulk_edit_save_tic' ) );
+		add_action( 'woocommerce_product_bulk_edit_start', array( __CLASS__, 'output_bulk_edit_fields' ) );
+		add_action( 'woocommerce_product_bulk_edit_save', array( __CLASS__, 'save_bulk_edit_fields' ) );
 		
 		// Add "taxes" tab on reports page
-		add_action( 'woocommerce_reports_charts', array( $this, 'add_reports_tax_tab' ) );
+		add_action( 'woocommerce_reports_charts', array( __CLASS__, 'add_reports_tax_tab' ) );
 
+		// AJAX actions
+		add_action( 'wp_ajax_wootax-verify-taxcloud', array( __CLASS__, 'verify_taxcloud_settings' ) );
+		add_action( 'wp_ajax_wootax-verify-address', array( __CLASS__, 'verify_origin_addresses' ) );
+		add_action( 'wp_ajax_wootax-uninstall', array( __CLASS__, 'uninstall_wootax' ) );
+		add_action( 'wp_ajax_wootax-delete-rates', array(__CLASS__, 'wootax_delete_tax_rates') );		
 	}
 
 	/**
-	 * Update progress of installation on init
-	 * Also, force download of log file if requested
+	 * Register WooTax WooCommerce Integration
 	 *
 	 * @since 4.2
 	 */
-	public function update_installation_progress() {
+	public static function add_integration( $integrations ) {
+		$integrations[] = 'WC_WooTax_Settings';
+		
+		return $integrations;
+	}
 
+	/**
+	 * Update progress of installation if necessary
+	 *
+	 * @since 4.2
+	 */
+	public static function maybe_update_installation_progress() {
 		if( isset( $_POST['wootax_license_key'] ) ) {
-
 			$license = trim( $_POST['wootax_license_key'] );
 		
 			if ( !empty( $license ) ) {
@@ -137,11 +115,16 @@ class WC_WooTax_Admin {
 			} else {
 				wootax_add_message( 'Please enter your license key.' );
 			}
+		}
+	}
 
-		} 
-
+	/**
+	 * Force download of log file if $_GET['download_log'] is set
+	 *
+	 * @since 4.4
+	 */
+	public static function maybe_download_log_file() {
 		if ( isset( $_GET['download_log'] ) ) {
-
 			// If file doesn't exist, create it
 			$handle = 'wootax';
 
@@ -168,9 +151,7 @@ class WC_WooTax_Admin {
 		    readfile( $log_path );
 
 		    exit;
-
 		}
-
 	}
 	
 	/**
@@ -178,29 +159,14 @@ class WC_WooTax_Admin {
 	 *
 	 * @since 4.2
 	 */
-	public function enqueue_admin_scripts() {
-
+	public static function enqueue_scripts_and_styles() {
 		// WooTax admin JS
 		wp_enqueue_script( 'wootax-admin', WT_PLUGIN_DIR_URL .'js/admin.js', array( 'jquery', 'jquery-tiptip' ), '1.0' );
+		wp_localize_script( 'wootax-admin', 'MyAjax', array( 'ajaxURL' => admin_url( 'admin-ajax.php' ) ) );
 
 		// JavaScript for TIC selector
 		wp_enqueue_script( 'jquery-tic', WT_PLUGIN_DIR_URL .'js/jquery-tic.js', array( 'jquery', 'wootax-admin' ) );
 
-		// We need to let our admin script access some important data...
-		$admin_data = array(
-			'ajaxURL' => admin_url( 'admin-ajax.php' )
-		);
-
-		wp_localize_script( 'wootax-admin', 'MyAjax', $admin_data );
-
-	}
-	
-	/**
-	 * Enqueue WooTax admin styles
-	 * 
-	 * @since 4.2
-	 */
-	public function enqueue_admin_styles() {
 		wp_enqueue_style( 'wootax-admin-style', WT_PLUGIN_DIR_URL .'css/admin.css' );
 	}
 	
@@ -209,8 +175,7 @@ class WC_WooTax_Admin {
 	 *
 	 * @since 4.2
 	 */
-	public function bulk_edit_tic_field() {
-
+	public static function output_bulk_edit_fields() {
 		?>
         <label class="alignleft">
 			<span class="title">TIC</span>
@@ -223,26 +188,21 @@ class WC_WooTax_Admin {
 			window.initializeSelect();
 		</script>
         <?php
-
 	}
 	
 	/**
 	 * Saves TIC when bulk editor is used
 	 *
 	 * @since 4.2
-	 * @param $product a WC_Product object or WP_Post object
+	 * @param (WC_Product) $product a WC_Product object
 	 */
-	public function bulk_edit_save_tic( $product ) {
-
-		$id = $product->id;
-
-		if ( $id == NULL || $_REQUEST['wootax_set_tic'] == '' ) {
+	public static function save_bulk_edit_fields( $product ) {
+		if ( $product->id == NULL || $_REQUEST['wootax_set_tic'] == '' ) {
 			return;
 		}
 
-		update_post_meta( $id, 'wootax_tic', $_REQUEST['wootax_set_tic'] );
-		update_post_meta( $id, 'wootax_tic_desc', $_REQUEST['wootax_tic_desc'] );
-
+		update_post_meta( $product->id, 'wootax_tic', $_REQUEST['wootax_set_tic'] );
+		update_post_meta( $product->id, 'wootax_tic_desc', $_REQUEST['wootax_tic_desc'] );
 	}
 	
 	
@@ -251,26 +211,22 @@ class WC_WooTax_Admin {
 	 *
 	 * @since 4.2
 	 */
-	public function register_admin_metaboxes() {
-
-		add_meta_box( 'tic_meta', 'Taxibility Information Code (TIC)', array( $this, 'output_tic_metabox' ), 'product' );
+	public static function register_admin_metaboxes() {
+		// Product metaboxes
+		add_meta_box( 'tic_meta', 'Taxibility Information Code (TIC)', array( __CLASS__, 'output_tic_metabox' ), 'product' );
+		add_meta_box( 'shipping_meta', 'Shipping Origin Addresses', array( __CLASS__, 'output_shipping_metabox' ), 'product', 'side', 'high' );
 		
-		if ( is_super_admin() ) {
-			add_meta_box( 'shipping_meta', 'Shipping Origin Addresses', array( $this, 'output_shipping_metabox' ), 'product', 'side', 'high' );
-		}
-
-		add_meta_box( 'sales_tax_meta', 'WooTax', array( $this, 'output_tax_metabox' ), 'shop_order', 'side', 'high' );
-
+		// Order metaboxes
+		add_meta_box( 'sales_tax_meta', 'WooTax', array( __CLASS__, 'output_tax_metabox' ), 'shop_order', 'side', 'high' );
 	}
 	
 	/**
 	 * Builds HTML for TIC metabox
 	 *
 	 * @since 4.2
-	 * @param $post a WP_Post object
+	 * @param (WP_Post) $post a WP_Post object
 	 */
-	public function output_tic_metabox( $post ) {
-
+	public static function output_tic_metabox( $post ) {
 		$description = get_post_meta( $post->ID, 'wootax_tic_desc', true );
 		$tic         = get_post_meta( $post->ID, 'wootax_tic', true );
 		
@@ -283,7 +239,6 @@ class WC_WooTax_Admin {
         <input type="hidden" name="wootax_tic_desc" value="<?php echo $description; ?>" />
         <input type="hidden" name="wootax_tic" value="<?php echo $tic; ?>" />
         <?php
-
 	}
 	
 	
@@ -291,11 +246,10 @@ class WC_WooTax_Admin {
 	 * Saves custom product meta
 	 *
 	 * @since 4.2
-	 * @param $post_id - the ID of the post/product being saved
+	 * @param (int) $post_id the ID of the post/product being saved
 	 */
-	public function save_product_meta( $product_id ) {
-
-		if ( get_post_type($product_id) != 'product' )  {
+	public static function save_product_meta( $product_id ) {
+		if ( get_post_type( $product_id ) != 'product' )  {
 			return;
 		}
 
@@ -310,25 +264,17 @@ class WC_WooTax_Admin {
 		if ( isset( $_POST['_wootax_origin_addresses'] ) ) {
 			update_post_meta( $product_id, '_wootax_origin_addresses', $_POST['_wootax_origin_addresses'] );
 		}
-
 	}
 	
 	/**
 	 * Outputs HTML for Sales Tax metabox
 	 *
 	 * @since 4.2
-	 * @param $post a WP_Post object
+	 * @param (WP_Post) $post WordPress post object
 	 */
-	public function output_tax_metabox( $post ) {
-
-		global $WC_WooTax_Order;
-
-		// Get shop_order post ID
-		$id = $post->ID;
-
+	public static function output_tax_metabox( $post ) {
 		// Load order
-		$order = $WC_WooTax_Order;
-		$order->load_order( $id );
+		$order = WT_Orders::get_order( $post->ID );
 
 		// Display tax totals
 		?>
@@ -337,21 +283,16 @@ class WC_WooTax_Admin {
 		<p><strong>Please note that tax can only be calculated using the "Calculate Taxes" button if the status below is "Pending Capture."</strong></p>
 		<p><strong>TaxCloud Status:</strong> <?php echo $order->get_status(); ?><br /></p>
         <?php
-
 	}
 
 	/**
 	 * Output origin address select metabox
 	 *
 	 * @since 4.2
-	 * @param $post a WP_Post object
+	 * @param (WP_Post) $post post/product being edited
 	 */
-	public function output_shipping_metabox( $post ) {
-
-		global $current_user;
-
-		$user_id         = isset( $post->post_author ) ? $post->post_author : $current_user->ID;
-		$this->addresses = fetch_business_addresses( $user_id );
+	public static function output_shipping_metabox( $post ) {
+		$addresses = fetch_business_addresses();
 
 		echo '<p>Use the box below to search for and add "Shipping Origin Addresses" for this product. These are the locations from which this
 		item will be shipped. Most merchants <em><strong>will not</strong></em> need to adjust this setting.</p>';
@@ -365,38 +306,25 @@ class WC_WooTax_Admin {
 		// Output addresses
 		echo '<select class="'. ( version_compare( WOOCOMMERCE_VERSION, '2.3', '<' ) ? 'chosen_select' : 'wc-enhanced-select' ) .'" name="_wootax_origin_addresses[]" multiple>';
 
-		if ( is_array( $this->addresses ) && count( $this->addresses ) > 0 ) {
-			foreach ( $this->addresses as $key => $address ) {
-				echo '<option value="'. $key .'"'. ( in_array( $key, $origin_addresses ) ? " selected" : "") .'>'. $this->get_formatted_address( $address ) .'</option>';
+		if ( is_array( $addresses ) && count( $addresses ) > 0 ) {
+			foreach ( $addresses as $key => $address ) {
+				echo '<option value="'. $key .'"'. ( in_array( $key, $origin_addresses ) ? " selected" : "") .'>'. get_formatted_address( $address ) .'</option>';
 			}
 		} else {
 			echo '<option value="">There are no addresses to select.</option>';
 		}
 
 		echo '</select>';
-
-	}
-
-	/**
-	 * Converts Address array into a formatted address string
-	 *
-	 * @since 4.2
-	 * @param $address an Address array
-	 * @return the input address as a string
-	 */
-	private function get_formatted_address( $address ) {
-		return $address['address_1'] .', '. $address['city'] .', '. $address['state'] .' '. $address['zip5'];
 	}
 
 	/**
 	 * Adds a "Taxes" tab to the WooCommerce reports page
 	 *
 	 * @since 4.2
-	 * @param $charts an array of charts to be rendered on the reports page
-	 * @return modified $charts array
+	 * @param (array) $charts an array of charts to be rendered on the reports page
+	 * @return (array) modified $charts array
 	 */
-	public function add_reports_tax_tab( $charts ) {
-
+	public static function add_reports_tax_tab( $charts ) {
 		$charts['taxes'] = array(
 			'title'  => __( 'Taxes', 'woocommerce-wootax' ),
 			'charts' => array(
@@ -404,13 +332,12 @@ class WC_WooTax_Admin {
 					'title'       => __( 'Overview', 'woocommerce-wootax' ),
 					'description' => '',
 					'hide_title'  => true,
-					'function'    => array( $this, 'output_tax_report_button' )
+					'function'    => array( __CLASS__, 'output_tax_report_button' )
 				),
 			)
 		);
 
 		return $charts;
-
 	}
 	
 	/**
@@ -418,60 +345,44 @@ class WC_WooTax_Admin {
 	 *
 	 * @since 4.2
 	 */
-	public function output_tax_report_button() {
-
+	public static function output_tax_report_button() {
 		?>
 		<div id="poststuff" class="wootax-reports-page">
 			<a target="_blank" href="https://taxcloud.net/res/" class="wp-core-ui button button-primary">Go to TaxCloud Reports Page</a>
 		</div>
 		<?php
-
 	}
 
 	/**
 	 * Adds "settings" link to the "plugins" page
 	 * 
 	 * @since 4.2
-	 * @param $links (array) the existing links for this plugin
-	 * @return a modified $links array
+	 * @param (array) $links the existing links for this plugin
+	 * @return (array) a modified $links array
 	 */
-	public function add_settings_link( $links ) { 
-
+	public static function add_settings_link( $links ) { 
 	 	$settings_link = '<a href="admin.php?page=wc-settings&tab=integration&section=wootax">Settings</a>'; 
 
-	  	array_unshift($links, $settings_link); 
+	  	array_unshift( $links, $settings_link ); 
 
 	  	return $links; 
-
 	}
 
 	/**
-	 * Validates the user's TaxCloud settings by sending a Ping request to the TaxCloud API
-	 * Called via AJAX hook "verify-taxcloud-settings"
+	 * Validates the user's TaxCloud API ID/API Key by sending a Ping request to the TaxCloud API
 	 *
 	 * @since 1.0
-	 * @return boolean true or an error message on failure
+	 * @return (boolean) true or an error message on failure
 	 */
-	public function verify_taxcloud_settings() {
-
-		$taxcloud     = $this->taxcloud;
+	public static function verify_taxcloud_settings() {
 		$taxcloud_id  = $_POST['wootax_tc_id'];
 		$taxcloud_key = $_POST['wootax_tc_key'];
 
 		if ( empty( $taxcloud_id ) || empty( $taxcloud_key ) ) {
-
 			die( false );
-
 		} else {
-
-			// If the user entered their TaxCloud credentials and hasn't saved their settings yet, the $taxcloud global will not contain a TaxCloud object
-			if ( !is_object( $taxcloud ) ) {
-				$taxcloud = new WC_WooTax_TaxCloud( $taxcloud_id, $taxcloud_key );
-			} 
-
-			$taxcloud->set_id( $taxcloud_id );
-			$taxcloud->set_key( $taxcloud_key );
-
+			$taxcloud = TaxCloud( $taxcloud_id, $taxcloud_key );
+	
 			// Send ping request and check for errors
 			$response = $taxcloud->send_request( 'Ping' );
 
@@ -480,7 +391,6 @@ class WC_WooTax_Admin {
 			} else {
 				die( true );
 			}
-
 		}
 	}
 
@@ -489,10 +399,9 @@ class WC_WooTax_Admin {
 	 * Called on AJAX action: wootax-deactivate-license
 	 *
 	 * @since 3.8
-	 * @return bool true on success; error message on failure
+	 * @return (mixed) boolean true on success; string error message on failure
 	 */
-	private function wootax_deactivate_license() {
-
+	private static function wootax_deactivate_license() {
 		$current_key = get_option( 'wootax_license_key' );
 
 		if ( !$current_key ) {
@@ -516,7 +425,6 @@ class WC_WooTax_Admin {
 		}
 
 		return true;
-
 	}
 
 	/**
@@ -524,17 +432,15 @@ class WC_WooTax_Admin {
 	 * Ignore WooTax's own tax rate
 	 *
 	 * @since 3.5
-	 * @return boolean true on success; error message on failure
+	 * @return (mixed) boolean true on success; string error message on failure
 	 */
-	public function wootax_delete_tax_rates() {
-
+	public static function wootax_delete_tax_rates() {
 		global $wpdb;
 
 		$rate_classes   = explode( ',', $_POST['rates'] );
-		$wootax_rate_id = get_option( 'wootax_rate_id' ) == false ? 999999 : get_option( 'wootax_rate_id' );
+		$wootax_rate_id = WT_RATE_ID == false ? 999999 : WT_RATE_ID;
 
-		foreach ($rate_classes as $rate_class) {
-
+		foreach ( $rate_classes as $rate_class ) {
 			$res = $wpdb->query( $wpdb->prepare( "
 				DELETE FROM
 					{$wpdb->prefix}woocommerce_tax_rates 
@@ -543,17 +449,15 @@ class WC_WooTax_Admin {
 				AND
 					tax_rate_id != $wootax_rate_id
 				",
-				($rate_class == 'standard-rate' ? '' : $rate_class)
+				( $rate_class == 'standard-rate' ? '' : $rate_class )
 			) );
 
 			if ( $res === false ) {
-				die('There was an error while deleting your tax rates. Please try again.');
+				die( 'There was an error while deleting your tax rates. Please try again.' );
 			}
-
 		}
 
 		die( true );
-
 	}
 
 	/**
@@ -564,19 +468,18 @@ class WC_WooTax_Admin {
 	 *
 	 * @since 4.2
 	 */
-	public function uninstall_wootax() {
-
+	public static function uninstall_wootax() {
 		global $wpdb;
 
 		// Deactivate license
-		$license_deactivated = $this->wootax_deactivate_license();
+		$license_deactivated = self::wootax_deactivate_license();
 
 		if ( $license_deactivated !== true ) {
 			die( $license_deactivated );
 		}
 
 		// Remove WooTax tax rate
-		$wootax_rate_id = get_option( 'wootax_rate_id' );
+		$wootax_rate_id = WT_RATE_ID;
 		$wpdb->query( "DELETE FROM {$wpdb->prefix}woocommerce_tax_rates WHERE tax_rate_id = $wootax_rate_id" );
 
 		// Delete WooTax settings
@@ -590,19 +493,6 @@ class WC_WooTax_Admin {
 
 		// Done!
 		die( json_encode( array( 'status' => 'success' ) ) );
-
-	}
-
-	/**
-	 * Register WooTax WooCommerce Integration
-	 *
-	 * @since 4.2
-	 */
-	public function add_integration( $integrations ) {
-
-		$integrations[] = 'WC_WooTax_Settings';
-		return $integrations;
-
 	}
 
 	/**
@@ -610,15 +500,13 @@ class WC_WooTax_Admin {
 	 *
 	 * @since 4.2
 	 */
-	public function admin_menu() {
-
+	public static function admin_menu() {
 		$license       = get_option( 'wootax_license_key' );
 		$rates_checked = get_option( 'wootax_rates_checked' );
 
 		if ( !$license || !$rates_checked ) {
-			add_submenu_page( 'woocommerce', 'WooTax Installation', 'Install WooTax', 'manage_options', 'wootax_install', array( $this, 'render_installation_page' ) );
-		} 
-
+			add_submenu_page( 'woocommerce', 'WooTax Installation', 'Install WooTax', 'manage_options', 'wootax_install', array( __CLASS__, 'render_installation_page' ) );
+		}
 	}
 
 	/**
@@ -626,8 +514,7 @@ class WC_WooTax_Admin {
 	 *
 	 * @since 4.2
 	 */
-	public function render_installation_page() {
-
+	public static function render_installation_page() {
 		$license_key   = get_option( 'wootax_license_key' );
 		$rates_checked = get_option( 'wootax_rates_checked' );
 
@@ -635,15 +522,13 @@ class WC_WooTax_Admin {
 			include( WT_PLUGIN_PATH .'templates/admin/license-activation.php' );
 		} else if ( !$rates_checked ) {
 			include( WT_PLUGIN_PATH .'templates/admin/delete-rates.php' );
-		} 
-
+		}
 	}
 
 	/**
  	 * Display rate removal table during installation
  	 */
- 	public function display_class_table() {
-
+ 	public static function display_class_table() {
  		global $wpdb;
 
 		// Get readable tax classes
@@ -666,14 +551,14 @@ class WC_WooTax_Admin {
 				WHERE 
 					tax_rate_class = %s
 				",
-				($array_key == 'standard-rate' ? '' : $array_key)
+				( $array_key == 'standard-rate' ? '' : $array_key )
 			) );
 
 			if ( $count != false && !empty( $count ) ) {
-				$rate_counts[$array_key] = array( 'name' => $readable_classes[$key], 'count' => $count );
+				$rate_counts[ $array_key ] = array( 'name' => $readable_classes[ $key ], 'count' => $count );
 			} 
 
-			unset( $rate_counts[$key] );
+			unset( $rate_counts[ $key ] );
 		}
 
 		// Show message if now classes or rates are added
@@ -693,9 +578,7 @@ class WC_WooTax_Admin {
 	
 		echo '</tbody>';
 		echo '</table>';
-
 	}
 }
 
-// Set up admin
-$WC_WooTax_Admin = new WC_WooTax_Admin();
+WC_WooTax_Admin::init();

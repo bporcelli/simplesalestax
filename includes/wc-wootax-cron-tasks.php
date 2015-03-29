@@ -3,6 +3,7 @@
 /**
  * WooTax cronjobs
  *
+ * @package WooTax
  * @since 4.4
  */
 
@@ -21,21 +22,21 @@ if ( ! defined( 'ABSPATH' ) ) {
  * If orders are found that are not updated in TaxCloud, add them to a queue to be updated
  *
  * @since 4.4
- * @param $last_checked   int   the last checked order index
+ * @param (int) $last_checked last checked order index
  * @return void
  */
 function wootax_check_orders( $last_checked = 0 ) {
-	global $wpdb, $woocommerce;
+	global $wpdb;
 
-	if ( wootax_get_option( 'check_orders' ) == 'no' ) {
+	if ( WC_WooTax::get_option( 'check_orders' ) == 'no' ) {
 		return;
 	}
 
 	// Set up logger
 	$logger = false;
 
-	if ( wootax_get_option( 'log_requests' ) != 'no' ) {
-		$logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : $woocommerce->logger();
+	if ( WT_LOG_REQUESTS ) {
+		$logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : WC()->logger();
 
 		if ( $last_checked == 0 ) {
 			$logger->add( 'wootax', 'Starting order check.' );
@@ -113,7 +114,7 @@ add_action( 'wootax_check_orders', 'wootax_check_orders' );
  * @return void
  */
 function wootax_sync_orders( $last_checked = 0 ) {
-	global $wpdb, $WC_WooTax_Order;
+	global $wpdb;
 
 	$order_count = 10; // Number of orders to sync at one time; may need to be decreased in a low resource environment
 	$refunded    = 0;
@@ -129,8 +130,8 @@ function wootax_sync_orders( $last_checked = 0 ) {
 	// Set up logger
 	$logger = false;
 
-	if ( wootax_get_option( 'log_requests' ) != 'no' ) {
-		$logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : $woocommerce->logger();
+	if ( WT_LOG_REQUESTS ) {
+		$logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : WC()->logger();
 	}
 	
 	// Skip if we have no orders to sync
@@ -149,19 +150,17 @@ function wootax_sync_orders( $last_checked = 0 ) {
 		$logger->add( 'wootax', 'Syncing '. $order_count .' more orders. Last checked order index: '. $last_checked .'.' );
 	}
 
-	$order   = $WC_WooTax_Order;	
 	$checked = 0; 
 	$last    = $last_checked;
 
 	while ( count( $needs_sync ) > 0 && $checked < $order_count ) {
-
 		$order_data = $needs_sync[ $last ];
 
 		$order_id = $order_data['id'];
 		$type     = $order_data['type'];
 
 		// Load order
-		$order->load_order( $order_id );
+		$order = WT_Orders::get_order( $order_id );
 
 		// Prepare order data for Lookup
 		$final_items = $type_array = array();
@@ -230,9 +229,6 @@ function wootax_sync_orders( $last_checked = 0 ) {
 			$type_array[ $item_id ] = 'shipping';
 		}
 
-		// Update order destination address
-		$order->destination_address = $order->get_destination_address();
-
 		// Issue Lookup
 		$res = $order->do_lookup( $final_items, $type_array );
 
@@ -241,8 +237,7 @@ function wootax_sync_orders( $last_checked = 0 ) {
 
 			// Send AuthorizeWithCapture or Returned request for each order, as is necessary
 			if ( $type == 'capture' ) {
-
-				$res = $order->complete( $order_id, true );
+				$res = WT_Orders::complete_order( $order_id, true );
 
 				if ( $res !== true ) {
 					$error = 'Syncing order failed [Captured].';
@@ -255,12 +250,10 @@ function wootax_sync_orders( $last_checked = 0 ) {
 				} else {
 					$captured++;
 				}
-
 			} else {
-
 				// If order has not been captured, attempt to capture before refunding
-				if ( !$order->captured ) {
-					$res = $order->complete( $order_id, true );
+				if ( !WT_Orders::get_meta( $order_id, 'captured' ) ) {
+					$res = WT_Orders::complete_order( $order_id, true );
 
 					if ( $res !== true ) {
 						$error = 'Syncing order failed [Refund]. Couldn\'t capture order.';
@@ -282,9 +275,8 @@ function wootax_sync_orders( $last_checked = 0 ) {
 					}
 
 					if ( $full_refund ) {
-
 						// Perform full refund
-						$res = $order->refund( $order_id, true );
+						$res = WT_Orders::refund_order( $order_id, true );
 
 						if ( $res !== true ) {
 							$error = 'Syncing order failed [Refund]. Couldn\'t refund order.';
@@ -297,19 +289,16 @@ function wootax_sync_orders( $last_checked = 0 ) {
 						} else {
 							$refunded++;
 						}
-
 					} else {
-
 						// Perform partial refund(s)
 						$refunds = $order->order->get_refunds();
 
 						if ( count( $refunds ) == 0 ) {
 							$refunded++;
 						} else {
-
 							// Loop through refunds and send partial refund request for each
 							foreach ( $refunds as $refund ) {
-								$res = process_refund( $refund, true );
+								$res = WC_WooTax_Refund::process_refund( $refund, true );
 
 								if ( $res !== true ) {
 									$error = 'Syncing order failed [Partial Refund]. Couldn\'t refund order.';
@@ -325,15 +314,10 @@ function wootax_sync_orders( $last_checked = 0 ) {
 							if ( !isset( $sync_errors[ $order_id ] ) ) {
 								$refunded++;
 							}
-
 						}
-
 					}
-
 				}
-
 			} 
-
 		} else {
 			$error = 'Syncing order failed [Lookup].';
 
@@ -348,7 +332,6 @@ function wootax_sync_orders( $last_checked = 0 ) {
 
 		$last++;
 		$checked++;
-
 	}
 
 	if ( $logger ) {
@@ -357,12 +340,11 @@ function wootax_sync_orders( $last_checked = 0 ) {
 
 	// If no orders are remaining in the processing queue, notify the site admin of any errors that occurred during the sync process
 	if ( count ( $needs_sync ) == 0 ) {
-
 		if ( $logger ) {
 			$logger->add( 'wootax', 'Sync complete.' );
 		}
 
-		if ( wootax_get_option( 'send_notifications' ) != 'no' && count( $sync_errors ) > 0 ) {
+		if ( WC_WooTax::get_option( 'send_notifications' ) != 'no' && count( $sync_errors ) > 0 ) {
 			$email = wootax_get_notification_email();
 
 			if ( !empty( $email ) && is_email( $email ) ) {
@@ -381,7 +363,6 @@ function wootax_sync_orders( $last_checked = 0 ) {
 			// Reset sync errors
 			$sync_errors = array();
 		}
-
 	} else {
 		if ( $logger ) {
 			$logger->add( 'wootax', 'Scheduling next sync.' );
@@ -408,10 +389,10 @@ add_action( 'wootax_sync_orders', 'wootax_sync_orders' );
  * @return void
  */
 function wootax_update_recurring_tax() {
-	global $wpdb, $WC_WooTax_Order;
+	global $wpdb;
 
 	// Exit if subs is not active
-	if ( !is_plugin_active( 'woocommerce-subscriptions/woocommerce-subscriptions.php' ) ) {
+	if ( !WT_SUBS_ACTIVE ) {
 		return;
 	}
 
@@ -424,8 +405,9 @@ function wootax_update_recurring_tax() {
 	// Set up logger
 	$logger = false;
 
-	if ( wootax_get_option( 'log_requests' ) != 'no' ) {
-		$logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : $woocommerce->logger();
+	if ( WT_LOG_REQUESTS ) {
+		$logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : WC()->logger();
+
 		$logger->add( 'wootax', 'Starting recurring tax update. Subscriptions with payments due before '. $date .' are being considered.' );
 	}
 
@@ -434,14 +416,10 @@ function wootax_update_recurring_tax() {
 
 	// Update recurring totals if necessary
 	if ( count( $scheduled ) > 0 ) {
-
-		$order = $WC_WooTax_Order;
-
 		// This will hold any warning messages that need to be sent to the admin
 		$warnings = array();
 
 		foreach ( $scheduled as $action ) {
-
 			$temp_warnings = array();
 			$show_warnings = false;
 
@@ -464,9 +442,8 @@ function wootax_update_recurring_tax() {
 			$manual_renewal    = WC_Subscriptions_Order::requires_manual_renewal( $order_id );
 			$changes_supported = ( $chosen_gateway === false || $manual_renewal == 'true' || $chosen_gateway->supports( 'subscription_amount_changes' ) ) ? true : false;
 
-			// Load order using global WC_WooTax_Order object
-			$order->load_order( $order_id );
-			$order->destination_address = $order->get_destination_address();
+			// Load order
+			$order = WT_Orders::get_order( $order_id );
 
 			// Collect data for Lookup request
 			$item_data = $type_array = array();
@@ -518,20 +495,19 @@ function wootax_update_recurring_tax() {
 			}
 
 			// Reset "captured" meta so lookup always sent
-			$captured = $order->captured;
-			$order->captured = false;
+			$captured = WT_Orders::get_meta( $order_id, 'captured' );
+			WT_Orders::update_meta( $order_id, 'captured', false );
 
 			// Issue Lookup request
 			$res = $order->do_lookup( $item_data, $type_array, true );
 
 			// Set "captured" back to original value
-			$order->captured = $captured;
+			WT_Orders::update_meta( $order_id, 'captured', $captured );
 
 			// If lookup is successful, use result to update recurring tax totals as described here: http://docs.woothemes.com/document/subscriptions/add-or-modify-a-subscription/#change-recurring-total
 			if ( is_array ( $res ) ) {
-
 				// Find recurring tax item and determine original tax/shipping tax totals
-				$wootax_rate_id = get_option( 'wootax_rate_id' );
+				$wootax_rate_id = WT_RATE_ID;
 				$wootax_item_id = $wpdb->get_var( $wpdb->prepare( "SELECT i.order_item_id FROM {$wpdb->prefix}woocommerce_order_items i LEFT JOIN {$wpdb->prefix}woocommerce_order_itemmeta im ON im.order_item_id = i.order_item_id WHERE im.meta_key = %s AND im.meta_value = %d AND i.order_id = %d AND i.order_item_type = %s", "rate_id", $wootax_rate_id, $order_id, "recurring_tax" ) );
 				
 				$old_tax          = empty( $wootax_item_id ) ? 0 : (float) $order->get_item_meta( $wootax_item_id, 'tax_amount' );
@@ -594,9 +570,7 @@ function wootax_update_recurring_tax() {
 				if ( $show_warnings ) {
 					$warnings[ $order_id ] = $temp_warnings;
 				}
-
 			}
-
 		}
 
 		// Send out a single warning email to the admin if necessary
@@ -622,8 +596,7 @@ function wootax_update_recurring_tax() {
 
 				wp_mail( $email, $subject, $message );
 			}
-		} 
-
+		}
 	} else if ( $logger ) {
 		$logger->add( 'wootax', 'Ending recurring tax update. No subscriptions due before '. $date .'.' );
 	}
