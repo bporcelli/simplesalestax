@@ -562,7 +562,7 @@ class WC_WooTax_Order {
 	 * @return an array of information about the certificate, the certificate's ID, or null
 	 */
 	public function get_exemption_certificate() {
-		$certificate = WT_Orders::get_meta( $this->order, 'exemption_applied' );
+		$certificate = WT_Orders::get_meta( $this->order_id, 'exemption_applied' );
 		
 		if ( !is_bool( $certificate ) ) {
 			return $certificate;
@@ -698,7 +698,7 @@ class WC_WooTax_Order {
 
 		// Get current tax/tax total
 		$tax       = WT_Orders::get_meta( $this->order_id, $wootax_key );
-		$tax_total = get_post_meta( $this->order_id, $woocommerce_key );
+		$tax_total = get_post_meta( $this->order_id, $woocommerce_key, true );
 
 		// Calculate new tax total
 		$new_tax_total = $tax_total == 0 ? $new_tax : ( $tax_total - $tax ) + $new_tax;

@@ -562,12 +562,14 @@ class WT_Orders {
 					}
 				}
 
-				$items['order_taxes'][ $order->tax_item_id ] = absint( WT_RATE_ID );
+				$items['order_taxes'][ self::get_meta( $order_id, 'tax_item_id' ) ] = absint( WT_RATE_ID );
 
-				wc_save_order_items( $order->order_id, $items );
+				wc_save_order_items( $order_id, $items );
 
 				// Return HTML items
-				$data  = get_post_meta( $order->order->id );
+				$data  = get_post_meta( $order_id );
+				$order = $order->order;
+
 				include( ABSPATH . '/'. PLUGINDIR . '/woocommerce/includes/admin/meta-boxes/views/html-order-items.php' );
 
 				die();
@@ -864,7 +866,7 @@ class WT_Orders {
 		$order = self::get_order( $order_id );
 
 		// Different rules need to be applied for full refunds
-		$full_refund = count( $items ) > 0; 
+		$full_refund = count( $items ) == 0; 
 
 		$destination_address = !$full_refund ? $order->destination_address : array();
 

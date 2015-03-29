@@ -1041,7 +1041,7 @@ class WC_WooTax_Checkout {
 	 * @return String
 	 */
 	private function get_order_hash() {
-		return md5( json_encode( $this->destination_address ) . json_encode( $this->lookup_data ) );
+		return md5( json_encode( $this->destination_address ) . json_encode( $this->lookup_data ) . json_encode( $this->get_exemption_certificate() ) );
 	}
 
 	/**
