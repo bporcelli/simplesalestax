@@ -65,7 +65,7 @@ class WC_WooTax {
 	 */
 	private static function ready() {
 		if ( !class_exists( 'SoapClient' ) ) {
-			wootax_add_message( '<strong>Warning: WooTax has been disabled.</strong> PHP SoapClient class is required by WooTax, but it is not installed on your server. Please see <a href="#" target="_blank">this article</a> for advice on what to do next.' );
+			wootax_add_message( '<strong>Warning: WooTax has been disabled.</strong> The SoapClient class is required by WooTax, but it is not installed on your server. To resolve this issue, please contact your web host and ask them to enable PHP SOAP for you.' );
 			return false;
 		} else if ( !is_plugin_active( 'woocommerce/woocommerce.php' ) || !version_compare( WOOCOMMERCE_VERSION, '2.1', '>=' ) ) {
 			wootax_add_message( '<strong>Warning: WooTax has been disabled.</strong> WooCommerce version 2.1 or greater must be activated for WooTax to work properly.' );
@@ -198,7 +198,6 @@ class WC_WooTax {
 		self::maybe_add_wootax_rate();
 		self::add_exempt_user_role();
 		self::schedule_wootax_events();
-		WC_WooTax_Upgrade::maybe_update_wootax();
 	}
 
 	/**

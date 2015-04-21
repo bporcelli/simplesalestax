@@ -175,3 +175,7 @@ a.remove_address.disabled {
     vertical-align: middle;
     margin-left: .5em;
 }
+
+.wootax-message.update-nag p {
+    margin: 0 !important;
+}

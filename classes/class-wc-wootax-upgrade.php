@@ -2,7 +2,6 @@
 
 /**
  * Scripts for updating WooTax data
- * TODO: FINISH WRITING
  *
  * @since 4.4
  */
@@ -13,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class WC_WooTax_Upgrade {
 	/** Stored plugin version */
-	private $db_version;
+	private static $db_version;
 
 	/**
 	 * Initialize updater
@@ -22,7 +21,9 @@ class WC_WooTax_Upgrade {
 	 */
 	public static function init() {
 		self::$db_version = get_option( 'wootax_version' );
+
 		self::hooks();
+		self::maybe_update_wootax();
 	}
 
 	/**
@@ -34,11 +35,8 @@ class WC_WooTax_Upgrade {
 		// Add admin page for data update process to occur on
 		add_action( 'admin_menu', array( __CLASS__, 'add_admin_page' ) );
 
-		// Dismiss data update message when user begins update
-		add_action( 'current_screen', array( __CLASS__, 'maybe_dismiss_update_message' ) );
-
 		// AJAX hook for data update process
-		add_action( 'ajax_wootax-update-data', array( __CLASS__, 'update_post_data' ) );
+		add_action( 'wp_ajax_wootax-update-data', array( __CLASS__, 'update_post_data' ) );
 	}
 
 	/**
@@ -51,14 +49,12 @@ class WC_WooTax_Upgrade {
 	}
 
 	/**
-	 * Dismiss update nag message when admin starts the data update process
+	 * Dismiss update nag message when admin completes the data update process
 	 *
 	 * @since 4.4
 	 */
-	public static function maybe_dismiss_update_message( $screen ) {
-		if ( $screen->id == 'wt-update' ) {
-			wootax_remove_message( 'upgrade-message' );
-		}
+	private static function dismiss_update_message() {
+		wootax_remove_message( 'upgrade-message' );
 	}
 
 	/**
@@ -67,7 +63,7 @@ class WC_WooTax_Upgrade {
 	 * @since 4.4
 	 */
 	public static function display_admin_page() {
-		include WT_PLUGIN_PATH .'includes/templates/admin/data-update.php';
+		include WT_PLUGIN_PATH .'templates/admin/data-update.php';
 	}
 
 	/**
@@ -86,7 +82,7 @@ class WC_WooTax_Upgrade {
 			self::maybe_update_settings();
 
 			if ( self::needs_data_update() ) {
-				wootax_add_message( '<strong>Important:</strong> WooTax needs to update its data. Please backup your database and click the button to the right to complete the upgrade. <a class="button button-primary" href="'. get_admin_url( 'admin.php?page=wt-update' ) .'">Update Data</a>', 'update-nag', 'upgrade-message', true, false );
+				wootax_add_message( '<strong>Important:</strong> WooTax needs to update your database. Please take a backup of your website and click "Complete Update" to proceed. <a class="button button-primary" href="'. admin_url( 'admin.php?page=wt-update' ) .'">Complete Update</a>', 'update-nag', 'upgrade-message', true, false );
 			} else {
 				update_option( 'wootax_version', WT_VERSION );
 			}
@@ -163,6 +159,17 @@ class WC_WooTax_Upgrade {
 	}
 
 	/**
+	 * Delete remaining wootax_order posts from database
+	 * Used in upgrade to 4.2
+	 */
+	private static function remove_order_posts() {
+		global $wpdb;
+
+		// Delete wootax_order posts and associated meta
+		$wpdb->query( "DELETE p, pm FROM $wpdb->posts p LEFT JOIN $wpdb->postmeta pm ON pm.post_id = p.ID WHERE p.post_type = 'wootax_order'" );
+	}
+
+	/**
 	 * Perform data update
 	 *
 	 * @return JSON object with information about number of posts remaining, current update status
@@ -177,8 +184,8 @@ class WC_WooTax_Upgrade {
 		$last_post = $_POST['last_post'];
 
 		// Page counters
-		$total_pages  = $last_page == 0 ? 0 : $_POST['total_pages'];
-		$current_page = $last_page == 0 ? 1 : $_POST['current_page'];
+		$total_pages  = $last_post == 0 ? 0 : $_POST['total_pages'];
+		$current_page = $last_post == 0 ? 1 : $_POST['current_page'];
 
 		// On first run, determine $total_count/$total_pages
 		if ( $last_post == 0 ) {
@@ -187,6 +194,8 @@ class WC_WooTax_Upgrade {
 			if ( $total_count == 0 ) {
 				update_option( 'wootax_version', WT_VERSION );
 
+				self::dismiss_update_message();
+
 				die ( json_encode( array( 
 					'status'   => 'done', 
 					'message'  => 'No more posts to update. Redirecting...',
@@ -194,7 +203,7 @@ class WC_WooTax_Upgrade {
 				) ) );
 			}
 			
-			$total_pages = ceil( $total_pages / $posts_per_page );
+			$total_pages = ceil( $total_count / $posts_per_page );
 		}
 
 		// Select posts from index $last_post to $posts_per_page for processing
@@ -203,7 +212,8 @@ class WC_WooTax_Upgrade {
 		if ( count ( $posts ) == 0 ) {
 			update_option( 'wootax_version', WT_VERSION );
 
-			wootax_add_message( '<strong>Woohoo!</strong> WooTax has been updated successfully.' );
+			self::dismiss_update_message();
+			self::remove_order_posts();
 
 			die ( json_encode( array( 
 				'status'   => 'done', 
@@ -233,6 +243,8 @@ class WC_WooTax_Upgrade {
 			$identifiers       = array();
 
 			if ( is_array( $lookup_data ) ) {
+				$wc_order = new WC_Order( $wc_order_id );
+
 				$order_items = $wc_order->get_items();
 				$order_fees  = $wc_order->get_fees();
 
@@ -342,12 +354,13 @@ class WC_WooTax_Upgrade {
 			update_post_meta( $wc_order_id, '_wootax_identifiers', $identifiers );
 		}
 
-		// Delete wootax_order_posts from this round
-		$wpdb->query( "DELETE p, pm FROM $wpdb->posts p LEFT JOIN $wpdb->postmeta pm ON pm.post_id = p.ID WHERE p.post_type = 'wootax_order' ORDER BY p.ID ASC LIMIT $last_post, $posts_per_page" );
-	
 		// Notify client that processing has succeeded and continue processing
-		$last_post += $posts_per_page;
-		$current_page++;
+		if ( $current_page < $total_pages ) {
+			$last_post += $posts_per_page;
+			$current_page++;
+		} else {
+			$last_post += count( $posts );
+		}
 
 		die( json_encode( array( 
 			'status'       => 'working', 
@@ -357,3 +370,5 @@ class WC_WooTax_Upgrade {
 		) ) );
 	}
 }
+
+WC_WooTax_Upgrade::init();

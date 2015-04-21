@@ -9,7 +9,7 @@
 		function send_update_request( lp, cp, tp ) {
 			jQuery.ajax({
 				type: 'POST',
-				url: MyAjax.ajaxURL,
+				url: WT.ajaxURL,
 				data: 'action=wootax-update-data&last_post='+ lp +'&current_page='+ cp +'&total_pages='+ tp,
 				success: function( resp ) {
 					resp = eval( '('+ resp +')' );
@@ -20,8 +20,8 @@
 						// Success! Redirect to show success message
 						window.location.href = resp.redirect;
 					} else {
-						jQuery( '#wootax_status' ).text( 'Running... Step '+ resp.current_page .' out of '+ resp.total_pages );
-
+						jQuery( '#wootax_status' ).text( 'Running... Step '+ resp.current_page +' out of '+ resp.total_pages );
+						
 						// Start next round of processing
 						send_update_request( resp.last_post, resp.current_page, resp.total_pages );
 					}

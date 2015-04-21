@@ -62,20 +62,18 @@ class WC_WooTax_Checkout {
 	 * @since 4.2
 	 */
 	public function __construct() {
-		if ( WT_SUBS_ACTIVE ) {
-			if ( WC_Subscriptions_Cart::cart_contains_subscription() ) {
-				$this->is_subscription = true;
+		if ( WT_SUBS_ACTIVE && WC_Subscriptions_Cart::cart_contains_subscription() ) {
+			$this->is_subscription = true;
 
-				// Restore shipping taxes array for orders containing subscriptions
-				add_action( 'woocommerce_after_calculate_totals', array( $this, 'restore_shipping_taxes' ), 10, 1 );
-				add_filter( 'woocommerce_calculated_total', array( $this, 'store_shipping_taxes' ), 10, 2 );
+			// Restore shipping taxes array for orders containing subscriptions
+			add_action( 'woocommerce_after_calculate_totals', array( $this, 'restore_shipping_taxes' ), 10, 1 );
+			add_filter( 'woocommerce_calculated_total', array( $this, 'store_shipping_taxes' ), 10, 2 );
 
-				// Set is_renewal flag if subscriptions is calculating the recurring order total
-				if ( WC_Subscriptions_Cart::get_calculation_type() == 'recurring_total' ) {
-					$this->is_renewal = true;
-				} else {
-					$this->is_renewal = false;
-				}
+			// Set is_renewal flag if subscriptions is calculating the recurring order total
+			if ( WC_Subscriptions_Cart::get_calculation_type() == 'recurring_total' ) {
+				$this->is_renewal = true;
+			} else {
+				$this->is_renewal = false;
 			}
 		}
 
@@ -958,8 +956,10 @@ class WC_WooTax_Checkout {
 
 		$this->cart->{$tax_key}[ WT_RATE_ID ] = $new_tax;
 
-		if ( WC_WooTax::get_option( 'show_zero_tax' ) != 'true' && $new_tax == 0 ) {
-			unset( $this->cart->{$tax_key}[ WT_RATE_ID ] );
+		if ( !WT_SUBS_ACTIVE || !WC_Subscriptions_Cart::cart_contains_subscription() ) { // Removing zero tax row causes display issues for subscription orders
+			if ( WC_WooTax::get_option( 'show_zero_tax' ) != 'true' && $new_tax == 0 ) {
+				unset( $this->cart->{$tax_key}[ WT_RATE_ID ] );
+			}
 		}
 
 		// Use get_tax_total to set new tax total so we don't override other rates
