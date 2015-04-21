@@ -44,8 +44,8 @@ class WC_WooTax_Settings extends WC_Integration {
 		$this->exemption_text     = $this->get_option( 'exemption_text' );
 		$this->tax_based_on       = $this->get_option( 'tax_based_on' );
 		$this->log_requests       = $this->get_option( 'log_requests' );
-		$this->check_orders       = $this->get_option( 'check_orders' );
-		$this->send_notifications = $this->get_option( 'send_notifications' );
+		/*$this->check_orders       = $this->get_option( 'check_orders' );
+		$this->send_notifications = $this->get_option( 'send_notifications' );*/
 		$this->notification_email = $this->get_option( 'notification_email' );
 
 		// Actions.
@@ -221,7 +221,7 @@ class WC_WooTax_Settings extends WC_Integration {
 				'description' 		=> __( '"Item Price": TaxCloud determines the taxable amount for a line item by multiplying the item price by its quantity. "Line Subtotal": the taxable amount is determined by the line subtotal. Useful in instances where rounding becomes an issue.', 'woocommerce-wootax' ),
 				'desc_tip'			=> true
 			),
-			'check_orders' => array(
+			/*'check_orders' => array(
 				'title' 			=> 'Enable Error Checking',
 				'type' 				=> 'select',
 				'options'			=> array(
@@ -242,12 +242,12 @@ class WC_WooTax_Settings extends WC_Integration {
 				'default' 			=> 'yes',
 				'description' 		=> __( 'If this is set to "Yes," WooTax will notify you at a specified email address if it detects an error that cannot be resolved automatically.', 'woocommerce-wootax' ),
 				'desc_tip'			=> true
-			),
+			),*/
 			'notification_email' => array(
 				'title'				=> 'Error Notification Email',
 				'type'				=> 'text',
 				'default'			=> wootax_get_notification_email(),
-				'description' 		=> __( 'When "Email Error Notifications" is set to "Yes," notifications will be sent to this email address.', 'woocommerce-wootax' ),
+				'description' 		=> __( 'If WooTax detects an error that needs attention, it will send a notification to this email address.', 'woocommerce-wootax' ),
 				'desc_tip'			=> true
 			),
 			'uninstall_button' => array(
@@ -465,9 +465,9 @@ class WC_WooTax_Settings extends WC_Integration {
 				$new_addresses[] = $address;
 			}
 
-			$taxcloud_id  = trim( $_POST['wootax_tc_id'] );
-			$taxcloud_key = trim( $_POST['wootax_tc_key'] );
-			$usps_id      = trim( $_POST['wootax_usps_id'] );
+			$taxcloud_id  = trim( $_POST['woocommerce_wootax_tc_id'] );
+			$taxcloud_key = trim( $_POST['woocommerce_wootax_tc_key'] );
+			$usps_id      = trim( $_POST['woocommerce_wootax_usps_id'] );
 
 			// Validate addresses using USPS Web Tools API if possible
 			if ( $taxcloud_id && $taxcloud_key && $usps_id ) {

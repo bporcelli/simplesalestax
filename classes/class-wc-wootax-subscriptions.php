@@ -44,7 +44,7 @@ class WC_WooTax_Subscriptions {
 			$new_total_rows = array();
 
 			foreach ( $total_rows as $row_key => $data ) {
-				if ( $row_key == 'wootax-rate-do-not-remove' ) {
+				if ( $row_key == strtolower( apply_filters( 'wootax_rate_code', 'WOOTAX-RATE-DO-NOT-REMOVE' ) ) ) {
 					$row_key = 'sales-tax';
 				}
 

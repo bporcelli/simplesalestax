@@ -50,15 +50,33 @@ class WC_WooTax_Checkout {
 	/** Empty string if Lookup has not been sent yet; otherwise, combined hash of address info and item info */
 	private $lookup_sent = "";
 
+	/** Are we handling a renewal order? If so, use unique TaxCloud IDs */
+	private $is_renewal = false;
+
+	/** Are we handling a order containing a subscription? */
+	private $is_subscription = false;
+
 	/**
 	 * Constructor: Starts Lookup and hooks into WooCommerce
 	 *
 	 * @since 4.2
 	 */
 	public function __construct() {
-		// When using Subscriptions, we need to restore the final shipping_taxes array on woocommerce_after_calculate_totals
 		if ( WT_SUBS_ACTIVE ) {
-			add_action( 'woocommerce_after_calculate_totals', array( $this, 'restore_shipping_taxes' ), 10, 1 );
+			if ( WC_Subscriptions_Cart::cart_contains_subscription() ) {
+				$this->is_subscription = true;
+
+				// Restore shipping taxes array for orders containing subscriptions
+				add_action( 'woocommerce_after_calculate_totals', array( $this, 'restore_shipping_taxes' ), 10, 1 );
+				add_filter( 'woocommerce_calculated_total', array( $this, 'store_shipping_taxes' ), 10, 2 );
+
+				// Set is_renewal flag if subscriptions is calculating the recurring order total
+				if ( WC_Subscriptions_Cart::get_calculation_type() == 'recurring_total' ) {
+					$this->is_renewal = true;
+				} else {
+					$this->is_renewal = false;
+				}
+			}
 		}
 
 		$this->cart      = WC()->cart;
@@ -90,9 +108,6 @@ class WC_WooTax_Checkout {
 			if ( $this->needs_lookup() ) {
 				// Issue lookup request and update cart tax totals
 				$this->do_lookup();
-
-				// Store final shipping_taxes array so it can be restored after Subscriptions overwrites it
-				$this->shipping_taxes = $this->cart->shipping_taxes;
 			} else {
 				// We need to manually restore the item taxes when lookup is skipped; WooCommerce removes them
 				$this->restore_order_taxes();
@@ -109,6 +124,10 @@ class WC_WooTax_Checkout {
 		if ( WC()->session instanceof WC_Session_Handler ) {
 			if ( isset( WC()->session->cart_taxes ) ) {
 				$this->cart_taxes = WC()->session->cart_taxes;
+			}
+
+			if ( isset( WC()->session->shipping_taxes ) ) {
+				$this->shipping_taxes = WC()->session->shipping_taxes;
 			}
 
 			if ( isset( WC()->session->taxcloud_ids ) ) {
@@ -135,12 +154,14 @@ class WC_WooTax_Checkout {
 	 * @since 4.2
 	 */
 	public function save_session_data() {
-		if ( WC()->session instanceof WC_Session_Handler ) {
+		// For a renewal order lookup, do not update session data
+		if ( WC()->session instanceof WC_Session_Handler && !$this->is_renewal ) {
 			WC()->session->location_mapping_array    = $this->location_mapping_array;
 			WC()->session->mapping_array             = $this->mapping_array;
 			WC()->session->lookup_data               = $this->lookup_data;
 			WC()->session->taxcloud_ids              = $this->taxcloud_ids;
 			WC()->session->cart_taxes                = $this->cart_taxes;
+			WC()->session->shipping_taxes            = $this->shipping_taxes;
 			WC()->session->wootax_tax_total          = $this->tax_total;
 			WC()->session->wootax_shipping_tax_total = $this->shipping_tax_total;
 			WC()->session->item_ids                  = $this->identifiers;
@@ -355,7 +376,8 @@ class WC_WooTax_Checkout {
 		$taxcloud_ids = $this->taxcloud_ids;
 
 		foreach ( $this->lookup_data as $location => $items ) {
-			if ( !isset( $taxcloud_ids[ $location ] ) ) {
+			// Always generate order IDs for a renewal order
+			if ( !isset( $taxcloud_ids[ $location ] ) || $this->is_renewal ) {
 				$taxcloud_ids[ $location ] = array(
 					'cart_id'  => '',
 					'order_id' => wootax_generate_order_id(),
@@ -458,6 +480,12 @@ class WC_WooTax_Checkout {
 		// Add shipping costs
 		$shipping_total = $this->cart->shipping_total;
 
+		if ( $this->is_subscription ) {
+			if ( !WC_Subscriptions_Cart::charge_shipping_up_front() && ( WC_Subscriptions_Cart::get_calculation_type() == 'sign_up_fee_total' || WC_Subscriptions_Cart::get_calculation_type() == 'free_trial_total' ) ) {
+				$shipping_total = 0;
+			}
+		}
+
 		if ( $shipping_total > 0 ) {
 			// Add a shipping item to the final items array (we assume that only one shipping method is being used per order)
 			$final_items[ WT_SHIPPING_ITEM ] = array(
@@ -538,12 +566,11 @@ class WC_WooTax_Checkout {
 						$first_found = $address_found;
 					}
 
-					// Initialize CartItems array for this shipping location
+					// Initialize arrays to avoid PHP notices
 					if ( !isset( $data[ $address_found ] ) || !is_array( $data[ $address_found ] ) ) {
 						$data[ $address_found ] = array();
 					}
 
-					// Initialize counter for this location if necessary
 					if ( !isset( $counters_array[ $address_found ] ) ) {
 						$counters_array[ $address_found ] = 0;
 					}
@@ -556,13 +583,13 @@ class WC_WooTax_Checkout {
 						'key'   => $item_key,
 					);
 
-					// Update item Index
+					// Update item data before storing in $data array
 					$item['Index'] = $counters_array[ $address_found ];
-
-					// Unset "type" value
+					$item['Price'] = apply_filters( 'wootax_taxable_price', $item['Price'], true, $product->id );
+					
 					unset( $item['Type'] );
 
-					// Add formatted item data to the $data array
+					// Add item to lookup data arary
 					$data[ $address_found ][] = $item;
 
 					// Increment counter
@@ -579,10 +606,7 @@ class WC_WooTax_Checkout {
 					$fee_items[ $item_id ] = $item;
 
 					// Map item id to fee index 
-					$fee_indices[ $item_id ] = $fee_counter;
-
-					// Update fee counter
-					$fee_counter++;
+					$fee_indices[ $item_id ] = $fee_counter++;
 				break;
 			}
 		}
@@ -594,17 +618,17 @@ class WC_WooTax_Checkout {
 				$index   = $counters_array[ $first_found ];
 				$item_id = $item['ItemID'];
 
+				// Determine if the item we are dealing with is a fee or shipping charge
+				$type = isset( $fee_items[ $item_id ] ) ? 'fee' : 'shipping';
+
 				// Add to items array (Type index not included here)
 				$data[ $first_found ][ $index ] = array(
 					'Index'  => $index,
 					'ItemID' => $item_id,
 					'TIC'    => $item['TIC'],
-					'Price'  => $item['Price'],
+					'Price'  => apply_filters( 'wootax_taxable_price', $item['Price'], true, $item_id ),
 					'Qty'    => $item['Qty'],
 				);
-
-				// Determine if the item we are dealing with is a fee or shipping charge
-				$type = isset( $fee_items[ $item_id ] ) ? 'fee' : 'shipping';
 
 				// Update mapping array
 				$mapping_array[ $first_found ][ $index ] = array(
@@ -677,6 +701,8 @@ class WC_WooTax_Checkout {
 			if ( !empty( $exempt_cert ) ) {
 				$req['exemptCert'] = $exempt_cert;
 			}
+
+			//print_r($req);
 
 			// Send Lookup request 
 			$res = $this->taxcloud->send_request( 'Lookup', $req );
@@ -1011,11 +1037,11 @@ class WC_WooTax_Checkout {
 						$tax_total += $tax;
 						break;
 				}
-
-				// Update tax totals
-				$this->update_tax_totals( $tax_total, $shipping_tax_total );
 			}
 		}
+
+		// Update tax totals
+		$this->update_tax_totals( $tax_total, $shipping_tax_total );
 	}
 
 	/**
@@ -1026,7 +1052,7 @@ class WC_WooTax_Checkout {
 	 * @return (boolean)
 	 */
 	private function needs_lookup() {
-		if ( empty( $this->lookup_sent ) ) {
+		if ( empty( $this->lookup_sent ) || $this->is_renewal ) {
 			return true;
 		} else {
 			return !( $this->get_order_hash() == $this->lookup_sent );
@@ -1041,7 +1067,19 @@ class WC_WooTax_Checkout {
 	 * @return String
 	 */
 	private function get_order_hash() {
-		return md5( json_encode( $this->destination_address ) . json_encode( $this->lookup_data ) . json_encode( $this->get_exemption_certificate() ) );
+		return md5( json_encode( $this->get_customer_id() ) . json_encode( $this->destination_address ) . json_encode( $this->lookup_data ) . json_encode( $this->get_exemption_certificate() ) );
+	}
+
+	/**
+	 * Store cart shipping taxes so they can be restored after Subscriptions does its work
+	 *
+	 * @since 4.4
+	 * @param (double) $total the current cart total
+	 * @param (WC_Cart) $cart WC_Cart object
+	 */
+	public function store_shipping_taxes( $total, $cart ) {
+		$this->shipping_taxes = $cart->shipping_taxes;
+		return $total;
 	}
 
 	/**
@@ -1049,10 +1087,14 @@ class WC_WooTax_Checkout {
 	 * Only executed when WooCommerce Subscriptions is active
 	 *
 	 * @since 4.4
-	 * @param (WC_Cart) $cart WC_Cart object
+	 * @param $cart WC_Cart a WC_Cart object
 	 */
 	public function restore_shipping_taxes( $cart ) {
-		WC()->cart->shipping_taxes = $this->shipping_taxes;
+		// Restore taxes to given cart object
+		$cart->shipping_taxes = $this->shipping_taxes;
+
+		// Restore taxes for global cart object
+		WC()->cart->shipping_taxes = $cart->shipping_taxes;
 	}
 }
 

@@ -14,7 +14,7 @@ jQuery(function() {
             // Send AJAX request
             jQuery.ajax({
                 type: 'POST',
-                url: MyAjax.ajaxURL,
+                url: WT.ajaxURL,
                 data: 'action=wootax-verify-taxcloud&wootax_tc_id=' + loginID + '&wootax_tc_key=' + apiKey,
                 success: function(resp) {
                     if (resp == 1) {
@@ -37,7 +37,7 @@ jQuery(function() {
 
         jQuery.ajax({
             type: 'POST',
-            url: MyAjax.ajaxURL,
+            url: WT.ajaxURL,
             data: 'action=wootax-disable-notifications',
             success: function(resp) {
                 if (resp == 1) {
@@ -114,7 +114,7 @@ jQuery(function() {
             // Send request via AJAX
             jQuery.ajax({
                 type: 'POST',
-                url: MyAjax.ajaxURL,
+                url: WT.ajaxURL,
                 data: 'action=wootax-verify-address'+ address_str +'&wootax_tc_id=' + loginID + '&wootax_tc_key=' + apiKey + '&wootax_usps_id=' + uspsID,
                 success: function(resp) {
                     resp = eval('(' + resp + ')');
@@ -161,7 +161,7 @@ jQuery(function() {
         if (confirm(msg)) {
             jQuery.ajax({
                 type: 'POST',
-                url: MyAjax.ajaxURL,
+                url: WT.ajaxURL,
                 data: 'action=wootax-clear-settings',
                 success: function(resp) {
                     resp = eval('(' + resp + ')');
@@ -187,7 +187,7 @@ jQuery(function() {
         if ( confirm( msg ) ) {
             jQuery.ajax({
                 type: 'POST',
-                url: MyAjax.ajaxURL,
+                url: WT.ajaxURL,
                 data: 'action=wootax-deactivate-license',
                 success: function(resp) {
                     resp = eval('(' + resp + ')');
@@ -221,7 +221,7 @@ jQuery(function() {
             
             jQuery.ajax({
                 type: 'POST',
-                url: MyAjax.ajaxURL,
+                url: WT.ajaxURL,
                 data: 'action=wootax-uninstall',
                 success: function(resp) {
 
@@ -320,7 +320,7 @@ jQuery(function() {
         } else if (confirm('You are about to remove '+ count +' tax rates from '+ toRemove.length +' tax class(es). Are you sure you want to proceed?')) {
             jQuery.ajax({
                 type: 'POST',
-                url: MyAjax.ajaxURL,
+                url: WT.ajaxURL,
                 data: 'action=wootax-delete-rates&rates='+ toRemove.join(),
                 success: function(resp) {
                     if (resp == true) {
@@ -431,7 +431,7 @@ jQuery(function() {
 
         jQuery.ajax({
             type: 'POST',
-            url: MyAjax.ajaxURL,
+            url: WT.ajaxURL,
             data: 'action=wootax-remove-message&message_id='+ id,
             success: function(resp) {
                 if ( resp == true ) {
@@ -442,6 +442,15 @@ jQuery(function() {
             }
         });
     } );
+
+    /**
+     * Replace 'WOOTAX-RATE-DO-NOT-REMOVE' with custom rate code in recurring tax select box
+     */
+    if ( jQuery('#recurring_tax_rows').length != 0 ) {
+        jQuery('#recurring_tax_rows select').find('option').each(function() {
+            jQuery(this).text(jQuery(this).text().replace('WOOTAX-RATE-DO-NOT-REMOVE', WT.rateCode));
+        });
+    }
 });
 
 var currentTic = '';

@@ -240,7 +240,6 @@ class WC_WooTax_Order {
 
 		// Initialize some vars that we need for the foreach loop below
 		$data = $mapping_array = $counters_array = $fee_items = $shipping_items = array();
-		$fee_counter = 0;
 
 		// This will hold the ID of the first found origin address/location for this order; Fees and shipping chars will be attached to it
 		$first_found = false;
@@ -289,17 +288,15 @@ class WC_WooTax_Order {
 						$first_found = $address_found;
 					}
 
-					// Initialize CartItems array for this shipping location
+					// Initialize arrays to avoid PHP notices
 					if ( !isset( $data[ $address_found ] ) || !is_array( $data[ $address_found ] ) ) {
 						$data[ $address_found ] = array();
 					}
 
-					// Initialize counter for this location if necessary
 					if ( !isset( $counters_array[ $address_found ] ) ) {
 						$counters_array[ $address_found ] = 0;
 					}
 
-					// Initialize mapping array for this location if necessary
 					if ( !isset( $mapping_array[ $address_found ] ) ) {
 						$mapping_array[ $address_found ] = array();
 					} 
@@ -307,10 +304,10 @@ class WC_WooTax_Order {
 					// Update mapping array
 					$mapping_array[ $address_found ][] = $item_id;
 
-					// Update item Index
+					// Update item data before storing in $data array
 					$item['Index'] = $counters_array[ $address_found ];
+					$item['Price'] = apply_filters( 'wootax_taxable_price', $item['Price'], false, $item_id );
 
-					// Unset "type" value
 					unset( $item['Type'] );
 
 					// Add formatted item data to the $data array
@@ -328,9 +325,6 @@ class WC_WooTax_Order {
 				case 'fee':
 					// Push this item to the fee array; it will be attached to the first daughter order later on
 					$fee_items[ $item_id ] = $item;
-
-					// Update fee counter
-					$fee_counter++;
 				break;
 			}
 		}
@@ -347,7 +341,7 @@ class WC_WooTax_Order {
 					'Index'  => $index,
 					'ItemID' => $item['ItemID'],
 					'TIC'    => $item['TIC'],
-					'Price'  => $item['Price'],
+					'Price'  => apply_filters( 'wootax_taxable_price', $item['Price'], false, $item['ItemID'] ),
 					'Qty'    => $item['Qty'],
 				);
 
@@ -736,7 +730,7 @@ class WC_WooTax_Order {
 		if ( $tax_item_id == 0 || $tax_item_id == NULL ) {
 			$wpdb->insert( "{$wpdb->prefix}woocommerce_order_items", array(
 				'order_item_type' => 'tax', 
-				'order_item_name' => 'WOOTAX-RATE-DO-NOT-REMOVE', 
+				'order_item_name' => apply_filters( 'wootax_rate_code', 'WOOTAX-RATE-DO-NOT-REMOVE' ), 
 				'order_id'        => $this->order_id
 			) );
 

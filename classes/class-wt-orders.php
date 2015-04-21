@@ -224,6 +224,7 @@ class WT_Orders {
 			WC()->session->certificate_applied        = '';
 			WC()->session->certificate_data           = '';
 			WC()->session->exemption_applied          = '';
+			WC()->session->wootax_lookup_sent         = '';
 			WC()->session->cert_removed               = false;
 			WC()->session->cart_taxes                 = array();
 			WC()->session->backend_cart_taxes         = array();
@@ -495,8 +496,9 @@ class WT_Orders {
 				} else if ( isset( $items['order_item_qty'][$item_id] ) ) {
 					// Cart item
 					$tic  = get_post_meta( $product_id, 'wootax_tic', true );
-					$cost = $items['line_total'][$item_id];
+					$cost = $items['line_total'][ $item_id ];
 					$type = 'cart';
+					$qty  = WC_WooTax::get_option('tax_based_on') == 'line-subtotal' ? 1 : $items['order_item_qty'][ $item_id ];
 				} else {
 					// Fee
 					$tic  = WT_FEE_TIC;
@@ -756,7 +758,7 @@ class WT_Orders {
 				$shipping_taxes[ WT_RATE_ID ] = $return['recurring_shipping_tax'];
 
 			 	// Get tax rates
-				$tax_codes = array( WT_RATE_ID => 'WOOTAX-RATE-DO-NOT-REMOVE' );
+				$tax_codes = array( WT_RATE_ID => apply_filters( 'wootax_rate_code', 'WOOTAX-RATE-DO-NOT-REMOVE' ) );
 
 				// Remove old tax rows
 				$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}woocommerce_order_itemmeta WHERE order_item_id IN ( SELECT order_item_id FROM {$wpdb->prefix}woocommerce_order_items WHERE order_id = %d AND order_item_type = 'recurring_tax' )", $order_id ) );

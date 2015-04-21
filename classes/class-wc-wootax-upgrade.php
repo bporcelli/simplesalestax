@@ -31,9 +31,6 @@ class WC_WooTax_Upgrade {
 	 * @since 4.4
 	 */
 	private static function hooks() {
-		// Maybe trigger update on activation
-		register_activation_hook( __FILE__, array( __CLASS__, 'maybe_update_wootax' ) );
-
 		// Add admin page for data update process to occur on
 		add_action( 'admin_menu', array( __CLASS__, 'add_admin_page' ) );
 

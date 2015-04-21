@@ -161,12 +161,17 @@ class WC_WooTax_Admin {
 	 */
 	public static function enqueue_scripts_and_styles() {
 		// WooTax admin JS
-		wp_enqueue_script( 'wootax-admin', WT_PLUGIN_DIR_URL .'js/admin.js', array( 'jquery', 'jquery-tiptip' ), '1.0' );
-		wp_localize_script( 'wootax-admin', 'MyAjax', array( 'ajaxURL' => admin_url( 'admin-ajax.php' ) ) );
+		wp_enqueue_script( 'wootax-admin', WT_PLUGIN_DIR_URL .'js/admin.js', array( 'jquery', 'jquery-tiptip' ), '1.1' );
+		
+		wp_localize_script( 'wootax-admin', 'WT', array( 
+			'ajaxURL'  => admin_url( 'admin-ajax.php' ),
+			'rateCode' => apply_filters( 'wootax_rate_code', 'WOOTAX-RATE-DO-NOT-REMOVE' ),
+		) );
 
 		// JavaScript for TIC selector
 		wp_enqueue_script( 'jquery-tic', WT_PLUGIN_DIR_URL .'js/jquery-tic.js', array( 'jquery', 'wootax-admin' ) );
 
+		// WooTax admin CSS
 		wp_enqueue_style( 'wootax-admin-style', WT_PLUGIN_DIR_URL .'css/admin.css' );
 	}
 	

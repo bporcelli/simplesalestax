@@ -183,7 +183,7 @@ class WC_WooTax {
 		}
 		
 		// Only for cronjobs
-		if ( self::is_request( 'cron' ) ) {
+		if ( self::is_request( 'cron' ) || self::is_request( 'admin' ) ) {
 			require 'includes/wc-wootax-cron-tasks.php';
 		}
 	}
@@ -198,6 +198,7 @@ class WC_WooTax {
 		self::maybe_add_wootax_rate();
 		self::add_exempt_user_role();
 		self::schedule_wootax_events();
+		WC_WooTax_Upgrade::maybe_update_wootax();
 	}
 
 	/**
@@ -289,7 +290,7 @@ class WC_WooTax {
 	 */
 	public static function get_rate_code( $code, $key ) {
 		if ( $key == WT_RATE_ID ) {
-			return 'WOOTAX-RATE-DO-NOT-REMOVE';
+			return apply_filters( 'wootax_rate_code', 'WOOTAX-RATE-DO-NOT-REMOVE' );
 		} else {
 			return $code;
 		}
@@ -343,21 +344,17 @@ class WC_WooTax {
 	 * @since 4.4
 	 */
 	public static function schedule_wootax_events() {
-		// Ensures that all orders are properly synced with TaxCloud
-		wp_schedule_event( time(), 'daily', 'wootax_check_orders' ); 
-
 		// Updates recurring tax amounts if necessary
 		wp_schedule_event( time(), 'twicedaily', 'wootax_update_recurring_tax' );
 	}
 
 	/**
 	 * Unschedule events for the WooTax order checker and recurring payments updater
-	 * Hooks to be cleared are wootax_check_orders and wootax_update_recurring_tax
+	 * Hooks to be cleared are wootax_update_recurring_tax
 	 *
 	 * @since 4.4
 	 */
 	public static function unschedule_wootax_events() {
-		wp_clear_scheduled_hook( 'wootax_check_orders' );
 		wp_clear_scheduled_hook( 'wootax_update_recurring_tax' );
 	}
 
