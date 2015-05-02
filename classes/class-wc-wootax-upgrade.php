@@ -82,7 +82,7 @@ class WC_WooTax_Upgrade {
 			self::maybe_update_settings();
 
 			if ( self::needs_data_update() ) {
-				wootax_add_message( '<strong>Important:</strong> WooTax needs to update your database. Please take a backup of your website and click "Complete Update" to proceed. <a class="button button-primary" href="'. admin_url( 'admin.php?page=wt-update' ) .'">Complete Update</a>', 'update-nag', 'upgrade-message', true, false );
+				wootax_add_message( '<strong>WooTax data update required.</strong> Please backup your database, then click "Complete Update" to run the updater. <a class="button button-primary" href="'. admin_url( 'admin.php?page=wt-update' ) .'">Complete Update</a>', 'update-nag', 'upgrade-message', true, false );
 			} else {
 				update_option( 'wootax_version', WT_VERSION );
 			}

@@ -360,7 +360,7 @@ class WC_WooTax_Settings extends WC_Integration {
 							<input type="text" name="wootax_address1[<?php echo $i; ?>]" class="wootax_address1" value="<?php echo $address['address_1']; ?>" />
 						</td>
 						<td>
-							<input type="text" name="wootax_address2[<?php echo $i; ?>]" class="wootax_address2" value="<?php echo $address['address_2']; ?>" placeholder="(Optional)" />
+							<input type="text" name="wootax_address2[<?php echo $i; ?>]" class="wootax_address2" value="<?php echo isset( $address['address_2'] ) ? $address['address_2'] : ''; ?>" placeholder="(Optional)" />
 						</td>
 						<td>
 							<input type="text" name="wootax_city[<?php echo $i; ?>]" class="wootax_city" value="<?php echo $address['city']; ?>" />
@@ -522,6 +522,9 @@ class WC_WooTax_Settings extends WC_Integration {
 
 			// Next, update the default address
 			$settings['default_address'] = empty( $_POST['wootax_default_address'] ) ? 0 : $_POST['wootax_default_address'];
+
+			// Set settings_changed flag to "true" so WooTax reloads settings array
+			WC_WooTax::$settings_changed = true;
 		}
 
 		return $settings;

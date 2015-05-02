@@ -81,9 +81,13 @@ function maybe_display_exemption_link() {
 		$link_text = empty( $raw_link_text ) ? 'Click here to add or apply an exemption certificate.' : $raw_link_text;
 
 		$notice = 'Are you a tax exempt customer? <span id="wootax_exemption_link"><a href="#" style="text-decoration: none;">'. $link_text .'</a></span>';
-	
+		
+		// Use class "woocommerce-message" for 2.1.x and 2.3.x; use "woocommerce-message" for 2.2.x
+		// If this isn't done properly, the exemption certificate confirmation message isn't displayed properly
+		$message_class = version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) && version_compare( WOOCOMMERCE_VERSION, '2.3', '<' ) ? 'woocommerce-info' : 'woocommerce-message';
+
 		echo "<div class='woocommerce-info'>$notice</div>";
-		echo "<div class='woocommerce-message' id='wooTaxApplied' style='". ( empty( WC()->session->certificate_id ) ? 'display: none;' : '' ) ."'>Exemption certificate applied (<a href='#' id='removeCert'>Remove</a>)</div>";
+		echo "<div class='$message_class' id='wooTaxApplied' style='". ( empty( WC()->session->certificate_id ) ? 'display: none !important;' : '' ) ."'>Exemption certificate applied (<a href='#' id='removeCert'>Remove</a>)</div>";
 	}
 }
 

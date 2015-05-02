@@ -32,7 +32,7 @@ function wootax_add_message( $content, $type = "error", $id = "", $persistent = 
 	$class = $persistent ? 'persistent' : 'normal';	
 
 	// Fetch em
-	$type_messages = is_array( $all_messages[ $class ] ) ? $all_messages[ $class ] : array();
+	$type_messages = isset( $all_messages[ $class ] ) && is_array( $all_messages[ $class ] ) ? $all_messages[ $class ] : array();
 
 	// Add new message
 	$new = array(
@@ -98,14 +98,14 @@ function wootax_display_messages() {
 	$all_messages = get_transient( 'wootax_messages' );
 		
 	// Loop through messages and output
-	if ( is_array( $all_messages['persistent'] ) ) {
+	if ( isset( $all_messages['persistent'] ) ) {
 		foreach ( $all_messages['persistent'] as $id => $message ) {
 			$dismissable = $message['dismissable'] ? ' dismissable' : '';
 			echo '<div class="wootax-message '. $message['type'] . $dismissable .'" data-id="'. $id .'"><p>'. $message['content'] . ( $message['dismissable'] ? ' <button type="button" class="wp-core-ui button-secondary wootax-button">Dismiss</button>' : '' ) .'</p></div>';
 		}
 	}
 
-	if ( is_array( $all_messages['normal'] ) ) {
+	if ( isset( $all_messages['normal'] ) ) {
 		foreach ( $all_messages['normal'] as $message ) {
 			echo '<div class="wootax-message '. $message['type'] .'"><p>'. $message['content'] .'</p></div>';
 		}

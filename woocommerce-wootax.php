@@ -37,6 +37,9 @@ class WC_WooTax {
 	/** Plugin settings */
 	private static $settings = array();
 
+	/** When this is true, the get_option method reloads the WooTax settings array */
+	public static $settings_changed = false;
+
 	/**
 	 * Initialize plugin
 	 * - Hook into WooCommerce
@@ -69,8 +72,6 @@ class WC_WooTax {
 			return false;
 		} else if ( !is_plugin_active( 'woocommerce/woocommerce.php' ) || !version_compare( WOOCOMMERCE_VERSION, '2.1', '>=' ) ) {
 			wootax_add_message( '<strong>Warning: WooTax has been disabled.</strong> WooCommerce version 2.1 or greater must be activated for WooTax to work properly.' );
-			return false;
-		} else if ( !self::get_option( 'tc_id' ) || !self::get_option( 'tc_key' ) ) {
 			return false;
 		}
 
@@ -160,13 +161,15 @@ class WC_WooTax {
 		}
 		
 		// Frontend and admin panel
-		if ( self::is_request( 'frontend' ) || self::is_request( 'admin' ) ) {
+		if ( self::is_request( 'frontend' ) || self::is_request( 'admin' ) || self::is_request( 'cron' ) ) {
 			require 'classes/class-wc-wootax-order.php';
 			require 'classes/class-wt-orders.php';
 
 			if ( WT_SUBS_ACTIVE ) {
 				require 'classes/class-wc-wootax-subscriptions.php';
 			}
+
+			require 'includes/wc-wootax-cron-tasks.php';
 		}
 
 		// Strictly admin panel
@@ -180,11 +183,6 @@ class WC_WooTax {
 			if ( !class_exists( 'EDD_SL_Plugin_Updater' ) ) {
 				require 'classes/EDD_SL_Plugin_Updater.php';
 			}
-		}
-		
-		// Only for cronjobs
-		if ( self::is_request( 'cron' ) || self::is_request( 'admin' ) ) {
-			require 'includes/wc-wootax-cron-tasks.php';
 		}
 	}
 
@@ -252,7 +250,7 @@ class WC_WooTax {
 	private static function has_tax_rate() {
 		global $wpdb;
 
-		$wootax_rate_id = WT_RATE_ID;
+		$wootax_rate_id = get_option( 'wootax_rate_id' ); // WT_RATE_ID is not defined yet when this method is executed
 
 		if ( !$wootax_rate_id ) {
 			return false;
@@ -389,8 +387,9 @@ class WC_WooTax {
 	 * @return (mixed) requested option or boolean false if it isn't set
 	 */
 	public static function get_option( $key ) {
-		if ( count( self::$settings ) == 0 ) {
+		if ( count( self::$settings ) == 0 || self::$settings_changed ) {
 			self::$settings = get_option( self::$settings_key );
+			self::$settings_changed = false;
 		}
 		
 		if ( !isset( self::$settings[ $key ] ) || !self::$settings[ $key ] ) {

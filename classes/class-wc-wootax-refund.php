@@ -1,8 +1,11 @@
 <?php
 
-if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '<' ) || !defined( 'ABSPATH' ) ) {
-	exit; // Prevent direct access; do not execute script if partial refunds are not supported (WC < 2.2)
+if ( !defined( 'ABSPATH' ) ) {
+	exit; // Prevent direct access
 }
+
+// Do not execute script if partial refunds are not supported (WC < 2.2)
+if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ) :
 
 // We will need access to the WC_Order_Refund class!
 if ( !class_exists( 'WC_Order_Refund' ) ) {
@@ -204,3 +207,5 @@ class WC_WooTax_Refund extends WC_Order_Refund {
 
 // Make WooCommerce aware of our custom refund class
 add_filter( 'woocommerce_order_class', array( 'WC_WooTax_Refund', 'get_refund_classname' ), 1, 1 );
+
+endif;

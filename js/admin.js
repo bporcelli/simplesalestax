@@ -446,9 +446,11 @@ jQuery(function() {
     /**
      * Replace 'WOOTAX-RATE-DO-NOT-REMOVE' with custom rate code in recurring tax select box
      */
-    if ( jQuery('#recurring_tax_rows').length != 0 ) {
-        jQuery('#recurring_tax_rows select').find('option').each(function() {
-            jQuery(this).text(jQuery(this).text().replace('WOOTAX-RATE-DO-NOT-REMOVE', WT.rateCode));
+    if ( jQuery('.tax_rows_group').length != 0 ) {
+        jQuery('.tax_rows_group select').each(function() {
+            jQuery(this).find('option').each(function() {
+                jQuery(this).text(jQuery(this).text().replace('WOOTAX-RATE-DO-NOT-REMOVE', WT.rateCode));
+            });
         });
     }
 });

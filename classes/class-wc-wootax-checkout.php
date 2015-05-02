@@ -66,8 +66,8 @@ class WC_WooTax_Checkout {
 			$this->is_subscription = true;
 
 			// Restore shipping taxes array for orders containing subscriptions
-			add_action( 'woocommerce_after_calculate_totals', array( $this, 'restore_shipping_taxes' ), 10, 1 );
 			add_filter( 'woocommerce_calculated_total', array( $this, 'store_shipping_taxes' ), 10, 2 );
+			add_action( 'woocommerce_cart_updated', array( $this, 'restore_shipping_taxes' ) ); // Hook for 2.3: woocommerce_after_calculate_totals
 
 			// Set is_renewal flag if subscriptions is calculating the recurring order total
 			if ( WC_Subscriptions_Cart::get_calculation_type() == 'recurring_total' ) {
@@ -700,8 +700,6 @@ class WC_WooTax_Checkout {
 				$req['exemptCert'] = $exempt_cert;
 			}
 
-			//print_r($req);
-
 			// Send Lookup request 
 			$res = $this->taxcloud->send_request( 'Lookup', $req );
 
@@ -1087,14 +1085,15 @@ class WC_WooTax_Checkout {
 	 * Only executed when WooCommerce Subscriptions is active
 	 *
 	 * @since 4.4
-	 * @param $cart WC_Cart a WC_Cart object
+	 * @param (double) $total the current cart total
+	 * @param (WC_Cart) $cart a WC_Cart object
 	 */
-	public function restore_shipping_taxes( $cart ) {
+	public function restore_shipping_taxes() {
 		// Restore taxes to given cart object
-		$cart->shipping_taxes = $this->shipping_taxes;
+		//$cart->shipping_taxes = $this->shipping_taxes;
 
 		// Restore taxes for global cart object
-		WC()->cart->shipping_taxes = $cart->shipping_taxes;
+		WC()->cart->shipping_taxes = $this->shipping_taxes;
 	}
 }
 

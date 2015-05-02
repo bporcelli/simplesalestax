@@ -93,9 +93,6 @@ var certManagerBox = {
         for ( var i = 0; i < certObj.length; i++ ) {
             var date = certManagerBox.parseDate( certObj[i].Detail.CreatedDate );
 
-            console.log(date);
-            console.log(certObj[i]);
-
             newHTML += '<tr id="' + certObj[i].CertificateID + '" data-ind="' + i + '" class="certificateWrap">';
             newHTML += '<td valign="middle" align="center" width="160"><img width="150" height="120" src="' + (certObj[i].Detail.SinglePurchase == false ? URL + 'img/exemption_certificate150x120.png' : URL + 'img/sp_exemption_certificate_150x120.png') + '" /></td>';
             newHTML += '<td valign="middle" width="340">Issued To: ' + certObj[i].Detail.PurchaserFirstName + ' ' + certObj[i].Detail.PurchaserLastName + '<br /> Exempt State(s): ' + certObj[i].Detail.ExemptStates.ExemptState.StateAbbr + '<br /> Date: ' + (parseInt(date.getMonth()) + 1) + '/' + date.getDate() + '/' + date.getFullYear() + '<br /> Purpose: ' + certManagerBox.getPrettyWord( certObj[i].Detail.PurchaserExemptionReason ) + '<br />' + certManagerBox.displayCertOptions( certObj[i] ) + '</td>';

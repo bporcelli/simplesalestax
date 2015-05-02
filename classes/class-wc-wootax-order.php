@@ -32,7 +32,7 @@ class WC_WooTax_Order {
 			return;
 		} else {
 			$this->order_id = $order_id;
-			$this->order    = wc_get_order( $this->order_id );
+			$this->order    = new WC_Order( $this->order_id );
 
 			$this->set_destination_address();
 		}
@@ -599,16 +599,22 @@ class WC_WooTax_Order {
 			$zip5      = !empty( $this->order->shipping_postcode ) ? $this->order->shipping_postcode : $zip5;
 		} 
 
+		// If address isn't saved yet, we will fall back to POSTed fields
+		$post_zip     = isset( $_POST['postcode'] ) ? $_POST['postcode'] : '';
+		$post_country = isset( $_POST['country'] ) ? $_POST['country'] : '';
+		$post_state   = isset( $_POST['state'] ) ? $_POST['state'] : '';
+		$post_city    = isset( $_POST['city'] ) ? $_POST['city'] : '';
+
 		// Parse ZIP code, splitting it into its 5 and 4-digit components
-		$parsed_zip = parse_zip( !empty( $zip5 ) ? $zip5 : $_POST['postcode'] );
+		$parsed_zip = parse_zip( !empty( $zip5 ) ? $zip5 : $post_zip );
 
 		// Return final address
 		$address = array(
 			'Address1' => !empty( $address_1 ) ? $address_1 : '',
 			'Address2' => !empty( $address_2 ) ? $address_2 : '',
-			'Country'  => !empty( $country ) ? $country : $_POST['country'],
-			'State'    => !empty( $state ) ? $state : $_POST['state'],
-			'City'     => !empty( $city ) ? $city : $_POST['city'],
+			'Country'  => !empty( $country ) ? $country : $post_country,
+			'State'    => !empty( $state ) ? $state : $post_state,
+			'City'     => !empty( $city ) ? $city : $post_city,
 			'Zip5'     => $parsed_zip['zip5'],
 			'Zip4'     => $parsed_zip['zip4'],
 		);
@@ -707,21 +713,24 @@ class WC_WooTax_Order {
 	 * Triggers an update of the order tax item if we are in the backend
 	 * 
 	 * @since 4.2
-	 * @param (float) $cart_tax the total cart tax added by WooTax
-	 * @param (float) $shipping_tax the total shipping tax added by WooTax
+	 * @param (double) $cart_tax the total cart tax added by WooTax
+	 * @param (double) $shipping_tax the total shipping tax added by WooTax
 	 */
-	private function update_tax_totals( $cart_tax  = 0.0, $shipping_tax  = 0.0 ) {
+	private function update_tax_totals( $cart_tax = 0.0, $shipping_tax = 0.0 ) {
 		$this->update_tax_total( 'cart', $cart_tax );
 		$this->update_tax_total( 'shipping', $shipping_tax );
-		$this->update_tax_item();		
+
+		$this->update_tax_item( $cart_tax, $shipping_tax );		
 	}
 	
 	/**
 	 * Updates WooTax tax item to reflect changes in cart/shipping tax totals
 	 *
 	 * @since 4.2
+	 * @param (double) $cart_tax the total cart tax added by WooTax
+	 * @param (double) $shipping_tax the total shipping tax added by WooTax
 	 */
-	private function update_tax_item() {
+	private function update_tax_item( $cart_tax, $shipping_tax ) {
 		global $wpdb;
 
 		// Add a new tax item if necessary
@@ -731,7 +740,7 @@ class WC_WooTax_Order {
 			$wpdb->insert( "{$wpdb->prefix}woocommerce_order_items", array(
 				'order_item_type' => 'tax', 
 				'order_item_name' => apply_filters( 'wootax_rate_code', 'WOOTAX-RATE-DO-NOT-REMOVE' ), 
-				'order_id'        => $this->order_id
+				'order_id'        => $this->order_id,
 			) );
 
 			// Store new tax item ID
@@ -741,9 +750,6 @@ class WC_WooTax_Order {
 		}
 
 		// Update tax item meta
-		$cart_tax     = WT_Orders::get_meta( $this->order_id, 'tax_total' );
-		$shipping_tax = WT_Orders::get_meta( $this->order_id, 'shipping_tax_total' );
-
 		wc_update_order_item_meta( $tax_item_id, 'rate_id', WT_RATE_ID );
 		wc_update_order_item_meta( $tax_item_id, 'label', 'Sales Tax' );
 		wc_update_order_item_meta( $tax_item_id, 'name', 'Sales Tax' );

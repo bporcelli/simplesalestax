@@ -269,7 +269,7 @@ function wootax_get_address( $index ) {
 
 	if ( is_array( $addresses ) && isset( $addresses[ $index ] ) ) {
 		$address['Address1'] = $addresses[ $index ]['address_1'];
-		$address['Address2'] = $addresses[ $index ]['address_2'];
+		$address['Address2'] = isset( $addresses[ $index ]['address_2'] ) ? $addresses[ $index ]['address_2'] : '';
 		$address['Country']  = $addresses[ $index ]['country'];
 		$address['State']    = $addresses[ $index ]['state'];
 		$address['City']     = $addresses[ $index ]['city'];

@@ -73,6 +73,9 @@ class WT_Orders {
 		
 			// Sets tax totals for the WooTax tax item ID
 			add_action( 'woocommerce_order_add_tax', array( __CLASS__, 'add_order_tax_rate' ), 12, 3 );
+		} else {
+			// Store tax item ID (2.1.x)
+			add_action( 'woocommerce_checkout_update_order_meta', array( __CLASS__, 'store_tax_item_id' ), 10, 1 );
 		}
 
 		// Add WooTax meta when order is created
@@ -317,7 +320,7 @@ class WT_Orders {
 		$tax_item_id = 0;
 
 		// Find first rate with matching rate id; set $tax_item_id accordingly
-		foreach ( $order->get_taxes() as $key => $data ) {
+		foreach ( $order->order->get_taxes() as $key => $data ) {
 			if ( $data['rate_id'] == WT_RATE_ID ) {
 				$tax_item_id = $key;
 				break;
@@ -428,8 +431,6 @@ class WT_Orders {
 		// Get WC_WooTax_Order object
 		$order = self::get_order( $order_id );
 	
-		$initial_tax_item_id = self::get_meta( $order_id, 'tax_item_id' );
-
 		if ( $country != 'US' && $country != 'United States' ) {
 			return; // Returning here allows WC_AJAX::calc_line_taxes to take over for non-US orders
 		} else {

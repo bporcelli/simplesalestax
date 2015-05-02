@@ -27,7 +27,7 @@ function wootax_update_recurring_tax() {
 	}
 
 	// Find date/time 12 hours from now
-	$twelve_hours = mktime( date('H') + 48 );
+	$twelve_hours = mktime( date('H') + 12 );
 
 	$date = new DateTime( date( 'c', $twelve_hours ) ); 
 	$date = $date->format( 'Y-m-d H:i:s' );
