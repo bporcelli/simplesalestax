@@ -18,7 +18,7 @@ var certManager = {
 
             jQuery.magnificPopup.open( {
                 items: {
-                    src: lbPath + '/manage-certificates.php?pluginPath=' + pluginPath
+                    src: lbPath + '/manage-certificates.php?pluginPath='+ encodeURIComponent( pluginPath ),
                 },
                 type: 'iframe',
                 mainClass: 'mfp-fade'

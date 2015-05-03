@@ -8,7 +8,7 @@
 
   <!-- Load google fonts -->
   <link href='//fonts.googleapis.com/css?family=Open+Sans:400italic,700italic,400,700' rel='stylesheet' type='text/css' /><!-- Load lightbox CSS -->
-  <link rel="stylesheet" href="<?php echo $_GET['pluginPath']; ?>css/lightbox.css" type="text/css" />
+  <link rel="stylesheet" href="<?php echo urldecode($_GET['pluginPath']); ?>css/lightbox.css" type="text/css" />
   
   <!-- Load jQuery -->
   <script type="text/javascript" src="//code.jquery.com/jquery-1.11.0.min.js"></script>
@@ -19,7 +19,7 @@
     var pluginPath = "<?php echo $_GET['pluginPath']; ?>";
   //]]>
   </script>
-  <script type="text/javascript" src="<?php echo $_GET['pluginPath']; ?>js/lightbox.js">
+  <script type="text/javascript" src="<?php echo urldecode($_GET['pluginPath']); ?>js/lightbox.js">
 </script>
 </head>
 

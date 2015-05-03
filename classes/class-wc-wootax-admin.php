@@ -202,7 +202,7 @@ class WC_WooTax_Admin {
 	 * @param (WC_Product) $product a WC_Product object
 	 */
 	public static function save_bulk_edit_fields( $product ) {
-		if ( $product->id == NULL || $_REQUEST['wootax_set_tic'] == '' ) {
+		if ( $product->id == NULL || $_REQUEST['wootax_set_tic'] == '' || $_REQUEST['wootax_set_tic'] == '[ - Select - ]' ) {
 			return;
 		}
 

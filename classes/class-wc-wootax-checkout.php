@@ -749,9 +749,11 @@ class WC_WooTax_Checkout {
 					// Map item id to location
 					$this->location_mapping_array[ $item_id ] = $location_key;
 				}
-			} else {					
-				wc_add_notice( 'An error occurred while calculating the tax for this order. '. $this->taxcloud->get_error_message(), 'error' );
-
+			} else {
+				if ( strpos( $this->taxcloud->get_error_message(), 'zip' ) === false ) {			
+					wc_add_notice( 'An error occurred while calculating the tax for this order. '. $this->taxcloud->get_error_message(), 'error' );
+				}
+				
 				return;
 			}
 		}
