@@ -178,33 +178,6 @@ jQuery(function() {
         e.preventDefault();
     });
 
-    // Deactivate license on this domain
-    jQuery('#wootax_deactivate_license').click(function(e) {
-
-        // Verify user action
-        var msg = 'Are you sure you want to deactivate your license? You will have to enter a valid license key to use WooTax on this site again.';
-
-        if ( confirm( msg ) ) {
-            jQuery.ajax({
-                type: 'POST',
-                url: WT.ajaxURL,
-                data: 'action=wootax-deactivate-license',
-                success: function(resp) {
-                    resp = eval('(' + resp + ')');
-                    if (resp.status == 'success') {
-                        window.location.reload();
-                    } else {
-                        alert('Error: ' + resp);
-                    }
-                }
-            });
-        }
-
-        // Stop page jitter
-        e.preventDefault();
-
-    });
-
     // Uninstall WooTax
     jQuery( '#wootax_uninstall' ).click( function( e ) {
 
@@ -212,7 +185,7 @@ jQuery(function() {
         e.preventDefault();
 
         // Verify user action
-        var msg = 'Are you sure you want to uninstall WooTax? All of your settings will be erased and your license will be deactivated on this domain.';
+        var msg = 'Are you sure you want to uninstall WooTax? All of your settings will be erased.';
 
         if ( confirm( msg ) ) {
 
@@ -393,7 +366,7 @@ jQuery(function() {
             var toHide = jQuery(this).closest('tr');
 
             if (toHide.find('input[name=wootax_default_address]').is(':checked'))
-                jQuery('#wootax_form table.widefat tbody tr').eq(0).find('input[name="wootax_default_address"]').attr('checked', 'checked');
+                jQuery('#address_table tbody tr').eq(0).find('input[name="wootax_default_address"]').attr('checked', 'checked');
 
             toHide.hide().remove();
         }

@@ -17,11 +17,6 @@
 	padding-left: 10px;
 }
 
-#calculateTax {
-    display: none;
-	float: left;
-}
-
 #wootax-loader {
 	width: 16px;
 	height: 26px;
@@ -30,30 +25,12 @@
 	margin-left: 5px;
 }
 
-#wooButtonWrap {
-	width: 100%;
-	clear: both;
-	height: 30px;
-    display: none;
-}
-
 a#wootax-remove-tic {
 	text-decoration: none;
 }
 
 span.required {
 	color: red;
-}
-
-#wootax_form {
-	float: left;
-	clear: both;
-	width: 100%;
-}
-
-#wootax_form .widefat th span, #wootax_form .widefat th img {
-	display: inline-block;
-	vertical-align: middle;
 }
 
 a.remove_address {
@@ -67,14 +44,6 @@ a.remove_address {
 a.remove_address.disabled {
 	cursor: not-allowed;
 	color: #666;
-}
-
-#wootax_form table td>input[type=radio] {
-	margin-top: 7px;
-}
-
-#wootax_form table.widefat {
-	margin-bottom: 30px;
 }
 
 /**
@@ -178,4 +147,11 @@ a.remove_address.disabled {
 
 .wootax-message.update-nag p {
     margin: 0 !important;
+}
+
+/**
+ * Hide Tax Status/Tax Class fields
+ */
+.form-field._tax_status_field {
+    display: none !important;
 }

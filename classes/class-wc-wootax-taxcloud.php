@@ -2,10 +2,9 @@
 
 /**
  * Utility for making TaxCloud API requests
- * TODO: IMPLEMENT SINGLETON PATTERN! SHOULD SAVE SOME MEMORY AND MAKES MUCH MORE SENSE
- *
+ * 
  * @since 4.2
- * @package WooTax
+ * @package WooCommerce TaxCloud
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

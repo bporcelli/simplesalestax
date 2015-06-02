@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * WooCommerce Integration for WooTax
  *
- * @package WooTax
+ * @package WooCommerce TaxCloud
  */
  
 if ( ! class_exists( 'WC_WooTax_Settings' ) ) :
@@ -20,8 +20,8 @@ class WC_WooTax_Settings extends WC_Integration {
 		global $woocommerce;
  
 		$this->id                 = 'wootax';
-		$this->method_title       = __( 'WooTax', 'woocommerce-wootax' );
-		$this->method_description = __( '<p>WooTax allows you to easily and accurately collect sales tax from your customers using TaxCloud. If you experience issues with WooTax, please consult the <a href="http://wootax.com/#faq" target="_blank">FAQ</a> and the <a href="http://wootax.com/installation-guide/" target="_blank">Installation Guide</a> before contacting support.</p><p>Need help? <a href="http://wootax.com/contact-us/" target="_blank">Contact us</a>.</p>', 'woocommerce-wootax' );
+		$this->method_title       = __( 'WooTax: WooCommerce TaxCloud', 'woocommerce-wootax' );
+		$this->method_description = __( '<p>WooTax makes sales tax easy by connecting your store with <a href="https://taxcloud.net" target="_blank">TaxCloud</a>. If you have trouble with WooTax, please consult the <a href="https://wootax.com/#faq" target="_blank">FAQ</a> and the <a href="https://wootax.com/installation-guide/" target="_blank">Installation Guide</a> before contacting support.</p><p>Need help? <a href="http://wootax.com/contact-us/" target="_blank">Contact us</a>.</p>', 'woocommerce-wootax' );
  
 		// Load the settings.
 		$this->init_form_fields();
@@ -44,8 +44,6 @@ class WC_WooTax_Settings extends WC_Integration {
 		$this->exemption_text     = $this->get_option( 'exemption_text' );
 		$this->tax_based_on       = $this->get_option( 'tax_based_on' );
 		$this->log_requests       = $this->get_option( 'log_requests' );
-		/*$this->check_orders       = $this->get_option( 'check_orders' );
-		$this->send_notifications = $this->get_option( 'send_notifications' );*/
 		$this->notification_email = $this->get_option( 'notification_email' );
 
 		// Actions.
@@ -61,10 +59,9 @@ class WC_WooTax_Settings extends WC_Integration {
  	 * @since 4.2
  	 */
  	public function admin_options() {
- 		$license       = get_option( 'wootax_license_key' );
 		$rates_checked = get_option( 'wootax_rates_checked' );
 
-		if ( !$license || !$rates_checked ) {
+		if ( !$rates_checked ) {
 
 			echo '<h3>WooTax</h3>';
 			echo '<h4>WooTax installation incomplete.</h4>';
@@ -221,28 +218,6 @@ class WC_WooTax_Settings extends WC_Integration {
 				'description' 		=> __( '"Item Price": TaxCloud determines the taxable amount for a line item by multiplying the item price by its quantity. "Line Subtotal": the taxable amount is determined by the line subtotal. Useful in instances where rounding becomes an issue.', 'woocommerce-wootax' ),
 				'desc_tip'			=> true
 			),
-			/*'check_orders' => array(
-				'title' 			=> 'Enable Error Checking',
-				'type' 				=> 'select',
-				'options'			=> array(
-					'yes' => 'Yes',
-					'no'  => 'No',
-				),
-				'default' 			=> 'yes',
-				'description' 		=> __( 'When set to "Yes," WooTax will check for TaxCloud synchronization errors and attempt to correct them automatically.', 'woocommerce-wootax' ),
-				'desc_tip'			=> true
-			),
-			'send_notifications' => array(
-				'title' 			=> 'Email Error Notifications',
-				'type' 				=> 'select',
-				'options'			=> array(
-					'yes' => 'Yes',
-					'no'  => 'No',
-				),
-				'default' 			=> 'yes',
-				'description' 		=> __( 'If this is set to "Yes," WooTax will notify you at a specified email address if it detects an error that cannot be resolved automatically.', 'woocommerce-wootax' ),
-				'desc_tip'			=> true
-			),*/
 			'notification_email' => array(
 				'title'				=> 'Error Notification Email',
 				'type'				=> 'text',
@@ -255,7 +230,7 @@ class WC_WooTax_Settings extends WC_Integration {
 				'label'				=> 'Uninstall',
 				'type'				=> 'button',
 				'id'				=> 'wootax_uninstall',
-				'description'		=> __( 'Click this button to uninstall WooTax. All of your settings will be erased and your license will be deactivated on this domain.', 'woocommerce-wootax' ),
+				'description'		=> __( 'Click this button to uninstall WooTax. All of your settings will be erased.', 'woocommerce-wootax' ),
 				'desc_tip'			=> true,
 				'loader'            => true,
 			), 

@@ -3,7 +3,7 @@
 /**
  * WooTax cronjobs
  *
- * @package WooTax
+ * @package WooCommerce TaxCloud
  * @since 4.4
  */
 
@@ -81,39 +81,36 @@ function wootax_update_recurring_tax() {
 			// Add subscription
 			$product = WC_Subscriptions::get_product( $product_id );
 
-			if ( $product->get_tax_status() == 'taxable' ) {
-				// Get order item ID
-				$item_id = $wpdb->get_var( "SELECT i.order_item_id FROM {$wpdb->prefix}woocommerce_order_items i LEFT JOIN {$wpdb->prefix}woocommerce_order_itemmeta im ON im.order_item_id = i.order_item_id WHERE im.meta_key = '_product_id' AND im.meta_value = $product_id AND i.order_id = $order_id" );
+			// Get order item ID
+			$item_id = $wpdb->get_var( "SELECT i.order_item_id FROM {$wpdb->prefix}woocommerce_order_items i LEFT JOIN {$wpdb->prefix}woocommerce_order_itemmeta im ON im.order_item_id = i.order_item_id WHERE im.meta_key = '_product_id' AND im.meta_value = $product_id AND i.order_id = $order_id" );
 
-				// Get price
-				$recurring_subtotal = $order->get_item_meta( $item_id, '_recurring_line_subtotal' );
-				$regular_subtotal   = $order->get_item_meta( $item_id, '_line_subtotal' );
+			// Get price
+			$recurring_subtotal = $order->get_item_meta( $item_id, '_recurring_line_subtotal' );
+			$regular_subtotal   = $order->get_item_meta( $item_id, '_line_subtotal' );
 
-				$price = $recurring_subtotal === '0' || !empty( $recurring_subtotal ) ? $recurring_subtotal : $regular_subtotal;
+			$price = $recurring_subtotal === '0' || !empty( $recurring_subtotal ) ? $recurring_subtotal : $regular_subtotal;
 
-				// Special case: If _subscription_sign_up_fee is set and $price is equal to its value, fall back to product price
-				if ( $order->get_item_meta( $item_id, '_subscription_sign_up_fee') == $price ) {
-					$price = $product->get_price();
-				}
-
-				$item_info = array(
-					'Index'  => '',
-					'ItemID' => $item_id, 
-					'Qty'    => 1,
-					'Price'  => $price,	
-					'Type'   => 'cart',
-				);	
-
-				$tic = get_post_meta( $product_id, 'wootax_tic', true );
-
-				if ( !empty( $tic ) && $tic ) {
-					$item_info['TIC'] = $tic;
-				}
-
-				$item_data[] = $item_info;
-
-				$type_array[ $item_id ] = 'cart';
+			// Special case: If _subscription_sign_up_fee is set and $price is equal to its value, fall back to product price
+			if ( $order->get_item_meta( $item_id, '_subscription_sign_up_fee') == $price ) {
+				$price = $product->get_price();
 			}
+
+			$item_info = array(
+				'Index'  => '',
+				'ItemID' => $item_id, 
+				'Qty'    => 1,
+				'Price'  => $price,	
+				'Type'   => 'cart',
+			);	
+
+			$tic = get_post_meta( $product_id, 'wootax_tic', true );
+
+			if ( !empty( $tic ) && $tic ) {
+				$item_info['TIC'] = $tic;
+			}
+
+			$item_data[] = $item_info;
+			$type_array[ $item_id ] = 'cart';
 
 			// Add recurring shipping items
 			foreach ( $order->order->get_items( 'recurring_shipping' ) as $item_id => $shipping ) {

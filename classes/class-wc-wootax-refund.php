@@ -16,7 +16,7 @@ if ( !class_exists( 'WC_Order_Refund' ) ) {
  * WC_WooTax_Refund
  * Enables support for partial refunds
  *
- * @package WooTax
+ * @package WooCommerce TaxCloud
  * @since 4.2
  */
 class WC_WooTax_Refund extends WC_Order_Refund {
@@ -100,7 +100,7 @@ class WC_WooTax_Refund extends WC_Order_Refund {
 		foreach ( $refund->get_items() as $item_id => $item ) {
 			$product = $refund->get_product_from_item( $item );
 
-			if ( !$product->is_taxable() || $item['qty'] == 0 ) {
+			if ( $item['qty'] == 0 ) {
 				continue;
 			}
 

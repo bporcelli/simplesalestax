@@ -140,6 +140,11 @@ class WC_WooTax_Upgrade {
 				delete_option( 'wootax_' . $option );
 			}
 		}
+
+		// wootax_license_key option was deprecated in 4.5; remove it
+		if ( get_option( 'wootax_license_key' ) ) {
+			delete_option( 'wootax_license_key' );
+		}
 	}
 
 	/** 

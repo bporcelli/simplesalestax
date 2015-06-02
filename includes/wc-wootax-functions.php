@@ -4,7 +4,7 @@
  * wc-wootax-functions.php
  * Contains common methods
  *
- * @package WooTax
+ * @package WooCommerce TaxCloud
  * @since 4.2
  */
 
@@ -41,7 +41,6 @@ function address_needs_validation( $address_hash, $order_id = -1 ) {
  * @return (array) modified address array
  */
 function maybe_validate_address( $address, $order_id = -1 ) {
-	// TODO: Evaluate effiency of this method
 	$hash = md5( json_encode( $address ) );
 
 	// Determine if validation is necessary

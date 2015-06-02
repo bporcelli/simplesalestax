@@ -3,7 +3,7 @@
 /**
  * Includes methods relevant to tax exemptions feature
  *
- * @package WooTax
+ * @package WooCommerce TaxCloud
  * @since 4.2
  */
 

@@ -3,7 +3,7 @@
 /**
  * Contains all methods for actions performed within the WordPress admin panel
  *
- * @package WooTax
+ * @package WooCommerce TaxCloud
  * @since 4.2
  */
 
@@ -33,8 +33,7 @@ class WC_WooTax_Admin {
 		// Add "Install WooTax" menu item
 		add_action( 'admin_menu', array( __CLASS__, 'admin_menu' ), 20 );
 
-		// Update installation progress
-		add_action( 'init', array( __CLASS__, 'maybe_update_installation_progress' ) );
+		// Download log file if requested
 		add_action( 'init', array( __CLASS__, 'maybe_download_log_file' ) );
 
 		// Enqueue admin scripts/styles
@@ -72,50 +71,6 @@ class WC_WooTax_Admin {
 		$integrations[] = 'WC_WooTax_Settings';
 		
 		return $integrations;
-	}
-
-	/**
-	 * Update progress of installation if necessary
-	 *
-	 * @since 4.2
-	 */
-	public static function maybe_update_installation_progress() {
-		if( isset( $_POST['wootax_license_key'] ) ) {
-			$license = trim( $_POST['wootax_license_key'] );
-		
-			if ( !empty( $license ) ) {
-				// data to send in our API request
-				$api_params = array( 
-					'edd_action'=> 'activate_license', 
-					'license' 	=> $license, 
-					'item_name' => urlencode( 'WooTax Plugin for WordPress' ), // the name of our product in EDD
-					'url' 		=> home_url(),
-				);
-				
-				// Call the custom API.
-				$response = wp_remote_get( add_query_arg( $api_params, 'http://wootax.com' ), array( 'timeout' => 15, 'sslverify' => false ) );
-		
-				// make sure the response came back okay
-				if ( is_wp_error( $response ) ) {
-					return false;
-				}
-		
-				// decode the license data
-				$license_data = json_decode( wp_remote_retrieve_body( $response ) );
-				
-				// $license_data->license will be either "valid" or "invalid"
-				if ( $license_data->license == "valid" ) {
-					update_option( 'wootax_license_key', $license );
-				} else {
-					update_option( 'wootax_license_key', false );
-
-					// Display message
-					wootax_add_message( 'The license key you entered is invalid. Please try again.' );
-				}
-			} else {
-				wootax_add_message( 'Please enter your license key.' );
-			}
-		}
 	}
 
 	/**
@@ -400,39 +355,6 @@ class WC_WooTax_Admin {
 	}
 
 	/**
-	 * Deactivate the user's license on this domain
-	 * Called on AJAX action: wootax-deactivate-license
-	 *
-	 * @since 3.8
-	 * @return (mixed) boolean true on success; string error message on failure
-	 */
-	private static function wootax_deactivate_license() {
-		$current_key = get_option( 'wootax_license_key' );
-
-		if ( !$current_key ) {
-			return true;
-		}
-
-		// data to send in our API request
-		$api_params = array( 
-			'edd_action'=> 'deactivate_license', 
-			'license' 	=> $current_key, 
-			'item_name' => urlencode( 'WooTax Plugin for WordPress' ), // the name of our product in EDD
-			'url'		=> home_url(),
-		);
-		
-		// Call the custom API.
-		$response = wp_remote_get( add_query_arg( $api_params, 'http://wootax.com' ), array( 'timeout' => 15, 'sslverify' => false ) );
-
-		// make sure the response came back okay
-		if ( is_wp_error( $response ) ) {
-			return 'There was an error while deactivating your license. Please try again.';
-		}
-
-		return true;
-	}
-
-	/**
 	 * Delete tax rates from specified tax classes ("rates" POST param)
 	 * Ignore WooTax's own tax rate
 	 *
@@ -469,23 +391,18 @@ class WC_WooTax_Admin {
 	 * Uninstall WooTax:
 	 * - Remove WooTax tax rate
 	 * - Delete WooTax settings
-	 * - Deactivate license on this domain
 	 *
 	 * @since 4.2
 	 */
 	public static function uninstall_wootax() {
 		global $wpdb;
 
-		// Deactivate license
-		$license_deactivated = self::wootax_deactivate_license();
-
-		if ( $license_deactivated !== true ) {
-			die( $license_deactivated );
-		}
-
 		// Remove WooTax tax rate
 		$wootax_rate_id = WT_RATE_ID;
-		$wpdb->query( "DELETE FROM {$wpdb->prefix}woocommerce_tax_rates WHERE tax_rate_id = $wootax_rate_id" );
+
+		if ( !empty( $wootax_rate_id ) ) {
+			$wpdb->query( "DELETE FROM {$wpdb->prefix}woocommerce_tax_rates WHERE tax_rate_id = $wootax_rate_id" );
+		}
 
 		// Delete WooTax settings
 		delete_option( 'woocommerce_wootax_settings' );
@@ -506,10 +423,9 @@ class WC_WooTax_Admin {
 	 * @since 4.2
 	 */
 	public static function admin_menu() {
-		$license       = get_option( 'wootax_license_key' );
 		$rates_checked = get_option( 'wootax_rates_checked' );
 
-		if ( !$license || !$rates_checked ) {
+		if ( !$rates_checked ) {
 			add_submenu_page( 'woocommerce', 'WooTax Installation', 'Install WooTax', 'manage_options', 'wootax_install', array( __CLASS__, 'render_installation_page' ) );
 		}
 	}
@@ -520,14 +436,7 @@ class WC_WooTax_Admin {
 	 * @since 4.2
 	 */
 	public static function render_installation_page() {
-		$license_key   = get_option( 'wootax_license_key' );
-		$rates_checked = get_option( 'wootax_rates_checked' );
-
-		if ( !$license_key ) {
-			include( WT_PLUGIN_PATH .'templates/admin/license-activation.php' );
-		} else if ( !$rates_checked ) {
-			include( WT_PLUGIN_PATH .'templates/admin/delete-rates.php' );
-		}
+		include( WT_PLUGIN_PATH .'templates/admin/delete-rates.php' );
 	}
 
 	/**

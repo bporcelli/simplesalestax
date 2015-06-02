@@ -4,7 +4,7 @@
  * Adds support for the WooCommerce Subscriptions plugin by Brent Shepard
  * @see PLUGIN_DIR/woocommerce-subscriptions/woocommerce-subscriptions.php
  *
- * @package WooTax
+ * @package WooCommerce TaxCloud
  * @since 4.2
  */
 
@@ -90,14 +90,6 @@ class WC_WooTax_Subscriptions {
 		// Construct items array from POST data
 		foreach ( $order_items as $item_id => $item ) {
 			$product_id = isset( $item['product_id'] ) ? $item['product_id'] : -1;
-
-			if ( get_post_type( $product_id ) == 'product' ) {
-				$product = new WC_Product( $product_id );
-					
-				if ( !$product->is_taxable() ) {
-					continue;
-				}
-			} 
 
 			$qty  = isset( $item['qty'] ) ? $item['qty'] : 1;
 			$type = $item['type'];

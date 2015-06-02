@@ -3,7 +3,7 @@
 /**
  * Helper methods for displaying WooTax admin messages
  *
- * @package WooTax
+ * @package WooCommerce TaxCloud
  * @since 4.4
  */
 

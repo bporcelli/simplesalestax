@@ -1,4 +1,4 @@
-<h3>Installation Step 2: Delete manually entered tax rates.</h3>
+<h3>WooTax Installation: Delete manually entered tax rates.</h3>
 <p>If you do not delete tax rates that you have added in the past, your customers will be overtaxed.</p>
 
 <?php

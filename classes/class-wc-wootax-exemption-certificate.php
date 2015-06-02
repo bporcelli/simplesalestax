@@ -3,7 +3,7 @@
 /**
  * Represents a TaxCloud exemption certificate
  *
- * @package WooTax
+ * @package WooCommerce TaxCloud
  * @since 4.2
  */
 

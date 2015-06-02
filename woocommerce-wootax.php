@@ -1,12 +1,31 @@
 <?php
 
 /**
- * Plugin Name: WooTax
- * Plugin URI: http://wootax.com
+ * Plugin Name: WooCommerce TaxCloud
+ * Plugin URI: https://wootax.com
  * Description: Harness the power of TaxCloud to accurately calculate sales tax for your WooCommerce store.
  * Version: 4.5
- * Author: Brett Porcelli
- * Author URI: http://bporcelli.com
+ * Author: The WooTax Corporation
+ * Author URI: https://wootax.com
+ *
+ * Copyright 2015 The WooTax Corporation (email: support@wootax.com)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @package WooCommerce TaxCloud
+ * @author  Brett Porcelli
+ * @since   4.2
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -178,11 +197,7 @@ class WC_WooTax {
 			require 'classes/class-wc-wootax-settings.php';
 			require 'classes/class-wc-wootax-admin.php';
 			require 'classes/class-wc-wootax-refund.php';
-
-			// Check to make sure EDD_SL_Plugin_Updater isn't defined already -- other plugins may use it
-			if ( !class_exists( 'EDD_SL_Plugin_Updater' ) ) {
-				require 'classes/EDD_SL_Plugin_Updater.php';
-			}
+			require 'classes/WT_Plugin_Updater.php';
 		}
 	}
 
@@ -362,21 +377,13 @@ class WC_WooTax {
 	 * @since 4.4
 	 */
 	private static function maybe_check_updates() {
-		if ( !self::is_request( 'admin' ) || !class_exists( 'EDD_SL_Plugin_Updater' ) ) {
+		if ( !self::is_request( 'admin' ) || !class_exists( 'WT_Plugin_Updater' ) ) {
 			return;
 		}
 
-		$license_key = trim( get_option( 'wootax_license_key' ) );
-		
-		if ( $license_key != false ) {
-			$edd_updater = new EDD_SL_Plugin_Updater( 'http://wootax.com', __FILE__, array( 
-				'version' 	=> WT_VERSION, 		 // current version number
-				'license' 	=> $license_key, 		 // license key (used get_option above to retrieve from DB)
-				'item_name' => 'WooTax Plugin for WordPress', // name of this plugin
-				'author' 	=> 'Brett Porcelli',  	 // author of this plugin
-				'url' 		=> home_url(), 			 // url where plugin is being activated
-			) );
-		}
+		$wt_updater = new WT_Plugin_Updater( 'https://wootax.com', __FILE__, array( 
+			'version' => WT_VERSION, // current version number
+		) );
 	}
 
 	/**

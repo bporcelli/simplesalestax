@@ -3,7 +3,7 @@
 /**
  * Contains methods for managing and manipulating order taxes
  *
- * @package WooTax
+ * @package WooCommerce TaxCloud
  * @since 4.4
  */
 
@@ -479,14 +479,6 @@ class WT_Orders {
 			foreach ( $order_items as $item_id ) {
 				$product_id = $order->get_item_meta( $item_id, '_product_id' );
 
-				if ( get_post_type( $product_id ) == 'product' ) {
-					$product = new WC_Product( $product_id );
-						
-					if ( !$product->is_taxable() ) {
-						continue;
-					}
-				} 
-
 				$qty = 1;
 
 				if ( is_array( $items['shipping_method_id'] ) && in_array( $item_id, $items['shipping_method_id'] ) ) {
@@ -696,33 +688,30 @@ class WT_Orders {
 
 		if ( ! empty( $product_id ) && WC_Subscriptions_Product::is_subscription( $product_id ) ) {
 			// Get product details
-			$product         = WC_Subscriptions::get_product( $product_id );
-			$item_tax_status = $product->get_tax_status();
-
+			$product = WC_Subscriptions::get_product( $product_id );
+			
 			// Add product to items array
-			if ( $item_tax_status == 'taxable' ) {
-				$tic = get_post_meta( $product->id, 'wootax_tic', true );
+			$tic = get_post_meta( $product->id, 'wootax_tic', true );
 
-				$item_info = array(
-					'Index'  => '', // Leave Index blank because it is reassigned when WooTaxOrder::generate_lookup_data() is called
-					'ItemID' => isset( $_POST['order_item_id'] ) ? $_POST['order_item_id'] : $product_id, 
-					'Qty'    => 1, 
-					'Price'  => $line_subtotal > 0 ? $line_subtotal : $product->get_price(),	
-					'Type'   => 'cart',
-				);
+			$item_info = array(
+				'Index'  => '',
+				'ItemID' => isset( $_POST['order_item_id'] ) ? $_POST['order_item_id'] : $product_id, 
+				'Qty'    => 1, 
+				'Price'  => $line_subtotal > 0 ? $line_subtotal : $product->get_price(),	
+				'Type'   => 'cart',
+			);
 
-				if ( !empty( $tic ) && $tic )
-					$item_info['TIC'] = $tic;
+			if ( !empty( $tic ) && $tic )
+				$item_info['TIC'] = $tic;
 
-				$item_data[] = $item_info;
+			$item_data[] = $item_info;
 
-				$type_array[ $_POST['order_item_id'] ] = 'cart';
-			}
+			$type_array[ $_POST['order_item_id'] ] = 'cart';
 
 			// Add shipping to items array
 			if ( $shipping > 0 ) {
 				$item_data[] = array(
-					'Index'  => '', // Leave Index blank because it is reassigned when WooTaxOrder::generate_lookup_data() is called
+					'Index'  => '',
 					'ItemID' => WT_SHIPPING_ITEM, 
 					'TIC'    => WT_SHIPPING_TIC,
 					'Qty'    => 1, 

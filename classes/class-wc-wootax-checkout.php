@@ -3,7 +3,7 @@
 /**
  * Responsible for determining the sales tax due during checkout and updating order totals accordingly
  *
- * @package WooTax
+ * @package WooCommerce TaxCloud
  * @since 4.2
  */
 
@@ -411,10 +411,6 @@ class WC_WooTax_Checkout {
 		// Add cart items
 		foreach ( $items as $item_key => $item ) {
 			$product = $item['data'];
-
-			if ( !$product->is_taxable() ) {
-				continue;
-			}
 
 			// Get product TIC
 			$tic_raw = get_post_meta( $product->id, 'wootax_tic', true );
