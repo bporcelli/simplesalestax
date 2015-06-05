@@ -746,8 +746,11 @@ class WC_WooTax_Checkout {
 					$this->location_mapping_array[ $item_id ] = $location_key;
 				}
 			} else {
-				if ( strpos( $this->taxcloud->get_error_message(), 'zip' ) === false ) {			
-					wc_add_notice( 'An error occurred while calculating the tax for this order. '. $this->taxcloud->get_error_message(), 'error' );
+				// We will not display ZIP mismatch errors or SoapFaults. These messages tend to be disruptive and there is not much the customer can do to resolve them.
+				$error = $this->taxcloud->get_error_message();
+
+				if ( strpos( $error, 'zip' ) === false && strpos( $error, 'SoapFault' ) === false ) {			
+					wc_add_notice( 'An error occurred while calculating the tax for this order. '. $error, 'error' );
 				}
 				
 				return;

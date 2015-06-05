@@ -227,9 +227,8 @@ class WC_WooTax_TaxCloud {
 						$this->logger->add( 'wootax', 'Response: '. print_r( $response, true ) );
 					}
 
-					// Check response for errors 
-					$response_key = $type . 'Result';
-					$response = $response->$response_key; // Doing this here should make the transition to cURL easier later on
+					// Check response for errors
+					$response = $response->{$type . 'Result'}; // Doing this here should make the transition to cURL easier later on
 
 					if ( $this->is_response_error( $response ) ) {
 						$last_error = $this->last_error;
@@ -237,7 +236,6 @@ class WC_WooTax_TaxCloud {
 				} catch ( SoapFault $e ) {
 					$last_error = 'Could not make '. $type .' request due to SoapFault. It is possible that the request was not formatted correctly. Please try again.';
 				}
-
 			}
 		}
 		

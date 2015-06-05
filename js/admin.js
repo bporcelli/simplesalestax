@@ -201,6 +201,8 @@ jQuery(function() {
                     resp = eval( '(' + resp + ')' );
 
                     if (resp.status == 'success') {
+                        alert( 'WooTax was uninstalled successfully. The page will now reload.' );
+                        
                         // Don't use window.location.reload(); this will cause form re-submission on the settings page
                         window.location.href = '/wp-admin/admin.php?page=wc-settings&tab=integration&section=wootax';
                     } else {
@@ -303,7 +305,7 @@ jQuery(function() {
 
                         $table.find('.check_column input').trigger('click');
 
-                        alert('The selected tax rates were removed successfully. Click next to complete the installation process.');
+                        alert('The selected tax rates were removed successfully. Click "Save Changes" to complete the installation process.');
                     } else {
                         alert(resp);
                     }

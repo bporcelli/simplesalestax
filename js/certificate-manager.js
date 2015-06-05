@@ -18,7 +18,7 @@ var certManager = {
 
             jQuery.magnificPopup.open( {
                 items: {
-                    src: lbPath + '/manage-certificates.php?pluginPath='+ encodeURIComponent( pluginPath ),
+                    src: certManager.ajaxURL +'?action=wootax-load-template&template=manage-certificates',
                 },
                 type: 'iframe',
                 mainClass: 'mfp-fade'
@@ -59,13 +59,10 @@ var certManager = {
         // Close current lightbox
         jQuery.magnificPopup.close();
 
-        // If the lightbox path provided contains a URL param, change how pluginPath is added
-        var separator = lightbox.indexOf('?') == -1 ? '?' : '&';
-
         // Open new lightbox
         jQuery.magnificPopup.open( {
             'items': {
-                src: lbPath + '/' + lightbox + separator + 'pluginPath=' + pluginPath,
+                src: certManager.ajaxURL + '?action=wootax-load-template&template='+ lightbox,
             },
             'type': 'iframe',
             'class': 'mfp-fade'

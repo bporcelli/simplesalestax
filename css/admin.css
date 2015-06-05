@@ -155,3 +155,19 @@ a.remove_address.disabled {
 .form-field._tax_status_field {
     display: none !important;
 }
+
+/**
+ * Tax rate table
+ */
+#delete_rates_table {
+    padding-top: 8px;
+    padding-bottom: 0;
+}
+
+#delete_rates_table p {
+    font-weight: normal;
+}
+
+#delete_rates_table h4 {
+    margin-top: 0;
+}

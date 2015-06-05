@@ -24,7 +24,7 @@ var certManagerBox = {
                 if ( resp.status == 'error' ) {
                     certManagerBox.displayFeedback( resp.message, 'error' );
                 } else if ( jQuery( '[name="SinglePurchase"]' ).val() == 'false' ) {
-                    certManagerBox.switchView( 'manage-certificates.php' )
+                    certManagerBox.switchView( 'manage-certificates' )
                 } else {
                     certManagerBox.setCertificate( true )
                 }
@@ -86,7 +86,6 @@ var certManagerBox = {
     displayCertificates: function() {
         jQuery( '#certs' ).html('');
 
-        var URL     = pluginPath;
         var certObj = certManagerBox.certManager.certificates;
         var newHTML = '';
 
@@ -94,7 +93,7 @@ var certManagerBox = {
             var date = certManagerBox.parseDate( certObj[i].Detail.CreatedDate );
 
             newHTML += '<tr id="' + certObj[i].CertificateID + '" data-ind="' + i + '" class="certificateWrap">';
-            newHTML += '<td valign="middle" align="center" width="160"><img width="150" height="120" src="' + (certObj[i].Detail.SinglePurchase == false ? URL + 'img/exemption_certificate150x120.png' : URL + 'img/sp_exemption_certificate_150x120.png') + '" /></td>';
+            newHTML += '<td valign="middle" align="center" width="160"><img width="150" height="120" src="' + (certObj[i].Detail.SinglePurchase == false ? pluginPath + 'img/exemption_certificate150x120.png' : pluginPath + 'img/sp_exemption_certificate_150x120.png') + '" /></td>';
             newHTML += '<td valign="middle" width="340">Issued To: ' + certObj[i].Detail.PurchaserFirstName + ' ' + certObj[i].Detail.PurchaserLastName + '<br /> Exempt State(s): ' + certObj[i].Detail.ExemptStates.ExemptState.StateAbbr + '<br /> Date: ' + (parseInt(date.getMonth()) + 1) + '/' + date.getDate() + '/' + date.getFullYear() + '<br /> Purpose: ' + certManagerBox.getPrettyWord( certObj[i].Detail.PurchaserExemptionReason ) + '<br />' + certManagerBox.displayCertOptions( certObj[i] ) + '</td>';
             newHTML += '</tr>'
         }
@@ -147,7 +146,7 @@ var certManagerBox = {
         }
     },
 
-    // Initialize the manage-certificates.php screen
+    // Initialize the manage-certificates screen
     manageInit: function() {
         var date = new Date();
 
@@ -541,12 +540,12 @@ jQuery( function() {
 
     // Switch to add certificate view when button is clicked
     jQuery( '.addCert' ).click( function() {
-        certManagerBox.switchView( 'add-certificate.php' );
+        certManagerBox.switchView( 'add-certificate' );
     } );
 
     // Switch to manage certificates view when button is clicked
     jQuery( '#manageCertsBtn' ).click( function() {
-        certManagerBox.switchView( 'manage-certificates.php' );
+        certManagerBox.switchView( 'manage-certificates' );
     } );
 
     // Trigger removal of certificate
@@ -560,7 +559,7 @@ jQuery( function() {
     // Trigger certificate preview
     jQuery( document ).on( 'click', '.viewButton', function() {
         var cID = jQuery( this ).closest( 'tr' ).attr( 'data-ind' );
-        certManagerBox.switchView( 'preview-certificate.php?certIndex=' + cID + '&company=' + window.parent.merchantName );
+        certManagerBox.switchView( 'preview-certificate?certIndex=' + cID );
     } );
 
     // Trigger certificate application

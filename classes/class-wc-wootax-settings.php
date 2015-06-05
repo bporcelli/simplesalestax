@@ -20,7 +20,7 @@ class WC_WooTax_Settings extends WC_Integration {
 		global $woocommerce;
  
 		$this->id                 = 'wootax';
-		$this->method_title       = __( 'WooTax: WooCommerce TaxCloud', 'woocommerce-wootax' );
+		$this->method_title       = __( 'WooTax', 'woocommerce-wootax' );
 		$this->method_description = __( '<p>WooTax makes sales tax easy by connecting your store with <a href="https://taxcloud.net" target="_blank">TaxCloud</a>. If you have trouble with WooTax, please consult the <a href="https://wootax.com/#faq" target="_blank">FAQ</a> and the <a href="https://wootax.com/installation-guide/" target="_blank">Installation Guide</a> before contacting support.</p><p>Need help? <a href="http://wootax.com/contact-us/" target="_blank">Contact us</a>.</p>', 'woocommerce-wootax' );
  
 		// Load the settings.
@@ -33,42 +33,60 @@ class WC_WooTax_Settings extends WC_Integration {
 		}
  
 		// Define user set variables.
-		$this->tc_id              = $this->get_option( 'tc_id' );
-		$this->tc_key             = $this->get_option( 'tc_key' );
-		$this->usps_id            = $this->get_option( 'usps_id' );
-		$this->addresses          = $this->get_option( 'addresses' );
-		$this->default_address    = $this->get_option( 'default_address' );
-		$this->show_exempt        = $this->get_option( 'show_exempt' );
-		$this->company_name       = $this->get_option( 'company_name' );
-		$this->show_zero_tax      = $this->get_option( 'show_zero_tax' );
-		$this->exemption_text     = $this->get_option( 'exemption_text' );
-		$this->tax_based_on       = $this->get_option( 'tax_based_on' );
-		$this->log_requests       = $this->get_option( 'log_requests' );
-		$this->notification_email = $this->get_option( 'notification_email' );
+		$this->tc_id               = $this->get_option( 'tc_id' );
+		$this->tc_key              = $this->get_option( 'tc_key' );
+		$this->usps_id             = $this->get_option( 'usps_id' );
+		$this->addresses           = $this->get_option( 'addresses' );
+		$this->default_address     = $this->get_option( 'default_address' );
+		$this->show_exempt         = $this->get_option( 'show_exempt' );
+		$this->company_name        = $this->get_option( 'company_name' );
+		$this->show_zero_tax       = $this->get_option( 'show_zero_tax' );
+		$this->exemption_text      = $this->get_option( 'exemption_text' );
+		$this->tax_based_on        = $this->get_option( 'tax_based_on' );
+		$this->log_requests        = $this->get_option( 'log_requests' );
+		$this->notification_email  = $this->get_option( 'notification_email' );
+		$this->capture_immediately = $this->get_option( 'capture_immediately' );
 
-		// Actions.
-		add_action( 'woocommerce_update_options_integration_' .  $this->id, array( $this, 'process_admin_options' ) );
- 	
- 		// Filters.
-		add_filter( 'woocommerce_settings_api_sanitized_fields_' . $this->id, array( $this, 'sanitize_settings' ) );
+		$this->hooks();
 	}
- 	
+
+	/**
+	 * Hook into WordPress actions/filters
+	 *
+	 * @since 4.5
+	 */
+	private function hooks() {
+		// Processing/saving settings
+		add_action( 'woocommerce_update_options_integration_' .  $this->id, array( $this, 'process_admin_options' ) );
+ 		add_filter( 'woocommerce_settings_api_sanitized_fields_' . $this->id, array( $this, 'sanitize_settings' ) );
+
+ 		// Maybe set wootax_rates_checked to "true" on POST
+ 		add_action( 'admin_init', array( __CLASS__, 'maybe_update_installation_progress' ) );
+
+ 		// Download log file if requested
+		add_action( 'init', array( __CLASS__, 'maybe_download_log_file' ) );
+
+		// AJAX actions
+		add_action( 'wp_ajax_wootax-verify-taxcloud', array( __CLASS__, 'verify_taxcloud_settings' ) );
+		add_action( 'wp_ajax_wootax-uninstall', array( __CLASS__, 'uninstall_wootax' ) );
+		add_action( 'wp_ajax_wootax-delete-rates', array( __CLASS__, 'wootax_delete_tax_rates' ) );
+	}
+
  	/**
- 	 * Show link to Installation page if installation not complete
+ 	 * Generate settings page HTML
  	 *
- 	 * @since 4.2
+ 	 * @since 4.5
  	 */
- 	public function admin_options() {
-		$rates_checked = get_option( 'wootax_rates_checked' );
+ 	public function generate_settings_html( $form_fields = array() ) {
+ 		$rates_checked = get_option( 'wootax_rates_checked' );
 
-		if ( !$rates_checked ) {
+		if ( !$rates_checked && wt_has_other_rates() ) {
+			require WT_PLUGIN_PATH .'templates/admin/delete-rates.php';
 
-			echo '<h3>WooTax</h3>';
-			echo '<h4>WooTax installation incomplete.</h4>';
-			echo '<a href="?page=wootax_install" class="wp-core-ui button-primary">Install WooTax</a>';
-
+			// Add WooTax tax rate if one is not present
+			WC_WooTax::maybe_add_wootax_rate();
 		} else {
-			parent::admin_options();
+			parent::generate_settings_html( $form_fields );
 		}
  	}
 
@@ -197,15 +215,20 @@ class WC_WooTax_Settings extends WC_Integration {
 				'description'       => __( 'For advanced users only. Leave these settings untouched if you are not sure how to use them.', 'woocommerce-wootax' )
 			),
 			'log_requests' => array(
-				'title' 			=> 'Log Requests',
-				'type' 				=> 'select',
-				'options'			=> array(
-					'yes' => 'Yes',
-					'no'  => 'No',
-				),
-				'default' 			=> 'yes',
-				'description' 		=> __( 'When set to "Yes," WooTax will log all requests sent to TaxCloud for debugging purposes.', 'woocommerce-wootax' ),
-				'desc_tip'			=> true
+				'title' 	  => 'Log Requests',
+				'type' 		  => 'checkbox',
+				'label'       => ' ',
+				'default' 	  => 'yes',
+				'description' => __( 'When selected, WooTax will log all requests sent to TaxCloud for debugging purposes.', 'woocommerce-wootax' ),
+				'desc_tip'    => true
+			),
+			'capture_immediately' => array(
+				'title' 	  => 'Capture Orders Immediately',
+				'label'       => ' ',
+				'type' 		  => 'checkbox',
+				'default'     => 'no',
+				'description' => __( 'By default, orders are marked as Captured in TaxCloud when they are shipped. Select this option to mark orders as Captured immediately after checkout. Useful for stores that have items with long lead times.', 'woocommerce-wootax' ),
+				'desc_tip'    => true,
 			),
 			'tax_based_on' => array(
 				'title' 			=> 'Tax Based On',
@@ -504,6 +527,145 @@ class WC_WooTax_Settings extends WC_Integration {
 
 		return $settings;
  	}
+
+ 	/**
+ 	 * Maybe update installation progress after rates are checked
+ 	 *
+ 	 * @since 4.5
+ 	 */
+ 	public static function maybe_update_installation_progress() {
+ 		if ( isset( $_POST['wt_rates_checked'] ) ) {
+ 			update_option( 'wootax_rates_checked', true );
+ 		}
+ 	}
+
+ 	/**
+	 * Force download of log file if $_GET['download_log'] is set
+	 *
+	 * @since 4.4
+	 */
+	public static function maybe_download_log_file() {
+		if ( isset( $_GET['download_log'] ) ) {
+			// If file doesn't exist, create it
+			$handle = 'wootax';
+
+			if ( function_exists( 'wc_get_log_file_path' ) ) {
+				$log_path = wc_get_log_file_path( $handle );
+			} else {
+				$log_path = WC()->plugin_path() . '/logs/' . $handle . '-' . sanitize_file_name( wp_hash( $handle ) ) . '.txt';
+			}
+
+			if ( !file_exists( $log_path ) ) {
+				$fh = @fopen( $log_path, 'a' );
+				fclose( $fh );
+			}
+
+			// Force download
+			header( 'Content-Description: File Transfer' );
+		    header( 'Content-Type: application/octet-stream' );
+		    header( 'Content-Disposition: attachment; filename=' . basename( $log_path ) );
+		    header( 'Expires: 0' );
+		    header( 'Cache-Control: must-revalidate' );
+		    header( 'Pragma: public' );
+		    header( 'Content-Length: ' . filesize( $log_path ) );
+
+		    readfile( $log_path );
+
+		    exit;
+		}
+	}
+
+	/**
+	 * Validates the user's TaxCloud API ID/API Key by sending a Ping request to the TaxCloud API
+	 *
+	 * @since 1.0
+	 * @return (boolean) true or an error message on failure
+	 */
+	public static function verify_taxcloud_settings() {
+		$taxcloud_id  = $_POST['wootax_tc_id'];
+		$taxcloud_key = $_POST['wootax_tc_key'];
+
+		if ( empty( $taxcloud_id ) || empty( $taxcloud_key ) ) {
+			die( false );
+		} else {
+			$taxcloud = TaxCloud( $taxcloud_id, $taxcloud_key );
+	
+			// Send ping request and check for errors
+			$response = $taxcloud->send_request( 'Ping' );
+
+			if ( $response == false ) {
+				die( $taxcloud->get_error_message() );
+			} else {
+				die( true );
+			}
+		}
+	}
+
+	/**
+	 * Delete tax rates from specified tax classes ("rates" POST param)
+	 * Ignore WooTax's own tax rate
+	 *
+	 * @since 3.5
+	 * @return (mixed) boolean true on success; string error message on failure
+	 */
+	public static function wootax_delete_tax_rates() {
+		global $wpdb;
+
+		$rate_classes   = explode( ',', $_POST['rates'] );
+		$wootax_rate_id = WT_RATE_ID == false ? 999999 : WT_RATE_ID;
+
+		foreach ( $rate_classes as $rate_class ) {
+			$res = $wpdb->query( $wpdb->prepare( "
+				DELETE FROM
+					{$wpdb->prefix}woocommerce_tax_rates 
+				WHERE 
+					tax_rate_class = %s
+				AND
+					tax_rate_id != $wootax_rate_id
+				",
+				( $rate_class == 'standard-rate' ? '' : $rate_class )
+			) );
+
+			if ( $res === false ) {
+				die( 'There was an error while deleting your tax rates. Please try again.' );
+			}
+		}
+
+		die( true );
+	}
+
+	/**
+	 * Uninstall WooTax:
+	 * - Remove WooTax tax rate
+	 * - Delete WooTax settings
+	 * - Remove all default TIC options
+	 *
+	 * @since 4.2
+	 */
+	public static function uninstall_wootax() {
+		global $wpdb;
+
+		// Remove WooTax tax rate
+		$wootax_rate_id = WT_RATE_ID;
+
+		if ( !empty( $wootax_rate_id ) ) {
+			$wpdb->query( "DELETE FROM {$wpdb->prefix}woocommerce_tax_rates WHERE tax_rate_id = $wootax_rate_id" );
+		}
+
+		// Delete WooTax settings
+		delete_option( 'woocommerce_wootax_settings' );
+
+		// Delete WooTax options
+		delete_option( 'wootax_license_key' );
+		delete_option( 'wootax_rates_checked' );
+		delete_option( 'wootax_rate_id' );
+		delete_option( 'wootax_version' );
+
+		// Remove default TIC assignments
+		$wpdb->query( "DELETE FROM {$wpdb->prefix}options WHERE option_name LIKE 'tic_%'" );
+
+		die( json_encode( array( 'status' => 'success' ) ) );
+	}
 }
  
 endif;

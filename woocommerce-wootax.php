@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Plugin Name: WooCommerce TaxCloud
+ * Plugin Name: WooTax
  * Plugin URI: https://wootax.com
  * Description: Harness the power of TaxCloud to accurately calculate sales tax for your WooCommerce store.
  * Version: 4.5
@@ -288,7 +288,7 @@ class WC_WooTax {
 	 */
 	public static function get_rate_label( $name, $key = NULL ) {
 		if ( $name == WT_RATE_ID || $key == WT_RATE_ID ) {
-			return 'Sales Tax';
+			return apply_filters( 'wootax_rate_label', 'Sales Tax' );
 		} else {
 			return $name;
 		}

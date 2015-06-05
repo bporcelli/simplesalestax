@@ -78,6 +78,9 @@ class WT_Orders {
 			add_action( 'woocommerce_checkout_update_order_meta', array( __CLASS__, 'store_tax_item_id' ), 10, 1 );
 		}
 
+		// Maybe capture an order immediately after checkout
+		add_action( 'woocommerce_checkout_update_order_meta', array( __CLASS__, 'maybe_capture_order' ), 15, 1 );
+
 		// Add WooTax meta when order is created
 		add_action( 'woocommerce_new_order', array( __CLASS__, 'add_order_meta' ), 10, 1 );
 
@@ -955,6 +958,20 @@ class WT_Orders {
 		$to_hide[] = '_wootax_index';
 
 		return $to_hide;
+	}
+
+	/**
+	 * Maybe capture order immediately after checkout
+	 *
+	 * @since 4.5
+	 */
+	public static function maybe_capture_order( $order_id ) {
+		if ( WC_WooTax::get_option( 'capture_immediately' ) == 'yes' ) {
+			$res = self::capture_order( $order_id, true );
+
+			if ( $res !== true && self::$logger )
+				self::$logger->add( 'wootax', 'Failed to capture order '. $order_id .' after checkout.' );
+		}
 	}
 
 	/**

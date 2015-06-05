@@ -25,10 +25,8 @@ function enqueue_checkout_scripts() {
  */
 function add_exemption_javascript() {
 	if ( is_checkout() ) {
-		// Insert the exemption code (taken from Appendix C of the TaxCloud developer documentation)
 		$merchant_name = WC_WooTax::get_option( 'company_name' );
 		$dir_url = WT_PLUGIN_DIR_URL;
-		$home_path = ABSPATH;
 		$allow_blanket_certificates = is_user_logged_in();
 
 		echo "
@@ -43,14 +41,11 @@ function add_exemption_javascript() {
 			var date = new Date();
 			var clearUrl = '?t='+ date.getTime();
 
-			// Path to lightboxes
-			var lbPath = '{$dir_url}templates/lightbox';
-
-			// Path to plugin dir (used when loading resources within lightboxes)
-			var pluginPath = '$dir_url';
-
 			// Should users be allowed to use 'blanket' certificates? This defaults to the value of is_user_logged_in()
 			var useBlanket = '$allow_blanket_certificates';
+
+			// URL of WooTax plugin directory
+			var pluginPath = '$dir_url';
 
 			// Load certificate management script asynchronously
 			(function () {
@@ -104,12 +99,9 @@ function ajax_update_exemption_certificate() {
 		case 'add':
 			add_exemption_certificate();
 			break;
-
-
 		case 'remove':
 			remove_exemption_certificate();
 			break;
-
 		case 'set': 
 			set_exemption_certificate();
 			break;
@@ -312,17 +304,19 @@ function get_user_exemption_certs( $user_login ) {
 	$response = TaxCloud()->send_request( 'GetExemptCertificates', array( 'customerID' => $user_login ) );
 
 	if ( $response !== false ) {
-		$certificate_result = is_object( $response->ExemptCertificates ) ? $response->ExemptCertificates->ExemptionCertificate : '';
+		$certificate_result = is_object( $response->ExemptCertificates ) && isset( $response->ExemptCertificates->ExemptionCertificate ) ? $response->ExemptCertificates->ExemptionCertificate : NULL;
 
-		// Convert response to array if only a single certificate is returned
-		if ( !is_array( $certificate_result ) ) {
-			$certificate_result = array( $certificate_result );
-		}
-
-		// Dump certificates into object to be returned to client
-		$certificates = $duplicates = array();
-
+		$final_certificates = array();
+		
 		if ( $certificate_result != NULL ) {
+			// Convert response to array if only a single certificate is returned
+			if ( !is_array( $certificate_result ) ) {
+				$certificate_result = array( $certificate_result );
+			}
+
+			// Dump certificates into object to be returned to client
+			$certificates = $duplicates = array();
+
 			if ( is_array( $certificate_result ) ) {
 				foreach ( $certificate_result as $certificate ) {
 					// Add this certificate to the cert_list array
@@ -339,41 +333,39 @@ function get_user_exemption_certs( $user_login ) {
 						$duplicates[$order_number][] = $certificate->CertificateID;
 					}
 				}
-			} 
-		} 
+			}
 
-		// Isolate single certificates that should be kept
-		if ( count( $duplicates ) > 0 ) {
-			foreach ( $duplicates as &$dupes ) {
-				if ( count( $dupes ) > 1 ) {
-					$x = count( $dupes );
+			// Isolate single certificates that should be kept
+			if ( count( $duplicates ) > 0 ) {
+				foreach ( $duplicates as &$dupes ) {
+					if ( count( $dupes ) > 1 ) {
+						$x = count( $dupes );
 
-					while( count( $dupes ) > 1 ) {
-						unset( $dupes[$x] );
-						$x--;
+						while( count( $dupes ) > 1 ) {
+							unset( $dupes[$x] );
+							$x--;
+						}
 					}
 				}
 			}
-		}
 
-		// Loop through cert_list and construct filtered cert_list array (duplicate single certificates removed)
-		$final_certificates = array();
+			// Loop through cert_list and construct filtered cert_list array (duplicate single certificates removed)
+			foreach ( $certificates as $cert ) {
+				if ( !is_object( $cert ) ) {
+					continue;
+				}
 
-		foreach ( $certificates as $cert ) {
-			if ( !is_object( $cert ) ) {
-				continue;
-			}
+				$keep = false;
 
-			$keep = false;
+				if ( $cert->Detail->SinglePurchase == true && is_array( $duplicates[$cert->Detail->SinglePurchaseOrderNumber] ) && in_array( $cert->CertificateID, $duplicates[$cert->Detail->SinglePurchaseOrderNumber] ) ) {
+					$keep = true;
+				} elseif ( $cert->Detail->SinglePurchase == true && !is_array( $duplicates[$cert->Detail->SinglePurchaseOrderNumber] ) || $cert->Detail->SinglePurchase == false ) {
+					$keep = true;
+				} 
 
-			if ( $cert->Detail->SinglePurchase == true && is_array( $duplicates[$cert->Detail->SinglePurchaseOrderNumber] ) && in_array( $cert->CertificateID, $duplicates[$cert->Detail->SinglePurchaseOrderNumber] ) ) {
-				$keep = true;
-			} elseif ( $cert->Detail->SinglePurchase == true && !is_array( $duplicates[$cert->Detail->SinglePurchaseOrderNumber] ) || $cert->Detail->SinglePurchase == false ) {
-				$keep = true;
-			} 
-
-			if ( $keep ) {
-				$final_certificates[] = $cert;
+				if ( $keep ) {
+					$final_certificates[] = $cert;
+				}
 			}
 		}
 
@@ -391,8 +383,6 @@ function get_user_exemption_certs( $user_login ) {
  */
 function ajax_list_exemption_certificates() {
 	global $current_user;
-	
-	//get_currentuserinfo();
 
 	$customer_id = is_user_logged_in() ? $current_user->user_login : '';
 
@@ -450,6 +440,33 @@ function maybe_apply_exemption_certificate() {
 	}
 }
 
+// Load exemption management template via AJAX
+function ajax_load_exemption_template() {
+	$template = urldecode( $_GET['template'] );
+
+	// Parse out query string
+	$querystr = "";
+	$questpos = strpos( $template, '?' );
+
+	if ( $questpos !== false ) {
+		$querystr = substr( $template, $questpos );
+		$template = substr( $template, 0, $questpos );
+	}
+
+	// Use cURL to load file contents (not sure how else to support query strings)
+	$ch = curl_init( WT_PLUGIN_DIR_URL . 'templates/lightbox/' . $template . '.php' . $querystr );
+	curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+	$content = curl_exec( $ch );
+	curl_close( $ch );
+
+	die( wt_do_template_substitutions( $content ) );
+}
+
+// Perform template substitutions
+function wt_do_template_substitutions( $content ) {
+	return str_replace( array( '{PLUGIN_PATH}', '{COMPANY_NAME}' ), array( WT_PLUGIN_DIR_URL, WC_WooTax::get_option( 'company_name' ) ), $content );	
+}
+
 // Hooks into WordPress/WooCommerce
 add_action( 'wp_enqueue_scripts', 'enqueue_checkout_scripts', 20 );
 add_action( 'wp_footer', 'add_exemption_javascript', 21 );
@@ -459,3 +476,5 @@ add_action( 'wp_ajax_nopriv_wootax-update-certificate', 'ajax_update_exemption_c
 add_action( 'wp_ajax_wootax-update-certificate', 'ajax_update_exemption_certificate' );
 add_action( 'wp_ajax_nopriv_wootax-list-certificates', 'ajax_list_exemption_certificates' );
 add_action( 'wp_ajax_wootax-list-certificates', 'ajax_list_exemption_certificates' );
+add_action( 'wp_ajax_nopriv_wootax-load-template', 'ajax_load_exemption_template' );
+add_action( 'wp_ajax_wootax-load-template', 'ajax_load_exemption_template' );

@@ -13,28 +13,13 @@ if ( ! defined( 'ABSPATH' ) )  {
 
 class WC_WooTax_Admin {
 	/**
-	 * Initialize class
+	 * Hook into WordPress actions/filters
 	 *
 	 * @since 4.4
 	 */
 	public static function init() {
-		self::hooks();
-	}
-	
-	/**
-	 * Hook into WordPress actions/filters
-	 * 
-	 * @since 4.2
-	 */
-	private static function hooks() {		
 		// Register WooTax integration to build settings page
 		add_filter( 'woocommerce_integrations', array( __CLASS__, 'add_integration' ) );
-
-		// Add "Install WooTax" menu item
-		add_action( 'admin_menu', array( __CLASS__, 'admin_menu' ), 20 );
-
-		// Download log file if requested
-		add_action( 'init', array( __CLASS__, 'maybe_download_log_file' ) );
 
 		// Enqueue admin scripts/styles
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_scripts_and_styles' ), 20 );
@@ -55,11 +40,12 @@ class WC_WooTax_Admin {
 		// Add "taxes" tab on reports page
 		add_action( 'woocommerce_reports_charts', array( __CLASS__, 'add_reports_tax_tab' ) );
 
-		// AJAX actions
-		add_action( 'wp_ajax_wootax-verify-taxcloud', array( __CLASS__, 'verify_taxcloud_settings' ) );
-		add_action( 'wp_ajax_wootax-verify-address', array( __CLASS__, 'verify_origin_addresses' ) );
-		add_action( 'wp_ajax_wootax-uninstall', array( __CLASS__, 'uninstall_wootax' ) );
-		add_action( 'wp_ajax_wootax-delete-rates', array(__CLASS__, 'wootax_delete_tax_rates') );		
+		// Allow for TIC assignment at the category level
+		add_action( 'product_cat_add_form_fields', array( __CLASS__, 'custom_add_cat_field' ) );
+		add_action( 'product_cat_edit_form_fields', array( __CLASS__, 'custom_edit_cat_field' ), 10, 1 );
+		add_action( 'create_product_cat', array( __CLASS__, 'save_cat_tic' ), 10, 1 );
+		add_action( 'edited_product_cat', array( __CLASS__, 'save_cat_tic' ), 10, 1 );
+		add_action( 'woocommerce_product_quick_edit_end', array( __CLASS__, 'add_quick_edit_field' ) );
 	}
 
 	/**
@@ -71,42 +57,6 @@ class WC_WooTax_Admin {
 		$integrations[] = 'WC_WooTax_Settings';
 		
 		return $integrations;
-	}
-
-	/**
-	 * Force download of log file if $_GET['download_log'] is set
-	 *
-	 * @since 4.4
-	 */
-	public static function maybe_download_log_file() {
-		if ( isset( $_GET['download_log'] ) ) {
-			// If file doesn't exist, create it
-			$handle = 'wootax';
-
-			if ( function_exists( 'wc_get_log_file_path' ) ) {
-				$log_path = wc_get_log_file_path( $handle );
-			} else {
-				$log_path = WC()->plugin_path() . '/logs/' . $handle . '-' . sanitize_file_name( wp_hash( $handle ) ) . '.txt';
-			}
-
-			if ( !file_exists( $log_path ) ) {
-				$fh = @fopen( $log_path, 'a' );
-				fclose( $fh );
-			}
-
-			// Force download
-			header( 'Content-Description: File Transfer' );
-		    header( 'Content-Type: application/octet-stream' );
-		    header( 'Content-Disposition: attachment; filename=' . basename( $log_path ) );
-		    header( 'Expires: 0' );
-		    header( 'Cache-Control: must-revalidate' );
-		    header( 'Pragma: public' );
-		    header( 'Content-Length: ' . filesize( $log_path ) );
-
-		    readfile( $log_path );
-
-		    exit;
-		}
 	}
 	
 	/**
@@ -157,12 +107,10 @@ class WC_WooTax_Admin {
 	 * @param (WC_Product) $product a WC_Product object
 	 */
 	public static function save_bulk_edit_fields( $product ) {
-		if ( $product->id == NULL || $_REQUEST['wootax_set_tic'] == '' || $_REQUEST['wootax_set_tic'] == '[ - Select - ]' ) {
-			return;
+		if ( $product->id && isset( $_REQUEST['wootax_set_tic'] ) && !in_array( $_REQUEST['wootax_set_tic'], array( '', '[ - Select - ]') ) ) {
+			update_post_meta( $product->id, 'wootax_tic', $_REQUEST['wootax_set_tic'] );
+			update_post_meta( $product->id, 'wootax_tic_desc', trim( $_REQUEST['wootax_tic_desc'] ) );
 		}
-
-		update_post_meta( $product->id, 'wootax_tic', $_REQUEST['wootax_set_tic'] );
-		update_post_meta( $product->id, 'wootax_tic_desc', $_REQUEST['wootax_tic_desc'] );
 	}
 	
 	
@@ -172,10 +120,15 @@ class WC_WooTax_Admin {
 	 * @since 4.2
 	 */
 	public static function register_admin_metaboxes() {
-		// Product metaboxes
+		// TIC assignment box
 		add_meta_box( 'tic_meta', 'Taxibility Information Code (TIC)', array( __CLASS__, 'output_tic_metabox' ), 'product' );
-		add_meta_box( 'shipping_meta', 'Shipping Origin Addresses', array( __CLASS__, 'output_shipping_metabox' ), 'product', 'side', 'high' );
 		
+		// Shipping Origin Addresses select box: Only show this when number of registered business addresses > 1
+		$addresses = fetch_business_addresses();
+		if ( is_array( $addresses ) && count( $addresses ) > 1 ) {
+			add_meta_box( 'shipping_meta', 'Shipping Origin Addresses', array( __CLASS__, 'output_shipping_metabox' ), 'product', 'side', 'high' );
+		}
+
 		// Order metaboxes
 		add_meta_box( 'sales_tax_meta', 'WooTax', array( __CLASS__, 'output_tax_metabox' ), 'shop_order', 'side', 'high' );
 	}
@@ -203,7 +156,8 @@ class WC_WooTax_Admin {
 	
 	
 	/**
-	 * Saves custom product meta
+	 * Save TIC and Shipping Origin Addresses when product is saved
+	 * As of 4.5, TIC will be set to first category default if not set
 	 *
 	 * @since 4.2
 	 * @param (int) $post_id the ID of the post/product being saved
@@ -213,12 +167,36 @@ class WC_WooTax_Admin {
 			return;
 		}
 
-		if ( isset( $_POST['wootax_set_tic'] ) && isset( $_POST['wootax_tic'] ) ) {
-			update_post_meta( $product_id, 'wootax_tic', ( $_POST['wootax_set_tic'] != '[ - Select - ]' ) ? $_POST['wootax_set_tic'] : $_POST['wootax_tic'] );
-		}
+		if ( isset( $_POST['wootax_set_tic'] ) && $_POST['wootax_set_tic'] != '[ - Select - ]' ) {
+			// Set TIC according to user selection
+			update_post_meta( $product_id, 'wootax_tic', $_POST['wootax_set_tic'] );
+			
+			if ( isset( $_POST['wootax_tic_desc'] ) ) {
+				update_post_meta( $product_id, 'wootax_tic_desc', trim( $_POST['wootax_tic_desc'] ) );
+			}
+		} else if ( isset( $_POST['wootax_tic'] ) && !empty( $_POST['wootax_tic'] ) ) {
+			// TIC has already been set; do nothing
+		} else {
+			// Attempt to set TIC according to first category default
+			$cats = isset( $_POST['tax_input']['product_cat'] ) ? $_POST['tax_input']['product_cat'] : array();
 
-		if ( isset( $_POST['wootax_tic_desc'] ) ) {
-			update_post_meta( $product_id, 'wootax_tic_desc', $_POST['wootax_tic_desc'] );
+			if ( count( $cats ) > 0 ) {
+				$default = array(
+					'tic'  => '',
+					'desc' => '',
+				);
+
+				foreach ( $cats as $term_id ) {
+					$temp_def = get_option( 'tic_'. $term_id );
+					if ( $temp_def ) {
+						$default = $temp_def;
+						break;
+					}
+				}
+
+				update_post_meta( $product_id, 'wootax_tic', $default['tic'] );
+				update_post_meta( $product_id, 'wootax_tic_desc', trim( $default['desc'] ) );
+			}
 		}
 
 		if ( isset( $_POST['_wootax_origin_addresses'] ) ) {
@@ -255,10 +233,9 @@ class WC_WooTax_Admin {
 		$addresses = fetch_business_addresses();
 
 		echo '<p>Use the box below to search for and add "Shipping Origin Addresses" for this product. These are the locations from which this
-		item will be shipped. Most merchants <em><strong>will not</strong></em> need to adjust this setting.</p>';
+		item will be shipped.</p>';
 
-		echo '<p>If this item can be shipped from multiple locations, WooTax will assume that it will be sent from the business location in the customer\'s 
-		home state. If this is not suitable for your business needs, contact a WooTax support agent for assistance.</p>';
+		echo '<p>When an item can be shipped from multiple locations, WooTax will assume that it is sent from the business location in the customer\'s state.</p>';
 
 		// Fetch addresses for this product
 		$origin_addresses = fetch_product_origin_addresses( $post->ID );
@@ -329,169 +306,105 @@ class WC_WooTax_Admin {
 	}
 
 	/**
-	 * Validates the user's TaxCloud API ID/API Key by sending a Ping request to the TaxCloud API
+	 * Add field for TIC to Product Category "Add New" screen
 	 *
-	 * @since 1.0
-	 * @return (boolean) true or an error message on failure
+	 * @since 4.5
 	 */
-	public static function verify_taxcloud_settings() {
-		$taxcloud_id  = $_POST['wootax_tc_id'];
-		$taxcloud_key = $_POST['wootax_tc_key'];
+	public static function custom_add_cat_field() {
+		?>
+		<div class="form-field">
+			<label>TIC (Taxability Information Code)</label>
+			<input type="text" name="wootax_set_tic" id="wootax_set_tic" value="" />
+	        <input type="hidden" name="wootax_tic_desc" value="" />
+	        <p class="description">This TIC will be assigned to all products added to this category.</p>
+		</div>
+		<script type="text/javascript">
+			window.initializeSelect();
+		</script>
+		<?php
+	}
 
-		if ( empty( $taxcloud_id ) || empty( $taxcloud_key ) ) {
-			die( false );
-		} else {
-			$taxcloud = TaxCloud( $taxcloud_id, $taxcloud_key );
-	
-			// Send ping request and check for errors
-			$response = $taxcloud->send_request( 'Ping' );
+	/**
+	 * Add field for TIC to Product Category "Edit" screen
+	 *
+	 * @param (Object) $term - WP Term object
+	 * @since 4.5
+	 */
+	public static function custom_edit_cat_field( $term ) {
+		$tic_data = get_option( 'tic_'. $term->term_id );
+		$tic_desc = is_array( $tic_data ) ? $tic_data['desc'] : '';
+		$tic      = is_array( $tic_data ) ? $tic_data['tic'] : '';
 
-			if ( $response == false ) {
-				die( $taxcloud->get_error_message() );
-			} else {
-				die( true );
+		?>
+		<tr class="form-field">
+			<th>TIC (Taxability Information Code)</th>
+			<td>
+				<p><strong>Current TIC: </strong><?php echo !empty( $tic ) ? $tic . " ($tic_desc)" : "Using site default"; ?></p>
+				<div class="form-field">
+					<input type="text" name="wootax_set_tic" id="wootax_set_tic" value="<?php echo $tic; ?>" />
+			        <input type="hidden" name="wootax_tic_desc" value="<?php echo $tic_desc; ?>" />
+			        <p class="description">This TIC will be assigned to all products in this category.</p>
+				</div>
+				<script type="text/javascript">
+					window.initializeSelect();
+				</script>
+			</td>
+		</tr>
+		<?php
+	}
+
+	/**
+	 * Save TIC field when Product Category is created or edited
+	 *
+	 * @param (int) $term_id - ID of term being saved
+	 * @since 4.5
+	 */
+	public static function save_cat_tic( $term_id ) {
+		if ( isset( $_POST['wootax_set_tic'] ) && !in_array( $_POST['wootax_set_tic'], array( '', '[ - Select - ]' ) ) ) {
+			$new_tic = array(
+				'tic'  => sanitize_text_field( $_POST['wootax_set_tic'] ),
+				'desc' => sanitize_text_field( $_POST['wootax_tic_desc'] ), 
+			);
+
+			// Compare new TIC to old TIC; only update products if they are not equal
+			$old_tic = get_option( 'tic_'. $term_id );
+
+			if ( !is_array( $old_tic ) || $old_tic['tic'] != $new_tic['tic'] ) {
+				$products = new WP_Query( array( 
+					'post_type' => 'product', 
+					'posts_per_page' => -1,
+					'tax_query' => array(
+						array( 
+							'taxonomy' => 'product_cat', 
+							'terms'    => $term_id, 
+							'field'    => 'term_id',
+						),
+					),
+				) );
+
+				if ( $products->have_posts() ) {
+					while ( $products->have_posts() ) { 
+						$products->the_post();
+
+						update_post_meta( $products->post->ID, 'wootax_tic', $new_tic['tic'] );
+						update_post_meta( $products->post->ID, 'wootax_tic_desc', $new_tic['desc'] );
+					}
+				}
 			}
+
+			// Store new TIC
+			update_option( 'tic_' . $term_id, $new_tic );
 		}
 	}
 
 	/**
-	 * Delete tax rates from specified tax classes ("rates" POST param)
-	 * Ignore WooTax's own tax rate
+	 * Add hidden wootax_tic field to Quick Edit screen. This is necessary to prevent overriding of TIC when product
+	 * is in category with default TIC
 	 *
-	 * @since 3.5
-	 * @return (mixed) boolean true on success; string error message on failure
+	 * @since 4.5
 	 */
-	public static function wootax_delete_tax_rates() {
-		global $wpdb;
-
-		$rate_classes   = explode( ',', $_POST['rates'] );
-		$wootax_rate_id = WT_RATE_ID == false ? 999999 : WT_RATE_ID;
-
-		foreach ( $rate_classes as $rate_class ) {
-			$res = $wpdb->query( $wpdb->prepare( "
-				DELETE FROM
-					{$wpdb->prefix}woocommerce_tax_rates 
-				WHERE 
-					tax_rate_class = %s
-				AND
-					tax_rate_id != $wootax_rate_id
-				",
-				( $rate_class == 'standard-rate' ? '' : $rate_class )
-			) );
-
-			if ( $res === false ) {
-				die( 'There was an error while deleting your tax rates. Please try again.' );
-			}
-		}
-
-		die( true );
-	}
-
-	/**
-	 * Uninstall WooTax:
-	 * - Remove WooTax tax rate
-	 * - Delete WooTax settings
-	 *
-	 * @since 4.2
-	 */
-	public static function uninstall_wootax() {
-		global $wpdb;
-
-		// Remove WooTax tax rate
-		$wootax_rate_id = WT_RATE_ID;
-
-		if ( !empty( $wootax_rate_id ) ) {
-			$wpdb->query( "DELETE FROM {$wpdb->prefix}woocommerce_tax_rates WHERE tax_rate_id = $wootax_rate_id" );
-		}
-
-		// Delete WooTax settings
-		delete_option( 'woocommerce_wootax_settings' );
-
-		// Delete WooTax options
-		delete_option( 'wootax_license_key' );
-		delete_option( 'wootax_rates_checked' );
-		delete_option( 'wootax_rate_id' );
-		delete_option( 'wootax_version' );
-
-		// Done!
-		die( json_encode( array( 'status' => 'success' ) ) );
-	}
-
-	/**
-	 * Add installation page if WooTax is not installed
-	 *
-	 * @since 4.2
-	 */
-	public static function admin_menu() {
-		$rates_checked = get_option( 'wootax_rates_checked' );
-
-		if ( !$rates_checked ) {
-			add_submenu_page( 'woocommerce', 'WooTax Installation', 'Install WooTax', 'manage_options', 'wootax_install', array( __CLASS__, 'render_installation_page' ) );
-		}
-	}
-
-	/**
-	 * Render installation page
-	 *
-	 * @since 4.2
-	 */
-	public static function render_installation_page() {
-		include( WT_PLUGIN_PATH .'templates/admin/delete-rates.php' );
-	}
-
-	/**
- 	 * Display rate removal table during installation
- 	 */
- 	public static function display_class_table() {
- 		global $wpdb;
-
-		// Get readable tax classes
-		$readable_classes = array( 'Standard Rate' );
-		$raw_classes = get_option( 'woocommerce_tax_classes' );
-		
-		if ( !empty( $raw_classes ) && $raw_classes ) {
-			$readable_classes = array_map( 'trim', array_merge( $readable_classes, explode( PHP_EOL, $raw_classes ) ) );
-		}
-
-		// Get the count for each tax class
-		$rate_counts = array_keys( $readable_classes );
-
-		foreach ( $rate_counts as $key ) {
-			$array_key = sanitize_title( $readable_classes[$key] );
-
-			$count = $wpdb->get_var( $wpdb->prepare("
-				SELECT COUNT(tax_rate_id) FROM
-					{$wpdb->prefix}woocommerce_tax_rates 
-				WHERE 
-					tax_rate_class = %s
-				",
-				( $array_key == 'standard-rate' ? '' : $array_key )
-			) );
-
-			if ( $count != false && !empty( $count ) ) {
-				$rate_counts[ $array_key ] = array( 'name' => $readable_classes[ $key ], 'count' => $count );
-			} 
-
-			unset( $rate_counts[ $key ] );
-		}
-
-		// Show message if now classes or rates are added
-		if ( count( $readable_classes ) == 0 || count( $rate_counts ) == 0 ) {
-			echo '<p><strong>You do not have any tax rates added. Click "Complete Installation" to complete the installation process.</strong></p>';
-			return;
-		} 
-
-		include( WT_PLUGIN_PATH .'/templates/admin/rate-table-header.php' );
-
-		foreach ( $rate_counts as $rate => $data ) {
-			$GLOBALS['rate'] = $rate;
-			$GLOBALS['data'] = $data;
-
-			include( WT_PLUGIN_PATH .'/templates/admin/rate-table-row.php' );
-		}
-	
-		echo '</tbody>';
-		echo '</table>';
+	public static function add_quick_edit_field() {
+		echo "<input type='hidden' name='wootax_tic' value='DO_NOT_CHANGE' />";
 	}
 }
 

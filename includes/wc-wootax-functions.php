@@ -300,3 +300,22 @@ function wt_is_local_pickup( $method ) {
 function wt_is_local_delivery( $method ) {
 	return in_array( $method, apply_filters( 'wootax_local_delivery_methods', array( 'local_delivery', 'Local Delivery' ) ) );
 }
+
+/**
+ * Return true if tax rates aside from the WooTax tax rate are present in tax tables
+ *
+ * @since 4.5
+ */
+function wt_has_other_rates() {
+	global $wpdb;
+
+	$query = "SELECT COUNT(*) FROM {$wpdb->prefix}woocommerce_tax_rates";
+
+	if ( WT_RATE_ID ) {
+		$query .= " WHERE tax_rate_id != ". WT_RATE_ID;
+	}
+
+	$rate_count = $wpdb->get_var( $query );
+
+	return $rate_count > 0;
+}

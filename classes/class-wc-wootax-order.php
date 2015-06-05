@@ -751,8 +751,8 @@ class WC_WooTax_Order {
 
 		// Update tax item meta
 		wc_update_order_item_meta( $tax_item_id, 'rate_id', WT_RATE_ID );
-		wc_update_order_item_meta( $tax_item_id, 'label', 'Sales Tax' );
-		wc_update_order_item_meta( $tax_item_id, 'name', 'Sales Tax' );
+		wc_update_order_item_meta( $tax_item_id, 'label', WC_WooTax::get_rate_label( WT_RATE_ID ) );
+		wc_update_order_item_meta( $tax_item_id, 'name', WC_WooTax::get_rate_label( WT_RATE_ID ) );
 		wc_update_order_item_meta( $tax_item_id, 'compound', true );
 		wc_update_order_item_meta( $tax_item_id, 'tax_amount', $cart_tax );
 		wc_update_order_item_meta( $tax_item_id, 'shipping_tax_amount', $shipping_tax );
