@@ -26,11 +26,6 @@ class WC_WooTax_Settings extends WC_Integration {
 		// Load the settings.
 		$this->init_form_fields();
 		$this->init_settings();
-
-		// Select the exempt-customer role by default
-		if ( !$this->settings[ 'exempt_roles'] ) {
-			$this->settings[ 'exempt_roles' ] = array( 'exempt-customer' );
-		}
  
 		// Define user set variables.
 		$this->tc_id               = $this->get_option( 'tc_id' );
@@ -40,12 +35,13 @@ class WC_WooTax_Settings extends WC_Integration {
 		$this->default_address     = $this->get_option( 'default_address' );
 		$this->show_exempt         = $this->get_option( 'show_exempt' );
 		$this->company_name        = $this->get_option( 'company_name' );
+		$this->exempt_rols         = $this->get_option( 'exempt_roles' );
 		$this->show_zero_tax       = $this->get_option( 'show_zero_tax' );
 		$this->exemption_text      = $this->get_option( 'exemption_text' );
 		$this->tax_based_on        = $this->get_option( 'tax_based_on' );
-		$this->log_requests        = $this->get_option( 'log_requests' );
+		$this->log_requests        = $this->get_option( 'log_requests', 'yes' );
 		$this->notification_email  = $this->get_option( 'notification_email' );
-		$this->capture_immediately = $this->get_option( 'capture_immediately' );
+		$this->capture_immediately = $this->get_option( 'capture_immediately', 'no' );
 
 		$this->hooks();
 	}
@@ -178,7 +174,7 @@ class WC_WooTax_Settings extends WC_Integration {
 				'type'              => 'multiselect',
 				'class'             => version_compare( WOOCOMMERCE_VERSION, '2.3', '<' ) ? 'chosen_select' : 'wc-enhanced-select',
 				'options'           => wootax_get_user_roles(),
-				'default'           => '',
+				'default'           => array( 'exempt-customer' ),
 				'description'       => 'When a user with one of these roles shops on your site, WooTax will automatically find and apply the first exemption certificate associated with their account. Convenient if you have repeat exempt customers.',
 				'desc_tip'          => true,
 			),
@@ -218,7 +214,7 @@ class WC_WooTax_Settings extends WC_Integration {
 				'title' 	  => 'Log Requests',
 				'type' 		  => 'checkbox',
 				'label'       => ' ',
-				'default' 	  => 'yes',
+				'default'     => 'yes',
 				'description' => __( 'When selected, WooTax will log all requests sent to TaxCloud for debugging purposes.', 'woocommerce-wootax' ),
 				'desc_tip'    => true
 			),
@@ -524,6 +520,16 @@ class WC_WooTax_Settings extends WC_Integration {
 			// Set settings_changed flag to "true" so WooTax reloads settings array
 			WC_WooTax::$settings_changed = true;
 		}
+
+		// Enforce default settings for log_requests/capture_immediately/exempt_roles
+		if ( !isset( $_POST['woocommerce_wootax_log_requests'] ) )
+			$settings['log_requests'] = 'yes';
+
+		if ( !isset( $_POST['woocommerce_wootax_capture_immediately'] ) )
+			$settings['capture_immediately'] = 'no'; 
+
+		if ( !isset( $_POST['woocommerce_wootax_exempt_roles'] ) )
+			$settings['exempt_roles'] = array( 'exempt-customer' );
 
 		return $settings;
  	}
