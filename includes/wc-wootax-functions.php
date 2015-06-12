@@ -58,13 +58,12 @@ function maybe_validate_address( $address, $order_id = -1 ) {
 	} else {
 		$final_address = $address;
 
-		// All array values must be lowercase for validation to work properly
-		$address = array_map( 'strtolower', $address );
-
 		$usps_id = WC_WooTax::get_option( 'usps_id' );
 
 		if ( $usps_id ) {
-			$address['uspsUserID'] = $usps_id; // USPS Web Tools ID is required for calls to VerifyAddress
+			// Prepare address array by changing all keys/values to lower case and specifying USPS ID
+			$address = array_change_key_case( array_map( 'strtolower', $address ) );
+			$address['uspsUserID'] = $usps_id;
 
 			$res = TaxCloud()->send_request( 'VerifyAddress', $address );
 
@@ -205,6 +204,37 @@ function parse_zip( $zip ) {
 	}
 
 	return $parsed_zip;
+}
+
+/**
+ * Determines whether or not an address is "valid." 
+ * For an address to be valid, country, city, state, address1, and ZIP must be provided.
+ *
+ * @since 4.6
+ *
+ * @param (array) $address associative array representing an address
+ * @param (bool) $dest is a destination address being validated? If so, we also check that dest country is US
+ *
+ * @return bool
+ */
+function wootax_is_valid_address( $address, $dest = false ) {
+	// Normalize address array by converting all keys and values to lowercase
+	$address = array_change_key_case( array_map( 'strtolower', $address ) );
+	
+	$required_fields = array( 'country', 'city', 'state', 'address1', 'zip5' );
+
+	foreach ( $required_fields as $required ) {
+		$val = isset( $address[ $required ] ) ? $address[ $required ] : '';
+		
+		if ( empty( $val ) )
+			return false;
+	}
+	
+	// If the destination country is not the US, return false
+	if ( $dest == true && !in_array( strtolower( $address['country'] ), array( 'us', 'united states' ) ) )
+		return false;
+		
+	return true;
 }
 
 /**

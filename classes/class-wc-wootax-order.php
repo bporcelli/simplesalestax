@@ -644,7 +644,7 @@ class WC_WooTax_Order {
 		}
 
 		// Check for a valid destinaton address
-		if ( !TaxCloud()->is_valid_address( $this->destination_address, true ) ) {
+		if ( !wootax_is_valid_address( $this->destination_address, true ) ) {
 			return false;
 		}
 		
@@ -688,24 +688,21 @@ class WC_WooTax_Order {
 	 * @param (float) $new_tax new value for tax
 	 */
 	private function update_tax_total( $type, $new_tax ) {
-		if ( $type == "shipping" ) {
-			$wootax_key      = 'shipping_tax_total';
-			$woocommerce_key = '_order_shipping_tax';
-		} else {
-			$wootax_key      = 'tax_total';
-			$woocommerce_key = '_order_tax';
-		}
+		$type = $type == 'cart' ? 'tax' : 'shipping_tax';
+
+		$wootax_key      = $type .'_total';
+		$woocommerce_key = '_order_'. $type;
 
 		// Get current tax/tax total
 		$tax       = WT_Orders::get_meta( $this->order_id, $wootax_key );
-		$tax_total = get_post_meta( $this->order_id, $woocommerce_key, true );
+		$tax_total = WT_Orders::get_meta( $this->order_id, $woocommerce_key );
 
 		// Calculate new tax total
 		$new_tax_total = $tax_total == 0 ? $new_tax : ( $tax_total - $tax ) + $new_tax;
 		$new_tax_total = $new_tax_total < 0 ? 0 : $new_tax_total;
 
-		update_post_meta( $this->order_id, $woocommerce_key, $new_tax_total );
-		WT_Orders::update_meta( $this->order_id, 'tax_total', $new_tax );
+		WT_Orders::update_meta( $this->order_id, $woocommerce_key, $new_tax_total );
+		WT_Orders::update_meta( $this->order_id, $wootax_key, $new_tax );
 	}
 
 	/**

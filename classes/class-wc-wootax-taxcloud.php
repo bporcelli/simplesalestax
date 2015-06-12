@@ -135,35 +135,6 @@ class WC_WooTax_TaxCloud {
 	}
 	
 	/**
-	 * Checks for a valid address. For an address to be valid, Country, City, State, and 5-digit ZIP must be provided
-	 *
-	 * @param (array) $address associative array representing an address
-	 * @param (bool) $dest is a destination address being validated? If so, we also check that dest country is US
-	 * @return (bool) true if the address is valid; else, false
-	 */
-	public function is_valid_address( $address, $dest = false ) {
-		// Convert all array keys to lowercase for consistency
-		$address         = array_change_key_case( array_map( 'strtolower', $address ) );
-		$required_fields = array( 'country', 'city', 'state', 'zip5' );
-		
-		// Check for presence of required fields
-		foreach ( $required_fields as $required ) {
-			$val = isset( $address[ $required ] ) ? $address[ $required ] : '' ;
-			
-			if ( empty( $val ) ) {
-				return false;
-			}
-		}
-		
-		// If the destination country is not the US, return false
-		if ( $dest == true && isset( $address['country'] ) && ( strtolower( $address['country'] ) != 'us' && strtolower( $address['country'] ) != 'united states' ) )  {
-			return false;
-		}
-			
-		return true;
-	}
-	
-	/**
 	 * Send API request
 	 *
 	 * @since 4.2
@@ -174,83 +145,59 @@ class WC_WooTax_TaxCloud {
 	public function send_request( $type, $params = array() ) {
 		$last_error = false;
 
-		if ( WT_LOG_REQUESTS ) {
+		if ( WT_LOG_REQUESTS )
 			$this->logger->add( 'wootax', 'Started '. $type .' request.' );
-		}
 
 		if ( !$this->login_id || !$this->key ) {
 			$last_error = 'Could not make '. $type .' request: API Login ID and API Key are required.';
-		} else if ( $type == 'Lookup' && ( !$this->is_valid_address( $params['origin'] ) || !$this->is_valid_address( $params['destination'], true ) ) ) {
+		} else if ( $type == 'Lookup' && ( !wootax_is_valid_address( $params['origin'] ) || !wootax_is_valid_address( $params['destination'], true ) ) ) {
 			$last_error = 'Could not make '. $type .' request: Valid origin and destination addresses are required.';
+		} else if ( $type == 'VerifyAddress' && !$params['uspsUserID'] ) {
+			$last_error = 'Could not make '. $type .' request: A USPS Web Tools ID is required.';
 		} else {
-			if ( $type == 'VerifyAddress' ) { // Check for valid address before issuing VerifyAddress request
-				$user_id = '';
+			$request = array_merge( array( 
+				'apiLoginID' => $this->login_id, 
+				'apiKey'     => $this->key, 
+			), $params );
 
-				if ( isset( $params['uspsUserID'] ) ) {
-					$user_id = $params['uspsUserID'];
-					unset( $params['uspsUserID'] );
+			try {
+				$response = $this->client->$type( $request );
+
+				// Parse out the last response HTTP code
+				$headers = $this->client->__getLastResponseHeaders();
+
+				if ( $c = preg_match_all( "/.*?\\d+.*?\\d+.*?(\\d+)/is", $headers, $matches ) )					  
+					$http_code = $matches[1][0];
+				
+				// Record request details (response headers, request/response)
+				$this->log_request_details( $request, $response, $http_code );
+
+				if ( WT_LOG_REQUESTS ) {
+					$this->logger->add( 'wootax', 'Request: '. print_r( $request, true ) );
+					$this->logger->add( 'wootax', 'Response: '. print_r( $response, true ) );
 				}
 
-				$params = array_change_key_case( $params );
+				// Check response for errors
+				$response = $response->{$type . 'Result'}; // Doing this here should make the transition to cURL easier later on
 
-				if ( !$this->is_valid_address( $params ) ) {
-					$last_error = 'Could not make '. $type .' request: A valid address is required.';
-				} else {
-					// Reset uspsUserID
-					$params['uspsUserID'] = $user_id;
-
-					// Unset country
-					unset( $params['country'] );
+				if ( $this->is_response_error( $response ) ) {
+					$last_error = $this->last_error;
 				}
-			}
-
-			if ( $last_error == false ) { // Prevent VerifyAddress requests from being executed when an invalid address is passed
-				$request = array_merge( array( 
-					'apiLoginID' => $this->login_id, 
-					'apiKey'     => $this->key, 
-				), $params );
-
-				try {
-					$response = $this->client->$type( $request );
-
-					// Parse out the last response HTTP code
-					$headers = $this->client->__getLastResponseHeaders();
-
-					if ( $c = preg_match_all( "/.*?\\d+.*?\\d+.*?(\\d+)/is", $headers, $matches ) )					  
-						$http_code = $matches[1][0];
-					
-					// Record request details (response headers, request/response)
-					$this->log_request_details( $request, $response, $http_code );
-
-					if ( WT_LOG_REQUESTS ) {
-						$this->logger->add( 'wootax', 'Request: '. print_r( $request, true ) );
-						$this->logger->add( 'wootax', 'Response: '. print_r( $response, true ) );
-					}
-
-					// Check response for errors
-					$response = $response->{$type . 'Result'}; // Doing this here should make the transition to cURL easier later on
-
-					if ( $this->is_response_error( $response ) ) {
-						$last_error = $this->last_error;
-					}
-				} catch ( SoapFault $e ) {
-					$last_error = 'Could not make '. $type .' request due to SoapFault. It is possible that the request was not formatted correctly. Please try again.';
-				}
+			} catch ( SoapFault $e ) {
+				$last_error = 'Could not make '. $type .' request due to SoapFault. It is possible that the request was not formatted correctly. Please try again.';
 			}
 		}
 		
 		if ( $last_error ) {
 			$this->last_error = $last_error;
 
-			if ( WT_LOG_REQUESTS ) {
+			if ( WT_LOG_REQUESTS )
 				$this->logger->add( 'wootax', 'Request failed: '. $last_error );
-			}
 
 			return false;
 		} else {
-			if ( WT_LOG_REQUESTS ) {
+			if ( WT_LOG_REQUESTS )
 				$this->logger->add( 'wootax', 'Request succeeded!' );
-			}
 
 			return $response;
 		}

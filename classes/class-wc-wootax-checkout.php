@@ -91,7 +91,7 @@ class WC_WooTax_Checkout {
 	 */
 	private function init() {
 		// Set customer destination address
-		$this->destination_address = $this->get_destination_address();
+		$this->set_destination_address();
 
 		// Exit immediately if we do not have enough information to proceed with a lookup
 		if( !$this->ready_for_lookup() ) {
@@ -103,11 +103,10 @@ class WC_WooTax_Checkout {
 			// Generate lookup data
 			$this->generate_lookup_data();
 
+			// Either issue a new lookup or set cart taxes from stored values
 			if ( $this->needs_lookup() ) {
-				// Issue lookup request and update cart tax totals
 				$this->do_lookup();
 			} else {
-				// We need to manually restore the item taxes when lookup is skipped; WooCommerce removes them
 				$this->restore_order_taxes();
 			}
 		}
@@ -386,7 +385,7 @@ class WC_WooTax_Checkout {
 		$this->taxcloud_ids = $taxcloud_ids;
 	}
 
-	/**
+	/*
 	 * Returns an array of order items in a TaxCloud friendly format
 	 *
 	 * array(
@@ -402,7 +401,7 @@ class WC_WooTax_Checkout {
 	 *
 	 * @since 4.2
 	 * @return (array) array of items (see above for structure)
-	 */
+	 
 	private function get_items_array() {
 		$items       = $this->cart->cart_contents;
 		$based_on    = WC_WooTax::get_option( 'tax_based_on' );
@@ -474,10 +473,8 @@ class WC_WooTax_Checkout {
 		// Add shipping costs
 		$shipping_total = $this->cart->shipping_total;
 
-		if ( $this->is_subscription ) {
-			if ( !WC_Subscriptions_Cart::charge_shipping_up_front() && ( WC_Subscriptions_Cart::get_calculation_type() == 'sign_up_fee_total' || WC_Subscriptions_Cart::get_calculation_type() == 'free_trial_total' ) ) {
-				$shipping_total = 0;
-			}
+		if ( $this->is_subscription && !WC_Subscriptions_Cart::charge_shipping_up_front() && ( WC_Subscriptions_Cart::get_calculation_type() == 'sign_up_fee_total' || WC_Subscriptions_Cart::get_calculation_type() == 'free_trial_total' ) ) {
+			$shipping_total = 0;
 		}
 
 		if ( $shipping_total > 0 ) {
@@ -493,158 +490,166 @@ class WC_WooTax_Checkout {
 		}
 
 		return $final_items;
-	}
+	}*/
 	
 	/**
-	 * Stores an array of items in TaxCloud-friendly format and organized by location key in the lookup_data property
+	 * Generates an array of items in TaxCloud-friendly format and organized by location key
+	 * Stores generated array in lookup_data property
 	 *
 	 * @since 4.2
 	 */
 	private function generate_lookup_data() {
-		// Fetch order items
-		$order_items = $this->get_items_array();
+		// Reset
+		$this->lookup_data = $this->mapping_array = array();
 
 		// Exit if we do not have any items
-		if ( count( $order_items ) == 0 ) {
-			$this->lookup_data = $this->mapping_array = array();
+		$order_items = WC()->cart->get_cart();
+
+		if ( !$order_items ) 
 			return;
-		}
 
-		// Determine the state where the customer is located
 		$customer_state = $this->destination_address['State'];
+		$counters_array = $lookup_data = $mapping_array = array();
+		
+		$tax_based_on = WC_WooTax::get_option( 'tax_based_on' );
 
-		// Initialize some vars that we need below
-		$data = $mapping_array = $counters_array = $fee_items = $fee_indices = $shipping_items = array();
-		$fee_counter = 0;
+		// Add cart items
+		foreach ( $order_items as $item_id => $item ) {
+			$final_item = array();
 
-		// This will hold the ID of the first found origin address/location for this order; Fees and shipping charges will be attached to it
-		$first_found = false;
+			// Get some information about the product being sold
+			$product_id = $item['data']->id;
+			
+			// TIC
+			$tic_raw = get_post_meta( $product_id, 'wootax_tic', true );
+			$tic     = $tic_raw == false ? false : trim( $tic_raw );
 
-		// Loop through order items; group items by their shipping origin address and format data for tax lookup
-		foreach ( $order_items as $item_key => $item ) {
-			$item_id = $item['ItemID'];
-			$type    = $item['Type'];
+			// Quantity and price
+			$unit_price = $item['line_total'] / $item['quantity'];
 
-			switch( $type ) {
-				case 'cart':
-					// Fetch shipping origin addresses for this product
-					$product          = $this->cart->cart_contents[ $item_id ]['data'];
-					$product_id       = $product->id;
-					$origin_addresses = fetch_product_origin_addresses( $product_id );
-					$address_found    = WT_DEFAULT_ADDRESS;
-
-					/**
-					 * Attempt to find proper origin address
-					 * If there is more than one address available, we will use the first address that occurs in the customer's state 
-					 * If there no shipping location in the customer's state, we will use the default origin address
-					 * Developers can modify the selected shipping origin address using the wootax_origin_address filter
-					 */
-					if ( count( $origin_addresses ) == 1 ) {
-						// There is only one address ID to fetch, with index 0
-						$address_found = $origin_addresses[0];				
-					} else {
-						// Find an address in the customer's state if possible
-						foreach ( $origin_addresses as $key ) {
-							if ( isset( $this->addresses[ $key ]['state'] ) && $this->addresses[ $key ]['state'] == $customer_state ) {
-								$address_found = $key;
-								break;
-							}
-						}
-					}
-
-					// Allow developers to use their own logic to determine the appropriate shipment origin for a product
-					$address_found = apply_filters( 'wootax_origin_address', $address_found, $customer_state, $this );
-
-					// Store the id of the first shipping location we find for the order so we can attach shipping items and fees later on
-					if ( $first_found === false ) {
-						$first_found = $address_found;
-					}
-
-					// Initialize arrays to avoid PHP notices
-					if ( !isset( $data[ $address_found ] ) || !is_array( $data[ $address_found ] ) ) {
-						$data[ $address_found ] = array();
-					}
-
-					if ( !isset( $counters_array[ $address_found ] ) ) {
-						$counters_array[ $address_found ] = 0;
-					}
-
-					// Update mapping array
-					$mapping_array[ $address_found ][] = array(
-						'id'    => $item_id, 
-						'index' => $counters_array[ $address_found ], 
-						'type'  => 'cart',
-						'key'   => $item_key,
-					);
-
-					// Update item data before storing in $data array
-					$item['Index'] = $counters_array[ $address_found ];
-					$item['Price'] = apply_filters( 'wootax_taxable_price', $item['Price'], true, $product->id );
-					
-					unset( $item['Type'] );
-
-					// Add item to lookup data arary
-					$data[ $address_found ][] = $item;
-
-					// Increment counter
-					$counters_array[ $address_found ]++;
-				break;
-
-				case 'shipping':
-					// Push this item the shipping array; the cost of shipping will be attached to the first daughter order later on
-					$shipping_items[ $item_id ] = $item;
-				break;
-
-				case 'fee':
-					// Push this item to the fee array; it will be attached to the first daughter order later on
-					$fee_items[ $item_id ] = $item;
-
-					// Map item id to fee index 
-					$fee_indices[ $item_id ] = $fee_counter++;
-				break;
+			if ( $tax_based_on == 'item-price' || !$tax_based_on ) {
+				$qty   = $item['quantity'];
+				$price = $unit_price; 
+			} else {
+				$qty   = 1;
+				$price = $unit_price * $item['quantity']; 
 			}
+
+			// Attempt to find origin address to use for product; if possible, we use the origin address in the customer's state
+			// Developers can adjust the final address used with the wootax_origin_address filter (see below)
+			$origin_addresses = fetch_product_origin_addresses( $product_id );
+			$address_found    = WT_DEFAULT_ADDRESS;
+
+			if ( count( $origin_addresses ) == 1 ) {
+				$address_found = $origin_addresses[0];				
+			} else {
+				foreach ( $origin_addresses as $key ) {
+					if ( isset( $this->addresses[ $key ]['state'] ) && $this->addresses[ $key ]['state'] == $customer_state ) {
+						$address_found = $key;
+						break;
+					}
+				}
+			}
+
+			$address_found = apply_filters( 'wootax_origin_address', $address_found, $customer_state, $this );
+
+			// Avoid PHP notices by initializing arrays
+			if ( !isset( $lookup_data[ $address_found ] ) || !is_array( $lookup_data[ $address_found ] ) )
+				$lookup_data[ $address_found ] = array();
+			if ( !isset( $counters_array[ $address_found ] ) )
+				$counters_array[ $address_found ] = 0;
+
+			// Update mapping array and lookup data array
+			$index = $counters_array[ $address_found ];
+
+			$final_item = array(
+				'Index'  => $index,
+				'ItemID' => $item_id,
+				'Price'  => apply_filters( 'wootax_taxable_price', $price, true, $product_id ),
+				'Qty'    => $qty,
+			);
+
+			if ( $tic !== false )
+				$final_item['TIC'] = $tic; // Only add TIC if one other than default is being used
+
+			$lookup_data[ $address_found ][] = $final_item;
+
+			$mapping_array[ $address_found ][] = array(
+				'id'    => $item_id,
+				'index' => $index,
+				'type'  => 'cart',
+				'key'   => $item_key,
+			);
+
+			$counters_array[ $address_found ]++;
 		}
 
-		// Attach shipping items and fees to the first daughter order
-		if ( $first_found !== false ) {
-			foreach ( $shipping_items + $fee_items as $key => $item ) {
-				// Get new item index
-				$index   = $counters_array[ $first_found ];
-				$item_id = $item['ItemID'];
+		// The ID of the first found location for this order; all shipping charges and fees will be grouped under this location
+		$first_location = array_shift( array_keys( $lookup_data ) );
 
-				// Determine if the item we are dealing with is a fee or shipping charge
-				$type = isset( $fee_items[ $item_id ] ) ? 'fee' : 'shipping';
+		if ( $first_location !== false ) {
 
-				// Add to items array (Type index not included here)
-				$data[ $first_found ][ $index ] = array(
+			// Add shipping item (we assume one per order)
+			$shipping_total = WC()->cart->shipping_total;
+
+			if ( $this->is_subscription && !WC_Subscriptions_Cart::charge_shipping_up_front() && ( WC_Subscriptions_Cart::get_calculation_type() == 'sign_up_fee_total' || WC_Subscriptions_Cart::get_calculation_type() == 'free_trial_total' ) )
+				$shipping_total = 0;
+
+			if ( $shipping_total > 0 ) {
+				$index   = $counters_array[ $first_location ];
+				$item_id = WT_SHIPPING_ITEM;
+
+				$lookup_data[ $first_location ][] = array(
 					'Index'  => $index,
-					'ItemID' => $item_id,
-					'TIC'    => $item['TIC'],
-					'Price'  => apply_filters( 'wootax_taxable_price', $item['Price'], true, $item_id ),
-					'Qty'    => $item['Qty'],
+					'ItemID' => $item_id, 
+					'TIC'    => WT_SHIPPING_TIC, 
+					'Qty'    => 1, 
+					'Price'  => apply_filters( 'wootax_taxable_price', $shipping_total, true, $item_id ),
+				);
+
+				$mapping_array[ $first_location ][] = array(
+					'id'    => $item_id, 
+					'index' => $index,
+					'type'  => 'shipping',
+				);
+
+				$counters_array[ $first_location ]++
+			}
+
+			// Add fees
+			$fee_index = 0;
+			foreach ( WC()->cart->get_fees() as $ind => $fee ) {
+				// TODO: Phase this out?
+				if ( isset( $fee->taxable ) && !$fee->taxable )
+					continue;
+
+				$item_id = $fee->id;
+				$index   = $counters_array[ $first_location ];
+
+				$lookup_data[ $first_location ][] = array(
+					'Index'  => $index,
+					'ItemID' => $item_id, 
+					'TIC'    => WT_FEE_TIC,
+					'Qty'    => 1, 
+					'Price'  => apply_filters( 'wootax_taxable_price', $fee->amount, true, $item_id ),
 				);
 
 				// Update mapping array
-				$mapping_array[ $first_found ][ $index ] = array(
+				$mapping_array[ $first_location ][ $index ] = array(
 					'id'    => $item_id, 
-					'index' => $index, 
-					'type'  => $type,
+					'index' => $fee_index, 
+					'type'  => 'fee',
 				);
 
-				// Add "index" property with fee index if necessary
-				if ( $type == 'fee' ) {
-					$mapping_array[ $first_found ][ $index ]['index'] = $fee_indices[ $item_id ];
-				}
-
-				// Increment counter
-				$counters_array[ $first_found ]++;
+				$counters_array[ $first_location ]++;
+				$fee_index++;
 			}
 		}
 
 		// Store data and save
-		$this->lookup_data   = $data;
+		$this->lookup_data   = $lookup_data;
 		$this->mapping_array = $mapping_array;
-		$this->first_found   = $first_found;
+		$this->first_found   = $first_location;
 
 		$this->generate_order_ids();
 	}
@@ -826,12 +831,12 @@ class WC_WooTax_Checkout {
 	}
 	
 	/** 
-	 * Get destination address for order
+	 * Set destination address for order
 	 *
 	 * @since 4.2
 	 * @return (array) associative array containing customer address
 	 */
-	public function get_destination_address() {
+	private function set_destination_address() {
 		// Retrieve "tax based on" option
 		$tax_based_on = get_option( 'woocommerce_tax_based_on' );
 
@@ -840,59 +845,34 @@ class WC_WooTax_Checkout {
 			return wootax_get_address( apply_filters( 'wootax_pickup_address', WT_DEFAULT_ADDRESS, $this->addresses, -1 ) );
 		}
 
-		// Initialize blank address array
-		$address = array();
-
-		// Fetch BOTH billing and shipping address
-		$addresses = array(
-			'billing' => array(
-				'address_1' => WC()->customer->get_address(),
-				'address_2' => WC()->customer->get_address_2(),
-				'country'   => WC()->customer->get_country(),
-				'state'     => WC()->customer->get_state(),
-				'city'      => WC()->customer->get_city(),
-				'zip5'      => WC()->customer->get_postcode(),
-			),
-					
-			'shipping' => array(
-				'address_1' => WC()->customer->get_shipping_address(),
-				'address_2' => WC()->customer->get_shipping_address_2(),
-				'country'   => WC()->customer->get_shipping_country(),
-				'state'     => WC()->customer->get_shipping_state(),
-				'city'      => WC()->customer->get_shipping_city(),
-				'zip5'      => WC()->customer->get_shipping_postcode(),
-			)
-		);
+		// Attempt to fetch correct address
+		if ( $tax_based_on == 'shipping' ) {
+			$address = array(
+				'Address1' => WC()->customer->get_address(),
+				'Address2' => WC()->customer->get_address_2(),
+				'Country'  => WC()->customer->get_country(),
+				'State'    => WC()->customer->get_state(),
+				'City'     => WC()->customer->get_city(),
+				'Zip5'     => WC()->customer->get_postcode(),
+			);
+		} else {
+			$address = array(
+				'Address1' => WC()->customer->get_shipping_address(),
+				'Address2' => WC()->customer->get_shipping_address_2(),
+				'Country'  => WC()->customer->get_shipping_country(),
+				'State'    => WC()->customer->get_shipping_state(),
+				'City'     => WC()->customer->get_shipping_city(),
+				'Zip5'     => WC()->customer->get_shipping_postcode(),
+			);
+		}
 		
-		// Attempt to fetch address preferred according to "tax based on" option; otherwise, return billing address
-		$address_1 = $addresses['billing']['address_1'];
-		$address_2 = $addresses['billing']['address_2'];
-		$country   = $addresses['billing']['country'];
-		$state     = $addresses['billing']['state'];
-		$city      = $addresses['billing']['city'];
-		$zip5      = $addresses['billing']['zip5'];
-				
-		if ( $tax_based_on ) {
-			$address_1 = !empty( $addresses[$tax_based_on]['address_1'] ) ? $addresses[$tax_based_on]['address_1'] : $address_1;
-			$address_2 = !empty( $addresses[$tax_based_on]['address_2'] ) ? $addresses[$tax_based_on]['address_2'] : $address_2;
-			$country   = !empty( $addresses[$tax_based_on]['country'] ) ? $addresses[$tax_based_on]['country'] : $country;
-			$state     = !empty( $addresses[$tax_based_on]['state'] ) ? $addresses[$tax_based_on]['state'] : $state;
-			$city      = !empty( $addresses[$tax_based_on]['city'] ) ? $addresses[$tax_based_on]['city'] : $city;
-			$zip5      = !empty( $addresses[$tax_based_on]['zip5'] ) ? $addresses[$tax_based_on]['zip5'] : $zip5;
-		} 
-		
-		// Build/return Address array
-		$parsed_zip = parse_zip( $zip5 );
+		// Parse ZIP to get ZIP +4 if possible
+		$parsed_zip = parse_zip( $address['Zip5'] );
 
-		$address['Address1'] = $address_1;
-		$address['Address2'] = $address_2;
-		$address['Country']  = $country;
-		$address['State']    = $state;
-		$address['City']     = $city;
-		$address['Zip5']     = $parsed_zip['zip5'];
-		$address['Zip4']     = $parsed_zip['zip4']; 
+		$address['Zip5'] = $parsed_zip['zip5'];
+		$address['Zip4'] = $parsed_zip['zip4'];
 
-		return $address;
+		$this->destination_address = $address;
 	}
 	
 	/** 
@@ -902,16 +882,12 @@ class WC_WooTax_Checkout {
 	 * - The customer's full address is available (and in the United States)
 	 *
 	 * @since 4.2
-	 * @return (boolean) true if the order is ready for a tax lookup; otherwise, false
+	 * @return bool
 	 */
 	private function ready_for_lookup() {
-		// Verify that one origin address (at least) is available for use
 		if ( !is_array( $this->addresses ) || count( $this->addresses ) == 0 ) {
 			return false;
-		}
-
-		// Check for a valid destinaton address
-		if ( !$this->taxcloud->is_valid_address( $this->destination_address, true ) ) {
+		} else if ( !wootax_is_valid_address( $this->destination_address, true ) ) {
 			return false;
 		}
 		
@@ -941,21 +917,19 @@ class WC_WooTax_Checkout {
 	 * Update order shipping/cart tax total
 	 *
 	 * @since 4.4
-	 * @param (string) $type "shipping" to update shipping tax total; "cart" to update cart tax total
+	 * @param (string) $total_type "shipping" to update shipping tax total; "cart" to update cart tax total
 	 * @param (float) $new_tax new value for tax
 	 */
-	private function update_tax_total( $type, $new_tax ) {
-		if ( $type == 'shipping' ) {
-			$tax_key   = 'shipping_taxes';
-			$total_key = 'shipping_tax_total';
-		} else {
-			$tax_key   = 'taxes';
-			$total_key = 'tax_total';
-		}
+	private function update_tax_total( $total_type, $new_tax ) {
+		$total_type = $total_type == 'cart' ? '' : $total_type .'_';
+		
+		$tax_key    = $total_type . 'taxes';
+		$total_key  = $total_type . 'tax_total';
 
 		$this->cart->{$tax_key}[ WT_RATE_ID ] = $new_tax;
 
-		if ( !WT_SUBS_ACTIVE || !WC_Subscriptions_Cart::cart_contains_subscription() ) { // Removing zero tax row causes display issues for subscription orders
+		// Maybe remove sales tax row if tax due is zero and the cart does not contain a subscription (removing the zero tax for subscription orders causes issues)
+		if ( !WT_SUBS_ACTIVE || !WC_Subscriptions_Cart::cart_contains_subscription() ) {
 			if ( WC_WooTax::get_option( 'show_zero_tax' ) != 'true' && $new_tax == 0 ) {
 				unset( $this->cart->{$tax_key}[ WT_RATE_ID ] );
 			}
@@ -963,7 +937,7 @@ class WC_WooTax_Checkout {
 
 		// Use get_tax_total to set new tax total so we don't override other rates
 		$this->cart->$total_key = version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ? WC_Tax::get_tax_total( $this->cart->$tax_key ) : $this->cart->tax->get_tax_total( $this->cart->$tax_key );
-
+		
 		$this->$total_key = $new_tax;
 	}
 
@@ -1014,16 +988,14 @@ class WC_WooTax_Checkout {
 						$item_id = $this->mapping_array[ $location_key ][ $index ]['key']; // Identifier is cart item key
 						
 						$tax = $this->cart_taxes[ $item_id ];
-
 						$this->apply_item_tax( $item_id, $tax );
+
 						$tax_total += $tax;
 						break;
 
 					case 'shipping':
 						$item_id = WT_SHIPPING_ITEM; // Identifier is SHIPPING
-						
 						$tax = $this->cart_taxes[ $item_id ];
-
 						$shipping_tax_total += $tax;
 						break;
 
@@ -1031,8 +1003,8 @@ class WC_WooTax_Checkout {
 						$item_id = $this->mapping_array[ $location_key ][ $index ]['index']; // Identifier is cart fee index
 						
 						$tax = $this->cart_taxes[ $item_id ];
-
 						$this->apply_fee_tax( $item_id, $tax );
+
 						$tax_total += $tax;
 						break;
 				}
@@ -1086,14 +1058,8 @@ class WC_WooTax_Checkout {
 	 * Only executed when WooCommerce Subscriptions is active
 	 *
 	 * @since 4.4
-	 * @param (double) $total the current cart total
-	 * @param (WC_Cart) $cart a WC_Cart object
 	 */
 	public function restore_shipping_taxes() {
-		// Restore taxes to given cart object
-		//$cart->shipping_taxes = $this->shipping_taxes;
-
-		// Restore taxes for global cart object
 		WC()->cart->shipping_taxes = $this->shipping_taxes;
 	}
 }
