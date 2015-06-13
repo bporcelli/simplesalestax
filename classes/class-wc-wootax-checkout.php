@@ -384,113 +384,6 @@ class WC_WooTax_Checkout {
 
 		$this->taxcloud_ids = $taxcloud_ids;
 	}
-
-	/*
-	 * Returns an array of order items in a TaxCloud friendly format
-	 *
-	 * array(
-	 *   [item_key] => array (
-	 *		[TIC] => TIC or empty string
-	 * 	   	[ItemID] => Product ID
-	 * 		[Index] => Item index (can be left blank for our purposes; re-assigned in generate_lookup_data)
-	 * 		[Type] => Item type (Values: cart, fee, shipping)
-	 * 		[Price] => The item price
-	 * 		[Qty] => The quantity of the item being purchased 
-	 *	)
-	 * )
-	 *
-	 * @since 4.2
-	 * @return (array) array of items (see above for structure)
-	 
-	private function get_items_array() {
-		$items       = $this->cart->cart_contents;
-		$based_on    = WC_WooTax::get_option( 'tax_based_on' );
-		$final_items = array();
-
-		// Add cart items
-		foreach ( $items as $item_key => $item ) {
-			$product = $item['data'];
-
-			// Get product TIC
-			$tic_raw = get_post_meta( $product->id, 'wootax_tic', true );
-			$tic     = $tic_raw == false ? '' : trim( $tic_raw );
-
-			// Get product ID, Qty, and Price 
-			$item_id       = $item_key;
-			$product_price = $item['line_total'] / $item['quantity'];
-
-			if ( $based_on == 'item-price' || !$based_on ) {
-				$qty   = $item['quantity'];
-				$price = $product_price; 
-			} else {
-				$qty   = 1;
-				$price = $product_price * $item['quantity']; 
-			}
-
-			// Add to final items array
-			$final_items[ $item_key ] = array(
-				'Index'  => NULL,
-				'ItemID' => $item_id,
-				'Price'  => $price,
-				'Qty'    => $qty,
-				'Type'   => 'cart',
-			);
-
-			// Only add TIC if it is set
-			if ( !empty( $tic ) ) {
-				$final_items[ $item_key ]['TIC'] = $tic;
-			}
-		}
-
-		// Add fees
-		$fees = $this->cart->get_fees();
-
-		if ( is_array( $fees ) ) {
-			foreach ( $fees as $ind => $fee ) {
-				// Skip if not taxable (TODO: phase this out too?)
-				if ( isset( $fee->taxable ) && !$fee->taxable ) {
-					continue;
-				}
-				
-				// Get fee identifier (fee index since we are in checkout)
-				$fee_id = $fee->id;
-
-				// Get fee amount $fee->amount
-				$amt = $fee->amount;
-
-				// Add to final items array
-				$final_items[ $fee_id ] = array(
-					'Index'  => NULL, 
-					'ItemID' => $fee_id, 
-					'TIC'    => WT_FEE_TIC,
-					'Qty'    => 1, 
-					'Price'  => $amt,
-					'Type'   => 'fee',
-				);
-			}
-		}
-
-		// Add shipping costs
-		$shipping_total = $this->cart->shipping_total;
-
-		if ( $this->is_subscription && !WC_Subscriptions_Cart::charge_shipping_up_front() && ( WC_Subscriptions_Cart::get_calculation_type() == 'sign_up_fee_total' || WC_Subscriptions_Cart::get_calculation_type() == 'free_trial_total' ) ) {
-			$shipping_total = 0;
-		}
-
-		if ( $shipping_total > 0 ) {
-			// Add a shipping item to the final items array (we assume that only one shipping method is being used per order)
-			$final_items[ WT_SHIPPING_ITEM ] = array(
-				'Index'  => NULL, 
-				'ItemID' => WT_SHIPPING_ITEM, 
-				'TIC'    => WT_SHIPPING_TIC, 
-				'Qty'    => 1, 
-				'Price'  => $shipping_total,
-				'Type'   => 'shipping',
-			);
-		}
-
-		return $final_items;
-	}*/
 	
 	/**
 	 * Generates an array of items in TaxCloud-friendly format and organized by location key
@@ -578,14 +471,15 @@ class WC_WooTax_Checkout {
 				'id'    => $item_id,
 				'index' => $index,
 				'type'  => 'cart',
-				'key'   => $item_key,
+				'key'   => $item_id,
 			);
 
 			$counters_array[ $address_found ]++;
 		}
 
 		// The ID of the first found location for this order; all shipping charges and fees will be grouped under this location
-		$first_location = array_shift( array_keys( $lookup_data ) );
+		$temp_lookup = array_keys( $lookup_data );
+		$first_location = array_shift( $temp_lookup );
 
 		if ( $first_location !== false ) {
 
@@ -613,7 +507,7 @@ class WC_WooTax_Checkout {
 					'type'  => 'shipping',
 				);
 
-				$counters_array[ $first_location ]++
+				$counters_array[ $first_location ]++;
 			}
 
 			// Add fees

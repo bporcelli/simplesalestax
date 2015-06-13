@@ -469,15 +469,17 @@ class WC_WooTax_Settings extends WC_Integration {
 				
 				foreach ( $new_addresses as $key => $address ) {
 					$req = array(
-						'uspsUserID' => $usps_id, 
-						'Address1'   => strtolower( $address['address_1'] ), 
-						'Address2'   => strtolower( $address['address_2'] ), 
+						'Address1'   => $address['address_1'], 
+						'Address2'   => $address['address_2'], 
 						'Country'    => 'US', 
 						'City'       => $address['city'], 
 						'State'      => $address['state'], 
 						'Zip5'       => $address['zip5'], 
 						'Zip4'       => $address['zip4'],
 					);
+
+					$req = array_change_key_case( array_map( 'strtolower', $req ) );
+					$req['uspsUserID'] = $usps_id;
 
 					// Attempt to verify address 
 					$response = $taxcloud->send_request( 'VerifyAddress', $req );
@@ -503,7 +505,7 @@ class WC_WooTax_Settings extends WC_Integration {
 
 						// Reset country field
 						if ( !isset( $new_address['country'] ) ) {
-							$new_address['country'] = $req['Country'];
+							$new_address['country'] = $req['country'];
 						}
 						
 						$new_addresses[ $key ] = $new_address;			

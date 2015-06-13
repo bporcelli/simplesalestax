@@ -223,10 +223,7 @@ class WC_WooTax_Order {
 	 *
 	 * @since 4.2
 	 */
-	private function generate_lookup_data( $items = NULL ) {
-		// Fetch order items
-		$order_items = $items;
-
+	private function generate_lookup_data( $order_items = array() ) {
 		// Exit if we do not have any items
 		if ( count( $order_items ) == 0 ) {
 			WT_Orders::update_meta( $this->order_id, 'lookup_data', array() );

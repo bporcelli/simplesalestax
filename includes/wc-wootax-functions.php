@@ -73,7 +73,7 @@ function maybe_validate_address( $address, $order_id = -1 ) {
 				unset( $res->ErrDescription );
 
 				if ( !isset( $res->Country ) ) {
-					$res->Country = $address['Country'];
+					$res->Country = $address['country'];
 				}
 
 				if ( !isset( $res->Address2 ) ) {
@@ -220,7 +220,7 @@ function parse_zip( $zip ) {
 function wootax_is_valid_address( $address, $dest = false ) {
 	// Normalize address array by converting all keys and values to lowercase
 	$address = array_change_key_case( array_map( 'strtolower', $address ) );
-	
+
 	$required_fields = array( 'country', 'city', 'state', 'address1', 'zip5' );
 
 	foreach ( $required_fields as $required ) {
