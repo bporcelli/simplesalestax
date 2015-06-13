@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Plugin Name: WooTax
+ * Plugin Name: WooTax Test
  * Plugin URI: https://wootax.com
  * Description: Harness the power of TaxCloud to accurately calculate sales tax for your WooCommerce store.
  * Version: 4.6
