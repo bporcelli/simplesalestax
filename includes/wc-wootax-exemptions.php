@@ -411,30 +411,26 @@ function ajax_list_exemption_certificates() {
 function maybe_apply_exemption_certificate() {
 	global $current_user;
 
-	//get_currentuserinfo();
-
 	$exempt_roles = WC_WooTax::get_option( 'exempt_roles' );
 
 	if ( is_object( WC()->session ) && !WC()->session->certificate_id && !WC()->session->cert_removed && in_array( site_url( $_SERVER['REQUEST_URI'] ), array( get_permalink( wc_get_page_id( 'cart' ) ), get_permalink( wc_get_page_id( 'checkout' ) ) ) ) ) {
-		foreach ( $current_user->roles as $role ) {
-			if ( is_array( $exempt_roles ) && in_array( $role, $exempt_roles ) ) {
-				// Get all certs
-				$certs = get_user_exemption_certs( $current_user->user_login );
-		
-				// Find ID of first blanket cert
-				$first_id = -1;
+		if ( count( array_intersect( $exempt_roles, $current_user->roles ) ) > 0 ) {
+			// Get all certs
+			$certs = get_user_exemption_certs( $current_user->user_login );
+	
+			// Find ID of first blanket cert
+			$first_id = -1;
 
-				foreach ( $certs as $cert ) {
-					if ( is_object( $cert ) && $cert->Detail->SinglePurchase !== true ) {
-						$first_id = $cert->CertificateID;
-						break;
-					}
+			foreach ( $certs as $cert ) {
+				if ( is_object( $cert ) && $cert->Detail->SinglePurchase !== true ) {
+					$first_id = $cert->CertificateID;
+					break;
 				}
+			}
 
-				// Apply cert
-				if ( $first_id != -1 ) {
-					set_exemption_certificate( $first_id );
-				}
+			// Apply cert
+			if ( $first_id != -1 ) {
+				set_exemption_certificate( $first_id );
 			}
 		}
 	}
