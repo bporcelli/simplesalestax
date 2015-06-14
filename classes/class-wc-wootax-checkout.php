@@ -396,7 +396,7 @@ class WC_WooTax_Checkout {
 		$this->lookup_data = $this->mapping_array = array();
 
 		// Exit if we do not have any items
-		$order_items = WC()->cart->get_cart();
+		$order_items = $this->cart->get_cart();
 
 		if ( !$order_items ) 
 			return;
@@ -484,7 +484,7 @@ class WC_WooTax_Checkout {
 		if ( $first_location !== false ) {
 
 			// Add shipping item (we assume one per order)
-			$shipping_total = WC()->cart->shipping_total;
+			$shipping_total = $this->cart->shipping_total;
 
 			if ( $this->is_subscription && !WC_Subscriptions_Cart::charge_shipping_up_front() && ( WC_Subscriptions_Cart::get_calculation_type() == 'sign_up_fee_total' || WC_Subscriptions_Cart::get_calculation_type() == 'free_trial_total' ) )
 				$shipping_total = 0;
@@ -512,7 +512,7 @@ class WC_WooTax_Checkout {
 
 			// Add fees
 			$fee_index = 0;
-			foreach ( WC()->cart->get_fees() as $ind => $fee ) {
+			foreach ( $this->cart->get_fees() as $ind => $fee ) {
 				// TODO: Phase this out?
 				if ( isset( $fee->taxable ) && !$fee->taxable )
 					continue;
@@ -920,7 +920,7 @@ class WC_WooTax_Checkout {
 		if ( empty( $this->lookup_sent ) || $this->is_renewal ) {
 			return true;
 		} else {
-			return !( $this->get_order_hash() == $this->lookup_sent );
+			return $this->get_order_hash() != $this->lookup_sent;
 		}
 	}
 

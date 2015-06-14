@@ -46,6 +46,9 @@ class WC_WooTax_Admin {
 		add_action( 'create_product_cat', array( __CLASS__, 'save_cat_tic' ), 10, 1 );
 		add_action( 'edited_product_cat', array( __CLASS__, 'save_cat_tic' ), 10, 1 );
 		add_action( 'woocommerce_product_quick_edit_end', array( __CLASS__, 'add_quick_edit_field' ) );
+
+		// Add debug tool to allow user to delete cached tax rates
+		add_filter( 'woocommerce_debug_tools', array( __CLASS__, 'register_tax_rate_tool' ), 10, 1 );
 	}
 
 	/**
@@ -405,6 +408,53 @@ class WC_WooTax_Admin {
 	 */
 	public static function add_quick_edit_field() {
 		echo "<input type='hidden' name='wootax_tic' value='DO_NOT_CHANGE' />";
+	}
+
+	/**
+	 * Register our debug tool for deleting cached tax rates
+	 * 
+	 *
+	 * @since 4.4
+	 * @param (array) $tools array of debug tools
+	 * @return (array) modified array of debug tools
+	 * @see WC_Tax::find_rates()
+	 */ 
+	public static function register_tax_rate_tool( $tools ) {
+		$tools['wootax_rate_tool'] = array(
+			'name'		=> __( 'Delete cached tax rates',''),
+			'button'	=> __( 'Clear cache','woocommerce-wootax' ),
+			'desc'		=> __( 'This tool will remove any tax rates cached by WooCommerce.', '' ),
+			'callback'  => array( __CLASS__, 'remove_rate_transients' ),
+		);
+
+		return $tools;
+	}
+
+	/**
+	 * Delete transients holding cached tax rates
+	 *
+	 * @since 4.5
+	 */
+	public static function remove_rate_transients() {
+		global $wpdb;
+
+		if ( ! empty( $_REQUEST['_wpnonce'] ) && wp_verify_nonce( $_REQUEST['_wpnonce'], 'debug_action' ) ) {
+			$prefix = "wc_tax_rates";
+
+			$rate_transients = $wpdb->get_results( "SELECT option_name as name FROM $wpdb->options WHERE option_name LIKE '_transient_{$prefix}_%'" );
+
+			if ( !$rate_transients ) {
+				echo "<div class='updated'><p>There are no cached rates to remove.</p></div>";
+				return;
+			}
+
+			foreach ( $rate_transients as $transient ) {
+				$trans_key = substr( $transient->name, strpos( $transient->name, 'wc' ) );
+				delete_transient( $trans_key );
+			}
+
+			echo "<div class='updated'><p>". count( $rate_transients ) ." cached tax rates removed.</p></div>";
+		}
 	}
 }
 
