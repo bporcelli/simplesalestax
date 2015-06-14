@@ -117,7 +117,7 @@ function add_exemption_certificate() {
 	// Build WC_WooTax_Exemption_Certificate object
 	$certificate = new WC_WooTax_Exemption_Certificate();
 
-	$certificate->SinglePurchase     = ( $_POST['SinglePurchase'] == 'false' ) ? false : true;
+	$certificate->SinglePurchase     = $_POST['SinglePurchase'] == 'false' ? false : true;
 	$certificate->PurchaserFirstName = esc_attr( $_POST['PurchaserFirstName'] );
 	$certificate->PurchaserLastName	 = esc_attr( $_POST['PurchaserLastName'] );
 	$certificate->PurchaserTitle     = esc_attr( $_POST['PurchaserTitle'] );
@@ -132,9 +132,9 @@ function add_exemption_certificate() {
 		'StateOfIssue' => esc_attr( $_POST['StateOfIssue'] ),
 	);
 
-	$certificate->ExemptStates[0] = array( 
+	$certificate->ExemptStates = array( array( 
 		'StateAbbr' => esc_attr( $_POST['ExemptState'] ),
-	);
+	) );
 
 	$certificate->PurchaserBusinessType           = esc_attr( $_POST['PurchaserBusinessType'] );
 	$certificate->PurchaserBusinessTypeOtherValue = isset( $_POST['PurchaserBusinessTypeOtherValue'] ) ? esc_attr( $_POST['PurchaserBusinessTypeOtherValue'] ) : NULL;

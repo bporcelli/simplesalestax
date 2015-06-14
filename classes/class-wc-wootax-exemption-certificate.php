@@ -8,34 +8,94 @@
  */
 
 class WC_WooTax_Exemption_Certificate {
-	public $ExemptStates = array();
-	public $CertificateID = NULL;
-	public $SinglePurchase;
-	public $SinglePurchaseOrderNumber = NULL;
-	public $PurchaserFirstName;
-	public $PurchaserLastName;
-	public $PurchaserTitle;
-	public $PurchaserAddress1;
-	public $PurchaserAddress2 = NULL;
-	public $PurchaserCity;
-	public $PurchaserState;
-	public $PurchaserZip;
-	public $PurchaserTaxID;
-	public $PurchaserBusinessType;
-	public $PurchaserBusinessTypeOtherValue;
-	public $PurchaserExemptionReason;
-	public $PurchaserExemptionReasonValue;
-	public $CreatedDate;
+	/** Certificate ID */
+	private $CertificateID = NULL;
 
-	// Set up CreatedDate when object is constructed
+	/** States where the certificate applies */
+	private $ExemptStates = array();
+
+	/** Is this a single use certificate? */
+	private $SinglePurchase = false;
+
+	/** If single use, the order number that the certificate was used for */
+	private $SinglePurchaseOrderNumber = NULL;
+
+	/** First name of certificate holder */
+	private $PurchaserFirstName;
+
+	/** Last name of certificate holder */
+	private $PurchaserLastName;
+
+	/** Title of certificate holder */
+	private $PurchaserTitle;
+
+	/** Street address */
+	private $PurchaserAddress1;
+
+	/** Optional apartment/suite number */
+	private $PurchaserAddress2 = NULL;
+
+	/** City of certificate holder */
+	private $PurchaserCity;
+
+	/** State of certificate holder */
+	private $PurchaserState;
+
+	/** ZIP code (5-digit) of certificate holder */
+	private $PurchaserZip;
+
+	/** Tax ID of certificate holder */
+	private $PurchaserTaxID;
+
+	/** Business type */
+	private $PurchaserBusinessType;
+	private $PurchaserBusinessTypeOtherValue;
+
+	/** Reason for exemption */
+	private $PurchaserExemptionReason;
+	private $PurchaserExemptionReasonValue;
+
+	/** Date certificate was created */
+	private $CreatedDate;
+
+	/**
+	 * Constructor
+	 * Set CreatedDate property
+	 *
+	 * @since 4.2
+	 */
 	public function __construct() {
-		$this->CreatedDate = new DateTime( 'NOW' );
-		$this->CreatedDate = $this->CreatedDate->format( DateTime::ATOM );
+		$this->CreatedDate = date( DateTime::ATOM );
 	}
 
-	// Return formatted certificate ready to be sent to TaxCloud
-	public function get_formatted_certificate() {
+	/**
+	 * Setter
+	 *
+	 * @since 4.6
+	 */
+	public function __set( $key, $value ) {
+		if ( $key == 'PurchaserZip' && strlen( $value ) > 5 ) {
+			$value = substr( $value, 0, 5 );
+		}
 
+		$this->$key = $value;
+	}
+
+	/**
+	 * Getter
+	 * 
+	 * @since 4.6
+	 */
+	public function __get( $key ) {
+		return isset( $this->$key ) ? $this->$key : NULL;
+	}
+
+	/**
+	 * Returns certificate in TaxCloud-friendly format
+	 *
+	 * @since 4.2
+	 */
+	public function get_formatted_certificate() {
 		global $woocommerce, $current_user;
 
 		$customer_id = is_user_logged_in() ? $current_user->user_login : $woocommerce->session->get_customer_id();
@@ -65,6 +125,5 @@ class WC_WooTax_Exemption_Certificate {
 				),
 			),
 		);
-
 	}
 }
