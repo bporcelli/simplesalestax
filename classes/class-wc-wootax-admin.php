@@ -45,10 +45,15 @@ class WC_WooTax_Admin {
 		add_action( 'product_cat_edit_form_fields', array( __CLASS__, 'custom_edit_cat_field' ), 10, 1 );
 		add_action( 'create_product_cat', array( __CLASS__, 'save_cat_tic' ), 10, 1 );
 		add_action( 'edited_product_cat', array( __CLASS__, 'save_cat_tic' ), 10, 1 );
-		add_action( 'woocommerce_product_quick_edit_end', array( __CLASS__, 'add_quick_edit_field' ) );
 
 		// Add debug tool to allow user to delete cached tax rates
 		add_filter( 'woocommerce_debug_tools', array( __CLASS__, 'register_tax_rate_tool' ), 10, 1 );
+
+		// Add "TIC" option to product General Settings tab
+		add_action( 'woocommerce_product_options_tax', array( __CLASS__, 'output_tic_setting' ) );
+
+		// Add "TIC" option to variation settings tab
+		add_action( 'woocommerce_product_after_variable_attributes', array( __CLASS__, 'output_tic_setting' ), 10, 3 );
 	}
 
 	/**
@@ -76,9 +81,6 @@ class WC_WooTax_Admin {
 			'rateCode' => apply_filters( 'wootax_rate_code', 'WOOTAX-RATE-DO-NOT-REMOVE' ),
 		) );
 
-		// JavaScript for TIC selector
-		wp_enqueue_script( 'jquery-tic', WT_PLUGIN_DIR_URL .'js/jquery-tic.js', array( 'jquery', 'wootax-admin' ) );
-
 		// WooTax admin CSS
 		wp_enqueue_style( 'wootax-admin-style', WT_PLUGIN_DIR_URL .'css/admin.css' );
 	}
@@ -89,30 +91,23 @@ class WC_WooTax_Admin {
 	 * @since 4.2
 	 */
 	public static function output_bulk_edit_fields() {
-		?>
-        <label class="alignleft">
-			<span class="title">TIC</span>
-			<span class="input-text-wrap">
-            	<input name="wootax_set_tic" id="wootax_set_tic" value="" />
-            	<input type="hidden" name="wootax_tic_desc" value="" />
-           	</span>
-		</label>
-		<script type="text/javascript">
-			window.initializeSelect();
-		</script>
-        <?php
+		global $tic_list;
+
+		$tic_list = self::get_tic_list();
+
+		require WT_PLUGIN_PATH .'/templates/admin/tic-select-bulk.php';
 	}
 	
 	/**
 	 * Saves TIC when bulk editor is used
 	 *
-	 * @since 4.2
 	 * @param (WC_Product) $product a WC_Product object
+	 * @since 4.2
 	 */
 	public static function save_bulk_edit_fields( $product ) {
-		if ( $product->id && isset( $_REQUEST['wootax_set_tic'] ) && !in_array( $_REQUEST['wootax_set_tic'], array( '', '[ - Select - ]') ) ) {
-			update_post_meta( $product->id, 'wootax_tic', $_REQUEST['wootax_set_tic'] );
-			update_post_meta( $product->id, 'wootax_tic_desc', trim( $_REQUEST['wootax_tic_desc'] ) );
+		if ( $product->id && isset( $_REQUEST['wootax_set_tic'] ) && !empty( $_REQUEST['wootax_set_tic'] ) ) {
+			$new_tic = $_REQUEST['wootax_set_tic'] == 'default' ? '' : $_REQUEST['wootax_set_tic'];
+			update_post_meta( $product->id, 'wootax_tic', $new_tic );
 		}
 	}
 	
@@ -123,9 +118,6 @@ class WC_WooTax_Admin {
 	 * @since 4.2
 	 */
 	public static function register_admin_metaboxes() {
-		// TIC assignment box
-		add_meta_box( 'tic_meta', 'Taxibility Information Code (TIC)', array( __CLASS__, 'output_tic_metabox' ), 'product' );
-		
 		// Shipping Origin Addresses select box: Only show this when number of registered business addresses > 1
 		$addresses = fetch_business_addresses();
 		if ( is_array( $addresses ) && count( $addresses ) > 1 ) {
@@ -134,77 +126,6 @@ class WC_WooTax_Admin {
 
 		// Order metaboxes
 		add_meta_box( 'sales_tax_meta', 'WooTax', array( __CLASS__, 'output_tax_metabox' ), 'shop_order', 'side', 'high' );
-	}
-	
-	/**
-	 * Builds HTML for TIC metabox
-	 *
-	 * @since 4.2
-	 * @param (WP_Post) $post a WP_Post object
-	 */
-	public static function output_tic_metabox( $post ) {
-		$description = get_post_meta( $post->ID, 'wootax_tic_desc', true );
-		$tic         = get_post_meta( $post->ID, 'wootax_tic', true );
-		
-		?>
-        <p>Here you can select the Taxability Information Code (TIC) for this product. Try to select the category which corresponds best to the product or service you are selling. If none of the given categories apply, select "General Goods and Services." For a 
-        more detailed description of the TICs and the items they apply to, look <a href="https://taxcloud.net/tic/default.aspx" target="_blank">here</a>.<p />
-        <p><strong>Current TIC:</strong> <span><?php echo ( $tic == '' ? 'Using Site Default' : $tic ) . ( ($description != false && !empty( $description ) ) ? ' ('. $description .')' : '' ) . ( $tic != '' && $tic != false ? ' <a href="#" id="wootax-remove-tic">(Reset TIC)</a>' : '' ); ?></span></p>
-        
-        <input type="text" name="wootax_set_tic" id="wootax_set_tic" value="" />
-        <input type="hidden" name="wootax_tic_desc" value="<?php echo $description; ?>" />
-        <input type="hidden" name="wootax_tic" value="<?php echo $tic; ?>" />
-        <?php
-	}
-	
-	
-	/**
-	 * Save TIC and Shipping Origin Addresses when product is saved
-	 * As of 4.5, TIC will be set to first category default if not set
-	 *
-	 * @since 4.2
-	 * @param (int) $post_id the ID of the post/product being saved
-	 */
-	public static function save_product_meta( $product_id ) {
-		if ( get_post_type( $product_id ) != 'product' )  {
-			return;
-		}
-
-		if ( isset( $_POST['wootax_set_tic'] ) && $_POST['wootax_set_tic'] != '[ - Select - ]' ) {
-			// Set TIC according to user selection
-			update_post_meta( $product_id, 'wootax_tic', $_POST['wootax_set_tic'] );
-			
-			if ( isset( $_POST['wootax_tic_desc'] ) ) {
-				update_post_meta( $product_id, 'wootax_tic_desc', trim( $_POST['wootax_tic_desc'] ) );
-			}
-		} else if ( isset( $_POST['wootax_tic'] ) && !empty( $_POST['wootax_tic'] ) ) {
-			// TIC has already been set; do nothing
-		} else {
-			// Attempt to set TIC according to first category default
-			$cats = isset( $_POST['tax_input']['product_cat'] ) ? $_POST['tax_input']['product_cat'] : array();
-
-			if ( count( $cats ) > 0 ) {
-				$default = array(
-					'tic'  => '',
-					'desc' => '',
-				);
-
-				foreach ( $cats as $term_id ) {
-					$temp_def = get_option( 'tic_'. $term_id );
-					if ( $temp_def ) {
-						$default = $temp_def;
-						break;
-					}
-				}
-
-				update_post_meta( $product_id, 'wootax_tic', $default['tic'] );
-				update_post_meta( $product_id, 'wootax_tic_desc', trim( $default['desc'] ) );
-			}
-		}
-
-		if ( isset( $_POST['_wootax_origin_addresses'] ) ) {
-			update_post_meta( $product_id, '_wootax_origin_addresses', $_POST['_wootax_origin_addresses'] );
-		}
 	}
 	
 	/**
@@ -309,22 +230,157 @@ class WC_WooTax_Admin {
 	}
 
 	/**
+     * Process TIC list and convert into format usable with Select2
+     *
+     * @param (array) $tic_list array of TICs to output
+     * @since 4.6
+     */
+	public static function process_tic_list( $tic_list, $data = array() ) {
+		foreach ( $tic_list as $tic ) {
+			$number = $tic->tic->id;
+			$ssuta  = $tic->tic->ssuta == 'true';
+			$label  = $tic->tic->label . ( $ssuta ? ' (' . $number . ')' : '' );
+
+			$new_data = array(
+				'id'   => $number,
+				'name' => $label,
+			);
+
+			if ( isset( $tic->tic->children ) && is_array( $tic->tic->children ) && count( $tic->tic->children ) > 0 ) {
+				$new_data['children'] = self::process_tic_list( $tic->tic->children, array() );
+			}
+
+			if ( !$ssuta ) {
+				$new_data['id'] = 'disallowed';  // Do not allow non-SSUTA TICs to be selected
+			}
+
+			$data[] = $new_data;
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Get list of TaxCloud TICs
+	 *
+	 * @since 4.6
+	 */
+	private static function get_tic_list() {
+		if ( false !== get_transient( 'wootax_tic_list' ) ) {
+			$tic_list = get_transient( 'wootax_tic_list' );
+		} else {
+			$ch = curl_init( 'https://taxcloud.net/tic/?format=json' );
+			curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1 );
+			$res = json_decode( curl_exec( $ch ) );
+			curl_close( $ch );
+
+			$tic_list = self::process_tic_list( $res->tic_list );
+
+			// Cache TIC list for two weeks
+			set_transient( 'wootax_tic_list', $tic_list, 2 * WEEK_IN_SECONDS );
+		}
+
+		return $tic_list;
+	}
+
+	/**
+	 * Output TIC select box for a product or variation
+	 *
+	 * @param (int) $loop - loop counter; used by WooCommerce when displaying variation attributes
+	 * @param (array) $variation_data - data for variation if a variation is being displayed
+	 * @param (array) $variation - variation if a variation is being displayed
+	 * @since 4.6
+	 */
+	public static function output_tic_setting( $loop = null, $variation_data = null, $variation = null ) {
+		global $post, $tic_list, $current_tic, $product_id, $is_variation;
+
+		$is_variation = !empty( $variation );
+
+		if ( $is_variation ) {
+			$product_id = $variation->ID;
+		} else {
+			$product_id = $post->ID;
+		}
+
+		$tic_list = self::get_tic_list();
+		$current_tic = get_post_meta( $product_id, 'wootax_tic', true );
+
+		require WT_PLUGIN_PATH .'/templates/admin/tic-select.php';
+	}
+
+	/**
+	 * Save TIC and Shipping Origin Addresses when product is saved
+	 * As of 4.5, TIC will be set to first category default if not set
+	 *
+	 * @param (int) $post_id the ID of the post/product being saved
+	 * @since 4.2
+	 */
+	public static function save_product_meta( $product_id ) {
+		if ( get_post_type( $product_id ) != 'product' )
+			return;
+
+		if ( isset( $_REQUEST['_inline_edit'] ) || isset( $_REQUEST['bulk_edit'] ) && $_REQUEST['wootax_set_tic'] == '' )
+			return;
+
+		// Save product TIC
+		$parent_tic = isset( $_REQUEST['bulk_edit'] ) ? $_REQUEST['wootax_set_tic'] : $_REQUEST["wootax_set_tic_{$product_id}"];
+
+		if ( !empty( $parent_tic ) ) {
+			// Set TIC according to user selection
+			update_post_meta( $product_id, 'wootax_tic', $parent_tic == 'default' ? '' : $parent_tic );
+		} else {
+			// Attempt to set TIC to the default for the product category
+			$cats = isset( $_REQUEST['tax_input']['product_cat'] ) ? $_REQUEST['tax_input']['product_cat'] : array();
+
+			$default = false;
+			if ( count( $cats ) > 0 ) {
+				foreach ( $cats as $term_id ) {
+					$temp_def = get_option( 'tic_'. $term_id );
+					if ( $temp_def ) {
+						$default = $temp_def;
+						break;
+					}
+				}
+			}
+
+			if ( false !== $default ) {
+				update_post_meta( $product_id, 'wootax_tic', $default );
+			} else {
+				update_post_meta( $product_id, 'wootax_tic', '' );
+			}
+		}
+
+		if ( isset( $_REQUEST["wootax_set_tic_{$product_id}"] ) )
+			unset( $_REQUEST["wootax_set_tic_{$product_id}"] );
+
+		// Save variation TICs
+		foreach ( $_REQUEST as $key => $value ) {
+			if ( strpos( $key, 'wootax_set_tic' ) !== false ) {
+				$product = str_replace( 'wootax_set_tic_', '', $key );
+
+				// Set TIC according to user selection
+				update_post_meta( $product, 'wootax_tic', $value );
+			}
+		}
+
+		// Save origin addresses
+		if ( isset( $_REQUEST['_wootax_origin_addresses'] ) ) {
+			update_post_meta( $product_id, '_wootax_origin_addresses', $_POST['_wootax_origin_addresses'] );
+		}
+	}
+
+	/**
 	 * Add field for TIC to Product Category "Add New" screen
 	 *
 	 * @since 4.5
 	 */
 	public static function custom_add_cat_field() {
-		?>
-		<div class="form-field">
-			<label>TIC (Taxability Information Code)</label>
-			<input type="text" name="wootax_set_tic" id="wootax_set_tic" value="" />
-	        <input type="hidden" name="wootax_tic_desc" value="" />
-	        <p class="description">This TIC will be assigned to all products added to this category.</p>
-		</div>
-		<script type="text/javascript">
-			window.initializeSelect();
-		</script>
-		<?php
+		global $tic_list, $is_edit;
+
+		$is_edit = false;
+		$tic_list = self::get_tic_list();
+		
+		require WT_PLUGIN_PATH .'/templates/admin/tic-select-cat.php';
 	}
 
 	/**
@@ -334,26 +390,15 @@ class WC_WooTax_Admin {
 	 * @since 4.5
 	 */
 	public static function custom_edit_cat_field( $term ) {
-		$tic_data = get_option( 'tic_'. $term->term_id );
-		$tic_desc = is_array( $tic_data ) ? $tic_data['desc'] : '';
-		$tic      = is_array( $tic_data ) ? $tic_data['tic'] : '';
+		global $current_tic, $tic_list, $is_edit;
 
-		?>
-		<tr class="form-field">
-			<th>TIC (Taxability Information Code)</th>
-			<td>
-				<p><strong>Current TIC: </strong><?php echo !empty( $tic ) ? $tic . " ($tic_desc)" : "Using site default"; ?></p>
-				<div class="form-field">
-					<input type="text" name="wootax_set_tic" id="wootax_set_tic" value="<?php echo $tic; ?>" />
-			        <input type="hidden" name="wootax_tic_desc" value="<?php echo $tic_desc; ?>" />
-			        <p class="description">This TIC will be assigned to all products in this category.</p>
-				</div>
-				<script type="text/javascript">
-					window.initializeSelect();
-				</script>
-			</td>
-		</tr>
-		<?php
+		$current_tic = get_option( 'tic_'. $term->term_id );
+		$current_tic = is_array( $current_tic ) ? $current_tic['tic'] : $current_tic;
+
+		$tic_list = self::get_tic_list();
+		$is_edit = true;
+
+		require WT_PLUGIN_PATH .'/templates/admin/tic-select-cat.php';
 	}
 
 	/**
@@ -363,16 +408,13 @@ class WC_WooTax_Admin {
 	 * @since 4.5
 	 */
 	public static function save_cat_tic( $term_id ) {
-		if ( isset( $_POST['wootax_set_tic'] ) && !in_array( $_POST['wootax_set_tic'], array( '', '[ - Select - ]' ) ) ) {
-			$new_tic = array(
-				'tic'  => sanitize_text_field( $_POST['wootax_set_tic'] ),
-				'desc' => sanitize_text_field( $_POST['wootax_tic_desc'] ), 
-			);
+		if ( isset( $_POST['wootax_set_tic'] ) ) {
+			$new_tic = sanitize_text_field( $_POST['wootax_set_tic'] );
 
 			// Compare new TIC to old TIC; only update products if they are not equal
 			$old_tic = get_option( 'tic_'. $term_id );
 
-			if ( !is_array( $old_tic ) || $old_tic['tic'] != $new_tic['tic'] ) {
+			if ( !$old_tic || $old_tic != $new_tic ) {
 				$products = new WP_Query( array( 
 					'post_type' => 'product', 
 					'posts_per_page' => -1,
@@ -389,8 +431,7 @@ class WC_WooTax_Admin {
 					while ( $products->have_posts() ) { 
 						$products->the_post();
 
-						update_post_meta( $products->post->ID, 'wootax_tic', $new_tic['tic'] );
-						update_post_meta( $products->post->ID, 'wootax_tic_desc', $new_tic['desc'] );
+						update_post_meta( $products->post->ID, 'wootax_tic', $new_tic );
 					}
 				}
 			}
@@ -398,16 +439,6 @@ class WC_WooTax_Admin {
 			// Store new TIC
 			update_option( 'tic_' . $term_id, $new_tic );
 		}
-	}
-
-	/**
-	 * Add hidden wootax_tic field to Quick Edit screen. This is necessary to prevent overriding of TIC when product
-	 * is in category with default TIC
-	 *
-	 * @since 4.5
-	 */
-	public static function add_quick_edit_field() {
-		echo "<input type='hidden' name='wootax_tic' value='DO_NOT_CHANGE' />";
 	}
 
 	/**
