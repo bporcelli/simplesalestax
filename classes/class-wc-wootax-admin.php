@@ -54,6 +54,9 @@ class WC_WooTax_Admin {
 
 		// Add "TIC" option to variation settings tab
 		add_action( 'woocommerce_product_after_variable_attributes', array( __CLASS__, 'output_tic_setting' ), 10, 3 );
+
+		// Maybe hide "Tax Class" and "Tax Status" options
+		add_filter( 'admin_body_class', array( __CLASS__, 'set_body_class' ), 10, 1 );
 	}
 
 	/**
@@ -486,6 +489,20 @@ class WC_WooTax_Admin {
 
 			echo "<div class='updated'><p>". count( $rate_transients ) ." cached tax rates removed.</p></div>";
 		}
+	}
+
+	/**
+	 * Add "hide-tax-options" body class if "Tax Class" and "Tax Status" option should be hidden
+	 *
+	 * @param (array) $classes - classes to add to body element
+	 * @since 4.6
+	 */
+	public static function set_body_class( $classes ) {
+		if ( apply_filters( 'wootax_hide_tax_options', true ) === true ) {
+			$classes .= ' hide-tax-options';
+		}
+
+		return $classes;
 	}
 }
 

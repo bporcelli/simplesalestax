@@ -398,7 +398,7 @@ class WC_WooTax_Checkout {
 		// Exit if we do not have any items
 		$order_items = $this->cart->get_cart();
 
-		if ( !$order_items ) 
+		if ( !$order_items )
 			return;
 
 		$customer_state = $this->destination_address['State'];
@@ -411,11 +411,11 @@ class WC_WooTax_Checkout {
 			$final_item = array();
 
 			// Get some information about the product being sold
-			$product_id = $item['data']->id;
-			
+			$product_id   = $item['product_id'];
+			$variation_id = $item['variation_id'];
+
 			// TIC
-			$tic_raw = get_post_meta( $product_id, 'wootax_tic', true );
-			$tic     = $tic_raw == false ? false : trim( $tic_raw );
+			$tic = wt_get_product_tic( $product_id, $variation_id );
 
 			// Quantity and price
 			$unit_price = $item['line_total'] / $item['quantity'];

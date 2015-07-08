@@ -440,9 +440,8 @@ class WC_WooTax_Order {
 					'deliveredBySeller' => $delivered_by_seller,
 				);	
 
-				if ( !empty( $exempt_cert ) ) {
+				if ( !empty( $exempt_cert ) )
 					$req['exemptCert'] = $exempt_cert;
-				}
 
 				// Send Lookup request 
 				$res = TaxCloud()->send_request( 'Lookup', $req );
@@ -456,9 +455,8 @@ class WC_WooTax_Order {
 
 					// If cart_items only contains one item, it will not be an array. 
 					// In that case, convert to an array 
-					if ( !is_array( $cart_items ) ) {
+					if ( !is_array( $cart_items ) )
 						$cart_items = array( $cart_items );
-					}
 
 					// Loop through items and update tax amounts
 					foreach ( $cart_items as &$cart_item ) {

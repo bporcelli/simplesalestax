@@ -349,3 +349,25 @@ function wt_has_other_rates() {
 
 	return $rate_count > 0;
 }
+
+/**
+ * Return a product's TIC, or false if it has not been set
+ *
+ * @param (int) $product_id - ID of product
+ * @param (int) $variation_id - ID of variation, if applicable
+ */
+function wt_get_product_tic( $product_id, $variation_id = null ) {
+	$product_tic = get_post_meta( $product_id, 'wootax_tic', true );
+
+	$variation_tic = false;
+
+	if ( $variation_id )
+		$variation_tic = get_post_meta( $variation_id, 'wootax_tic', true );
+
+	$tic = $variation_tic ? $variation_tic : $product_tic;
+
+	if ( empty( $tic ) )
+		return false;
+
+	return $tic;
+}

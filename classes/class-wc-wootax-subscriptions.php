@@ -63,7 +63,6 @@ class WC_WooTax_Subscriptions {
 	 * @param (int) $order_id the ID of the renewal order
 	 */
 	public function handle_renewal_order( $order_id ) {
-		// Create a new WC_WooTax_Order object
 		$order = WT_Orders::get_order( $order_id );
 
 		// Set destination address based on original order
@@ -77,79 +76,68 @@ class WC_WooTax_Subscriptions {
 			WT_Orders::update_meta( $order_id, $key, $val );
 		}
 
+		$tax_based_on = WC_WooTax::get_option( 'tax_based_on' );
+
 		// Build order items array
-		$final_items = array();
-		$type_array  = array();
+		$order_items = $order->order->get_items() + $order->order->get_fees();
 
-		if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ) {
-			$order_items = $order->order->get_items() + $order->order->get_fees() + $order->order->get_shipping_methods();
+		if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '<' ) ) {
+			$shipping_method = array( 
+				'type' => 'shipping',
+				'cost' => $order->order->get_total_shipping(),
+			);
+
+			$order_items = $order_items + array( WT_SHIPPING_ITEM => $shipping_method );
 		} else {
-			$order_items = $order->order->get_items() + $order->order->get_fees();
+			$order_items = $order_items + $order->order->get_shipping_methods();
 		}
+		
+		// Prepare items for lookup
+		$final_items = $type_array = array();
 
-		// Construct items array from POST data
 		foreach ( $order_items as $item_id => $item ) {
-			$product_id = isset( $item['product_id'] ) ? $item['product_id'] : -1;
-
-			$qty  = isset( $item['qty'] ) ? $item['qty'] : 1;
 			$type = $item['type'];
+			$qty  = isset( $item['qty'] ) ? $item['qty'] : 1;
 			$cost = isset( $item['cost'] ) ? $item['cost'] : $item['line_total']; // 'cost' key used by shipping methods in 2.2
 
 			switch ( $type ) {
 				case 'shipping':
-					$tic  = WT_SHIPPING_TIC;
-					$type = 'shipping';
+					$tic = WT_SHIPPING_TIC;
 					break;
 				case 'fee':
-					$tic  = WT_FEE_TIC;
-					$type = 'fee';
+					$tic = WT_FEE_TIC;
 					break;
 				case 'line_item':
-					$tic  = get_post_meta( $product_id, 'wootax_tic', true );
+					$tic  = wt_get_product_tic( $item['product_id'], $item['variation_id'] );
 					$type = 'cart';
 					break;
 			}
 
-			// Calculate unit price
-			$unit_price = $cost / $qty;
+			// Only add an item if its cost is nonzero
+			if ( $cost != 0 ) {
+				$unit_price = $cost / $qty;
 
-			// Add item to final items array
-			if ( $unit_price != 0 ) {
-				// Map item_id to item type 
-				$type_array[ $item_id ] = $type == 'shipping' ? 'shipping' : 'cart';
-				
-				// Add to items array 
+				if ( $tax_based_on == 'item-price' || !$tax_based_on ) {
+					$price = $unit_price; 
+				} else {
+					$qty   = 1;
+					$price = $cost; 
+				}
+
 				$item_data = array(
-					'Index'  => '', // Leave Index blank because it is reassigned when WooTaxOrder::generate_lookup_data() is called
-					'ItemID' => $item_id, 
-					'Qty'    => $qty, 
-					'Price'  => $unit_price,	
+					'Index'  => '',
+					'ItemID' => $item_id,
+					'Qty'    => $qty,
+					'Price'  => $price,
 					'Type'   => $type,
 				);	
 
-				if ( !empty( $tic ) && $tic ) {
+				if ( $tic )
 					$item_data['TIC'] = $tic;
-				}
 
 				$final_items[] = $item_data;
-			}
-		}
 
-		// If we are not using WC 2.2, we need to add a shipping item manually
-		if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '<' ) ) {
-			if ( $order->order->get_total_shipping() > 0 ) {
-				$item_data = array(
-					'Index'  => '', // Leave Index blank because it is reassigned when WooTaxOrder::generate_lookup_data() is called
-					'ItemID' => WT_SHIPPING_ITEM, 
-					'Qty'    => 1, 
-					'Price'  => $order->order->get_total_shipping(),	
-					'Type'   => 'shipping',
-					'TIC'    => WT_SHIPPING_TIC
-				);	
-
-				$type_array[ WT_SHIPPING_ITEM ] = 'shipping';
-
-				$final_items[] = $item_data;
+				$type_array[ $item_id ] = $type;
 			}
 		}
 
@@ -157,7 +145,7 @@ class WC_WooTax_Subscriptions {
 		$result = $order->do_lookup( $final_items, $type_array );
 
 		// Add errors as notes if necessary
-		if ( $result != true ) {
+		if ( !is_array( $result ) ) {
 			$original_order->add_order_note( sprintf( __( 'Tax lookup for renewal order %s failed. Reason: '. $result, 'woocommerce-subscriptions' ), $order_id ) );
 		} else {
 			// Mark order as captured

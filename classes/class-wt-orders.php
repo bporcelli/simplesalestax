@@ -480,8 +480,6 @@ class WT_Orders {
 
 			// Construct items array from POST data
 			foreach ( $order_items as $item_id ) {
-				$product_id = $order->get_item_meta( $item_id, '_product_id' );
-
 				$qty = 1;
 
 				if ( is_array( $items['shipping_method_id'] ) && in_array( $item_id, $items['shipping_method_id'] ) ) {
@@ -491,7 +489,10 @@ class WT_Orders {
 					$type = 'shipping';
 				} else if ( isset( $items['order_item_qty'][$item_id] ) ) {
 					// Cart item
-					$tic  = get_post_meta( $product_id, 'wootax_tic', true );
+					$product_id   = $order->get_item_meta( $item_id, '_product_id' );
+					$variation_id = $order->get_item_meta( $item_id, '_variation_id' );
+
+					$tic  = wt_get_product_tic( $product_id, $variation_id );
 					$cost = $items['line_total'][ $item_id ];
 					$type = 'cart';
 					$qty  = WC_WooTax::get_option('tax_based_on') == 'line-subtotal' ? 1 : $items['order_item_qty'][ $item_id ];
@@ -652,17 +653,14 @@ class WT_Orders {
 	public static function ajax_update_recurring_tax() {
 		global $wpdb;
 
-		$woo_22_plus = version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' );
-
 		check_ajax_referer( 'woocommerce-subscriptions', 'security' );
 
 		$order_id  = absint( $_POST['order_id'] );
 		$country   = strtoupper( esc_attr( $_POST['country'] ) );
 
 		// Step out of the way if the customer is not located in the US
-		if ( $country != 'US' ) {
+		if ( $country != 'US' )
 			return;
-		}
 
 		$shipping      = $_POST['shipping'];
 		$line_subtotal = isset( $_POST['line_subtotal'] ) ? esc_attr( $_POST['line_subtotal'] ) : 0;
@@ -670,39 +668,37 @@ class WT_Orders {
 
 		// Set up WC_WooTax_Order object
 		$order = self::get_order( $order_id );
-
-		// We only need to instantiate a WC_Tax object if we are using WooCommerce < 2.3
-		if ( !$woo_22_plus ) {
-			$tax = new WC_Tax();
-		}
-
-		$taxes      = $shipping_taxes = array();
+		
+		$taxes = $shipping_taxes = array();
+	    
 	    $return     = array();
 	 	$item_data  = array();
 	 	$type_array = array();
 
-		$product_id = '';
-
+	 	// Get product ID, and, if possible, variatian ID
 		if ( isset( $_POST['order_item_id'] ) ) {
-			$product_id = woocommerce_get_order_item_meta( $_POST['order_item_id'], '_product_id' );
+			$product_id   = woocommerce_get_order_item_meta( $_POST['order_item_id'], '_product_id' );
+			$variation_id = woocommerce_get_order_item_meta( $_POST['order_item_id'], '_variation_id' );
 		} elseif ( isset( $_POST['product_id'] ) ) {
-			$product_id = esc_attr( $_POST['product_id'] );
+			$product_id   = esc_attr( $_POST['product_id'] );
+			$variation_id = '';
 		}
 
-		if ( ! empty( $product_id ) && WC_Subscriptions_Product::is_subscription( $product_id ) ) {
-			// Get product details
-			$product = WC_Subscriptions::get_product( $product_id );
-			
+		$final_id = $variation_id ? $variation_id : $product_id;
+
+		if ( !empty( $product_id ) && WC_Subscriptions_Product::is_subscription( $final_id ) ) {
 			// Add product to items array
-			$tic = get_post_meta( $product->id, 'wootax_tic', true );
+			$product = WC_Subscriptions::get_product( $final_id );
 
 			$item_info = array(
 				'Index'  => '',
-				'ItemID' => isset( $_POST['order_item_id'] ) ? $_POST['order_item_id'] : $product_id, 
+				'ItemID' => isset( $_POST['order_item_id'] ) ? $_POST['order_item_id'] : $final_id, 
 				'Qty'    => 1, 
 				'Price'  => $line_subtotal > 0 ? $line_subtotal : $product->get_price(),	
 				'Type'   => 'cart',
 			);
+
+			$tic = wt_get_product_tic( $product_id, $variation_id );
 
 			if ( !empty( $tic ) && $tic )
 				$item_info['TIC'] = $tic;
@@ -723,6 +719,23 @@ class WT_Orders {
 				);
 
 				$type_array[ WT_SHIPPING_ITEM ] = 'shipping';
+			}
+
+			// Add fees to items array
+			foreach ( $order->order->get_fees() as $item_id => $fee ) {
+				if ( $fee['recurring_line_total'] == 0 )
+					continue;
+
+				$item_data[] = array(
+					'Index'  => '',
+					'ItemID' => $item_id, 
+					'TIC'    => WT_FEE_TIC,
+					'Qty'    => 1, 
+					'Price'  => $fee['recurring_line_total'],	
+					'Type'   => 'fee',
+				);
+
+				$type_array[ $item_id ] = 'fee';
 			}
 
 			// Issue Lookup request
@@ -761,17 +774,26 @@ class WT_Orders {
 				ob_start();
 
 				foreach ( array_keys( $taxes + $shipping_taxes ) as $key ) {
-					$item                        = array();
-					$item['rate_id']             = $key;
-					$item['name']                = $tax_codes[ $key ];
-					$item['label']               = $woo_22_plus ? WC_Tax::get_rate_label( $key ) : $tax->get_rate_label( $key );
-					$item['compound']            = $woo_22_plus ? WC_Tax::is_compound( $key ) : $tax->is_compound( $key ) ? 1 : 0;
+					$item            = array();
+					$item['rate_id'] = $key;
+					$item['name']    = $tax_codes[ $key ];
+
+					if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ) {
+						$item['label']    = WC_Tax::get_rate_label( $key );
+						$item['compound'] = WC_Tax::is_compound( $key );
+					} else {
+						// get_rate_label() and is_compound() were instance methods in WooCommerce < 2.3
+						$tax = new WC_Tax();
+
+						$item['label']    = $tax->get_rate_label( $key );
+						$item['compound'] = $tax->is_compound( $key ) ? 1 : 0;
+					}
+
 					$item['tax_amount']          = wc_round_tax_total( isset( $taxes[ $key ] ) ? $taxes[ $key ] : 0 );
 					$item['shipping_tax_amount'] = wc_round_tax_total( isset( $shipping_taxes[ $key ] ) ? $shipping_taxes[ $key ] : 0 );
 
-					if ( !$item['label'] ) {
+					if ( !$item['label'] )
 						$item['label'] = WC()->countries->tax_or_vat();
-					}
 
 					// Add line item
 					$item_id = woocommerce_add_order_item( $order_id, array(
