@@ -115,6 +115,8 @@ class WC_WooTax_Upgrade {
 	 * @since 4.4
 	 */
 	private static function maybe_update_settings() {
+		global $wpdb;
+
 		// Delete deprecated "wootax_shipping_taxable" option if it still exists
 		if ( get_option( 'wootax_shipping_taxable' ) ) {
 			delete_option( 'wootax_shipping_taxable' );
@@ -144,6 +146,18 @@ class WC_WooTax_Upgrade {
 		// wootax_license_key option was deprecated in 4.5; remove it
 		if ( get_option( 'wootax_license_key' ) ) {
 			delete_option( 'wootax_license_key' );
+		}
+
+		// Format for default category TICs changed in 4.6; update accordingly
+		$opts = $wpdb->get_results( "SELECT * FROM {$wpdb->options} WHERE option_name LIKE 'tic_%'" );
+
+		if ( $opts ) {
+			foreach ( $opts as $result ) {
+				$val = maybe_unserialize( $result->option_value );
+
+				if ( is_array( $val ) && isset( $val['tic'] ) )
+					update_option( $result->option_name, $val['tic'] );
+			}
 		}
 	}
 
