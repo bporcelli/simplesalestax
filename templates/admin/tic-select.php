@@ -42,7 +42,7 @@ if ( $is_variation ) {
 				data: { 
 					results: data, 
 					text: "name" 
-				}, 
+				},
 			    formatSelection: function(item) { 
 			        return item.name 
 			    }, 

@@ -22,9 +22,8 @@ function wootax_update_recurring_tax() {
 	global $wpdb;
 
 	// Exit if subs is not active
-	if ( !WT_SUBS_ACTIVE ) {
+	if ( !WT_SUBS_ACTIVE )
 		return;
-	}
 
 	// Find date/time 12 hours from now
 	$twelve_hours = mktime( date('H') + 12 );
@@ -63,9 +62,8 @@ function wootax_update_recurring_tax() {
 			$order_id   = (int) $key_parts[0];
 			$product_id = (int) $key_parts[1];
 
-			if ( get_post_status( $order_id ) == false ) {
+			if ( get_post_status( $order_id ) == false )
 				continue; // Skip if the order no longer exists
-			}
 
 			// Determine if changes to subscription amounts are allowed by the current gateway
 			$chosen_gateway    = WC_Subscriptions_Payment_Gateways::get_payment_gateway( get_post_meta( $order_id, '_recurring_payment_method', true ) );
@@ -91,9 +89,8 @@ function wootax_update_recurring_tax() {
 			$price = $recurring_subtotal === '0' || !empty( $recurring_subtotal ) ? $recurring_subtotal : $regular_subtotal;
 
 			// Special case: If _subscription_sign_up_fee is set and $price is equal to its value, fall back to product price
-			if ( $order->get_item_meta( $item_id, '_subscription_sign_up_fee') == $price ) {
+			if ( $order->get_item_meta( $item_id, '_subscription_sign_up_fee') == $price )
 				$price = $product->get_price();
-			}
 
 			$item_info = array(
 				'Index'  => '',
@@ -103,11 +100,11 @@ function wootax_update_recurring_tax() {
 				'Type'   => 'cart',
 			);	
 
-			$tic = get_post_meta( $product_id, 'wootax_tic', true );
+			$variation_id = $order->get_item_meta( $item_id, '_variation_id', true );
+			$tic = wt_get_product_tic( $product_id, $variation_id );
 
-			if ( !empty( $tic ) && $tic ) {
+			if ( $tic )
 				$item_info['TIC'] = $tic;
-			}
 
 			$item_data[] = $item_info;
 			$type_array[ $item_id ] = 'cart';

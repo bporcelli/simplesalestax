@@ -168,6 +168,14 @@ a.remove_address.disabled {
     display: none !important;
 }
 
+.hide-tax-options.wc-2-1 .woocommerce_variable_attributes tbody table.data_table tbody tr:nth-of-type(7) td:nth-of-type(2) {
+    visibility: hidden !important;
+}
+
+.hide-tax-options.wc-2-2 .woocommerce_variable_attributes tbody table.data_table tbody tr:nth-of-type(8) td:nth-of-type(2) {
+    visibility: hidden !important;
+}
+
 /**
  * Tax rate table
  */

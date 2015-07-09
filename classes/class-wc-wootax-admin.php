@@ -86,6 +86,12 @@ class WC_WooTax_Admin {
 
 		// WooTax admin CSS
 		wp_enqueue_style( 'wootax-admin-style', WT_PLUGIN_DIR_URL .'css/admin.css' );
+
+		// Select2 (for WooCommerce versions < 2.3)
+		if ( version_compare( WOOCOMMERCE_VERSION, '2.3', '<' ) ) {
+			wp_enqueue_style( 'select2-css', '//cdnjs.cloudflare.com/ajax/libs/select2/3.5.2/select2.min.css' );
+			wp_enqueue_script( 'select2-js', '//cdnjs.cloudflare.com/ajax/libs/select2/3.5.2/select2.min.js', array( 'jquery' ) );
+		}
 	}
 	
 	/**
@@ -500,6 +506,9 @@ class WC_WooTax_Admin {
 	public static function set_body_class( $classes ) {
 		if ( apply_filters( 'wootax_hide_tax_options', true ) === true ) {
 			$classes .= ' hide-tax-options';
+
+			$version = str_replace( '.', '-', WOOCOMMERCE_VERSION );
+			$classes .= ' wc-' . substr( $version, 0, 3 );
 		}
 
 		return $classes;
