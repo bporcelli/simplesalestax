@@ -57,6 +57,9 @@ class WC_WooTax_Admin {
 
 		// Maybe hide "Tax Class" and "Tax Status" options
 		add_filter( 'admin_body_class', array( __CLASS__, 'set_body_class' ), 10, 1 );
+
+		// Update variation TICs via AJAX
+		add_action( 'woocommerce_ajax_save_product_variations', array( __CLASS__, 'ajax_save_variation_tics' ), 10 );
 	}
 
 	/**
@@ -315,6 +318,28 @@ class WC_WooTax_Admin {
 		$current_tic = get_post_meta( $product_id, 'wootax_tic', true );
 
 		require WT_PLUGIN_PATH .'/templates/admin/tic-select.php';
+	}
+
+	/**
+	 * Update variation TICs when saved via AJAX
+	 *
+	 * @since 4.6
+	 */
+	public static function ajax_save_variation_tics() {
+		$variable_post_id = $_POST['variable_post_id'];
+		$max_loop         = max( array_keys( $_POST['variable_post_id'] ) );
+
+		for ( $i = 0; $i <= $max_loop; $i ++ ) {
+			if ( ! isset( $variable_post_id[ $i ] ) )
+				continue;
+
+			$id = $variable_post_id[ $i ];
+
+			if ( isset( $_POST['wootax_set_tic_'. $id] ) ) {
+				// Set TIC according to user selection
+				update_post_meta( $id, 'wootax_tic', $_POST['wootax_set_tic_'. $id] );
+			}
+		}
 	}
 
 	/**

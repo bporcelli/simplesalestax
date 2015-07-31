@@ -113,7 +113,7 @@ function wootax_update_recurring_tax() {
 			foreach ( $order->order->get_items( 'recurring_shipping' ) as $item_id => $shipping ) {
 				$item_data[] = array(
 					'Index'  => '',
-					'ItemID' => $item_id, 
+					'ItemID' => $item_id,
 					'TIC'    => WT_SHIPPING_TIC,
 					'Qty'    => 1, 
 					'Price'  => $shipping['cost'],	
