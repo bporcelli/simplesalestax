@@ -551,13 +551,11 @@ class WC_WooTax_Order {
 	 * @return an array of information about the certificate, the certificate's ID, or null
 	 */
 	public function get_exemption_certificate() {
-		$certificate = WT_Orders::get_meta( $this->order_id, 'exemption_applied' );
-		
-		if ( !is_bool( $certificate ) ) {
-			return $certificate;
+		if ( function_exists( 'wt_get_exemption_certificate' ) ) {
+			return wt_get_exemption_certificate( $this->order_id );
+		} else {
+			return NULL;
 		}
-		
-		return NULL;
 	}
 	
 	/** 
@@ -749,10 +747,7 @@ class WC_WooTax_Order {
 		wc_update_order_item_meta( $tax_item_id, 'tax_amount', $cart_tax );
 		wc_update_order_item_meta( $tax_item_id, 'shipping_tax_amount', $shipping_tax );
 
-		if ( WT_SUBS_ACTIVE ) {
-			wc_update_order_item_meta( $tax_item_id, 'cart_tax', $cart_tax );
-			wc_update_order_item_meta( $tax_item_id, 'shipping_tax', $shipping_tax );
-		}
+		do_action( 'wt_tax_item_updated', $tax_item_id, $cart_tax, $shipping_tax );
 	}
 	
 	/**

@@ -22,10 +22,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * @package WooCommerce TaxCloud
- * @author  Brett Porcelli
- * @since   4.2
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -42,7 +38,7 @@ require 'includes/wc-wootax-messages.php';
 
 /**
  * The main WooTax class
- * Handles plugin activation/deactivation routines and a few miscellaneous tasks
+ * Handles plugin activation routine and a few miscellaneous tasks
  * 
  * @since 4.2
  */
@@ -111,7 +107,6 @@ class WC_WooTax {
 		self::define( 'WT_FEE_TIC', apply_filters( 'wootax_fee_tic', 10010 ) );
 		self::define( 'WT_RATE_ID', get_option( 'wootax_rate_id' ) );
 		self::define( 'WT_DEFAULT_ADDRESS', WC_WooTax::get_option( 'default_address' ) == false ? 0 : WC_WooTax::get_option( 'default_address' ) );
-		self::define( 'WT_SUBS_ACTIVE', is_plugin_active( 'woocommerce-subscriptions/woocommerce-subscriptions.php' ) );
 		self::define( 'WT_LOG_REQUESTS', WC_WooTax::get_option( 'log_requests' ) == 'no' ? false : true );
 	}
 
@@ -147,7 +142,7 @@ class WC_WooTax {
 	 * @return bool
 	 * @see WooCommerce->is_request()
 	 */
-	private static function is_request( $type ) {
+	public static function is_request( $type ) {
 		switch ( $type ) {
 			case 'admin' :
 				return is_admin();
@@ -172,10 +167,6 @@ class WC_WooTax {
 
 		// Used on frontend
 		if ( self::is_request( 'frontend' ) ) {
-			if ( WC_WooTax::get_option( 'show_exempt' ) == 'true' ) {
-				require 'includes/wc-wootax-exemptions.php';
-			} 
-			
 			require 'classes/class-wc-wootax-checkout.php';
 		}
 		
@@ -183,12 +174,6 @@ class WC_WooTax {
 		if ( self::is_request( 'frontend' ) || self::is_request( 'admin' ) || self::is_request( 'cron' ) ) {
 			require 'classes/class-wc-wootax-order.php';
 			require 'classes/class-wt-orders.php';
-
-			if ( WT_SUBS_ACTIVE ) {
-				require 'classes/class-wc-wootax-subscriptions.php';
-			}
-
-			require 'includes/wc-wootax-cron-tasks.php';
 		}
 
 		// Strictly admin panel
@@ -199,6 +184,8 @@ class WC_WooTax {
 			require 'classes/class-wc-wootax-refund.php';
 			require 'classes/WT_Plugin_Updater.php';
 		}
+
+		do_action( 'wootax_includes' );
 	}
 
 	/**
@@ -209,17 +196,6 @@ class WC_WooTax {
 	public static function activate_wootax() {
 		self::configure_woocommerce();
 		self::maybe_add_wootax_rate();
-		self::add_exempt_user_role();
-		self::schedule_wootax_events();
-	}
-
-	/**
-	 * Run the WooTax deactivation routine
-	 *
-	 * @since 4.4
-	 */
-	public static function deactivate_wootax() {
-		self::unschedule_wootax_events();
 	}
 
 	/**
@@ -337,40 +313,6 @@ class WC_WooTax {
 	}
 
 	/**
-	 * Adds a user role for tax exempt customers
-	 * Role is an exact copy of the "Customer" role
-	 *
-	 * @since 4.3
-	 */
-	public static function add_exempt_user_role() {
-		add_role( 'exempt-customer', __( 'Exempt Customer', 'woocommerce' ), array(
-			'read' 						=> true,
-			'edit_posts' 				=> false,
-			'delete_posts' 				=> false,
-		) );
-	}
-
-	/**
-	 * Schedule events for the WooTax order checker and recurring payments updater
-	 *
-	 * @since 4.4
-	 */
-	public static function schedule_wootax_events() {
-		// Updates recurring tax amounts if necessary
-		wp_schedule_event( time(), 'twicedaily', 'wootax_update_recurring_tax' );
-	}
-
-	/**
-	 * Unschedule events for the WooTax order checker and recurring payments updater
-	 * Hooks to be cleared are wootax_update_recurring_tax
-	 *
-	 * @since 4.4
-	 */
-	public static function unschedule_wootax_events() {
-		wp_clear_scheduled_hook( 'wootax_update_recurring_tax' );
-	}
-
-	/**
 	 * Maybe check for updates
 	 * Runs if we are serving an admin request and EDD_SL_Plugin_Updater is accessible
 	 *
@@ -428,6 +370,3 @@ add_action( 'plugins_loaded', array( 'WC_WooTax', 'init' ) );
 
 // Activation routine
 register_activation_hook( __FILE__, array( 'WC_WooTax', 'activate_wootax' ) );
-
-// Deactivation routine
-register_deactivation_hook( __FILE__, array( 'WC_WooTax', 'deactivate_wootax' ) );

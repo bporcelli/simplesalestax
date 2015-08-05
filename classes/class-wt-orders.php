@@ -92,11 +92,6 @@ class WT_Orders {
 		// Calculate taxes from "Edit Order" screen
 		add_action( 'wp_ajax_woocommerce_calc_line_taxes', array( __CLASS__, 'ajax_update_order_tax' ), 1 );
 
-		// Calculate recurring taxes from "Edit Order" screen
-		if ( WT_SUBS_ACTIVE ) {
-			add_action( 'wp_ajax_woocommerce_subscriptions_calculate_line_taxes', array( __CLASS__, 'ajax_update_recurring_tax' ), 1 );
-		}
-
 		// Send AuthorizedWithCapture request to TaxCloud when an order is marked as completed
 		add_action( 'woocommerce_order_status_completed', array( __CLASS__, 'capture_order' ), 10, 1 );
 		
@@ -167,27 +162,6 @@ class WT_Orders {
 	 */
 	public static function persist_session_data( $order_id ) {
 		if ( WC()->session instanceof WC_Session_Handler ) {
-			// Fetch exemption certificate data if appropriate
-			$exempt_cert = false;
-
-			if ( !empty( WC()->session->certificate_id ) ) {
-				if ( WC()->session->certificate_id == 'true' ) {
-					// Single use cert
-					$exempt_cert = WC()->session->certificate_data;
-
-					if ( !isset( $exempt_cert['Detail']['SinglePurchaseOrderNumber'] ) ) {
-						$exempt_cert['Detail']['SinglePurchaseOrderNumber'] = $order_id;
-					}
-				} else {
-					// Blanket cert
-					$exempt_cert = array(
-						'CertificateID' => WC()->session->certificate_id,
-					);
-				}
-
-				self::update_meta( $order_id, 'exemption_applied', $exempt_cert );
-			} 
-
 			self::update_meta( $order_id, 'taxcloud_ids', WC()->session->taxcloud_ids );
 			self::update_meta( $order_id, 'cart_taxes', WC()->session->cart_taxes );
 			self::update_meta( $order_id, 'location_mapping_array', WC()->session->location_mapping_array );
@@ -215,6 +189,8 @@ class WT_Orders {
 
 			self::update_meta( $order_id, 'mapping_array', $mapping_array );
 
+			do_action( 'wt_persist_session_data', $order_id );
+
 			self::delete_session_data();
 		}
 	}
@@ -226,10 +202,6 @@ class WT_Orders {
 	 */
 	public static function delete_session_data() {
 		if ( WC()->session instanceof WC_Session_Handler ) {
-			WC()->session->certificate_id             = '';
-			WC()->session->certificate_applied        = '';
-			WC()->session->certificate_data           = '';
-			WC()->session->exemption_applied          = '';
 			WC()->session->wootax_lookup_sent         = '';
 			WC()->session->cert_removed               = false;
 			WC()->session->cart_taxes                 = array();
@@ -240,6 +212,8 @@ class WT_Orders {
 			WC()->session->wootax_tax_total           = 0;
 			WC()->session->wootax_shipping_tax_total  = 0;
 
+			do_action( 'wt_delete_session_data' );
+			
 			WC()->session->save_data();
 		}
 	}
@@ -304,11 +278,6 @@ class WT_Orders {
 
 		wc_add_order_item_meta( $item_id, 'tax_amount', wc_format_decimal( $tax ) );
 		wc_add_order_item_meta( $item_id, 'shipping_tax_amount', wc_format_decimal( $shipping_tax ) );
-
-		if ( WT_SUBS_ACTIVE ) {
-			wc_add_order_item_meta( $item_id, 'cart_tax', wc_format_decimal( $tax ) );
-			wc_add_order_item_meta( $item_id, 'shipping_tax', wc_format_decimal( $shipping_tax ) );
-		}
 	}
 
 	/**
@@ -331,12 +300,6 @@ class WT_Orders {
 		}
 
 		self::update_meta( $order_id, 'tax_item_id', $tax_item_id );
-
-		// Set subscriptions tax total/shipping tax total
-		if ( WT_SUBS_ACTIVE ) {
-			wc_add_order_item_meta( $tax_item_id, 'cart_tax', wc_format_decimal( self::get_meta( $order_id, 'tax_total' ) ) );
-			wc_add_order_item_meta( $tax_item_id, 'shipping_tax', wc_format_decimal( self::get_meta( $order_id, 'shipping_tax_total' ) ) );
-		}
 	}
 
 	/**
@@ -641,185 +604,6 @@ class WT_Orders {
 				'message' => $res,
 			) ) ); 
 		}
-	}
-
-	/**
-	 * Update recurring line taxes via AJAX
-	 * @see WC_Subscriptions_Order::calculate_recurring_line_taxes()
-	 * 
-	 * @since 4.4
-	 * @return JSON object with updated tax data
-	 */
-	public static function ajax_update_recurring_tax() {
-		global $wpdb;
-
-		check_ajax_referer( 'woocommerce-subscriptions', 'security' );
-
-		$order_id  = absint( $_POST['order_id'] );
-		$country   = strtoupper( esc_attr( $_POST['country'] ) );
-
-		// Step out of the way if the customer is not located in the US
-		if ( $country != 'US' )
-			return;
-
-		$shipping      = $_POST['shipping'];
-		$line_subtotal = isset( $_POST['line_subtotal'] ) ? esc_attr( $_POST['line_subtotal'] ) : 0;
-		$line_total    = isset( $_POST['line_total'] ) ? esc_attr( $_POST['line_total'] ) : 0;
-
-		// Set up WC_WooTax_Order object
-		$order = self::get_order( $order_id );
-		
-		$taxes = $shipping_taxes = array();
-	    
-	    $return     = array();
-	 	$item_data  = array();
-	 	$type_array = array();
-
-	 	// Get product ID, and, if possible, variatian ID
-		if ( isset( $_POST['order_item_id'] ) ) {
-			$product_id   = woocommerce_get_order_item_meta( $_POST['order_item_id'], '_product_id' );
-			$variation_id = woocommerce_get_order_item_meta( $_POST['order_item_id'], '_variation_id' );
-		} elseif ( isset( $_POST['product_id'] ) ) {
-			$product_id   = esc_attr( $_POST['product_id'] );
-			$variation_id = '';
-		}
-
-		$final_id = $variation_id ? $variation_id : $product_id;
-
-		if ( !empty( $product_id ) && WC_Subscriptions_Product::is_subscription( $final_id ) ) {
-			// Add product to items array
-			$product = WC_Subscriptions::get_product( $final_id );
-
-			$item_info = array(
-				'Index'  => '',
-				'ItemID' => isset( $_POST['order_item_id'] ) ? $_POST['order_item_id'] : $final_id, 
-				'Qty'    => 1, 
-				'Price'  => $line_subtotal > 0 ? $line_subtotal : $product->get_price(),	
-				'Type'   => 'cart',
-			);
-
-			$tic = wt_get_product_tic( $product_id, $variation_id );
-
-			if ( !empty( $tic ) && $tic )
-				$item_info['TIC'] = $tic;
-
-			$item_data[] = $item_info;
-
-			$type_array[ $_POST['order_item_id'] ] = 'cart';
-
-			// Add shipping to items array
-			if ( $shipping > 0 ) {
-				$item_data[] = array(
-					'Index'  => '',
-					'ItemID' => WT_SHIPPING_ITEM, 
-					'TIC'    => WT_SHIPPING_TIC,
-					'Qty'    => 1, 
-					'Price'  => $shipping,	
-					'Type'   => 'shipping',
-				);
-
-				$type_array[ WT_SHIPPING_ITEM ] = 'shipping';
-			}
-
-			// Add fees to items array
-			foreach ( $order->order->get_fees() as $item_id => $fee ) {
-				if ( $fee['recurring_line_total'] == 0 )
-					continue;
-
-				$item_data[] = array(
-					'Index'  => '',
-					'ItemID' => $item_id, 
-					'TIC'    => WT_FEE_TIC,
-					'Qty'    => 1, 
-					'Price'  => $fee['recurring_line_total'],	
-					'Type'   => 'fee',
-				);
-
-				$type_array[ $item_id ] = 'fee';
-			}
-
-			// Issue Lookup request
-			$res = $order->do_lookup( $item_data, $type_array, true );
-
-			if ( is_array( $res ) ) {
-				$return['recurring_shipping_tax']      = 0;
-				$return['recurring_line_subtotal_tax'] = 0;
-				$return['recurring_line_tax']          = 0;
-
-				foreach ( $res as $item ) {
-
-					$item_id  = $item->ItemID;
-					$item_tax = $item->TaxAmount;
-
-					if ( $item_id == WT_SHIPPING_ITEM ) {
-						$return['recurring_shipping_tax'] += $item_tax;
-					} else {
-						$return['recurring_line_subtotal_tax'] += $item_tax;
-						$return['recurring_line_tax']          += $item_tax;
-					}
-
-				}
-
-				$taxes[ WT_RATE_ID ]          = $return['recurring_line_tax'];
-				$shipping_taxes[ WT_RATE_ID ] = $return['recurring_shipping_tax'];
-
-			 	// Get tax rates
-				$tax_codes = array( WT_RATE_ID => apply_filters( 'wootax_rate_code', 'WOOTAX-RATE-DO-NOT-REMOVE' ) );
-
-				// Remove old tax rows
-				$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}woocommerce_order_itemmeta WHERE order_item_id IN ( SELECT order_item_id FROM {$wpdb->prefix}woocommerce_order_items WHERE order_id = %d AND order_item_type = 'recurring_tax' )", $order_id ) );
-				$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}woocommerce_order_items WHERE order_id = %d AND order_item_type = 'recurring_tax'", $order_id ) );
-
-				// Now merge to keep tax rows
-				ob_start();
-
-				foreach ( array_keys( $taxes + $shipping_taxes ) as $key ) {
-					$item            = array();
-					$item['rate_id'] = $key;
-					$item['name']    = $tax_codes[ $key ];
-
-					if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ) {
-						$item['label']    = WC_Tax::get_rate_label( $key );
-						$item['compound'] = WC_Tax::is_compound( $key );
-					} else {
-						// get_rate_label() and is_compound() were instance methods in WooCommerce < 2.3
-						$tax = new WC_Tax();
-
-						$item['label']    = $tax->get_rate_label( $key );
-						$item['compound'] = $tax->is_compound( $key ) ? 1 : 0;
-					}
-
-					$item['tax_amount']          = wc_round_tax_total( isset( $taxes[ $key ] ) ? $taxes[ $key ] : 0 );
-					$item['shipping_tax_amount'] = wc_round_tax_total( isset( $shipping_taxes[ $key ] ) ? $shipping_taxes[ $key ] : 0 );
-
-					if ( !$item['label'] )
-						$item['label'] = WC()->countries->tax_or_vat();
-
-					// Add line item
-					$item_id = woocommerce_add_order_item( $order_id, array(
-						'order_item_name' => $item['name'],
-						'order_item_type' => 'recurring_tax'
-					) );
-
-					// Add line item meta
-					if ( $item_id ) {
-						woocommerce_add_order_item_meta( $item_id, 'rate_id', $item['rate_id'] );
-						woocommerce_add_order_item_meta( $item_id, 'label', $item['label'] );
-						woocommerce_add_order_item_meta( $item_id, 'compound', $item['compound'] );
-						woocommerce_add_order_item_meta( $item_id, 'tax_amount', $item['tax_amount'] );
-						woocommerce_add_order_item_meta( $item_id, 'shipping_tax_amount', $item['shipping_tax_amount'] );
-					}
-
-					include( plugin_dir_path( WC_Subscriptions::$plugin_file ) . 'templates/admin/post-types/writepanels/order-tax-html.php' );
-				}
-
-				$return['tax_row_html'] = ob_get_clean();
-
-				echo json_encode( $return );
-			}
-		}
-
-		die();
 	}
 
 	/**

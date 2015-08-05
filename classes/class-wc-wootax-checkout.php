@@ -60,28 +60,18 @@ class WC_WooTax_Checkout {
 	 * Constructor: Starts Lookup and hooks into WooCommerce
 	 *
 	 * @since 4.2
+	 * @param $cart WC_Cart object on which we are operating
 	 */
-	public function __construct() {
-		if ( WT_SUBS_ACTIVE && WC_Subscriptions_Cart::cart_contains_subscription() ) {
-			$this->is_subscription = true;
+	public function __construct( $cart ) {
+		do_action( 'wt_start_checkout_lookup', $this );
 
-			// Restore shipping taxes array for orders containing subscriptions
-			add_filter( 'woocommerce_calculated_total', array( $this, 'store_shipping_taxes' ), 10, 2 );
-			add_action( 'woocommerce_cart_updated', array( $this, 'restore_shipping_taxes' ) ); // Hook for 2.3: woocommerce_after_calculate_totals
-
-			// Set is_renewal flag if subscriptions is calculating the recurring order total
-			if ( WC_Subscriptions_Cart::get_calculation_type() == 'recurring_total' ) {
-				$this->is_renewal = true;
-			} else {
-				$this->is_renewal = false;
-			}
-		}
-
-		$this->cart      = WC()->cart;
+		$this->cart      = &$cart;
 		$this->taxcloud  = TaxCloud();
 		$this->addresses = fetch_business_addresses();
 
 		$this->init();
+
+		do_action( 'wt_end_checkout_lookup', $this );
 	}
 
 	/**
@@ -703,25 +693,11 @@ class WC_WooTax_Checkout {
 	 * @return (mixed) array of cert data for single certs, ID for blanket certs, or NULL if no cert is applied
 	 */
 	private function get_exemption_certificate() {
-		$certificate_data = NULL;
-		
-		if ( !empty( WC()->session->certificate_id ) ) {
-			if ( WC()->session->certificate_id == 'true' ) {
-				$certificate_data = WC()->session->certificate_data;
-
-				if ( !isset( $certificate_data['Detail']['SinglePurchaseOrderNumber'] ) ) {
-					$certificate_data['Detail']['SinglePurchaseOrderNumber'] = wootax_generate_order_id();
-				}
-				
-				WC()->session->certificate_data = $certificate_data;
-			} else {
-				$certificate_data = array(
-					'CertificateID' => WC()->session->certificate_id,
-				);
-			}
+		if ( function_exists( 'wt_get_exemption_certificate' ) ) {
+			return wt_get_exemption_certificate();
+		} else {
+			return NULL;
 		}
-
-		return $certificate_data;
 	}
 	
 	/** 
@@ -934,33 +910,12 @@ class WC_WooTax_Checkout {
 	private function get_order_hash() {
 		return md5( json_encode( $this->get_customer_id() ) . json_encode( $this->destination_address ) . json_encode( $this->lookup_data ) . json_encode( $this->get_exemption_certificate() ) );
 	}
-
-	/**
-	 * Store cart shipping taxes so they can be restored after Subscriptions does its work
-	 *
-	 * @since 4.4
-	 * @param (double) $total the current cart total
-	 * @param (WC_Cart) $cart WC_Cart object
-	 */
-	public function store_shipping_taxes( $total, $cart ) {
-		$this->shipping_taxes = $cart->shipping_taxes;
-		return $total;
-	}
-
-	/**
-	 * Restores the shipping_taxes property of the cart object on woocommerce_after_calculate_totals
-	 * Only executed when WooCommerce Subscriptions is active
-	 *
-	 * @since 4.4
-	 */
-	public function restore_shipping_taxes() {
-		WC()->cart->shipping_taxes = $this->shipping_taxes;
-	}
 }
 
 // Set up checkout object when totals are calculated
-function wootax_start_lookup() {
-	$checkout = new WC_WooTax_Checkout();
+// @param $cart WC_Cart object
+function wootax_start_lookup( $cart ) {
+	$checkout = new WC_WooTax_Checkout( $cart );
 }
 
-add_action( 'woocommerce_calculate_totals', 'wootax_start_lookup' );
+add_action( 'woocommerce_calculate_totals', 'wootax_start_lookup', 10, 1 );

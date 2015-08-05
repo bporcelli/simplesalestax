@@ -13,11 +13,13 @@ $field = "wootax_set_tic_" . $product_id;
 
 if ( $is_variation ) {
 	$label = 'TIC: <a href="https://taxcloud.net/tic/default.aspx" target="_blank">View Full List</a>';
+	$class = 'form-row form-row-full';
 } else {
 	$label = 'TIC';
+	$class = 'form-field';
 } ?>
 
-<p class="form-field wootax_tic">
+<p class="<?php echo $class; ?> wootax_tic">
 	<label for="wootax_tic"><?php echo $label; ?></label>
 
 	<input id="<?php echo $field; ?>" name="<?php echo $field; ?>" value="<?php echo $current_tic; ?>" />

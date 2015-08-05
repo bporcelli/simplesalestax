@@ -388,7 +388,7 @@ jQuery(function() {
     /**
      * Initialize tipTip on multivendor settings pages
      */
-    if ( jQuery('.wootax-vendor-settings').length == 1 ) {
+    if ( jQuery('.wootax-settings').length > 0 ) {
         jQuery(".tips, .help_tip").tipTip({
             'attribute' : 'data-tip',
             'fadeIn' : 50,

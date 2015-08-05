@@ -12,14 +12,20 @@ if ( ! defined( 'ABSPATH' ) )  {
 }
 
 class WC_WooTax_Admin {
+	/* WC_WooTax_Settings object */
+	private static $settings;
+
 	/**
-	 * Hook into WordPress actions/filters
+	 * Initialize WooTax admin; hook into WP
 	 *
 	 * @since 4.4
 	 */
 	public static function init() {
-		// Register WooTax integration to build settings page
-		add_filter( 'woocommerce_integrations', array( __CLASS__, 'add_integration' ) );
+		// Register WooTax menu item
+		add_action( 'admin_menu', array( __CLASS__, 'register_menu_item' ) );
+
+		// Remove "WooTax" item from top level menu
+		add_action( 'admin_head', array( __CLASS__, 'remove_wootax_item' ) );
 
 		// Enqueue admin scripts/styles
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_scripts_and_styles' ), 20 );
@@ -60,19 +66,138 @@ class WC_WooTax_Admin {
 
 		// Update variation TICs via AJAX
 		add_action( 'woocommerce_ajax_save_product_variations', array( __CLASS__, 'ajax_save_variation_tics' ), 10 );
+
+		// Maybe update WooTax settings on POST
+ 		add_action( 'admin_init', array( __CLASS__, 'maybe_update_wootax_settings' ) );
+
+ 		// Download log file if requested
+		add_action( 'init', array( __CLASS__, 'maybe_download_log_file' ) );
+
+		// AJAX actions
+		add_action( 'wp_ajax_wootax-verify-taxcloud', array( __CLASS__, 'verify_taxcloud_settings' ) );
+		add_action( 'wp_ajax_wootax-uninstall', array( __CLASS__, 'uninstall_wootax' ) );
+		add_action( 'wp_ajax_wootax-delete-rates', array( __CLASS__, 'wootax_delete_tax_rates' ) );
 	}
 
 	/**
-	 * Register WooTax WooCommerce Integration
+	 * Return an instance of the WooTax Settings object
 	 *
-	 * @since 4.2
+	 * @since 4.6
 	 */
-	public static function add_integration( $integrations ) {
-		$integrations[] = 'WC_WooTax_Settings';
-		
-		return $integrations;
+	private static function get_settings_object() {
+		if ( !isset( self::$settings ) ) {
+			self::$settings = new WC_WooTax_Settings();
+		}
+
+		return self::$settings;
 	}
 	
+	/**
+	 * Register WooTax menu item
+	 *
+	 * @since 4.6
+	 */
+	public static function register_menu_item() {
+		add_menu_page( 'WooTax', 'WooTax', 'manage_options', 'wootax', array( __CLASS__, 'generate_settings_html' ) );
+
+		add_submenu_page( 'wootax', 'WooTax Settings', 'Settings', 'manage_options', 'wootax-settings', array( __CLASS__, 'generate_settings_html' ) );
+		
+		if ( ! self::plus_installed() ) {
+			add_submenu_page( 'wootax', 'Get WooTax Plus', 'WooTax Plus', 'manage_options', 'wootax-plus', array( __CLASS__, 'generate_plus_html' ) );
+		}
+	}
+
+	/**
+	 * Determine if WooTax Plus is installed
+	 *
+	 * @since 4.6
+	 */
+	private static function plus_installed() {
+		$plugins = get_plugins();
+
+		foreach ( $plugins as $slug => $data ) {
+			if ( basename( $slug ) == 'wootax-plus' ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Generate HTML for "Get WooTax Plus" page
+	 *
+	 * @since 4.6
+	 */
+	public static function generate_plus_html() {
+		require WT_PLUGIN_PATH . 'templates/admin/get-plus.php';
+	}
+
+	/**
+	 * Remove "WooTax" item from top level menu
+	 *
+	 * @since 4.6
+	 */
+	public static function remove_wootax_item() {
+		global $submenu;
+
+		if ( isset( $submenu['wootax'] ) ) {
+			unset( $submenu['wootax'][0] );
+		}
+	}
+
+	/**
+	 * Generate HTML for the WooTax settings page. Based on @see WC_Settings_API->admin_options()
+	 *
+	 * @since 4.6
+	 */
+	public static function generate_settings_html() { 
+		$settings = self::get_settings_object(); ?>
+
+		<h3><?php echo ( ! empty( $settings->method_title ) ) ? $settings->method_title : __( 'Settings', 'woocommerce' ) ; ?></h3>
+
+		<?php echo ( ! empty( $settings->method_description ) ) ? wpautop( $settings->method_description ) : ''; ?>
+
+		<form action="" method="POST">
+			<table class="form-table wootax-settings">
+				<?php $settings->generate_settings_html(); ?>
+			</table>
+			<p class="submit">
+				<input type="submit" name="wt-save-settings" class="wp-core-ui button-primary" value="Save changes" />
+				<input type="hidden" name="_wpnonce" value="<?php echo wp_create_nonce( 'wt-save-settings' ); ?>" />
+			</p>
+		</form><?php
+	}
+
+	/**
+ 	 * Updates settings on admin_init. Takes care of marking WooTax installation as complete.
+ 	 *
+ 	 * @since 4.5
+ 	 */
+ 	public static function maybe_update_wootax_settings() {
+ 		$settings = self::get_settings_object();
+
+ 		if ( isset( $_REQUEST['wt-save-settings'] ) && wp_verify_nonce( $_REQUEST['_wpnonce'], 'wt-save-settings' ) ) {
+ 			do_action( "woocommerce_update_options_integration_{$settings->id}" );
+ 			add_action( 'admin_notices', array( __CLASS__, 'display_settings_notice' ) );
+ 		} else if ( isset( $_REQUEST['wt_rates_checked'] ) ) {
+ 			update_option( 'wootax_rates_checked', true );
+ 		}
+ 	}
+
+ 	/**
+ 	 * Display a notice indicating that the user's settings were saved
+ 	 *
+ 	 * @since 4.6
+ 	 */
+ 	public static function display_settings_notice() { ?>
+ 		<div class="wrap">
+	 		<div class="updated">
+	 			<p>Changes saved successfully.</p>
+	 		</div>
+	 	</div><?php
+ 	}
+
 	/**
 	 * Enqueue WooTax admin scripts
 	 *
@@ -89,6 +214,11 @@ class WC_WooTax_Admin {
 
 		// WooTax admin CSS
 		wp_enqueue_style( 'wootax-admin-style', WT_PLUGIN_DIR_URL .'css/admin.css' );
+
+		// tipTip styles (if they aren't loaded already)
+		if ( ! wp_style_is( 'woocommerce_admin_styles', 'enqueued' ) ) {
+			wp_enqueue_style( 'wootax-admin-tips', WT_PLUGIN_DIR_URL .'css/tiptip.css' );
+		}
 
 		// Select2 (for WooCommerce versions < 2.3)
 		if ( version_compare( WOOCOMMERCE_VERSION, '2.3', '<' ) ) {
@@ -537,6 +667,134 @@ class WC_WooTax_Admin {
 		}
 
 		return $classes;
+	}
+
+ 	/**
+	 * Force download of log file if $_GET['download_log'] is set
+	 *
+	 * @since 4.4
+	 */
+	public static function maybe_download_log_file() {
+		if ( isset( $_GET['download_log'] ) ) {
+			// If file doesn't exist, create it
+			$handle = 'wootax';
+
+			if ( function_exists( 'wc_get_log_file_path' ) ) {
+				$log_path = wc_get_log_file_path( $handle );
+			} else {
+				$log_path = WC()->plugin_path() . '/logs/' . $handle . '-' . sanitize_file_name( wp_hash( $handle ) ) . '.txt';
+			}
+
+			if ( !file_exists( $log_path ) ) {
+				$fh = @fopen( $log_path, 'a' );
+				fclose( $fh );
+			}
+
+			// Force download
+			header( 'Content-Description: File Transfer' );
+		    header( 'Content-Type: application/octet-stream' );
+		    header( 'Content-Disposition: attachment; filename=' . basename( $log_path ) );
+		    header( 'Expires: 0' );
+		    header( 'Cache-Control: must-revalidate' );
+		    header( 'Pragma: public' );
+		    header( 'Content-Length: ' . filesize( $log_path ) );
+
+		    readfile( $log_path );
+
+		    exit;
+		}
+	}
+
+	/**
+	 * Validates the user's TaxCloud API ID/API Key by sending a Ping request to the TaxCloud API
+	 *
+	 * @since 1.0
+	 * @return (boolean) true or an error message on failure
+	 */
+	public static function verify_taxcloud_settings() {
+		$taxcloud_id  = $_POST['wootax_tc_id'];
+		$taxcloud_key = $_POST['wootax_tc_key'];
+
+		if ( empty( $taxcloud_id ) || empty( $taxcloud_key ) ) {
+			die( false );
+		} else {
+			$taxcloud = TaxCloud( $taxcloud_id, $taxcloud_key );
+	
+			// Send ping request and check for errors
+			$response = $taxcloud->send_request( 'Ping' );
+
+			if ( $response == false ) {
+				die( $taxcloud->get_error_message() );
+			} else {
+				die( true );
+			}
+		}
+	}
+
+	/**
+	 * Delete tax rates from specified tax classes ("rates" POST param)
+	 * Ignore WooTax's own tax rate
+	 *
+	 * @since 3.5
+	 * @return (mixed) boolean true on success; string error message on failure
+	 */
+	public static function wootax_delete_tax_rates() {
+		global $wpdb;
+
+		$rate_classes   = explode( ',', $_POST['rates'] );
+		$wootax_rate_id = WT_RATE_ID == false ? 999999 : WT_RATE_ID;
+
+		foreach ( $rate_classes as $rate_class ) {
+			$res = $wpdb->query( $wpdb->prepare( "
+				DELETE FROM
+					{$wpdb->prefix}woocommerce_tax_rates 
+				WHERE 
+					tax_rate_class = %s
+				AND
+					tax_rate_id != $wootax_rate_id
+				",
+				( $rate_class == 'standard-rate' ? '' : $rate_class )
+			) );
+
+			if ( $res === false ) {
+				die( 'There was an error while deleting your tax rates. Please try again.' );
+			}
+		}
+
+		die( true );
+	}
+
+	/**
+	 * Uninstall WooTax:
+	 * - Remove WooTax tax rate
+	 * - Delete WooTax settings
+	 * - Remove all default TIC options
+	 *
+	 * @since 4.2
+	 */
+	public static function uninstall_wootax() {
+		global $wpdb;
+
+		// Remove WooTax tax rate
+		$wootax_rate_id = WT_RATE_ID;
+
+		if ( !empty( $wootax_rate_id ) ) {
+			$wpdb->query( "DELETE FROM {$wpdb->prefix}woocommerce_tax_rates WHERE tax_rate_id = $wootax_rate_id" );
+		}
+
+		// Delete WooTax settings
+		delete_option( 'woocommerce_wootax_settings' );
+
+		// Delete WooTax options
+		delete_option( 'wootax_license_key' );
+		delete_option( 'wootax_rates_checked' );
+		delete_option( 'wootax_rate_id' );
+		delete_option( 'wootax_version' );
+
+		// Remove default TIC assignments
+		$wpdb->query( "DELETE FROM {$wpdb->prefix}options WHERE option_name LIKE 'tic_%'" );
+
+		die( json_encode( array( 'status' => 'success' ) ) );
 	}
 }
 

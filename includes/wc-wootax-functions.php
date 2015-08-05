@@ -238,22 +238,6 @@ function wootax_is_valid_address( $address, $dest = false ) {
 }
 
 /**
- * Get user roles for Exempt Roles select
- *
- * @since 4.3
- * @return (array) an array of all registered user roles
- */
-function wootax_get_user_roles() {
-	global $wp_roles;
-
-	if ( ! isset( $wp_roles ) ) {
-	    $wp_roles = new WP_Roles();
-	}
-
-	return $wp_roles->get_names();
-}
-
-/**
  * Returns the email to which WooTax notifications should be sent
  * If the notification_email is not set explicitly, return first admin email
  *
