@@ -102,26 +102,18 @@ class WC_WooTax_Admin {
 
 		add_submenu_page( 'wootax', 'WooTax Settings', 'Settings', 'manage_options', 'wootax-settings', array( __CLASS__, 'generate_settings_html' ) );
 		
-		if ( ! self::plus_installed() ) {
+		if ( ! self::plus_active() ) {
 			add_submenu_page( 'wootax', 'Get WooTax Plus', 'WooTax Plus', 'manage_options', 'wootax-plus', array( __CLASS__, 'generate_plus_html' ) );
 		}
 	}
 
 	/**
-	 * Determine if WooTax Plus is installed
+	 * Determine if WooTax Plus is installed and active
 	 *
 	 * @since 4.6
 	 */
-	private static function plus_installed() {
-		$plugins = get_plugins();
-
-		foreach ( $plugins as $slug => $data ) {
-			if ( basename( $slug ) == 'wootax-plus' ) {
-				return true;
-			}
-		}
-
-		return false;
+	private static function plus_active() {
+		return is_plugin_active( 'wootax-plus/wootax-plus.php' );
 	}
 
 	/**

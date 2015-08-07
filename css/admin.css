@@ -109,3 +109,11 @@ table.wootax-settings th img.help_tip {
 #delete_rates_table h4 {
     margin-top: 0;
 }
+
+.get-plus-wrap {
+    max-width: 850px;
+}
+
+.get-plus-wrap h3 {
+    margin: .5em 0 1em 0;
+}
