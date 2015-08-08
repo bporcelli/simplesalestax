@@ -63,15 +63,17 @@ class WC_WooTax_Checkout {
 	 * @param $cart WC_Cart object on which we are operating
 	 */
 	public function __construct( $cart ) {
-		do_action( 'wt_start_checkout_lookup', $this );
+		do_action( 'wt_start_lookup_checkout', $this );
 
-		$this->cart      = &$cart;
-		$this->taxcloud  = TaxCloud();
-		$this->addresses = fetch_business_addresses();
+		$this->is_renewal      = apply_filters( 'wt_cart_is_renewal', false );
+		$this->is_subscription = apply_filters( 'wt_cart_is_subscription', false );
+		$this->cart            = &$cart;
+		$this->taxcloud        = TaxCloud();
+		$this->addresses       = fetch_business_addresses();
 
 		$this->init();
 
-		do_action( 'wt_end_checkout_lookup', $this );
+		do_action( 'wt_end_lookup_checkout', $this );
 	}
 
 	/**

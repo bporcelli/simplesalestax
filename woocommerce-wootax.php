@@ -182,7 +182,10 @@ class WC_WooTax {
 			require 'classes/class-wc-wootax-settings.php';
 			require 'classes/class-wc-wootax-admin.php';
 			require 'classes/class-wc-wootax-refund.php';
-			require 'classes/WT_Plugin_Updater.php';
+			
+			if ( ! class_exists( 'WT_Plugin_Updater' ) ) {
+				require 'classes/WT_Plugin_Updater.php';
+			}
 		}
 
 		do_action( 'wootax_includes' );

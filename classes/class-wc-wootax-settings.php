@@ -216,6 +216,7 @@ class WC_WooTax_Settings extends WC_Integration {
  		?>
  		<tr valign="top">
  			<td colspan="2" style="padding-left: 0;">
+ 				<a name="<?php echo $key; ?>"></a>
  				<h4 style="margin-top: 0;"><?php echo $data['title']; ?></h4>
  				<p><?php echo $data['description']; ?></p>
  			</td>

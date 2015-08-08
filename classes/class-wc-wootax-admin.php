@@ -356,7 +356,7 @@ class WC_WooTax_Admin {
 	 * @return (array) a modified $links array
 	 */
 	public static function add_settings_link( $links ) { 
-	 	$settings_link = '<a href="admin.php?page=wc-settings&tab=integration&section=wootax">Settings</a>'; 
+	 	$settings_link = '<a href="admin.php?page=wootax-settings">Settings</a>'; 
 
 	  	array_unshift( $links, $settings_link ); 
 
