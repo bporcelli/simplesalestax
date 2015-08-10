@@ -801,7 +801,7 @@ class WC_WooTax_Checkout {
 		$this->cart->{$tax_key}[ WT_RATE_ID ] = $new_tax;
 
 		// Maybe remove sales tax row if tax due is zero and the cart does not contain a subscription (removing the zero tax for subscription orders causes issues)
-		if ( !WT_SUBS_ACTIVE || !WC_Subscriptions_Cart::cart_contains_subscription() ) {
+		if ( ! class_exists( 'WC_Subscriptions' ) || ! WC_Subscriptions_Cart::cart_contains_subscription() ) {
 			if ( WC_WooTax::get_option( 'show_zero_tax' ) != 'true' && $new_tax == 0 ) {
 				unset( $this->cart->{$tax_key}[ WT_RATE_ID ] );
 			}

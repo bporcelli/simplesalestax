@@ -73,16 +73,14 @@ class WT_Orders {
 		
 			// Sets tax totals for the WooTax tax item ID
 			add_action( 'woocommerce_order_add_tax', array( __CLASS__, 'add_order_tax_rate' ), 12, 3 );
-		} else {
-			// Store tax item ID (2.1.x)
-			add_action( 'woocommerce_checkout_update_order_meta', array( __CLASS__, 'store_tax_item_id' ), 10, 1 );
 		}
 
 		// Maybe capture an order immediately after checkout
 		add_action( 'woocommerce_checkout_update_order_meta', array( __CLASS__, 'maybe_capture_order' ), 15, 1 );
 
-		// Add WooTax meta when order is created
+		// Add WooTax meta when order is created or resumed
 		add_action( 'woocommerce_new_order', array( __CLASS__, 'add_order_meta' ), 10, 1 );
+		add_action( 'woocommerce_resume_order', array( __CLASS__, 'add_order_meta' ), 10, 1 );
 
 		// Add meta to order items when order is created
 		add_action( 'woocommerce_add_order_item_meta', array( __CLASS__, 'add_cart_item_meta' ), 10, 3 );
@@ -281,28 +279,6 @@ class WT_Orders {
 	}
 
 	/**
-	 * For WooCommerce < 2.2: Find ID of WooTax tax item and store its ID as order meta
-	 *
-	 * @since 4.2
-	 * @param (int) $order_id ID of newly created order
-	 */
-	public static function store_tax_item_id( $order_id ) {
-		$order = self::get_order( $order_id );
-
-		$tax_item_id = 0;
-
-		// Find first rate with matching rate id; set $tax_item_id accordingly
-		foreach ( $order->order->get_taxes() as $key => $data ) {
-			if ( $data['rate_id'] == WT_RATE_ID ) {
-				$tax_item_id = $key;
-				break;
-			}
-		}
-
-		self::update_meta( $order_id, 'tax_item_id', $tax_item_id );
-	}
-
-	/**
 	 * Add WooTax meta to order cart items:
 	 * - Location associated with item
 	 * - Tax applied by WooTax
@@ -393,7 +369,7 @@ class WT_Orders {
 
 		$order_id = absint( $_POST['order_id'] );
 		$country  = strtoupper( esc_attr( $_POST['country'] ) );
-
+		
 		// Get WC_WooTax_Order object
 		$order = self::get_order( $order_id );
 	

@@ -221,7 +221,7 @@ function wootax_is_valid_address( $address, $dest = false ) {
 	// Normalize address array by converting all keys and values to lowercase
 	$address = array_change_key_case( array_map( 'strtolower', $address ) );
 
-	$required_fields = array( 'country', 'city', 'state', 'address1', 'zip5' );
+	$required_fields = array( 'country', 'city', 'state', /*'address1',*/ 'zip5' );
 
 	foreach ( $required_fields as $required ) {
 		$val = isset( $address[ $required ] ) ? $address[ $required ] : '';

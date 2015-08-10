@@ -625,7 +625,7 @@ class WC_WooTax_Order {
 	 * @since 4.2
 	 * @return boolean true if the order is ready for a tax lookup; otherwise, false
 	 */
-	private function ready_for_lookup() {
+	private function ready_for_lookup() {		
 		// Check for orders that are already captured
 		if ( WT_Orders::get_meta( $this->order_id, 'captured' ) ) {
 			return false;
@@ -714,6 +714,27 @@ class WC_WooTax_Order {
 	}
 	
 	/**
+	 * Find tax item for WooTax rate
+	 *
+	 * @return (int | null) ID if found; otherwise, null
+	 * @since 4.6
+	 */
+	private function find_tax_item() {
+		$tax_item_id = NULL;
+
+		// Find first rate with matching rate id; set $tax_item_id accordingly
+		foreach ( $this->order->get_taxes() as $key => $data ) {
+			if ( $data['rate_id'] == WT_RATE_ID ) {
+				$tax_item_id = $key;
+				break;
+			}
+		}
+
+		WT_Orders::update_meta( $this->order_id, 'tax_item_id', $tax_item_id );
+		return $tax_item_id;
+	}
+
+	/**
 	 * Updates WooTax tax item to reflect changes in cart/shipping tax totals
 	 *
 	 * @since 4.2
@@ -727,14 +748,17 @@ class WC_WooTax_Order {
 		$tax_item_id = WT_Orders::get_meta( $this->order_id, 'tax_item_id' );
 
 		if ( $tax_item_id == 0 || $tax_item_id == NULL ) {
-			$wpdb->insert( "{$wpdb->prefix}woocommerce_order_items", array(
-				'order_item_type' => 'tax', 
-				'order_item_name' => apply_filters( 'wootax_rate_code', 'WOOTAX-RATE-DO-NOT-REMOVE' ), 
-				'order_id'        => $this->order_id,
-			) );
+			$tax_item_id = $this->find_tax_item();
 
-			// Store new tax item ID
-			$tax_item_id = $wpdb->insert_id;
+			if ( ! $tax_item_id ) {
+				$wpdb->insert( "{$wpdb->prefix}woocommerce_order_items", array(
+					'order_item_type' => 'tax', 
+					'order_item_name' => apply_filters( 'wootax_rate_code', 'WOOTAX-RATE-DO-NOT-REMOVE' ), 
+					'order_id'        => $this->order_id,
+				) );
+
+				$tax_item_id = $wpdb->insert_id;
+			}
 
 			WT_Orders::update_meta( $this->order_id, 'tax_item_id', $tax_item_id );
 		}
