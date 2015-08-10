@@ -32,7 +32,7 @@ class WC_WooTax_Order {
 			return;
 		} else {
 			$this->order_id = $order_id;
-			$this->order    = new WC_Order( $this->order_id );
+			$this->order    = wc_get_order( $this->order_id );
 
 			$this->set_destination_address();
 		}
