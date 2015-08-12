@@ -80,6 +80,7 @@ class WC_WooTax_Admin {
 
 		// Validate "start trial" form and queue WooTax Plus installer if appropriate
 		add_action( 'admin_init', array( __CLASS__, 'maybe_start_plus_trial' ) );
+		add_action( 'admin_init', array( __CLASS__, 'maybe_display_plus_notice' ) );
 		add_filter( 'plugins_api', array( __CLASS__, 'maybe_queue_plus_installer' ), 10, 3 );
 	}
 
@@ -112,12 +113,29 @@ class WC_WooTax_Admin {
 	}
 
 	/**
-	 * Determine if WooTax Plus is installed and active
+	 * Determine if WooTax Plus is active
 	 *
 	 * @since 4.6
 	 */
 	private static function plus_active() {
 		return is_plugin_active( 'wootax-plus/wootax-plus.php' );
+	}
+
+	/**
+	 * Determine if WooTax Plus is installed
+	 *
+	 * @since 4.6
+	 */
+	private static function plus_installed() {
+		$plugins = get_plugins();
+		
+		foreach ( $plugins as $slug => $plugin ) {
+			if ( strpos( $slug, 'wootax-plus.php' ) !== false ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -135,7 +153,11 @@ class WC_WooTax_Admin {
 	 * @since 4.6
 	 */
 	public static function generate_plus_html() {
-		if ( self::get_plus_id() || isset( $_REQUEST['action'] ) && $_REQUEST['action'] == 'start-trial' ) {
+		if ( self::plus_installed() ) {
+			require WT_PLUGIN_PATH . 'templates/admin/plus-activate.php';
+		} else if ( self::interested_in_trial() ) {
+			require WT_PLUGIN_PATH . 'templates/admin/plus-install.php';
+		} else if ( isset( $_REQUEST['action'] ) && $_REQUEST['action'] == 'start-trial' ) {
 			require WT_PLUGIN_PATH . 'templates/admin/plus-start-trial.php';
 		} else {
 			require WT_PLUGIN_PATH . 'templates/admin/get-plus.php';
@@ -160,8 +182,29 @@ class WC_WooTax_Admin {
 			} else {
 				$member_id = '1223123231231231231231'; // TODO: Retrieve Member ID using API
 				update_option( 'wootax_plus_member_id', $member_id );
+				set_transient( 'wootax_plus_trial', true, 30 * DAY_IN_SECONDS );
 			}
 		}
+	}
+
+	/**
+	 * Determine if the admin has indicated interest in a WooTax plus trial
+	 *
+	 * @return bool
+	 * @since 4.6
+	 */
+	private static function interested_in_trial() {
+		return get_transient( 'wootax_plus_trial' ) ? true : false;
+	}
+
+	/**
+	 * Determine if the admin was using WooTax prior to version 4.6
+	 *
+	 * @return bool
+	 * @since 4.6
+	 */
+	private static function long_time_user() {
+		return get_transient( 'wootax_long_time_user' ) ? true : false;
 	}
 
 	/**
@@ -172,7 +215,7 @@ class WC_WooTax_Admin {
 	 */
 	public static function maybe_queue_plus_installer( $api, $action, $args ) {
 		if ( ! self::plus_active() && ( $member_id = self::get_plus_id() ) ) {
-			$download_url = 'https://wootax.com/?wt_api=download_plus&member_id='. $member_id;
+			$download_url = 'https://wootax.com/?wt_api=download_plugin&slug=wootax-plus&member_id='. $member_id;
 
 			if ( 'plugin_information' != $action ||
 				false !== $api ||
@@ -186,6 +229,82 @@ class WC_WooTax_Admin {
 			$api->download_link = esc_url( $download_url );
 
 			return $api;
+		}
+	}
+
+	/**
+	 * Generate installation URL for WooTax Plus plugin
+	 *
+	 * @return string
+	 * @since 4.6
+	 */
+	public static function plus_installation_url() {
+		return wp_nonce_url( self_admin_url( 'update.php?action=install-plugin&plugin=wootax-plus' ), 'install-plugin_wootax-plus' );
+	}
+
+	/**
+	 * Generate activation URL for WooTax Plus plugin
+	 *
+	 * @return string
+	 * @since 4.6
+	 */
+	public static function plus_activation_url() {
+		return wp_nonce_url( self_admin_url( 'plugins.php?action=activate&plugin='. urlencode( "wootax-plus/wootax-plus.php" ) .'&plugin_status=all&paged=1&s' ), 'activate-plugin_wootax-plus/wootax-plus.php' );
+	}
+
+	/**
+	 * Determine whether or not any installed plugins depend on WooTax extensions to work properly.
+	 * 
+	 * @return bool
+	 * @since 4.6
+	 */
+	public static function plus_extensions_required() {
+		// Get list of known plugin dependencies from WT API
+		// Compare to list of activated plugins and see if there are any matches
+		// If matches are found, return true; otherwise, false
+	}
+
+	/**
+	 * Get a human readable list of plugins that depend on WooTax extensions
+	 *
+	 * @return string
+	 * @since 4.6
+	 */
+	private static function get_dependent_plugins_list() {
+		// TODO: WRITE
+	}
+
+	/**
+	 * Display a notice if the user needs to install or activate the WooTax plus plugin
+	 *
+	 * @since 4.6
+	 */
+	public static function maybe_display_plus_notice() {
+		if ( self::interested_in_trial() && ( ! isset( $_REQUEST['page'] ) || $_REQUEST['page'] != 'wootax-plus' ) ) {
+			if ( ! self::plus_installed() || ! self::plus_active() ) {
+				wootax_add_message( 'Thank you for your interest in WooTax Plus. <a href="'. admin_url( 'admin.php?page=wootax-plus' ) .'">Install and activate</a> the WooTax Plus plugin to take advantage of your free trial.' );
+			} else {
+				delete_transient( 'wootax_plus_trial' ); // User has installed Plus; remove "interested in trial" flag
+			}
+		}
+
+		if ( ! self::interested_in_trial() && self::plus_extensions_required() ) {
+			if ( ! self::plus_installed() ) {
+				$dismissable = true;
+
+				if ( self::long_time_user() ) {
+					// TODO: UPDATE LINKS!
+					$message = '<strong>Warning!</strong> The following plugins depend on premium WooTax extensions: '. self::get_dependent_plugins_list() .'. Click <a href="'. admin_url( 'admin.php?page=wootax-plus' ) .'">here</a> to redeem your <em>free</em> 6 month <a href="#">WooTax Plus</a> membership and ensure that your site continues to function properly.';
+				} else {
+					$message = '<strong>Warning!</strong> The following plugins depend on premium WooTax extensions: '. self::get_dependent_plugins_list() .'. You must become a WooTax Plus member to ensure compatibility between these plugins and WooTax. Learn about our free, no commitment 30 day trial <a href="'. admin_url( 'admin.php?page=wootax-plus' ) .'">here</a>.';
+					$dismissable = false; // User will be able to dismiss this message for 2 weeks (shouldn't use default dismiss functionality)
+				}
+
+				wootax_add_message( $message, 'error', 'wootax-extensions-required', true, $dismissable );
+			} else if ( ! self::plus_active() ) {
+				$message = '<strong>Warning!</strong> The following plugins depend on premium WooTax extensions: '. self::get_dependent_plugins_list() .'. Please <a href="'. admin_url( 'admin.php?page=wootax-plus' ) .'">activate the WooTax Plus plugin</a> to ensure that these plugins are compatible with WooTax.';
+				wootax_add_message( $message, 'error', 'wootax-extensions-required', true, false ); // TODO: DISMISS WHEN PLUS IS ACTIVATED
+			}
 		}
 	}
 
