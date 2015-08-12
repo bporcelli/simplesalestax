@@ -169,7 +169,7 @@ function get_formatted_address( $address ) {
  * @since 4.2
  * @return (string) order ID
  */
-function wootax_generate_order_id() { 
+function wootax_generate_order_id() {
 	return md5( $_SERVER['REMOTE_ADDR'] . microtime() );
 }
 
@@ -354,4 +354,14 @@ function wt_get_product_tic( $product_id, $variation_id = null ) {
 		return false;
 
 	return $tic;
+}
+
+/**
+ * Output HTML for a WooTax help tip
+ *
+ * @param (string) $tip - the tip to be displayed when the tooltip is hovered
+ * @since 4.6
+ */
+function wootax_tip( $tip ) { ?>
+	<img class="help_tip" data-tip="<?php echo $tip; ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" height="16" width="16" /> <?php
 }

@@ -117,3 +117,12 @@ table.wootax-settings th img.help_tip {
 .get-plus-wrap h3 {
     margin: .5em 0 1em 0;
 }
+
+.wootax-settings .select2-container {
+    max-width: 400px;
+}
+
+.wootax_page_wootax-settings .wootax-message.error {
+    margin-left: .15em;
+    margin-top: 1em;
+}

@@ -110,7 +110,7 @@ class WC_WooTax_Settings extends WC_Integration {
 			'usps_settings' => array(
 				'title' 			=> 'USPS Settings',
 				'type'              => 'section',
-				'description'       => __( 'A USPS Web Tools ID is required for verifying customer addresses. If you do not have an ID, you can register for one <a href="https://secure.shippingapis.com/registration/" target="_blank">here</a>. Your ID will be sent to you via email when your registration is complete.', 'woocommerce-wootax' )
+				'description'       => __( 'A USPS Web Tools ID is required for verifying customer addresses. If you do not have an ID, you can register for one <a href="https://wootax.com/usps" target="_blank">here</a>. Your ID will be sent to you via email when your registration is complete.', 'woocommerce-wootax' )
 			),
 			'usps_id' => array(
 				'title'             => __( 'USPS ID', 'woocommerce-wootax' ),
@@ -270,13 +270,13 @@ class WC_WooTax_Settings extends WC_Integration {
  		<table id="address_table" class="shippingrows widefat">
 			<thead>
 				<tr>
-					<th><span>Address 1</span> <img class="help_tip" data-tip="Line 1 of your business address." src="<?php echo $woocommerce_path ; ?>/assets/images/help.png" height="16" width="16"></th>
-					<th><span>Address 2</span> <img class="help_tip" data-tip="Line 2 of your business address." src="<?php echo $woocommerce_path ; ?>/assets/images/help.png" height="16" width="16"></th>
-					<th><span>City</span> <img class="help_tip" data-tip="The city in which your business operates." src="<?php echo $woocommerce_path ; ?>/assets/images/help.png" height="16" width="16"></th>
-					<th><span>State</span> <img class="help_tip" data-tip="The state where your business is located." src="<?php echo $woocommerce_path ; ?>/assets/images/help.png" height="16" width="16"></th>
-					<th><span>ZIP Code</span> <img class="help_tip" data-tip="5 or 9-digit ZIP code of your business address." src="<?php echo $woocommerce_path ; ?>/assets/images/help.png" height="16" width="16"></th>
-					<th><span>Make Default</span> <img class="help_tip" data-tip="Check this if you want an address to be used as the default 'Shipment Origin Address' for your products. If you only have one business address, it will be used as your default address automatically." src="<?php echo $woocommerce_path ; ?>/assets/images/help.png" height="16" width="16"></th>
-					<th><span>Remove</span> <img class="help_tip" data-tip="Click the red X to remove a business address. Remember, at least one valid address is required for WooTax to work." src="<?php echo $woocommerce_path ; ?>/assets/images/help.png" height="16" width="16"></th> 
+					<th><span>Address 1</span> <?php wootax_tip( "Line 1 of your business address." ); ?></th>
+					<th><span>Address 2</span> <?php wootax_tip( "Line 2 of your business address." ); ?></th>
+					<th><span>City</span> <?php wootax_tip( "The city in which your business operates." ); ?></th>
+					<th><span>State</span> <?php wootax_tip( "The state where your business is located." ); ?></th>
+					<th><span>ZIP Code</span> <?php wootax_tip( "5 or 9-digit ZIP code of your business address." ); ?></th>
+					<th><span>Make Default</span> <?php wootax_tip( "Check this if you want an address to be used as the default 'Shipment Origin Address' for your products. If you only have one business address, it will be used as your default address automatically." ); ?></th>
+					<th><span>Remove</span> <?php wootax_tip( "Click the red X to remove a business address. Remember, at least one valid address is required for WooTax to work." ); ?></th> 
 				</tr>
 			</thead>
 			<tfoot>

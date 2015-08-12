@@ -77,6 +77,10 @@ class WC_WooTax_Admin {
 		add_action( 'wp_ajax_wootax-verify-taxcloud', array( __CLASS__, 'verify_taxcloud_settings' ) );
 		add_action( 'wp_ajax_wootax-uninstall', array( __CLASS__, 'uninstall_wootax' ) );
 		add_action( 'wp_ajax_wootax-delete-rates', array( __CLASS__, 'wootax_delete_tax_rates' ) );
+
+		// Validate "start trial" form and queue WooTax Plus installer if appropriate
+		add_action( 'admin_init', array( __CLASS__, 'maybe_start_plus_trial' ) );
+		add_filter( 'plugins_api', array( __CLASS__, 'maybe_queue_plus_installer' ), 10, 3 );
 	}
 
 	/**
@@ -117,12 +121,72 @@ class WC_WooTax_Admin {
 	}
 
 	/**
+	 * Return the user's WooTax Plus ID
+	 *
+	 * @since 4.6
+	 */
+	private static function get_plus_id() {
+		return get_option( 'wootax_plus_member_id' );
+	}
+
+	/**
 	 * Generate HTML for "Get WooTax Plus" page
 	 *
 	 * @since 4.6
 	 */
 	public static function generate_plus_html() {
-		require WT_PLUGIN_PATH . 'templates/admin/get-plus.php';
+		if ( self::get_plus_id() || isset( $_REQUEST['action'] ) && $_REQUEST['action'] == 'start-trial' ) {
+			require WT_PLUGIN_PATH . 'templates/admin/plus-start-trial.php';
+		} else {
+			require WT_PLUGIN_PATH . 'templates/admin/get-plus.php';
+		}
+	}
+
+	/**
+	 * Validate "start trial" form and initiate trial by acquiring a plus member ID
+	 *
+	 * @since 4.6
+	 */
+	public static function maybe_start_plus_trial() {
+		if ( isset( $_REQUEST['wootax-start-trial'] ) && wp_verify_nonce( $_REQUEST['_wpnonce'], 'wootax-start-trial' ) ) {
+			$first_name = isset( $_REQUEST['first_name'] ) ? sanitize_text_field( $_REQUEST['first_name'] ) : '';
+			$last_name  = isset( $_REQUEST['last_name'] ) ? sanitize_text_field( $_REQUEST['last_name'] ) : '';
+			$email      = isset( $_REQUEST['email'] ) ? sanitize_text_field( $_REQUEST['email'] ) : '';
+
+			if ( ! $first_name || ! $last_name || ! $email ) {
+				wootax_add_message( 'All fields are required.' );
+			} else if ( ! is_email( $email ) ) {
+				wootax_add_message( 'Please enter a valid email address.' );
+			} else {
+				$member_id = '1223123231231231231231'; // TODO: Retrieve Member ID using API
+				update_option( 'wootax_plus_member_id', $member_id );
+			}
+		}
+	}
+
+	/**
+	 * Queue the WooTax Plus installer if the user's trial has begun and Plus is not installed. @see woothemes_updater_install method
+	 *
+	 * @return Object $api
+	 * @since 4.6
+	 */
+	public static function maybe_queue_plus_installer( $api, $action, $args ) {
+		if ( ! self::plus_active() && ( $member_id = self::get_plus_id() ) ) {
+			$download_url = 'https://wootax.com/?wt_api=download_plus&member_id='. $member_id;
+
+			if ( 'plugin_information' != $action ||
+				false !== $api ||
+				! isset( $args->slug ) ||
+				'wootax-plus' != $args->slug
+			) return $api;
+
+			$api = new stdClass();
+			$api->name = 'WooTax Plus';
+			$api->version = '1.0.0';
+			$api->download_link = esc_url( $download_url );
+
+			return $api;
+		}
 	}
 
 	/**
@@ -207,16 +271,28 @@ class WC_WooTax_Admin {
 		// WooTax admin CSS
 		wp_enqueue_style( 'wootax-admin-style', WT_PLUGIN_DIR_URL .'css/admin.css' );
 
-		// tipTip styles (if they aren't loaded already)
-		if ( ! wp_style_is( 'woocommerce_admin_styles', 'enqueued' ) ) {
-			wp_enqueue_style( 'wootax-admin-tips', WT_PLUGIN_DIR_URL .'css/tiptip.css' );
+		// WooCommerce scripts and styles we need
+		$assets_path    = str_replace( array( 'http:', 'https:' ), '', WC()->plugin_url() ) . '/assets/';
+		$current_screen = get_current_screen();
+		$wt_screen_ids  = array( 'wootax_page_wootax-settings', 'wootax_page_wootax-plus' ); // unique ID of WooTax settings screen
+
+		// Select2 on Edit Product / Settings pages
+		if ( $current_screen->post_type == 'product' || in_array( $current_screen->id, $wt_screen_ids ) ) {
+			if ( ! wp_script_is( 'select2', 'registered' ) ) {
+				wp_enqueue_style( 'select2-css', '//cdnjs.cloudflare.com/ajax/libs/select2/3.5.2/select2.min.css' );
+				wp_enqueue_script( 'select2-js', '//cdnjs.cloudflare.com/ajax/libs/select2/3.5.2/select2.min.js', array( 'jquery' ) );
+			} else if ( ! wp_script_is( 'wc-enhanced-select', 'enqueued' ) ) {
+				wp_enqueue_style( 'wc-enhanced-css', $assets_path . 'css/select2.css' );
+				wp_enqueue_script( 'wc-enhanced-select' );
+			}
 		}
 
-		// Select2 (for WooCommerce versions < 2.3)
-		if ( version_compare( WOOCOMMERCE_VERSION, '2.3', '<' ) ) {
-			wp_enqueue_style( 'select2-css', '//cdnjs.cloudflare.com/ajax/libs/select2/3.5.2/select2.min.css' );
-			wp_enqueue_script( 'select2-js', '//cdnjs.cloudflare.com/ajax/libs/select2/3.5.2/select2.min.js', array( 'jquery' ) );
-		}
+		// tipTip styles on the settings page
+		if ( in_array( $current_screen->id, $wt_screen_ids ) ) {
+			if ( ! wp_style_is( 'woocommerce_admin_styles', 'enqueued' ) ) {
+				wp_enqueue_style( 'wootax-admin-tips', WT_PLUGIN_DIR_URL .'css/tiptip.css' );
+			}
+		}	
 	}
 	
 	/**
