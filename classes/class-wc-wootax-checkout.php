@@ -3,7 +3,7 @@
 /**
  * Responsible for determining the sales tax due during checkout and updating order totals accordingly
  *
- * @package WooCommerce TaxCloud
+ * @package WooTax
  * @since 4.2
  */
 

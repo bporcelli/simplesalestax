@@ -16,7 +16,7 @@ if ( !class_exists( 'WC_Order_Refund' ) ) {
  * WC_WooTax_Refund
  * Enables support for partial refunds
  *
- * @package WooCommerce TaxCloud
+ * @package WooTax
  * @since 4.2
  */
 class WC_WooTax_Refund extends WC_Order_Refund {

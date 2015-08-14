@@ -4,7 +4,7 @@
  * wc-wootax-functions.php
  * Contains common methods
  *
- * @package WooCommerce TaxCloud
+ * @package WooTax
  * @since 4.2
  */
 

@@ -3,7 +3,7 @@
 /**
  * Contains all methods for actions performed within the WordPress admin panel
  *
- * @package WooCommerce TaxCloud
+ * @package WooTax
  * @since 4.2
  */
 
@@ -153,9 +153,17 @@ class WC_WooTax_Admin {
 	 * @since 4.6
 	 */
 	public static function generate_plus_html() {
+		global $trial_duration;
+
+		$trial_duration = '30 day';
+
+		if ( self::eligible_for_extended_trial() ) {
+			$trial_duration = '6 month';
+		}
+
 		if ( self::plus_installed() ) {
 			require WT_PLUGIN_PATH . 'templates/admin/plus-activate.php';
-		} else if ( self::interested_in_trial() ) {
+		} else if ( self::plus_trial_started() ) {
 			require WT_PLUGIN_PATH . 'templates/admin/plus-install.php';
 		} else if ( isset( $_REQUEST['action'] ) && $_REQUEST['action'] == 'start-trial' ) {
 			require WT_PLUGIN_PATH . 'templates/admin/plus-start-trial.php';
@@ -180,9 +188,17 @@ class WC_WooTax_Admin {
 			} else if ( ! is_email( $email ) ) {
 				wootax_add_message( 'Please enter a valid email address.' );
 			} else {
-				$member_id = '1223123231231231231231'; // TODO: Retrieve Member ID using API
-				update_option( 'wootax_plus_member_id', $member_id );
-				set_transient( 'wootax_plus_trial', true, 30 * DAY_IN_SECONDS );
+				try {
+					$api = WT_API();
+
+					$extended  = self::eligible_for_extended_trial();
+					$member_id = $api->request_member_id( $first_name, $last_name, $email, $extended );
+
+					update_option( 'wootax_plus_member_id', $member_id );
+					set_transient( 'wootax_plus_trial', true );
+				} catch ( WC_WooTax_API_Error $e ) {
+					wootax_add_message( $e->getMessage() );
+				}
 			}
 		}
 	}
@@ -193,17 +209,18 @@ class WC_WooTax_Admin {
 	 * @return bool
 	 * @since 4.6
 	 */
-	private static function interested_in_trial() {
+	private static function plus_trial_started() {
 		return get_transient( 'wootax_plus_trial' ) ? true : false;
 	}
 
 	/**
-	 * Determine if the admin was using WooTax prior to version 4.6
+	 * Determine if the admin is eligible for an extended 6 month trial.
+	 * All long time users of WooTax are eligible for up to a month after upgrading to 4.6.
 	 *
 	 * @return bool
 	 * @since 4.6
 	 */
-	private static function long_time_user() {
+	private static function eligible_for_extended_trial() {
 		return get_transient( 'wootax_long_time_user' ) ? true : false;
 	}
 
@@ -258,20 +275,52 @@ class WC_WooTax_Admin {
 	 * @return bool
 	 * @since 4.6
 	 */
-	public static function plus_extensions_required() {
-		// Get list of known plugin dependencies from WT API
-		// Compare to list of activated plugins and see if there are any matches
-		// If matches are found, return true; otherwise, false
+	public static function plus_required() {
+		$settings_require = $plugins_require = false;
+
+		// Required by plugins?
+		$plugins_list = get_transient( 'wootax_plus_plugins_list' );
+
+		if ( ! $plugins_list ) {
+			try {
+				$api = WT_API();
+
+				$plugins_list = $api->get_plugins_list();
+				
+				set_transient( 'wootax_plus_plugins_list', $plugins_list, DAY_IN_SECONDS ); // Update list once per day
+			} catch ( WC_WooTax_API_Error $e ) {
+				wootax_add_message( $e->getMessage() );
+				return false;
+			}
+		}
+
+		if ( 0 < count( $plugins_list ) ) {
+			$all_plugins = array_keys( get_plugins() );
+
+			foreach ( $plugins_list as $plugin ) {
+				foreach ( $all_plugins as $slug ) {
+					if ( strpos( $slug, $plugin['slug'] ) !== false && is_plugin_active( $slug ) ) {
+						$plugins_require = true;
+						break 2;
+					}
+				}
+			}
+		}
+
+		// Required based on settings?
+		$settings_require = WC_WooTax::get_option( 'show_exempt' ) == 'true';
+
+		return $settings_require || $plugins_require;
 	}
 
 	/**
-	 * Get a human readable list of plugins that depend on WooTax extensions
+	 * Determine whether or not the wootax-plus page is being viewed
 	 *
-	 * @return string
 	 * @since 4.6
+	 * @return bool
 	 */
-	private static function get_dependent_plugins_list() {
-		// TODO: WRITE
+	private static function is_plus_page() {
+		return isset( $_REQUEST['page'] ) && $_REQUEST['page'] == 'wootax-plus';
 	}
 
 	/**
@@ -280,31 +329,42 @@ class WC_WooTax_Admin {
 	 * @since 4.6
 	 */
 	public static function maybe_display_plus_notice() {
-		if ( self::interested_in_trial() && ( ! isset( $_REQUEST['page'] ) || $_REQUEST['page'] != 'wootax-plus' ) ) {
-			if ( ! self::plus_installed() || ! self::plus_active() ) {
-				wootax_add_message( 'Thank you for your interest in WooTax Plus. <a href="'. admin_url( 'admin.php?page=wootax-plus' ) .'">Install and activate</a> the WooTax Plus plugin to take advantage of your free trial.' );
+		$get_plus_url  = admin_url( 'admin.php?page=wootax-plus' );
+		$plus_info_url = 'https://wootax.com/plus'; // TODO: UPDATE INFO URL!
+
+		if ( ! self::is_plus_page() ) {
+			if ( self::plus_required() ) {
+				if ( ! self::plus_installed() ) {
+					$duration = '30 day';
+
+					if ( self::eligible_for_extended_trial() ) {
+						$duration = '6 month';
+					}
+
+					$get_plus_url = add_query_arg( 'action', 'start-trial', $get_plus_url ); // Link direct to Start Trial form from this notice
+					wootax_add_message( '<strong>WooTax Plus membership required.</strong></p><p>One or more premium WooTax extensions is required for your website to function properly. To access these extensions, you must become a WooTax Plus member. Click below to learn more or start your <strong>free '. $duration .' trial</strong></p><p><a href="'. $get_plus_url .'" class="wp-core-ui button-primary">Become a Member</a> <a href="'. $plus_info_url .'" target="_blank" class="wp-core-ui button-secondary" style="margin-left: .5em;">Learn More</a>', 'error' );
+				} else if ( ! self::plus_active() ) {
+					wootax_add_message( '<strong>WooTax Plus membership required.</strong> <a href="'. self::plus_activation_url() .'">Activate</a> the WooTax Plus plugin to enable required extensions and take full advantage of your Plus membership.', 'error' );
+				}
 			} else {
-				delete_transient( 'wootax_plus_trial' ); // User has installed Plus; remove "interested in trial" flag
+				if ( ! self::plus_installed() && ! self::plus_trial_started() ) {
+					$expiration = '';
+					$duration   = '30 days';
+
+					if ( self::eligible_for_extended_trial() ) {
+						$expiration = ' expiring ' . date( 'F jS, Y', get_transient( 'wootax_long_time_user' ) + 4 * WEEK_IN_SECONDS );
+						$duration   = '6 months';
+					}
+
+					wootax_add_message( '<strong>Special offer'. $expiration .':</strong> Try WooTax Plus <strong>free</strong> for '. $duration .' and gain access to expedited support and premium WooTax extensions. Learn more <a href="'. $get_plus_url .'">here</a>.', 'updated', true, 'wootax-plus-offer', !empty( $expiration ) ? WEEK_IN_SECONDS : 4 * WEEK_IN_SECONDS );
+				} else if ( ! self::plus_active() && self::plus_trial_started() ) {
+					wootax_add_message( '<strong>Your WooTax Plus trial has started</strong>. <a href="'. self::plus_activation_url() .'">Activate</a> the WooTax Plus plugin to take full advantage of your Plus membership.', 'updated' );
+				}
 			}
 		}
 
-		if ( ! self::interested_in_trial() && self::plus_extensions_required() ) {
-			if ( ! self::plus_installed() ) {
-				$dismissable = true;
-
-				if ( self::long_time_user() ) {
-					// TODO: UPDATE LINKS!
-					$message = '<strong>Warning!</strong> The following plugins depend on premium WooTax extensions: '. self::get_dependent_plugins_list() .'. Click <a href="'. admin_url( 'admin.php?page=wootax-plus' ) .'">here</a> to redeem your <em>free</em> 6 month <a href="#">WooTax Plus</a> membership and ensure that your site continues to function properly.';
-				} else {
-					$message = '<strong>Warning!</strong> The following plugins depend on premium WooTax extensions: '. self::get_dependent_plugins_list() .'. You must become a WooTax Plus member to ensure compatibility between these plugins and WooTax. Learn about our free, no commitment 30 day trial <a href="'. admin_url( 'admin.php?page=wootax-plus' ) .'">here</a>.';
-					$dismissable = false; // User will be able to dismiss this message for 2 weeks (shouldn't use default dismiss functionality)
-				}
-
-				wootax_add_message( $message, 'error', 'wootax-extensions-required', true, $dismissable );
-			} else if ( ! self::plus_active() ) {
-				$message = '<strong>Warning!</strong> The following plugins depend on premium WooTax extensions: '. self::get_dependent_plugins_list() .'. Please <a href="'. admin_url( 'admin.php?page=wootax-plus' ) .'">activate the WooTax Plus plugin</a> to ensure that these plugins are compatible with WooTax.';
-				wootax_add_message( $message, 'error', 'wootax-extensions-required', true, false ); // TODO: DISMISS WHEN PLUS IS ACTIVATED
-			}
+		if ( self::plus_active() && self::plus_installed() ) {
+			wootax_remove_message( 'wootax-plus-offer' ); // Remove "Special Offer" notice; it is no longer relevant once WooTax Plus is installed
 		}
 	}
 

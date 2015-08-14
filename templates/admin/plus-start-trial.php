@@ -1,7 +1,8 @@
 <!-- Template for "Start Plus Trial" page -->
+<?php global $trial_duration; ?>
 <div class="wrap get-plus-wrap">
 	<h2>WooTax Plus</h2>
-	<h3>Please enter your name and email address to start your 30 day trial</h3>
+	<h3>Enter your name and email address to start your <?php echo $trial_duration; ?> trial</h3>
 		
 	<form action="" method="POST">
 		<table class="form-table wootax-settings">

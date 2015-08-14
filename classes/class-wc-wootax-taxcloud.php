@@ -4,7 +4,7 @@
  * Utility for making TaxCloud API requests
  * 
  * @since 4.2
- * @package WooCommerce TaxCloud
+ * @package WooTax
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

@@ -180,6 +180,11 @@ class WC_WooTax {
 		if ( self::is_request( 'admin' ) ) {
 			require 'classes/class-wc-wootax-upgrade.php';
 			require 'classes/class-wc-wootax-settings.php';
+
+			if ( ! class_exists( 'WC_WooTax_API' ) ) {
+				require 'classes/class-wc-wootax-api.php';
+			}
+			
 			require 'classes/class-wc-wootax-admin.php';
 			require 'classes/class-wc-wootax-refund.php';
 			
@@ -220,7 +225,7 @@ class WC_WooTax {
 		update_option( 'woocommerce_tax_total_display', 'itemized' );
 		
 		// Confirm activation with user
-		wootax_add_message( '<strong>Success!</strong> Your WooCommerce tax settings have been automatically adjusted to work with WooTax.', 'updated', 'activated', true, true );
+		wootax_add_message( '<strong>Success!</strong> Your WooCommerce tax settings have been automatically adjusted to work with WooTax.', 'updated', true );
 	}
 	
 	/**

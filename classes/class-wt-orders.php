@@ -3,7 +3,7 @@
 /**
  * Contains methods for managing and manipulating order taxes
  *
- * @package WooCommerce TaxCloud
+ * @package WooTax
  * @since 4.4
  */
 
