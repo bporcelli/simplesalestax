@@ -12,30 +12,10 @@ require_once 'class-wc-wootax-api-error.php';
 
 class WC_WooTax_API {
 	/* Endpoint for API requests */
-	private static $api_endpoint = 'https://wootax.com/?wt_api';
+	private static $api_endpoint = 'https://wootax.com/?wt_api=';
 
 	/* Holds the single WC_WooTax_API instance */
 	protected static $_instance = null;
-
-	/* cURL handle */
-	private $ch = null;
-
-	/**
-	 * Constructor; set up cURL object
-	 *
-	 * @since 4.6
-	 */
-	public function __construct() {
-		if ( $this->ch == null ) {
-			$ch = curl_init( self::$api_endpoint );
-			
-			curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-			curl_setopt( $ch, CURLOPT_TIMEOUT, 15 );
-			curl_setopt( $ch, CURLOPT_POST, true );
-
-			$this->ch = $ch;
-		}
-	}
 
 	/**
 	 * Get the single instance of the WC_WooTax_API object
@@ -72,10 +52,11 @@ class WC_WooTax_API {
 	 * Get version info/changelog for plugin with given slug 
 	 * 
 	 * @param (string) $slug - slug of plugin whose version info is being requested
+	 * @param (string) $member_id - member ID if we are checking the version for WooTax plus
 	 * @return (array) array of plugin info
 	 * @since 4.6
 	 */
-	public function get_version( $slug ) {
+	public function get_version( $slug, $member_id = false ) {
 		return array(
 			'new_version'   => '1.0',
 			'name'          => 'WooTax Plus',
@@ -166,6 +147,31 @@ class WC_WooTax_API {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Send an API request
+	 *
+	 * @since 4.6
+	 * @param (array) $_action - request action
+	 * @param (array) $_data - request data
+	 */
+	private function api_request( $_action, $_data ) {
+		$request_url = $this->api_endpoint . $_action;
+
+		foreach ( $_data as $key => $value )
+			$request_url .= "&$key=$value";
+
+		$request = wp_remote_get( $request_url, array( 'timeout' => 15, 'sslverify' => false ) );
+		
+		if ( ! is_wp_error( $request ) ):
+			$request = json_decode( wp_remote_retrieve_body( $request ) );
+			if ( $request && isset( $request->sections ) )
+				$request->sections = maybe_unserialize( $request->sections );
+			return $request;
+		else:
+			return false;
+		endif;
 	}
 }
 

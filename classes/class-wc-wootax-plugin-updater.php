@@ -7,7 +7,7 @@
  *
  * @version 1.0
  */
-class WT_Plugin_Updater {
+class WC_WooTax_Plugin_Updater {
 	private $api_url  = '';
 	private $api_data = array();
 	private $name     = '';
@@ -130,23 +130,23 @@ class WT_Plugin_Updater {
 	 * @return false||object
 	 */
 	private function api_request( $_action, $_data ) {
+		try {
+			$api = WT_API();
 
-		global $wp_version;
+			switch ( $_action ) {
+				case 'get_version':
+					$member_id = false;
+					
+					if ( isset( $_data['member_id'] ) )
+						$member_id = $_data['member_id'];
 
-		$query_string = '?wt_action='. $_action;
+					$response = $api->get_version( $this->slug, $member_id );
+					break;
+			}
 
-		foreach ( $_data as $key => $val ) 
-			$query_string .= "&$key=". urlencode( $val );
-
-		$request = wp_remote_get( $this->api_url . $query_string, array( 'timeout' => 15, 'sslverify' => false ) );
-		
-		if ( ! is_wp_error( $request ) ):
-			$request = json_decode( wp_remote_retrieve_body( $request ) );
-			if ( $request && isset( $request->sections ) )
-				$request->sections = maybe_unserialize( $request->sections );
-			return $request;
-		else:
+			return $response;
+		} catch ( WC_WooTax_API_Error $e ) {
 			return false;
-		endif;
+		}
 	}
 }

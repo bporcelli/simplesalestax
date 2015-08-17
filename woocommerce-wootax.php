@@ -188,8 +188,8 @@ class WC_WooTax {
 			require 'classes/class-wc-wootax-admin.php';
 			require 'classes/class-wc-wootax-refund.php';
 			
-			if ( ! class_exists( 'WT_Plugin_Updater' ) ) {
-				require 'classes/WT_Plugin_Updater.php';
+			if ( ! class_exists( 'WC_WooTax_Plugin_Updater' ) ) {
+				require 'classes/class-wc-wootax-plugin-updater.php';
 			}
 		}
 
@@ -327,11 +327,11 @@ class WC_WooTax {
 	 * @since 4.4
 	 */
 	private static function maybe_check_updates() {
-		if ( !self::is_request( 'admin' ) || !class_exists( 'WT_Plugin_Updater' ) ) {
+		if ( ! self::is_request( 'admin' ) || ! class_exists( 'WT_Plugin_Updater' ) ) {
 			return;
 		}
 
-		$wt_updater = new WT_Plugin_Updater( 'https://wootax.com', __FILE__, array( 
+		$wt_updater = new WC_WooTax_Plugin_Updater( 'https://wootax.com', __FILE__, array( 
 			'version' => WT_VERSION, // current version number
 		) );
 	}
