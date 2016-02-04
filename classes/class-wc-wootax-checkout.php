@@ -707,10 +707,13 @@ class WC_WooTax_Checkout {
 		// Retrieve "tax based on" option
 		$tax_based_on = get_option( 'woocommerce_tax_based_on' );
 
-		// Fetch correct address based on selected shipping method and WooCommerce tax settings
+		// Return origin address if this is a local pickup order
 		if ( wt_is_local_pickup( $this->get_shipping_method() ) || $tax_based_on == 'base' ) {
-			$address = apply_filters( 'wootax_pickup_address', WT_DEFAULT_ADDRESS, $this->addresses, -1 );
-		} else if ( $tax_based_on == 'billing' ) {
+			return wootax_get_address( apply_filters( 'wootax_pickup_address', WT_DEFAULT_ADDRESS, $this->addresses, -1 ) );
+		}
+
+		// Attempt to fetch correct address
+		if ( $tax_based_on == 'billing' ) {
 			$address = array(
 				'Address1' => WC()->customer->get_address(),
 				'Address2' => WC()->customer->get_address_2(),
