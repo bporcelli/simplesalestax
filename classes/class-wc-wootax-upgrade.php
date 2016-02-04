@@ -78,34 +78,14 @@ class WC_WooTax_Upgrade {
 		if ( version_compare( self::$db_version, WT_VERSION, '=' ) ) {
 			return;
 		} else {
-			self::maybe_set_long_time_user();
 			self::maybe_update_addresses();
 			self::maybe_update_settings();
 
 			if ( self::needs_data_update() ) {
-				wootax_add_message( '<strong>WooTax data update required.</strong> Please backup your database, then click "Complete Update" to run the updater. <a class="button button-primary" href="'. admin_url( 'admin.php?page=wt-update' ) .'">Complete Update</a>', 'update-nag', false, 'upgrade-message' );
+				wootax_add_message( '<strong>WooTax data update required.</strong> Please backup your database, then click "Complete Update" to run the updater. <a class="button button-primary" href="'. admin_url( 'admin.php?page=wt-update' ) .'">Complete Update</a>', 'update-nag', 'upgrade-message', true, false );
 			} else {
 				update_option( 'wootax_version', WT_VERSION );
 			}
-		}
-	}
-
-	/**
-	 * Set wootax_long_time_user flag/option if we detect that WooTax was previously installed on this system
-	 *
-	 * @since 4.6
-	 */
-	private static function maybe_set_long_time_user() {
-		$long_time = false;
-
-		if ( self::$db_version ) { // User updating from WooTax 4.2 or greater
-			$long_time = true;
-		} else if ( ! self::$db_version && get_option( 'wootax_license_key' ) ) { // User updating from WooTax < 4.2
-			$long_time = true;
-		}
-
-		if ( $long_time ) {
-			set_transient( 'wootax_long_time_user', time(), 4 * WEEK_IN_SECONDS );
 		}
 	}
 
@@ -135,8 +115,6 @@ class WC_WooTax_Upgrade {
 	 * @since 4.4
 	 */
 	private static function maybe_update_settings() {
-		global $wpdb;
-
 		// Delete deprecated "wootax_shipping_taxable" option if it still exists
 		if ( get_option( 'wootax_shipping_taxable' ) ) {
 			delete_option( 'wootax_shipping_taxable' );
@@ -166,23 +144,6 @@ class WC_WooTax_Upgrade {
 		// wootax_license_key option was deprecated in 4.5; remove it
 		if ( get_option( 'wootax_license_key' ) ) {
 			delete_option( 'wootax_license_key' );
-		}
-
-		// Format for default category TICs changed in 4.6; update accordingly
-		$opts = $wpdb->get_results( "SELECT * FROM {$wpdb->options} WHERE option_name LIKE 'tic_%'" );
-
-		if ( $opts ) {
-			foreach ( $opts as $result ) {
-				$val = maybe_unserialize( $result->option_value );
-
-				if ( is_array( $val ) && isset( $val['tic'] ) )
-					update_option( $result->option_name, $val['tic'] );
-			}
-		}
-
-		// Settings page moved from WooCommerce -> Settings -> Integrations to WooTax -> Settings in 4.6
-		if ( self::$db_version && version_compare( self::$db_version, '4.6', '<' ) ) {
-			wootax_add_message( '<strong>The WooTax settings page was moved.</strong> As of WooTax 4.6, the WooTax settings page has moved from WooCommerce -> Settings -> Integrations -> WooTax to WooTax -> Settings. Have any questions? Please feel free to <a href="https://wootax.com/contact-us/" target="_blank">contact us</a>.', 'updated', true, 'wootax-46-upgrade' );
 		}
 	}
 
@@ -382,13 +343,13 @@ class WC_WooTax_Upgrade {
 							}
 						}
 					}
+
+					$new_tc_ids[ $location_key ]['cart_id']  = $items['cart_id'];
+					$new_tc_ids[ $location_key ]['order_id'] = $items['order_id'];
 				}
 			}
 
 			// Update TaxCloud Ids
-			$new_tc_ids[ $location_key ]['cart_id']  = $items['cart_id'];
-			$new_tc_ids[ $location_key ]['order_id'] = $items['order_id'];
-
 			update_post_meta( $wc_order_id, '_wootax_taxcloud_ids', $new_tc_ids );
 
 			// Update mapping array

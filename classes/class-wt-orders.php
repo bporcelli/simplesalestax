@@ -160,21 +160,21 @@ class WT_Orders {
 	 */
 	public static function persist_session_data( $order_id ) {
 		if ( WC()->session instanceof WC_Session_Handler ) {
-			self::update_meta( $order_id, 'taxcloud_ids', WC()->session->taxcloud_ids );
-			self::update_meta( $order_id, 'cart_taxes', WC()->session->cart_taxes );
-			self::update_meta( $order_id, 'location_mapping_array', WC()->session->location_mapping_array );
-			self::update_meta( $order_id, 'customer_id', WC()->session->wootax_customer_id );
-			self::update_meta( $order_id, 'tax_total', WC()->session->wootax_tax_total );
-			self::update_meta( $order_id, 'shipping_tax_total', WC()->session->wootax_shipping_tax_total );
-			self::update_meta( $order_id, 'identifiers', WC()->session->item_ids );
-			self::update_meta( $order_id, 'first_found', WC()->session->first_found_key );
-			self::update_meta( $order_id, 'validated_addresses', WC()->session->validated_addresses );
+			self::update_meta( $order_id, 'taxcloud_ids', WC()->session->get( 'taxcloud_ids' ) );
+			self::update_meta( $order_id, 'cart_taxes', WC()->session->get( 'cart_taxes' ) );
+			self::update_meta( $order_id, 'location_mapping_array', WC()->session->get( 'location_mapping_array' ) );
+			self::update_meta( $order_id, 'customer_id', WC()->session->get( 'wootax_customer_id' ) );
+			self::update_meta( $order_id, 'tax_total', WC()->session->get( 'wootax_tax_total' ) );
+			self::update_meta( $order_id, 'shipping_tax_total', WC()->session->get( 'wootax_shipping_tax_total' ) );
+			self::update_meta( $order_id, 'identifiers', WC()->session->get( 'item_ids' ) );
+			self::update_meta( $order_id, 'first_found', WC()->session->get( 'first_found_key' ) );
+			self::update_meta( $order_id, 'validated_addresses', WC()->session->get( 'validated_addresses' ) );
 
 			// Flip mapping array and store in reverse order
-			$mapping_array = array();
+			$mapping_array = WC()->session->get( 'mapping_array', array() );
 
-			if ( isset( WC()->session->mapping_array ) ) {
-				foreach ( WC()->session->mapping_array as $address_key => $mappings ) {
+			if ( count( $mapping_array ) > 0 ) {
+				foreach ( $mapping_array as $address_key => $mappings ) {
 					$new_mappings = array();
 
 					foreach ( $mappings as $index => $item ) {
@@ -200,15 +200,15 @@ class WT_Orders {
 	 */
 	public static function delete_session_data() {
 		if ( WC()->session instanceof WC_Session_Handler ) {
-			WC()->session->wootax_lookup_sent         = '';
-			WC()->session->cert_removed               = false;
-			WC()->session->cart_taxes                 = array();
-			WC()->session->backend_cart_taxes         = array();
-			WC()->session->taxcloud_ids               = array();
-			WC()->session->backend_location_mapping   = array();
-			WC()->session->wootax_validated_addresses = array();
-			WC()->session->wootax_tax_total           = 0;
-			WC()->session->wootax_shipping_tax_total  = 0;
+			WC()->session->set( 'wootax_lookup_sent', '' );
+			WC()->session->set( 'cert_removed', false );
+			WC()->session->set( 'cart_taxes', array() );
+			WC()->session->set( 'backend_cart_taxes', array() );
+			WC()->session->set( 'taxcloud_ids', array() );
+			WC()->session->set( 'backend_location_mapping', array() );
+			WC()->session->set( 'validated_addresses', array() );
+			WC()->session->set( 'wootax_tax_total', 0 );
+			WC()->session->set( 'wootax_shipping_tax_total', 0 );
 
 			do_action( 'wt_delete_session_data' );
 			
@@ -369,11 +369,11 @@ class WT_Orders {
 
 		$order_id = absint( $_POST['order_id'] );
 		$country  = strtoupper( esc_attr( $_POST['country'] ) );
-		
+				
 		// Get WC_WooTax_Order object
 		$order = self::get_order( $order_id );
 	
-		if ( $country != 'US' && $country != 'United States' ) {
+		if ( $country != 'US' && $country != 'United States' || !WT_CALC_TAXES ) {
 			return; // Returning here allows WC_AJAX::calc_line_taxes to take over for non-US orders
 		} else {
 			// Build items array
@@ -469,116 +469,123 @@ class WT_Orders {
 					$final_items[] = $item_data;
 				}
 			}
-		}
-		
-		// Send lookup request using the generated items and mapping array
-		$res = $order->do_lookup( $final_items, $type_array );
+			
+			// Send lookup request using the generated items and mapping array
+			$res = $order->do_lookup( $final_items, $type_array );
 
-		// Convert response array to be sent back to client
-		// @see WC_AJAX::calc_line_taxes()
-		if ( is_array( $res ) ) {
-			if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ) {
-				if ( !isset( $items['line_tax'] ) ) {
-					$items['line_tax'] = array();
-				}
-
-				if ( !isset( $items['line_subtotal_tax'] ) ) {
-					$items['line_subtotal_tax'] = array();
-				}
-
-				$items['order_taxes'] = array();
-
-				foreach ( $res as $item )  {
-					$id  = $item->ItemID;
-					$tax = $item->TaxAmount; 
-
-					if ( is_array( $items['shipping_method_id'] ) && in_array( $id, $items['shipping_method_id'] ) ) {
-						$items['shipping_taxes'][ $id ][ WT_RATE_ID ] = $tax;
-					} else {
-						$items['line_tax'][ $id ][ WT_RATE_ID ] = $tax;
-						$items['line_subtotal_tax'][ $id ][ WT_RATE_ID ] = $tax;
+			// Convert response array to be sent back to client
+			// @see WC_AJAX::calc_line_taxes()
+			if ( is_array( $res ) ) {
+				if ( version_compare( WOOCOMMERCE_VERSION, '2.2', '>=' ) ) {
+					if ( !isset( $items['line_tax'] ) ) {
+						$items['line_tax'] = array();
 					}
-				}
 
-				$items['order_taxes'][ self::get_meta( $order_id, 'tax_item_id' ) ] = absint( WT_RATE_ID );
+					if ( !isset( $items['line_subtotal_tax'] ) ) {
+						$items['line_subtotal_tax'] = array();
+					}
 
-				wc_save_order_items( $order_id, $items );
+					$items['order_taxes'] = array();
 
-				// Return HTML items
-				$data  = get_post_meta( $order_id );
-				$order = $order->order;
+					foreach ( $res as $item )  {
+						$id  = $item->ItemID;
+						$tax = $item->TaxAmount; 
 
-				include( ABSPATH . '/'. PLUGINDIR . '/woocommerce/includes/admin/meta-boxes/views/html-order-items.php' );
+						if ( is_array( $items['shipping_method_id'] ) && in_array( $id, $items['shipping_method_id'] ) ) {
+							$items['shipping_taxes'][ $id ][ WT_RATE_ID ] = $tax;
+						} else {
+							$items['line_tax'][ $id ][ WT_RATE_ID ] = $tax;
+							$items['line_subtotal_tax'][ $id ][ WT_RATE_ID ] = $tax;
+						}
+					}
 
-				die();
-			} else if ( version_compare( WOOCOMMERCE_VERSION, '2.1', '>=' ) ) {
-				// We are going to send back a JSON response
-				header( 'Content-Type: application/json; charset=utf-8' );
+					// Added in 4.6: add new tax item if old item has been removed
+					$order = $order->order;
+					$taxes = $order->get_taxes();
+					$tax_item_id = self::get_meta( $order_id, 'tax_item_id' );
 
-				$item_tax = $shipping_tax = 0;
-				$tax_row_html = '';
-				$item_taxes = array();
+					if ( empty( $tax_item_id ) || !in_array( $tax_item_id, array_keys( $taxes ) ) ) {
+						$tax_item_id = $order->add_tax( WT_RATE_ID, $tax_total, $shipping_tax_total );
+						self::update_meta( $order_id, 'tax_item_id', $tax_item_id );
+					}
 
-				// Update item taxes
-				foreach ( $res as $item ) {
-					$id  = $item->ItemID;
-					$tax = $item->TaxAmount; 
+					$items['order_taxes'][ $tax_item_id ] = absint( WT_RATE_ID );
 
-					if ( $id == WT_SHIPPING_ITEM ) {
-						$shipping_tax += $tax;
-					} else {
-						$item_taxes[ $id ] = array(
-							'line_subtotal_tax' => wc_format_localized_price( $tax ),
-							'line_tax'          => wc_format_localized_price( $tax ),
-						);
+					// Save order items
+					wc_save_order_items( $order_id, $items );
 
-						$item_tax += $tax;
-					}	
-				}
+					// Return HTML items
+					$data  = get_post_meta( $order_id );
 
-				// Fetch array mapping tax rate ids to tax codes
-				$tax_codes = array();
-				$taxes     = $order->order->get_taxes();
+					include( ABSPATH . '/'. PLUGINDIR . '/woocommerce/includes/admin/meta-boxes/views/html-order-items.php' );
 
-				foreach ( $taxes as $item_id => $data ) {
-					$code = array();
+					die();
+				} else if ( version_compare( WOOCOMMERCE_VERSION, '2.1', '>=' ) ) {
+					// We are going to send back a JSON response
+					header( 'Content-Type: application/json; charset=utf-8' );
 
-					$rate_id   = $data['rate_id'];
-					$rate_data = $wpdb->get_row( "SELECT * FROM {$wpdb->prefix}woocommerce_tax_rates WHERE tax_rate_id = '$rate_id'" );
+					$item_tax = $shipping_tax = 0;
+					$tax_row_html = '';
+					$item_taxes = array();
 
-					$code[] = $rate_data->tax_rate_country;
-					$code[] = $rate_data->tax_rate_state;
-					$code[] = $rate_data->tax_rate_name ? sanitize_title( $rate_data->tax_rate_name ) : 'TAX';
-					$code[] = absint( $rate_data->tax_rate_priority );
+					// Update item taxes
+					foreach ( $res as $item ) {
+						$id  = $item->ItemID;
+						$tax = $item->TaxAmount; 
 
-					$tax_codes[ $rate_id ] = strtoupper( implode( '-', array_filter( $code ) ) );
-				}
+						if ( $id == WT_SHIPPING_ITEM ) {
+							$shipping_tax += $tax;
+						} else {
+							$item_taxes[ $id ] = array(
+								'line_subtotal_tax' => wc_format_localized_price( $tax ),
+								'line_tax'          => wc_format_localized_price( $tax ),
+							);
 
-				// Loop through tax items to build tax row HTML
-				ob_start();
+							$item_tax += $tax;
+						}	
+					}
 
-				foreach ( $taxes as $item_id => $item ) {
-					include( ABSPATH . '/'. PLUGINDIR . '/woocommerce/includes/admin/post-types/meta-boxes/views/html-order-tax.php' );
-				}
+					// Fetch array mapping tax rate ids to tax codes
+					$tax_codes = array();
+					$taxes     = $order->order->get_taxes();
 
-				$tax_row_html = ob_get_clean();
+					foreach ( $taxes as $item_id => $data ) {
+						$code = array();
 
-				// Return
-				echo json_encode( array(
-					'item_tax' 		=> $item_tax,
-					'item_taxes' 	=> $item_taxes,
-					'shipping_tax' 	=> $shipping_tax,
-					'tax_row_html' 	=> $tax_row_html,
-				) );
+						$rate_id   = $data['rate_id'];
+						$rate_data = $wpdb->get_row( "SELECT * FROM {$wpdb->prefix}woocommerce_tax_rates WHERE tax_rate_id = '$rate_id'" );
 
-				// Quit out
-				die();
-			} 
-		} else {
-			die( json_encode( array( 
-				'status'  => 'error', 
-				'message' => $res,
-			) ) ); 
+						$code[] = $rate_data->tax_rate_country;
+						$code[] = $rate_data->tax_rate_state;
+						$code[] = $rate_data->tax_rate_name ? sanitize_title( $rate_data->tax_rate_name ) : 'TAX';
+						$code[] = absint( $rate_data->tax_rate_priority );
+
+						$tax_codes[ $rate_id ] = strtoupper( implode( '-', array_filter( $code ) ) );
+					}
+
+					// Loop through tax items to build tax row HTML
+					ob_start();
+
+					foreach ( $taxes as $item_id => $item ) {
+						include( ABSPATH . '/'. PLUGINDIR . '/woocommerce/includes/admin/post-types/meta-boxes/views/html-order-tax.php' );
+					}
+
+					$tax_row_html = ob_get_clean();
+
+					// Return
+					echo json_encode( array(
+						'item_tax' 		=> $item_tax,
+						'item_taxes' 	=> $item_taxes,
+						'shipping_tax' 	=> $shipping_tax,
+						'tax_row_html' 	=> $tax_row_html,
+					) );
+
+					// Quit out
+					die();
+				} 
+			} else {
+				die( 'Could not update order taxes. It is possible that the order has already been "completed," or that the customer\'s shipping address is unavailable. Please refresh the page and try again.' ); 
+			}
 		}
 	}
 

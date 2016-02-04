@@ -111,29 +111,12 @@ class WC_WooTax_Checkout {
 	 */
 	public function load_data_from_session() {
 		if ( WC()->session instanceof WC_Session_Handler ) {
-			if ( isset( WC()->session->cart_taxes ) ) {
-				$this->cart_taxes = WC()->session->cart_taxes;
-			}
-
-			if ( isset( WC()->session->shipping_taxes ) ) {
-				$this->shipping_taxes = WC()->session->shipping_taxes;
-			}
-
-			if ( isset( WC()->session->taxcloud_ids ) ) {
-				$this->taxcloud_ids = WC()->session->taxcloud_ids;
-			}
-
-			if ( isset( WC()->session->wootax_lookup_sent ) ) {
-				$this->lookup_sent = WC()->session->wootax_lookup_sent;
-			}
-
-			if ( isset( WC()->session->mapping_array ) ) {
-				$this->mapping_array = WC()->session->mapping_array;
-			}
-
-			if ( isset( WC()->session->lookup_data ) ) {
-				$this->lookup_data = WC()->session->lookup_data;
-			}
+			$this->cart_taxes = WC()->session->get( 'cart_taxes', array() );
+			$this->shipping_taxes = WC()->session->get( 'shipping_taxes', array() );
+			$this->taxcloud_ids = WC()->session->get( 'taxcloud_ids', array() );
+			$this->lookup_sent = WC()->session->get( 'wootax_lookup_sent', '' );
+			$this->mapping_array = WC()->session->get( 'mapping_array', array() );
+			$this->lookup_data = WC()->session->get( 'lookup_data', array() );
 		} 
 	}
 
@@ -145,17 +128,17 @@ class WC_WooTax_Checkout {
 	public function save_session_data() {
 		// For a renewal order lookup, do not update session data
 		if ( WC()->session instanceof WC_Session_Handler && !$this->is_renewal ) {
-			WC()->session->location_mapping_array    = $this->location_mapping_array;
-			WC()->session->mapping_array             = $this->mapping_array;
-			WC()->session->lookup_data               = $this->lookup_data;
-			WC()->session->taxcloud_ids              = $this->taxcloud_ids;
-			WC()->session->cart_taxes                = $this->cart_taxes;
-			WC()->session->shipping_taxes            = $this->shipping_taxes;
-			WC()->session->wootax_tax_total          = $this->tax_total;
-			WC()->session->wootax_shipping_tax_total = $this->shipping_tax_total;
-			WC()->session->item_ids                  = $this->identifiers;
-			WC()->session->first_found_key           = $this->first_found;
-			WC()->session->wootax_lookup_sent        = $this->lookup_sent;
+			WC()->session->set( 'location_mapping_array', $this->location_mapping_array );
+			WC()->session->set( 'mapping_array', $this->mapping_array );
+			WC()->session->set( 'lookup_data', $this->lookup_data );
+			WC()->session->set( 'taxcloud_ids', $this->taxcloud_ids );
+			WC()->session->set( 'cart_taxes', $this->cart_taxes );
+			WC()->session->set( 'shipping_taxes', $this->shipping_taxes );
+			WC()->session->set( 'wootax_tax_total', $this->tax_total );
+			WC()->session->set( 'wootax_shipping_tax_total', $this->shipping_tax_total );
+			WC()->session->set( 'item_ids', $this->identifiers );
+			WC()->session->set( 'first_found_key', $this->first_found );
+			WC()->session->set( 'wootax_lookup_sent', $this->lookup_sent );
 		}
 	}
 	
@@ -478,8 +461,10 @@ class WC_WooTax_Checkout {
 			// Add shipping item (we assume one per order)
 			$shipping_total = $this->cart->shipping_total;
 
-			if ( $this->is_subscription && !WC_Subscriptions_Cart::charge_shipping_up_front() && ( WC_Subscriptions_Cart::get_calculation_type() == 'sign_up_fee_total' || WC_Subscriptions_Cart::get_calculation_type() == 'free_trial_total' ) )
+			// Set shipping tax to zero if we are calculating the initial total for a subscription and shipping should not be charged up front
+			if ( $this->is_subscription && WC_Subscriptions_Cart::get_calculation_type() != 'recurring_total' && !WC_Subscriptions_Cart::charge_shipping_up_front() ) {
 				$shipping_total = 0;
+			}
 
 			if ( $shipping_total > 0 ) {
 				$index   = $counters_array[ $first_location ];
@@ -502,33 +487,43 @@ class WC_WooTax_Checkout {
 				$counters_array[ $first_location ]++;
 			}
 
-			// Add fees
+			// Add fees, as long as we aren't calculating tax for cart where all subs have free trial and there is no sign up fee
 			$fee_index = 0;
-			foreach ( $this->cart->get_fees() as $ind => $fee ) {
-				// TODO: Phase this out?
-				if ( isset( $fee->taxable ) && !$fee->taxable )
-					continue;
+			$add_fees = true;
 
-				$item_id = $fee->id;
-				$index   = $counters_array[ $first_location ];
+			if ( $this->is_subscription ) {
+				if ( WC_Subscriptions_Cart::get_calculation_type() != 'recurring_total' && 0 == WC_Subscriptions_Cart::get_cart_subscription_sign_up_fee() && WC_WooTax_Subscriptions::all_cart_items_have_free_trial() ) {
+					$add_fees = false;
+				}
+			}
 
-				$lookup_data[ $first_location ][] = array(
-					'Index'  => $index,
-					'ItemID' => $item_id, 
-					'TIC'    => WT_FEE_TIC,
-					'Qty'    => 1, 
-					'Price'  => apply_filters( 'wootax_taxable_price', $fee->amount, true, $item_id ),
-				);
+			if ( $add_fees ) {
+				foreach ( $this->cart->get_fees() as $ind => $fee ) {
+					// TODO: Phase this out?
+					if ( isset( $fee->taxable ) && !$fee->taxable )
+						continue;
 
-				// Update mapping array
-				$mapping_array[ $first_location ][ $index ] = array(
-					'id'    => $item_id, 
-					'index' => $fee_index, 
-					'type'  => 'fee',
-				);
+					$item_id = $fee->id;
+					$index   = $counters_array[ $first_location ];
 
-				$counters_array[ $first_location ]++;
-				$fee_index++;
+					$lookup_data[ $first_location ][] = array(
+						'Index'  => $index,
+						'ItemID' => $item_id, 
+						'TIC'    => WT_FEE_TIC,
+						'Qty'    => 1, 
+						'Price'  => apply_filters( 'wootax_taxable_price', $fee->amount, true, $item_id ),
+					);
+
+					// Update mapping array
+					$mapping_array[ $first_location ][ $index ] = array(
+						'id'    => $item_id, 
+						'index' => $fee_index, 
+						'type'  => 'fee',
+					);
+
+					$counters_array[ $first_location ]++;
+					$fee_index++;
+				}
 			}
 		}
 
@@ -712,13 +707,10 @@ class WC_WooTax_Checkout {
 		// Retrieve "tax based on" option
 		$tax_based_on = get_option( 'woocommerce_tax_based_on' );
 
-		// Return origin address if this is a local pickup order
+		// Fetch correct address based on selected shipping method and WooCommerce tax settings
 		if ( wt_is_local_pickup( $this->get_shipping_method() ) || $tax_based_on == 'base' ) {
-			return wootax_get_address( apply_filters( 'wootax_pickup_address', WT_DEFAULT_ADDRESS, $this->addresses, -1 ) );
-		}
-
-		// Attempt to fetch correct address
-		if ( $tax_based_on == 'shipping' ) {
+			$address = apply_filters( 'wootax_pickup_address', WT_DEFAULT_ADDRESS, $this->addresses, -1 );
+		} else if ( $tax_based_on == 'billing' ) {
 			$address = array(
 				'Address1' => WC()->customer->get_address(),
 				'Address2' => WC()->customer->get_address_2(),
@@ -780,7 +772,7 @@ class WC_WooTax_Checkout {
 			$customer_id = WC()->session->get_customer_id();
 		}
 
-		WC()->session->wootax_customer_id = $customer_id;
+		WC()->session->set( 'wootax_customer_id', $customer_id );
 
 		return $customer_id;
 	}
@@ -801,10 +793,8 @@ class WC_WooTax_Checkout {
 		$this->cart->{$tax_key}[ WT_RATE_ID ] = $new_tax;
 
 		// Maybe remove sales tax row if tax due is zero and the cart does not contain a subscription (removing the zero tax for subscription orders causes issues)
-		if ( ! class_exists( 'WC_Subscriptions' ) || ! WC_Subscriptions_Cart::cart_contains_subscription() ) {
-			if ( WC_WooTax::get_option( 'show_zero_tax' ) != 'true' && $new_tax == 0 ) {
-				unset( $this->cart->{$tax_key}[ WT_RATE_ID ] );
-			}
+		if ( !$this->is_subscription && WC_WooTax::get_option( 'show_zero_tax' ) != 'true' && $new_tax == 0 ) {
+			unset( $this->cart->{$tax_key}[ WT_RATE_ID ] );
 		}
 
 		// Use get_tax_total to set new tax total so we don't override other rates
@@ -833,9 +823,9 @@ class WC_WooTax_Checkout {
 	 * @return chosen shipping method (string)
 	 */
 	private function get_shipping_method() {
-		if ( isset( WC()->session->chosen_shipping_method ) ) {
+		if ( WC()->session->get( 'chosen_shipping_method', false ) ) {
 			return WC()->session->chosen_shipping_method;
-		} else if ( isset( WC()->session->chosen_shipping_methods ) ) {
+		} else if ( WC()->session->get( 'chosen_shipping_methods', array() ) ) {
 			return WC()->session->chosen_shipping_methods[0];
 		} else {
 			return false;
@@ -916,8 +906,10 @@ class WC_WooTax_Checkout {
 
 // Set up checkout object when totals are calculated
 // @param $cart WC_Cart object
-function wootax_start_lookup( $cart ) {
-	$checkout = new WC_WooTax_Checkout( $cart );
+function wt_maybe_do_lookup( $cart ) {
+	if ( WT_CALC_TAXES ) {
+		$checkout = new WC_WooTax_Checkout( $cart );
+	}
 }
 
-add_action( 'woocommerce_calculate_totals', 'wootax_start_lookup', 10, 1 );
+add_action( 'woocommerce_calculate_totals', 'wt_maybe_do_lookup', 10, 1 );

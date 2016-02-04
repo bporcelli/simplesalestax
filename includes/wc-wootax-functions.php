@@ -13,25 +13,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Determine if a given address needs to be validated
- *
- * @since 4.4
- * @param (string) $address_hash hashed address
- * @param (int) $order_id -1 during checkout, otherwise the current order ID.
- * @return (boolean) true or false
- */
-function address_needs_validation( $address_hash, $order_id = -1 ) {
-	if ( $order_id == -1 ) {
-		$validated_addresses = isset( WC()->session->validated_addresses ) ? WC()->session->validated_addresses : array();
-	} else {
-		$validated_addresses = get_post_meta( $order_id, '_wootax_validated_addresses', true );
-		$validated_addresses = !is_array( $validated_addresses ) ? array() : $validated_addresses;
-	}
-
-	return !array_key_exists( $address_hash, $validated_addresses );
-}
-
-/**
  * If the passed address has not been validated already, run it through
  * TaxCloud's VerifyAddress API
  *
@@ -44,26 +25,37 @@ function maybe_validate_address( $address, $order_id = -1 ) {
 	$hash = md5( json_encode( $address ) );
 
 	// Determine if validation is necessary
-	$needs_validate = address_needs_validation( $hash, $order_id );
-
 	if ( $order_id == -1 ) {
-		$validated_addresses = isset( WC()->session->validated_addresses ) ? WC()->session->validated_addresses : array();
+		$validated_addresses = WC()->session->get( 'validated_addresses', array() );
 	} else {
 		$validated_addresses = get_post_meta( $order_id, '_wootax_validated_addresses', true );
 		$validated_addresses = !is_array( $validated_addresses ) ? array() : $validated_addresses;
 	}
 
+	$needs_validate = !array_key_exists( $hash, $validated_addresses );
+
+	// Either validate address or return validated address
 	if ( !$needs_validate ) {
 		return $validated_addresses[ $hash ];
 	} else {
 		$final_address = $address;
 
+		// All array keys/values must be lowercase for validation to work properly
+		$address = array_map( 'strtolower', $address );
+		$address = array_change_key_case( $address );
+
+		// Unset country field; persist for later restoration
+		$country = '';
+		
+		if ( isset( $address['country'] ) ) {
+			$country = $address['country'];
+			unset( $address['country'] );
+		}
+
 		$usps_id = WC_WooTax::get_option( 'usps_id' );
 
 		if ( $usps_id ) {
-			// Prepare address array by changing all keys/values to lower case and specifying USPS ID
-			$address = array_change_key_case( array_map( 'strtolower', $address ) );
-			$address['uspsUserID'] = $usps_id;
+			$address['uspsUserID'] = $usps_id; // USPS Web Tools ID is required for calls to VerifyAddress
 
 			$res = TaxCloud()->send_request( 'VerifyAddress', $address );
 
@@ -72,10 +64,10 @@ function maybe_validate_address( $address, $order_id = -1 ) {
 				unset( $res->ErrNumber );
 				unset( $res->ErrDescription );
 
-				if ( !isset( $res->Country ) ) {
-					$res->Country = $address['country'];
-				}
+				// Restore Country field
+				$res->Country = $country;
 
+				// Restore address field
 				if ( !isset( $res->Address2 ) ) {
 					$res->Address2 = '';
 				}
@@ -89,7 +81,7 @@ function maybe_validate_address( $address, $order_id = -1 ) {
 
 		// Store validated addresses in session or order meta depending on context
 		if ( $order_id == -1 ) {
-			WC()->session->validated_addresses = $validated_addresses;
+			WC()->session->set( 'validated_addresses', $validated_addresses );
 		} else {
 			update_post_meta( $order_id, '_wootax_validated_addresses', $validated_addresses );
 		}
@@ -169,7 +161,7 @@ function get_formatted_address( $address ) {
  * @since 4.2
  * @return (string) order ID
  */
-function wootax_generate_order_id() {
+function wootax_generate_order_id() { 
 	return md5( $_SERVER['REMOTE_ADDR'] . microtime() );
 }
 
@@ -235,6 +227,22 @@ function wootax_is_valid_address( $address, $dest = false ) {
 		return false;
 		
 	return true;
+}
+
+/**
+ * Get user roles for Exempt Roles select
+ *
+ * @since 4.3
+ * @return (array) an array of all registered user roles
+ */
+function wootax_get_user_roles() {
+	global $wp_roles;
+
+	if ( ! isset( $wp_roles ) ) {
+	    $wp_roles = new WP_Roles();
+	}
+
+	return $wp_roles->get_names();
 }
 
 /**

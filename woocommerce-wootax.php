@@ -22,6 +22,10 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @package WooTax
+ * @author  Brett Porcelli
+ * @since   4.2
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -38,7 +42,7 @@ require 'includes/wc-wootax-messages.php';
 
 /**
  * The main WooTax class
- * Handles plugin activation routine and a few miscellaneous tasks
+ * Handles plugin activation/deactivation routines and a few miscellaneous tasks
  * 
  * @since 4.2
  */
@@ -106,7 +110,9 @@ class WC_WooTax {
 		self::define( 'WT_SHIPPING_ITEM', 'SHIPPING' );
 		self::define( 'WT_FEE_TIC', apply_filters( 'wootax_fee_tic', 10010 ) );
 		self::define( 'WT_RATE_ID', get_option( 'wootax_rate_id' ) );
+		self::define( 'WT_CALC_TAXES', self::should_calc_taxes() );
 		self::define( 'WT_DEFAULT_ADDRESS', WC_WooTax::get_option( 'default_address' ) == false ? 0 : WC_WooTax::get_option( 'default_address' ) );
+		self::define( 'WT_SUBS_ACTIVE', class_exists( 'WC_Subscriptions' ) );
 		self::define( 'WT_LOG_REQUESTS', WC_WooTax::get_option( 'log_requests' ) == 'no' ? false : true );
 	}
 
@@ -142,7 +148,7 @@ class WC_WooTax {
 	 * @return bool
 	 * @see WooCommerce->is_request()
 	 */
-	public static function is_request( $type ) {
+	private static function is_request( $type ) {
 		switch ( $type ) {
 			case 'admin' :
 				return is_admin();
@@ -167,33 +173,47 @@ class WC_WooTax {
 
 		// Used on frontend
 		if ( self::is_request( 'frontend' ) ) {
+			if ( WC_WooTax::get_option( 'show_exempt' ) == 'true' ) {
+				require 'includes/wc-wootax-exemptions-frontend.php';
+			}
+
+			if ( WT_SUBS_ACTIVE ) {
+				require 'includes/wc-wootax-subscriptions-frontend.php';
+			}
+			
 			require 'classes/class-wc-wootax-checkout.php';
 		}
 		
+		// Everywhere
+		if ( self::is_request( 'frontend' ) || self::is_request( 'admin' ) || self::is_request( 'ajax' ) || self::is_request( 'cron' ) ) {
+			require 'includes/wc-wootax-exemptions.php';
+
+			if ( WT_SUBS_ACTIVE ) {
+				require 'includes/wc-wootax-subscriptions.php';
+			}
+		}
+
 		// Frontend and admin panel
 		if ( self::is_request( 'frontend' ) || self::is_request( 'admin' ) || self::is_request( 'cron' ) ) {
 			require 'classes/class-wc-wootax-order.php';
 			require 'classes/class-wt-orders.php';
+
+			if ( WT_SUBS_ACTIVE ) {
+				require 'classes/class-wc-wootax-subscriptions.php';
+			}
+
+			require 'includes/wc-wootax-cron-tasks.php';
 		}
 
 		// Strictly admin panel
 		if ( self::is_request( 'admin' ) ) {
 			require 'classes/class-wc-wootax-upgrade.php';
 			require 'classes/class-wc-wootax-settings.php';
-
-			if ( ! class_exists( 'WC_WooTax_API' ) ) {
-				require 'classes/class-wc-wootax-api.php';
-			}
-			
 			require 'classes/class-wc-wootax-admin.php';
 			require 'classes/class-wc-wootax-refund.php';
-			
-			if ( ! class_exists( 'WC_WooTax_Plugin_Updater' ) ) {
-				require 'classes/class-wc-wootax-plugin-updater.php';
-			}
+			require 'classes/WT_Plugin_Updater.php';
+			require 'includes/wc-wootax-subscriptions-admin.php';
 		}
-
-		do_action( 'wootax_includes' );
 	}
 
 	/**
@@ -204,6 +224,17 @@ class WC_WooTax {
 	public static function activate_wootax() {
 		self::configure_woocommerce();
 		self::maybe_add_wootax_rate();
+		self::add_exempt_user_role();
+		self::schedule_wootax_events();
+	}
+
+	/**
+	 * Run the WooTax deactivation routine
+	 *
+	 * @since 4.4
+	 */
+	public static function deactivate_wootax() {
+		self::unschedule_wootax_events();
 	}
 
 	/**
@@ -225,7 +256,7 @@ class WC_WooTax {
 		update_option( 'woocommerce_tax_total_display', 'itemized' );
 		
 		// Confirm activation with user
-		wootax_add_message( '<strong>Success!</strong> Your WooCommerce tax settings have been automatically adjusted to work with WooTax.', 'updated', true );
+		wootax_add_message( '<strong>Success!</strong> Your WooCommerce tax settings have been automatically adjusted to work with WooTax.', 'updated', 'activated', true, true );
 	}
 	
 	/**
@@ -302,14 +333,15 @@ class WC_WooTax {
 
 		// Add new rate 
 		$_tax_rate = array(
+			'tax_rate_id'       => 0,
 			'tax_rate_country'  => 'WOOTAX',
 			'tax_rate_state'    => 'RATE',
 			'tax_rate'          => 0,
 			'tax_rate_name'     => 'DO-NOT-REMOVE',
-			'tax_rate_priority' => NULL,
-			'tax_rate_compound' => true,
-			'tax_rate_shipping' => NULL,
-			'tax_rate_order'    => NULL,
+			'tax_rate_priority' => 0,
+			'tax_rate_compound' => 1,
+			'tax_rate_shipping' => 1,
+			'tax_rate_order'    => 0,
 			'tax_rate_class'    => 'standard',
 		);
 
@@ -321,19 +353,67 @@ class WC_WooTax {
 	}
 
 	/**
+	 * Adds a user role for tax exempt customers
+	 * Role is an exact copy of the "Customer" role
+	 *
+	 * @since 4.3
+	 */
+	public static function add_exempt_user_role() {
+		add_role( 'exempt-customer', __( 'Exempt Customer', 'woocommerce' ), array(
+			'read' 			=> true,
+			'edit_posts' 	=> false,
+			'delete_posts' 	=> false,
+		) );
+	}
+
+	/**
+	 * Schedule events for the WooTax order checker and recurring payments updater
+	 *
+	 * @since 4.4
+	 */
+	public static function schedule_wootax_events() {
+		// Updates recurring tax amounts if necessary
+		wp_schedule_event( time(), 'twicedaily', 'wootax_update_recurring_tax' );
+	}
+
+	/**
+	 * Unschedule events for the WooTax order checker and recurring payments updater
+	 * Hooks to be cleared are wootax_update_recurring_tax
+	 *
+	 * @since 4.4
+	 */
+	public static function unschedule_wootax_events() {
+		wp_clear_scheduled_hook( 'wootax_update_recurring_tax' );
+	}
+
+	/**
 	 * Maybe check for updates
 	 * Runs if we are serving an admin request and EDD_SL_Plugin_Updater is accessible
 	 *
 	 * @since 4.4
 	 */
 	private static function maybe_check_updates() {
-		if ( ! self::is_request( 'admin' ) || ! class_exists( 'WT_Plugin_Updater' ) ) {
+		if ( !self::is_request( 'admin' ) || !class_exists( 'WT_Plugin_Updater' ) ) {
 			return;
 		}
 
-		$wt_updater = new WC_WooTax_Plugin_Updater( 'https://wootax.com', __FILE__, array( 
+		$wt_updater = new WT_Plugin_Updater( 'https://wootax.com', __FILE__, array( 
 			'version' => WT_VERSION, // current version number
 		) );
+	}
+
+	/**
+	 * Return true if taxes are enabled
+	 *
+	 * @since 4.6
+	 * @return bool
+	 */
+	private static function should_calc_taxes() {
+		if ( function_exists( 'wc_taxes_enabled' ) ) {
+			return wc_taxes_enabled();
+		} else {
+			return apply_filters( 'wc_tax_enabled', get_option( 'woocommerce_calc_taxes' ) == 'yes' );
+		}
 	}
 
 	/**
@@ -378,3 +458,6 @@ add_action( 'plugins_loaded', array( 'WC_WooTax', 'init' ) );
 
 // Activation routine
 register_activation_hook( __FILE__, array( 'WC_WooTax', 'activate_wootax' ) );
+
+// Deactivation routine
+register_deactivation_hook( __FILE__, array( 'WC_WooTax', 'deactivate_wootax' ) );
