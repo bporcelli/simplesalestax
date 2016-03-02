@@ -75,8 +75,8 @@ class WT_Orders {
 			add_action( 'woocommerce_order_add_tax', array( __CLASS__, 'add_order_tax_rate' ), 12, 3 );
 		}
 
-		// Maybe capture an order immediately after checkout
-		add_action( 'woocommerce_checkout_update_order_meta', array( __CLASS__, 'maybe_capture_order' ), 15, 1 );
+		// If "Capture Orders Immediately" is enabled, capture orders when payment is complete
+		add_action( 'woocommerce_payment_complete', array( __CLASS__, 'maybe_capture_order' ), 15, 1 );
 
 		// Add WooTax meta when order is created or resumed
 		add_action( 'woocommerce_new_order', array( __CLASS__, 'add_order_meta' ), 10, 1 );

@@ -223,7 +223,7 @@ class WC_WooTax_Settings extends WC_Integration {
 				'label'       => ' ',
 				'type' 		  => 'checkbox',
 				'default'     => 'no',
-				'description' => __( 'By default, orders are marked as Captured in TaxCloud when they are shipped. Select this option to mark orders as Captured immediately after checkout. Useful for stores that have items with long lead times.', 'woocommerce-wootax' ),
+				'description' => __( 'By default, orders are marked as Captured in TaxCloud when they are shipped. Select this option to mark orders as Captured immediately after payment is complete.', 'woocommerce-wootax' ),
 				'desc_tip'    => true,
 			),
 			'tax_based_on' => array(
