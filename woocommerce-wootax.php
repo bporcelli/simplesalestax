@@ -4,7 +4,7 @@
  * Plugin Name: WooTax
  * Plugin URI: https://wootax.com
  * Description: Harness the power of TaxCloud to accurately calculate sales tax for your WooCommerce store.
- * Version: 4.6
+ * Version: 4.7
  * Author: The WooTax Corporation
  * Author URI: https://wootax.com
  *
@@ -48,7 +48,7 @@ require 'includes/wc-wootax-messages.php';
  */
 class WC_WooTax {
 	/** Current plugin version */
-	private static $version = 4.6;
+	private static $version = 4.7;
 
 	/** Key of option where plugin settings are stored */
 	private static $settings_key = 'woocommerce_wootax_settings';

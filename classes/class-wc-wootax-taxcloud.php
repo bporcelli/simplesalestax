@@ -72,16 +72,22 @@ class WC_WooTax_TaxCloud {
 	 * @param $login_id 
 	 */
 	public function __construct() {
-		// Instantiate SoapClient
-		$this->client = new SoapClient( $this->tc_endpoint, array( 
-			'trace' => true, 
-			'soap_version' => SOAP_1_2 
-		) ); 
-
 		// Set up logger
 		if ( WT_LOG_REQUESTS ) {
 			$this->logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : $woocommerce->logger();
 		}
+
+		// Instantiate SoapClient
+	    try {
+	    	$this->client = new SoapClient( $this->tc_endpoint, array( 
+				'trace' => true, 
+				'soap_version' => SOAP_1_2,
+				'cache_wsdl' => WSDL_CACHE_NONE
+			) ); 
+	    } catch ( Exception $e ) {
+	    	// TODO: How to better handle this?
+	    	die( 'WooTax could not construct a SoapClient object: ' . $e->getMessage() );
+	    }
 	}
 	
 	/**
