@@ -12,7 +12,7 @@ global $current_tic, $tic_list, $product_id, $is_variation;
 $field = "wootax_set_tic_" . $product_id; 
 
 if ( $is_variation ) {
-	$label = 'TIC: <a href="https://taxcloud.net/tic/default.aspx" target="_blank">View Full List</a>';
+	$label = 'TIC: <a href="https://simplesalestax.com/taxcloud/tics/" target="_blank">View Full List</a>';
 	$class = 'form-row form-row-full';
 } else {
 	$label = 'TIC';
@@ -26,7 +26,7 @@ if ( $is_variation ) {
 	
 	<?php if ( !$is_variation ): ?>
 	<span class="description">
-		<a href="https://taxcloud.net/tic/default.aspx" target="_blank">View Full List</a>
+		<a href="https://simplesalestax.com/taxcloud/tics/" target="_blank">View Full List</a>
 	</span>
 	<?php endif; ?>
 
