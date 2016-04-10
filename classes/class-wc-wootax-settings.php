@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
  
 if ( ! class_exists( 'WC_WooTax_Settings' ) ) :
- 
+
 class WC_WooTax_Settings extends WC_Integration { 
 	/**
 	 * Init and hook in the integration.
@@ -438,10 +438,10 @@ class WC_WooTax_Settings extends WC_Integration {
  	 */
  	public function sanitize_settings( $settings ) {
  		// Prevent this from running except on the main settings page
- 		if ( isset( $_POST['wootax_address1'] ) ) {
+ 		if ( isset( $_POST[ 'wootax_address1' ] ) ) {
 	 		// Fetch all addresses and dump into array
 	 		$new_addresses = array();
-			$address_count = count( $_POST['wootax_address1'] );
+			$address_count = count( $_POST[ 'wootax_address1' ] );
 
 			for( $i = 0; $i < $address_count; $i++ ) {
 				$address = array(
@@ -457,50 +457,36 @@ class WC_WooTax_Settings extends WC_Integration {
 				$new_addresses[] = $address;
 			}
 
-			$taxcloud_id  = trim( $_POST['woocommerce_wootax_tc_id'] );
-			$taxcloud_key = trim( $_POST['woocommerce_wootax_tc_key'] );
-			$usps_id      = trim( $_POST['woocommerce_wootax_usps_id'] );
+			$usps_id  = trim( $_POST['woocommerce_wootax_usps_id'] );
 
 			// Validate addresses using USPS Web Tools API if possible
-			if ( $taxcloud_id && $taxcloud_key && $usps_id ) {
-				$taxcloud = TaxCloud( $taxcloud_id, $taxcloud_key );
-				
+			if ( $usps_id ) {
 				foreach ( $new_addresses as $key => $address ) {
-					$req = array(
-						'uspsUserID' => $usps_id, 
-						'address1'   => strtolower( $address['address_1'] ), 
-						'address2'   => strtolower( $address['address_2'] ), 
-						'city'       => $address['city'], 
-						'state'      => $address['state'], 
-						'zip5'       => $address['zip5'], 
-						'zip4'       => $address['zip4'],
-					);
-
-					// Attempt to verify address 
-					$response = $taxcloud->send_request( 'VerifyAddress', $req );
-
-					if ( $response !== false ) {
-						$new_address = array();
-
-						$properties = array(
-							'Address1' => 'address_1', 
-							'Address2' => 'address_2',
-							'City'     => 'city',
-							'State'    => 'state',
-							'Zip5'     => 'zip5',
-							'Zip4'     => 'zip4'
+					try {
+						$new_address = new \TaxCloud\Address(
+							$address[ 'address_1' ],
+							$address[ 'address_2' ],
+							$address[ 'city' ],
+							$address[ 'state' ],
+							$address[ 'zip5' ],
+							$address[ 'zip4' ]
 						);
 
-						foreach ( $properties as $property => $k ) {
-							if ( isset( $response->$property ) ) {
-								$new_address[ $k ] = $response->$property;
-							}
-						}
+						$client = new \TaxCloud\Client();
+						$request = new \TaxCloud\Request\VerifyAddress( $usps_id, $new_address );
 
-						// Reset country field
-						$new_address['country'] = 'US';
-						
-						$new_addresses[ $key ] = $new_address;			
+						$new_address = $client->VerifyAddress( $request );
+
+						$new_addresses[ $key ] = array(
+							'address_1' => $new_address->getAddress1(),
+							'address_2' => $new_address->getAddress2(),
+							'city' 		=> $new_address->getCity(),
+							'state'		=> $new_address->getState(),
+							'zip5'		=> $new_address->getZip5(),
+							'zip4'		=> $new_address->getZip4(),
+						);
+					} catch ( Exception $e ) {
+						// Address validation failed; leave address as is
 					}
 				}
 			}
@@ -578,21 +564,20 @@ class WC_WooTax_Settings extends WC_Integration {
 	 * @return (boolean) true or an error message on failure
 	 */
 	public static function verify_taxcloud_settings() {
-		$taxcloud_id  = $_POST['wootax_tc_id'];
-		$taxcloud_key = $_POST['wootax_tc_key'];
+		$taxcloud_id  = sanitize_text_field( $_POST[ 'wootax_tc_id' ] );
+		$taxcloud_key = sanitize_text_field( $_POST[ 'wootax_tc_key' ] );
 
 		if ( empty( $taxcloud_id ) || empty( $taxcloud_key ) ) {
 			die( false );
 		} else {
-			$taxcloud = TaxCloud( $taxcloud_id, $taxcloud_key );
-	
-			// Send ping request and check for errors
-			$response = $taxcloud->send_request( 'Ping' );
+			$client = new \TaxCloud\Client();
+			$ping_params = new \TaxCloud\Request\Ping( $taxcloud_id, $taxcloud_key );
 
-			if ( $response == false ) {
-				die( $taxcloud->get_error_message() );
-			} else {
+			try {
+				$client->Ping( $ping_params );
 				die( true );
+			} catch ( Exception $e ) {
+			  	die( $e->getMessage() );
 			}
 		}
 	}

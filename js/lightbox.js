@@ -93,7 +93,7 @@ var certManagerBox = {
             var date = certManagerBox.parseDate( certObj[i].Detail.CreatedDate );
 
             newHTML += '<tr id="' + certObj[i].CertificateID + '" data-ind="' + i + '" class="certificateWrap">';
-            newHTML += '<td valign="middle" align="center" width="160"><img width="150" height="120" src="' + (certObj[i].Detail.SinglePurchase == false ? window.parent.wt_exempt_params.pluginPath + 'img/exemption_certificate150x120.png' : window.parent.wt_exempt_params.pluginPath + 'img/sp_exemption_certificate_150x120.png') + '" /></td>';
+            newHTML += '<td valign="middle" align="center" width="160"><img width="150" height="120" src="' + (certObj[i].Detail.SinglePurchase == false ? window.parent.wt_exempt_params.pluginPath + '/img/exemption_certificate150x120.png' : window.parent.wt_exempt_params.pluginPath + '/img/sp_exemption_certificate_150x120.png') + '" /></td>';
             newHTML += '<td valign="middle" width="340">Issued To: ' + certObj[i].Detail.PurchaserFirstName + ' ' + certObj[i].Detail.PurchaserLastName + '<br /> Exempt State(s): ' + certObj[i].Detail.ExemptStates.ExemptState.StateAbbr + '<br /> Date: ' + (parseInt(date.getMonth()) + 1) + '/' + date.getDate() + '/' + date.getFullYear() + '<br /> Purpose: ' + certManagerBox.getPrettyWord( certObj[i].Detail.PurchaserExemptionReason ) + '<br />' + certManagerBox.displayCertOptions( certObj[i] ) + '</td>';
             newHTML += '</tr>'
         }
@@ -125,7 +125,7 @@ var certManagerBox = {
         jQuery( '.certID' ).text( cert.CertificateID );
 
         if ( cert.Detail.SinglePurchase == true )
-            jQuery( '#certificatePreview' ).css( 'background-image', 'url(' + window.parent.wt_exempt_params.pluginPath + 'img/sp_exemption_certificate_750x600.png)' )
+            jQuery( '#certificatePreview' ).css( 'background-image', 'url(' + window.parent.wt_exempt_params.pluginPath + '/img/sp_exemption_certificate_750x600.png)' )
 
         jQuery( '#PurchaserName' ).text( cert.Detail.PurchaserFirstName + ' ' + cert.Detail.PurchaserLastName );
         jQuery( '#PurchaserAddress' ).text( cert.Detail.PurchaserAddress1 + ', ' + cert.Detail.PurchaserCity + ', ' + cert.Detail.PurchaserState + ' ' + cert.Detail.PurchaserZip );

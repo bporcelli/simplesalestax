@@ -441,7 +441,7 @@ add_action( 'init', 'maybe_apply_exemption_certificate' );
  * @since 1.0
  */
 function ajax_load_exemption_template() {
-	$template = urldecode( $_GET['template'] );
+	$template = urldecode( $_GET[ 'template' ] );
 
 	// Parse out query string
 	$querystr = "";
@@ -455,6 +455,7 @@ function ajax_load_exemption_template() {
 	// Use cURL to load file contents (not sure how else to support query strings)
 	$ch = curl_init( SST()->plugin_url() . '/templates/lightbox/' . $template . '.php' . $querystr );
 	curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+	curl_setopt( $ch, CURLOPT_USERAGENT, 'Simple Sales Tax' );
 	$content = curl_exec( $ch );
 	curl_close( $ch );
 

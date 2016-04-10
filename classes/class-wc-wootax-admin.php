@@ -46,7 +46,7 @@ final class WC_WooTax_Admin {
 		add_action( 'save_post', array( __CLASS__, 'save_product_meta' ) );
 
 		// Add "settings" link to plugins page
-		add_filter( 'plugin_action_links_' . plugin_basename( SST()->plugin_path() ), array( __CLASS__, 'add_settings_link' ) );
+		add_filter( 'plugin_action_links_' . plugin_basename( SST()->plugin_path() . '/simplesalestax.php' ), array( __CLASS__, 'add_settings_link' ) );
 
 		// Allow for bulk editing of TICs
 		add_action( 'woocommerce_product_bulk_edit_start', array( __CLASS__, 'output_bulk_edit_fields' ) );

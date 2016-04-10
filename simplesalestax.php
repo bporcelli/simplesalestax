@@ -106,7 +106,10 @@ final class WC_WooTax {
 	public function __construct() {
 		$this->define_constants();
 		$this->hooks();
-		$this->includes();
+
+		if ( $this->has_dependencies() ) {
+			$this->includes();			
+		}
 	}
 
 	/**
@@ -184,6 +187,7 @@ final class WC_WooTax {
 		// Used for all request types
 		require_once 'includes/wc-wootax-functions.php';
 		require_once 'classes/class-wc-wootax-taxcloud.php';
+		require_once 'lib/php-taxcloud.php';
 		require_once 'includes/wc-wootax-exemptions.php';
 
 		if ( WT_SUBS_ACTIVE ) {
@@ -191,7 +195,7 @@ final class WC_WooTax {
 		}
 
 		// Used on frontend
-		if ( $this->is_request( 'frontend' ) && ! $this->is_request( 'ajax' ) ) {
+		if ( $this->is_request( 'frontend' ) ) {
 			$this->frontend_includes();
 		}
 
