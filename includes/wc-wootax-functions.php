@@ -377,3 +377,19 @@ function wootax_tip( $tip ) {
 		<img class="help_tip" data-tip="<?php echo $tip; ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" height="16" width="16" /> <?php
 	}
 }
+
+/**
+ * Return the user's TaxCloud API ID
+ * @return string
+ */
+function get_taxcloud_id() {
+	return SST()->get_option( 'tc_id' );
+}
+
+/**
+ * Return the user's TaxCloud API Key
+ * @return string
+ */
+function get_taxcloud_key() {
+	return SST()->get_option( 'tc_key' );
+}

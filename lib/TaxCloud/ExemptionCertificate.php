@@ -26,7 +26,7 @@
 
 namespace TaxCloud;
 
-class ExemptionCertificate
+class ExemptionCertificate implements \JsonSerializable
 {
   private $CertificateID; // string
   private $Detail; // ExemptionCertificateDetail
@@ -61,5 +61,12 @@ class ExemptionCertificate
   public function getDetail()
   {
     return $this->Detail;
+  }
+
+  public function jsonSerialize() {
+    $object = new \stdClass();
+    $object->CertificateID = $this->CertificateID;
+    $object->Detail = $this->Detail;
+    return $object;
   }
 }

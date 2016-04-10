@@ -292,79 +292,98 @@ function get_user_exemption_certs( $user_login ) {
 		return array();
 	}
 
-	// Send GetExemptCertificates request
-	$response = TaxCloud()->send_request( 'GetExemptCertificates', array( 'customerID' => $user_login ) );
+	$tc_id = get_taxcloud_id();
+	$tc_key = get_taxcloud_key();
+	$client = new \TaxCloud\Client();
+	$request = new \TaxCloud\Request\GetExemptCertificates( $tc_id, $tc_key, $user_login );
 
-	if ( $response !== false ) {
-		$certificate_result = is_object( $response->ExemptCertificates ) && isset( $response->ExemptCertificates->ExemptionCertificate ) ? $response->ExemptCertificates->ExemptionCertificate : NULL;
+	try {
+		$result = $client->GetExemptCertificates( $request );
+		$certificates = $result->getExemptCertificatesResult()->getExemptCertificates();
 
-		$final_certificates = array();
-		
-		if ( $certificate_result != NULL ) {
-			// Convert response to array if only a single certificate is returned
-			if ( !is_array( $certificate_result ) ) {
-				$certificate_result = array( $certificate_result );
-			}
-
-			// Dump certificates into object to be returned to client
-			$certificates = $duplicates = array();
-
-			if ( is_array( $certificate_result ) ) {
-				foreach ( $certificate_result as $certificate ) {
-					// Add this certificate to the cert_list array
-					$certificates[] = $certificate;
-
-					// Add single purchase certificates to duplicate array
-					if ( $certificate->Detail->SinglePurchase == 1 ) {
-						$order_number = $certificate->Detail->SinglePurchaseOrderNumber;
-
-						if ( !isset( $duplicates[$order_number] ) || !is_array( $duplicates[$order_number] ) ) {
-							$duplicates[$order_number] = array();
-						}
-
-						$duplicates[$order_number][] = $certificate->CertificateID;
-					}
-				}
-			}
-
-			// Isolate single certificates that should be kept
-			if ( count( $duplicates ) > 0 ) {
-				foreach ( $duplicates as &$dupes ) {
-					if ( count( $dupes ) > 1 ) {
-						$x = count( $dupes );
-
-						while( count( $dupes ) > 1 ) {
-							unset( $dupes[$x] );
-							$x--;
-						}
-					}
-				}
-			}
-
-			// Loop through cert_list and construct filtered cert_list array (duplicate single certificates removed)
-			foreach ( $certificates as $cert ) {
-				if ( !is_object( $cert ) ) {
-					continue;
-				}
-
-				$keep = false;
-
-				if ( $cert->Detail->SinglePurchase == true && is_array( $duplicates[$cert->Detail->SinglePurchaseOrderNumber] ) && in_array( $cert->CertificateID, $duplicates[$cert->Detail->SinglePurchaseOrderNumber] ) ) {
-					$keep = true;
-				} elseif ( $cert->Detail->SinglePurchase == true && !is_array( $duplicates[$cert->Detail->SinglePurchaseOrderNumber] ) || $cert->Detail->SinglePurchase == false ) {
-					$keep = true;
-				} 
-
-				if ( $keep ) {
-					$final_certificates[] = $cert;
-				}
-			}
+		if ( is_array( $certificates->ExemptionCertificate ) ) {
+			return $certificates->ExemptionCertificate;
+		} else {
+			return array( $certificates->ExemptionCertificate );
 		}
-
-		return $final_certificates;
-	} else {
+	} catch ( Exception $e ) {
+		// Could not fetch certs; return empty array
 		return array();
 	}
+
+	// Send GetExemptCertificates request
+	// $response = TaxCloud()->send_request( 'GetExemptCertificates', array( 'customerID' => $user_login ) );
+
+	// if ( $response !== false ) {
+	// 	$certificate_result = is_object( $response->ExemptCertificates ) && isset( $response->ExemptCertificates->ExemptionCertificate ) ? $response->ExemptCertificates->ExemptionCertificate : NULL;
+
+	// 	$final_certificates = array();
+		
+	// 	if ( $certificate_result != NULL ) {
+	// 		// Convert response to array if only a single certificate is returned
+	// 		if ( !is_array( $certificate_result ) ) {
+	// 			$certificate_result = array( $certificate_result );
+	// 		}
+
+	// 		// Dump certificates into object to be returned to client
+	// 		$certificates = $duplicates = array();
+
+	// 		if ( is_array( $certificate_result ) ) {
+	// 			foreach ( $certificate_result as $certificate ) {
+	// 				// Add this certificate to the cert_list array
+	// 				$certificates[] = $certificate;
+
+	// 				// Add single purchase certificates to duplicate array
+	// 				if ( $certificate->Detail->SinglePurchase == 1 ) {
+	// 					$order_number = $certificate->Detail->SinglePurchaseOrderNumber;
+
+	// 					if ( !isset( $duplicates[$order_number] ) || !is_array( $duplicates[$order_number] ) ) {
+	// 						$duplicates[$order_number] = array();
+	// 					}
+
+	// 					$duplicates[$order_number][] = $certificate->CertificateID;
+	// 				}
+	// 			}
+	// 		}
+
+	// 		// Isolate single certificates that should be kept
+	// 		if ( count( $duplicates ) > 0 ) {
+	// 			foreach ( $duplicates as &$dupes ) {
+	// 				if ( count( $dupes ) > 1 ) {
+	// 					$x = count( $dupes );
+
+	// 					while( count( $dupes ) > 1 ) {
+	// 						unset( $dupes[$x] );
+	// 						$x--;
+	// 					}
+	// 				}
+	// 			}
+	// 		}
+
+	// 		// Loop through cert_list and construct filtered cert_list array (duplicate single certificates removed)
+	// 		foreach ( $certificates as $cert ) {
+	// 			if ( !is_object( $cert ) ) {
+	// 				continue;
+	// 			}
+
+	// 			$keep = false;
+
+	// 			if ( $cert->Detail->SinglePurchase == true && is_array( $duplicates[$cert->Detail->SinglePurchaseOrderNumber] ) && in_array( $cert->CertificateID, $duplicates[$cert->Detail->SinglePurchaseOrderNumber] ) ) {
+	// 				$keep = true;
+	// 			} elseif ( $cert->Detail->SinglePurchase == true && !is_array( $duplicates[$cert->Detail->SinglePurchaseOrderNumber] ) || $cert->Detail->SinglePurchase == false ) {
+	// 				$keep = true;
+	// 			} 
+
+	// 			if ( $keep ) {
+	// 				$final_certificates[] = $cert;
+	// 			}
+	// 		}
+	// 	}
+
+	// 	return $final_certificates;
+	// } else {
+	// 	return array();
+	// }
 }
 
 /**
@@ -380,10 +399,12 @@ function ajax_list_exemption_certificates() {
 
 	if ( $customer_id ) {
 		$certificates = get_user_exemption_certs( $customer_id );
-
+		
 		if ( count( $certificates ) > 0 ) {
 			$final_certificates = new stdClass();
 			$final_certificates->cert_list = $certificates;
+
+			// die(print_r($final_certificates));
 
 			// Convert to JSON and return
 			die( json_encode( $final_certificates ) );

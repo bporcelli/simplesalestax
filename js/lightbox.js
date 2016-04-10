@@ -87,6 +87,7 @@ var certManagerBox = {
         jQuery( '#certs' ).html('');
 
         var certObj = certManagerBox.certManager.certificates;
+        console.log(certObj);
         var newHTML = '';
 
         for ( var i = 0; i < certObj.length; i++ ) {

@@ -26,7 +26,7 @@
 
 namespace TaxCloud;
 
-class TaxID
+class TaxID implements \JsonSerializable
 {
   private $TaxType; // TaxIDType
   private $IDNumber; // string
@@ -67,5 +67,13 @@ class TaxID
   public function getStateOfIssue()
   {
     return $this->StateOfIssue;
+  }
+
+  public function jsonSerialize() {
+    $object = new \stdClass();
+    $object->TaxType = $this->TaxType;
+    $object->IDNumber = $this->IDNumber;
+    $object->StateOfIssue = $this->StateOfIssue;
+    return $object;
   }
 }

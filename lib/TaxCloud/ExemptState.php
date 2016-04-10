@@ -26,7 +26,7 @@
 
 namespace TaxCloud;
 
-class ExemptState
+class ExemptState implements \JsonSerializable
 {
   private $StateAbbr; // State
   private $ReasonForExemption; // string
@@ -67,5 +67,13 @@ class ExemptState
   public function getIdentificationNumber()
   {
     return $this->IdentificationNumber;
+  }
+
+  public function jsonSerialize() {
+    $object = new \stdClass();
+    $object->StateAbbr = $this->StateAbbr;
+    $object->ReasonForExemption = $this->ReasonForExemption;
+    $object->IdentificationNumber = $this->IdentificationNumber;
+    return $object;
   }
 }

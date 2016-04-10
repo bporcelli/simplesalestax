@@ -29,7 +29,7 @@ namespace TaxCloud;
 use TaxCloud\BusinessType;
 use TaxCloud\ExemptionReason;
 
-class ExemptionCertificateDetail
+class ExemptionCertificateDetail implements \JsonSerializable
 {
   private $ExemptStates; // ArrayOfExemptState
   private $SinglePurchase; // boolean
@@ -238,5 +238,27 @@ class ExemptionCertificateDetail
   public function getCreatedDate()
   {
     return $this->CreatedDate;
+  }
+
+  public function jsonSerialize() {
+    $object = new \stdClass();
+    $object->ExemptStates = $this->ExemptStates;
+    $object->SinglePurchase = $this->SinglePurchase;
+    $object->SinglePurchaseOrderNumber = $this->SinglePurchaseOrderNumber;
+    $object->PurchaserFirstName = $this->PurchaserFirstName;
+    $object->PurchaserLastName = $this->PurchaserLastName;
+    $object->PurchaserTitle = $this->PurchaserTitle;
+    $object->PurchaserAddress1 = $this->PurchaserAddress1;
+    $object->PurchaserAddress2 = $this->PurchaserAddress2;
+    $object->PurchaserCity = $this->PurchaserCity;
+    $object->PurchaserState = $this->PurchaserState;
+    $object->PurchaserZip = $this->PurchaserZip;
+    $object->PurchaserTaxID = $this->PurchaserTaxID;
+    $object->PurchaserBusinessType = $this->PurchaserBusinessType;
+    $object->PurchaserBusinessTypeOtherValue = $this->PurchaserBusinessTypeOtherValue;
+    $object->PurchaserExemptionReason = $this->PurchaserExemptionReason;
+    $object->PurchaserExemptionReasonValue = $this->PurchaserExemptionReasonValue;
+    $object->CreatedDate = $this->CreatedDate;
+    return $object;
   }
 }
