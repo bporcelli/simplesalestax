@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @author Brett Porcelli
  */
 
-require SST()->plugin_path . 'classes/class-wt-exemption-certificate.php';
+require dirname( __FILE__) . '/../classes/class-wt-exemption-certificate.php';
 
 /**
  * Define JS meta in footer

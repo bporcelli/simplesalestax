@@ -70,7 +70,7 @@ final class WC_WooTax {
 	/**
 	 * @var WooTax The single instance of the WooTax class
 	 */
-	protected static $_instance;
+	protected static $_instance = null;
 
 	/**
 	 * Return the single WooTax instance
@@ -84,10 +84,26 @@ final class WC_WooTax {
 	}
 
 	/**
+	 * Cloning is forbidden.
+	 * @since 4.7
+	 */
+	public function __clone() {
+		_doing_it_wrong( __FUNCTION__, __( 'Cheatin&#8217; huh?', 'wootax' ), '4.7' );
+	}
+
+	/**
+	 * Unserializing instances of this class is forbidden.
+	 * @since 4.7
+	 */
+	public function __wakeup() {
+		_doing_it_wrong( __FUNCTION__, __( 'Cheatin&#8217; huh?', 'wootax' ), '4.7' );
+	}
+
+	/**
 	 * Plugin constructor
 	 * @since 4.7
 	 */
-	private function __construct() {
+	public function __construct() {
 		$this->define_constants();
 		$this->hooks();
 		$this->includes();
@@ -103,7 +119,7 @@ final class WC_WooTax {
 		$this->define( 'WT_SHIPPING_ITEM', 'SHIPPING' );
 		$this->define( 'WT_DEFAULT_FEE_TIC', 10010 );
 		$this->define( 'WT_RATE_ID', get_option( 'wootax_rate_id' ) );
-		//$this->define( 'WT_CALC_TAXES', $this->should_calc_taxes() );
+		$this->define( 'WT_CALC_TAXES', $this->should_calc_taxes() );
 		$this->define( 'WT_DEFAULT_ADDRESS', $this->get_option( 'default_address' ) == false ? 0 : $this->get_option( 'default_address' ) );
 		$this->define( 'WT_SUBS_ACTIVE', class_exists( 'WC_Subscriptions' ) );
 		$this->define( 'WT_LOG_REQUESTS', $this->get_option( 'log_requests' ) == 'no' ? false : true );
@@ -175,7 +191,7 @@ final class WC_WooTax {
 		}
 
 		// Used on frontend
-		if ( $this->is_request( 'frontend' ) ) {
+		if ( $this->is_request( 'frontend' ) && ! $this->is_request( 'ajax' ) ) {
 			$this->frontend_includes();
 		}
 
@@ -196,14 +212,14 @@ final class WC_WooTax {
 	 */
 	private function frontend_includes() {
 		if ( $this->get_option( 'show_exempt' ) == 'true' ) {
-			require 'includes/wc-wootax-exemptions-frontend.php';
+			require_once 'includes/wc-wootax-exemptions-frontend.php';
 		}
 
 		if ( WT_SUBS_ACTIVE ) {
-			require 'includes/wc-wootax-subscriptions-frontend.php';
+			require_once 'includes/wc-wootax-subscriptions-frontend.php';
 		}
 		
-		require 'classes/class-wc-wootax-checkout.php';
+		require_once 'classes/class-wc-wootax-checkout.php';
 	}
 
 	/**
@@ -389,14 +405,14 @@ final class WC_WooTax {
 	 *
 	 * @since 4.6
 	 * @return bool
-	 
+	 */
 	private static function should_calc_taxes() {
 		if ( function_exists( 'wc_taxes_enabled' ) ) {
 			return wc_taxes_enabled();
 		} else {
 			return apply_filters( 'wc_tax_enabled', get_option( 'woocommerce_calc_taxes' ) == 'yes' );
 		}
-	}*/
+	}
 
 	/**
 	 * Get the value of a WooTax option
@@ -407,10 +423,10 @@ final class WC_WooTax {
 	 */
 	public function get_option( $key ) {
 		if ( count( $this->settings ) == 0 || $this->settings_changed ) {
-			$this->settings = get_option( $this->settings_key );
+			$this->settings = get_option( self::$settings_key );
 			$this->settings_changed = false;
 		}
-		
+
 		if ( !isset( $this->settings[ $key ] ) || !$this->settings[ $key ] ) {
 			return false;
 		} else {
@@ -427,12 +443,20 @@ final class WC_WooTax {
 	 */
 	public function set_option( $key, $value ) {
 		if ( count( $this->settings ) == 0 ) {
-			$this->settings = get_option( $this->settings_key );
+			$this->settings = get_option( self::$settings_key );
 		}
 
 		$this->settings[ $key ] = $value;
 
-		update_option( $this->settings_key, $this->settings );
+		update_option( self::$settings_key, $this->settings );
+	}
+
+	/**
+	 * Mark settings as changed
+	 * @since 4.7
+	 */
+	public function settings_changed() {
+		$this->settings_changed = true;
 	}
 
 	/**

@@ -370,6 +370,10 @@ function wt_get_product_tic( $product_id, $variation_id = null ) {
  * @param (string) $tip - the tip to be displayed when the tooltip is hovered
  * @since 4.6
  */
-function wootax_tip( $tip ) { ?>
-	<img class="help_tip" data-tip="<?php echo $tip; ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" height="16" width="16" /> <?php
+function wootax_tip( $tip ) {
+	if ( function_exists( 'wc_help_tip' ) ) {
+		echo wc_help_tip( $tip );
+	} else { ?>
+		<img class="help_tip" data-tip="<?php echo $tip; ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" height="16" width="16" /> <?php
+	}
 }
