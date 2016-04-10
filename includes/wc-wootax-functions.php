@@ -4,12 +4,12 @@
  * wc-wootax-functions.php
  * Contains common methods
  *
- * @package WooTax
+ * @package Simple Sales Tax
  * @since 4.2
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Do not all direct access
+	exit; // Exit if accessed directly
 }
 
 /**

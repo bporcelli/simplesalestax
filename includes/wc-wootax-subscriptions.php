@@ -3,16 +3,17 @@
 /**
  * Core functions to enable WooCommerce Subscriptions support
  *
+ * @package Simple Sales Tax
  * @author Brett Porcelli
  * @since 1.0
  */
 
-// Exit if accessed directly
-if ( ! defined( 'ABSPATH' ) ) 
-	exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly
+}
 
 /**
- * Set cart_tax/shipping_tax meta for WooTax tax item
+ * Set cart_tax/shipping_tax meta for Simple Sales Tax tax item
  *
  * @param (int) $order_id - ID of order being created
  * @return void

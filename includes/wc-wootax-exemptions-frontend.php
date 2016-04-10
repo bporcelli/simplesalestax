@@ -1,8 +1,13 @@
 <?php
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly
+}
+
 /**
  * Frontend support for tax exemptions
  *
+ * @package Simple Sales Tax
  * @author Brett Porcelli
  */
 

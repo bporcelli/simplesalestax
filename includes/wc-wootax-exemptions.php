@@ -1,9 +1,13 @@
 <?php
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly
+}
+
 /**
  * Includes methods relevant to tax exemptions feature
  *
- * @package WooTax
+ * @package Simple Sales Tax
  * @since 4.2
  */
 

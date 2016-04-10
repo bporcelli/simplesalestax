@@ -1,18 +1,18 @@
 <?php
 
 /**
- * Helper methods for displaying WooTax admin messages
+ * Helper methods for displaying Simple Sales Tax admin messages
  *
- * @package WooTax
+ * @package Simple Sales Tax
  * @since 4.4
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Do not all direct access 
+	exit; // Exit if accessed directly
 }
 
 /**
- * Adds a WooTax admin message
+ * Adds a Simple Sales Tax admin message
  *
  * @since 4.4
  * @param (string) $content the message content
@@ -53,7 +53,7 @@ function wootax_add_message( $content, $type = "error", $id = "", $persistent = 
 }
 
 /**
- * Remove a persistent WooTax admin message
+ * Remove a persistent Simple Sales Tax admin message
  *
  * @since 4.4
  * @param (string) $id unique identifier for message to remove

@@ -1,6 +1,6 @@
 /**
  * TaxCloud exemption certificate manager
- * Part of the WooTax plugin by Brett Porcelli
+ * Part of the Simple Sales Tax plugin by Brett Porcelli
  */
 
 var certManager = {

@@ -1,15 +1,7 @@
 <?php
 
-/**
- * WooTax Subscriptions cronjobs
- *
- * @package WooTax Subscriptions
- * @author Brett Porcelli
- * @since 1.0
- */
-
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Do not all direct access 
+	exit; // Exit if accessed directly
 }
 
 /**
@@ -252,8 +244,8 @@ function wootax_update_recurring_tax() {
 			$email = wootax_get_notification_email();
 
 			if ( !empty( $email ) && is_email( $email ) ) {
-				$subject = 'WooTax Warning: Recurring Tax Totals Need To Be Updated';
-				$message = 'Hello,' ."\r\n\r\n" . 'During a routine check on '. date( 'm/d/Y') .', WooTax discovered '. count( $warnings ) .' subscription orders whose recurring tax totals need to be updated. Unfortunately, the payment gateway(s) used for these orders does not allow subscription details to be altered, so the required changes must be implemented manually. All changes are listed below for your convenience.' ."\r\n\r\n";
+				$subject = 'Simple Sales Tax Warning: Recurring Tax Totals Need To Be Updated';
+				$message = 'Hello,' ."\r\n\r\n" . 'During a routine check on '. date( 'm/d/Y') .', Simple Sales Tax discovered '. count( $warnings ) .' subscription orders whose recurring tax totals need to be updated. Unfortunately, the payment gateway(s) used for these orders does not allow subscription details to be altered, so the required changes must be implemented manually. All changes are listed below for your convenience.' ."\r\n\r\n";
 
 				foreach ( $warnings as $order_id => $errors ) {
 					$message .= 'Order '. $order_id .': '. "\r\n\r\n";
@@ -265,7 +257,7 @@ function wootax_update_recurring_tax() {
 					$message .= "\r\n\r\n";
 				}
 
-				$message .= 'For assistance, please contact the WooTax support team at sales@wootax.com.';
+				$message .= 'For assistance, please contact the Simple Sales Tax support team at support@simplesalestax.com.';
 
 				wp_mail( $email, $subject, $message );
 			}

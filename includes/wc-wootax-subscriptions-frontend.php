@@ -1,15 +1,16 @@
 <?php
 
 /**
- * Frontend functionality for Subscriptions extensions
+ * Frontend functions enabling Subscriptions support
  *
+ * @package Simple Sales Tax
  * @author Brett Porcelli
  * @since 1.0
  */
 
-// Exit if accessed directly
-if ( ! defined( 'ABSPATH' ) ) 
-	exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly
+}
 
 /**
  * Take measures to maintain calculated shipping taxes while Subscriptions calculates recurring totals
@@ -61,7 +62,7 @@ function wt_is_subscription( $is_subscription ) {
 add_filter( 'wt_cart_is_subscription', 'wt_is_subscription', 10, 1 );
 
 /**
- * Store shipping taxes as determined by WooTax before recurring tax totals are determined
+ * Store shipping taxes as determined by Simple Sales Tax before recurring tax totals are determined
  *
  * @param (double) $total the current cart total
  * @param (WC_Cart) $cart WC_Cart object

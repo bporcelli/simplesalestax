@@ -1,15 +1,16 @@
 <?php
 
 /**
- * Admin functions for the WooTax Subscriptions extension
+ * Admin functions enabling Subscriptions support
  *
+ * @package Simple Sales Tax
  * @author Brett Porcelli
  * @since 1.0
  */
 
-// Exit if accessed directly
-if ( ! defined( 'ABSPATH' ) ) 
-	exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly
+}
 
 /**
  * Update recurring line taxes via AJAX (for Subscriptions 1.5 and less)

@@ -4,7 +4,7 @@
  * Adds support for the WooCommerce Subscriptions plugin by Brent Shepard
  * @see PLUGIN_DIR/woocommerce-subscriptions/woocommerce-subscriptions.php
  *
- * @package WooCommerce TaxCloud
+ * @package Simple Sales Tax
  * @since 4.2
  */
 

@@ -1,7 +1,7 @@
 /* WooTax admin CSS */
 
 .woocommerce_page_wootax_install .error, .woocommerce_page_wootax_install .updated {
-	margin-left: 0px !important;
+    margin-left: 0px !important;
 	margin-top: 15px !important;
 }
 
@@ -23,10 +23,6 @@
 	background: url('../img/ajax-loader.gif') left center no-repeat;
 	display: none;
 	margin-left: 5px;
-}
-
-a#wootax-remove-tic {
-	text-decoration: none;
 }
 
 span.required {

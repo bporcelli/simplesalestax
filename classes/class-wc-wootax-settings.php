@@ -1,13 +1,13 @@
 <?php
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; 
+	exit; // Exit if accessed directly
 }
 
 /**
- * WooCommerce Integration for WooTax
+ * WooCommerce Integration for Simple Sales Tax
  *
- * @package WooTax
+ * @package Simple Sales Tax
  */
  
 if ( ! class_exists( 'WC_WooTax_Settings' ) ) :
@@ -20,8 +20,8 @@ class WC_WooTax_Settings extends WC_Integration {
 		global $woocommerce;
  
 		$this->id                 = 'wootax';
-		$this->method_title       = __( 'WooTax', 'woocommerce-wootax' );
-		$this->method_description = __( '<p>WooTax makes sales tax easy by connecting your store with <a href="https://taxcloud.net" target="_blank">TaxCloud</a>. If you have trouble with WooTax, please consult the <a href="https://wootax.com/#faq" target="_blank">FAQ</a> and the <a href="https://wootax.com/installation-guide/" target="_blank">Installation Guide</a> before contacting support.</p><p>Need help? <a href="http://wootax.com/contact-us/" target="_blank">Contact us</a>.</p>', 'woocommerce-wootax' );
+		$this->method_title       = __( 'Simple Sales Tax', 'woocommerce-wootax' );
+		$this->method_description = __( '<p>Simple Sales Tax makes sales tax easy by connecting your store with <a href="https://taxcloud.net" target="_blank">TaxCloud</a>. If you have trouble with Simple Sales Tax, please consult the <a href="https://simplesalestax.com/#faq" target="_blank">FAQ</a> and the <a href="https://simplesalestax.com/installation-guide/" target="_blank">Installation Guide</a> before contacting support.</p><p>Need help? <a href="http://simplesalestax.com/contact-us/" target="_blank">Contact us</a>.</p>', 'woocommerce-wootax' );
  
 		// Load the settings.
 		$this->init_form_fields();
@@ -94,7 +94,7 @@ class WC_WooTax_Settings extends WC_Integration {
 			'taxcloud_settings' => array(
 				'title'             => 'TaxCloud Settings',
 				'type'              => 'section',
-				'description' 		=> __( 'You must enter a valid TaxCloud API ID and API Key for WooTax to work properly. Use the "Verify Settings" button to test your settings.', 'woocommerce-wootax' )
+				'description' 		=> __( 'You must enter a valid TaxCloud API ID and API Key for Simple Sales Tax to work properly. Use the "Verify Settings" button to test your settings.', 'woocommerce-wootax' )
 			),
 			'tc_id' => array(
 				'title'             => __( 'TaxCloud API ID', 'woocommerce-wootax' ),
@@ -122,7 +122,7 @@ class WC_WooTax_Settings extends WC_Integration {
 			'usps_settings' => array(
 				'title' 			=> 'USPS Settings',
 				'type'              => 'section',
-				'description'       => __( 'A USPS Web Tools ID is required for verifying customer addresses. If you do not have an ID, you can register for one <a href="https://wootax.com/usps/" target="_blank">here</a>. Your ID will be sent to you via email when your registration is complete.', 'woocommerce-wootax' )
+				'description'       => __( 'A USPS Web Tools ID is required for verifying customer addresses. If you do not have an ID, you can register for one <a href="https://simplesalestax.com/usps/" target="_blank">here</a>. Your ID will be sent to you via email when your registration is complete.', 'woocommerce-wootax' )
 			),
 			'usps_id' => array(
 				'title'             => __( 'USPS ID', 'woocommerce-wootax' ),
@@ -134,7 +134,7 @@ class WC_WooTax_Settings extends WC_Integration {
 			'business_addresses_settings' => array(
 				'title' 			=> 'Business Addresses',
 				'type'              => 'section',
-				'description'       => __( 'You must enter at least one business address for WooTax to work properly. <strong>Important:</strong> Any addresses you enter here should also be registered as <a href="https://wootax.com/taxcloud/locations/" target="_blank">locations</a> in TaxCloud.', 'woocommerce-wootax' )
+				'description'       => __( 'You must enter at least one business address for Simple Sales Tax to work properly. <strong>Important:</strong> Any addresses you enter here should also be registered as <a href="https://simplesalestax.com/taxcloud/locations/" target="_blank">locations</a> in TaxCloud.', 'woocommerce-wootax' )
 			),
 			'addresses' => array(
 				'type' => 'address_table'
@@ -175,7 +175,7 @@ class WC_WooTax_Settings extends WC_Integration {
 				'class'             => version_compare( WOOCOMMERCE_VERSION, '2.3', '<' ) ? 'chosen_select' : 'wc-enhanced-select',
 				'options'           => wootax_get_user_roles(),
 				'default'           => array( 'exempt-customer' ),
-				'description'       => 'When a user with one of these roles shops on your site, WooTax will automatically find and apply the first exemption certificate associated with their account. Convenient if you have repeat exempt customers.',
+				'description'       => 'When a user with one of these roles shops on your site, Simple Sales Tax will automatically find and apply the first exemption certificate associated with their account. Convenient if you have repeat exempt customers.',
 				'desc_tip'          => true,
 			),
 			'restrict_exempt' => array(
@@ -215,7 +215,7 @@ class WC_WooTax_Settings extends WC_Integration {
 				'type' 		  => 'checkbox',
 				'label'       => ' ',
 				'default'     => 'yes',
-				'description' => __( 'When selected, WooTax will log all requests sent to TaxCloud for debugging purposes.', 'woocommerce-wootax' ),
+				'description' => __( 'When selected, Simple Sales Tax will log all requests sent to TaxCloud for debugging purposes.', 'woocommerce-wootax' ),
 				'desc_tip'    => true
 			),
 			'capture_immediately' => array(
@@ -223,7 +223,7 @@ class WC_WooTax_Settings extends WC_Integration {
 				'label'       => ' ',
 				'type' 		  => 'checkbox',
 				'default'     => 'no',
-				'description' => __( 'By default, orders are marked as Captured in TaxCloud when they are shipped. Select this option to mark orders as Captured immediately after payment is complete.', 'woocommerce-wootax' ),
+				'description' => __( 'By default, orders are marked as Captured in TaxCloud when they are shipped. Select this option to mark orders as Captured immediately after checkout. Useful for stores that have items with long lead times.', 'woocommerce-wootax' ),
 				'desc_tip'    => true,
 			),
 			'tax_based_on' => array(
@@ -241,15 +241,15 @@ class WC_WooTax_Settings extends WC_Integration {
 				'title'				=> 'Error Notification Email',
 				'type'				=> 'text',
 				'default'			=> wootax_get_notification_email(),
-				'description' 		=> __( 'If WooTax detects an error that needs attention, it will send a notification to this email address.', 'woocommerce-wootax' ),
+				'description' 		=> __( 'If Simple Sales Tax detects an error that needs attention, it will send a notification to this email address.', 'woocommerce-wootax' ),
 				'desc_tip'			=> true
 			),
 			'uninstall_button' => array(
-				'title'				=> 'Uninstall WooTax',
+				'title'				=> 'Uninstall Simple Sales Tax',
 				'label'				=> 'Uninstall',
 				'type'				=> 'button',
 				'id'				=> 'wootax_uninstall',
-				'description'		=> __( 'Click this button to uninstall WooTax. All of your settings will be erased.', 'woocommerce-wootax' ),
+				'description'		=> __( 'Click this button to uninstall Simple Sales Tax. All of your settings will be erased.', 'woocommerce-wootax' ),
 				'desc_tip'			=> true,
 				'loader'            => true,
 			), 
@@ -258,7 +258,7 @@ class WC_WooTax_Settings extends WC_Integration {
 				'label'				=> 'Download Log',
 				'type'				=> 'button',
 				'id'				=> 'wootax_download_log',
-				'description'		=> __( 'Click this button to download the WooTax log file for debugging purposes.', 'woocommerce-wootax' ),
+				'description'		=> __( 'Click this button to download your Simple Sales Tax log file.', 'woocommerce-wootax' ),
 				'desc_tip'			=> true,
 			), 
 		);
@@ -331,7 +331,7 @@ class WC_WooTax_Settings extends WC_Integration {
 					<th><span>State</span> <img class="help_tip" data-tip="The state where your business is located." src="<?php echo $woocommerce_path ; ?>/assets/images/help.png" height="16" width="16"></th>
 					<th><span>ZIP Code</span> <img class="help_tip" data-tip="5 or 9-digit ZIP code of your business address." src="<?php echo $woocommerce_path ; ?>/assets/images/help.png" height="16" width="16"></th>
 					<th><span>Make Default</span> <img class="help_tip" data-tip="Check this if you want an address to be used as the default 'Shipment Origin Address' for your products. If you only have one business address, it will be used as your default address automatically." src="<?php echo $woocommerce_path ; ?>/assets/images/help.png" height="16" width="16"></th>
-					<th><span>Remove</span> <img class="help_tip" data-tip="Click the red X to remove a business address. Remember, at least one valid address is required for WooTax to work." src="<?php echo $woocommerce_path ; ?>/assets/images/help.png" height="16" width="16"></th> 
+					<th><span>Remove</span> <img class="help_tip" data-tip="Click the red X to remove a business address. Remember, at least one valid address is required for Simple Sales Tax to work." src="<?php echo $woocommerce_path ; ?>/assets/images/help.png" height="16" width="16"></th>
 				</tr>
 			</thead>
 			<tfoot>

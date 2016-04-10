@@ -1,7 +1,7 @@
 // Admin Scripts
 jQuery(function() {
     // Verify TaxCloud settings
-    jQuery('#verifySettings').click(function() {
+    jQuery( '#verifySettings' ).click(function() {
 
         var loginID = jQuery('#woocommerce_wootax_tc_id').val();
         var apiKey = jQuery('#woocommerce_wootax_tc_key').val();
@@ -30,154 +30,6 @@ jQuery(function() {
 
     });
 
-    // Hide notifications
-    jQuery('.wootax_disable_notices').click(function() {
-
-        var $this = jQuery(this);
-
-        jQuery.ajax({
-            type: 'POST',
-            url: WT.ajaxURL,
-            data: 'action=wootax-disable-notifications',
-            success: function(resp) {
-                if (resp == 1) {
-                    $this.closest('.error').slideUp('fast');
-                } else {
-                    alert('An error prevented WooTax from disabling notifications. Please try again.');
-                }
-            }
-        });
-
-        return false;
-
-    });
-
-    // Verify origin addresses using USPS shipping assistant
-    jQuery('#verifyAddress').click(function(e) {
-
-        e.preventDefault();
-
-        // Reset errors
-        jQuery('.form-error').removeClass('form-error');
-
-        // Set up some vars
-        var loginID = jQuery('#woocommerce_wootax_tc_id').val();
-        var apiKey = jQuery('#woocommerce_wootax_tc_key').val();
-        var uspsID = jQuery('#woocommerce_wootax_usps_id').val();
-        var missing = 0;
-
-        // Check configuration
-        if (loginID == '') {
-            jQuery('#woocommerce_wootax_tc_id').addClass('form-error');
-            missing++;
-        }
-
-        if (apiKey == '') {
-            jQuery('#woocommerce_wootax_tc_key').addClass('form-error');
-            missing++;
-        }
-
-        if (uspsID == '') {
-            jQuery('#woocommerce_wootax_usps_id').addClass('form-error');
-            missing++;
-        }
-
-        // Check address fields and build query string with address data
-        var required = ['address1', 'state', 'city', 'zip5'];
-        var address_str = '';
-        var x = 0;
-
-        jQuery('#address_table tbody tr').each(function() {
-            var $this = jQuery(this);
-
-            for (var i = 0; i < required.length; i++) {
-                var el = $this.find('.wootax_'+ required[i]);
-
-                if ((el.is('select') && el.find('option:selected').length == 0 || el.find('option:selected').val() == '') || el.is('input') && el.val() == '') {
-                    el.addClass('form-error');
-                    missing++;
-                } 
-            }
-
-            address_str += '&wootax_address1['+ x +']='+ $this.find('.wootax_address1').val() +'&wootax_address2['+ x +']='+ $this.find('.wootax_address2').val() + '&wootax_city['+ x +']='+ $this.find('.wootax_city').val() +'&wootax_state['+ x +']='+ $this.find('.wootax_state').find('option:selected').val() +'&wootax_zip5['+ x +']='+ $this.find('.wootax_zip5').val() +'&wootax_zip4['+ x +']='+ $this.find('.wootax_zip4').val();
-
-            x++;
-        });
-
-        // Show an error message if fields are missing
-        if (jQuery('.form-error').length > 0) {
-            var first = missing == 1 ? 'field' : 'fields';
-            var second = missing == 1 ? 'is' : 'are';
-
-            alert(missing + ' required ' + first + ' ' + second + ' missing.');
-        } else {
-            // Send request via AJAX
-            jQuery.ajax({
-                type: 'POST',
-                url: WT.ajaxURL,
-                data: 'action=wootax-verify-address'+ address_str +'&wootax_tc_id=' + loginID + '&wootax_tc_key=' + apiKey + '&wootax_usps_id=' + uspsID,
-                success: function(resp) {
-                    resp = eval('(' + resp + ')');
-
-                    if (resp != false && resp != null) {
-                        if (resp.status == 'success') {
-                            var i = 0;
-
-                            jQuery(resp.message).each(function() {
-                                var row = jQuery('#address_table tbody tr').eq(i);
-
-                                row.find('.wootax_address1').val(this.address_1);
-                                row.find('.wootax_address2').val(this.address_2);
-                                row.find('.wootax_city').val(this.city);
-                                row.find('.wootax_zip5').val(this.zip5);
-                                row.find('.wootax_zip4').val(this.zip4);
-
-                                i++;
-                            });
-
-                            alert('Addresses verified successfully. Don\'t forget to save changes.');
-                        } else {
-                            if (resp.status == 'error') {
-                                alert('An error occurred. TaxCloud said: ' + resp.message);
-                            } else {
-                                alert('An error prevented WooTax from verifying your business address(es). Please try again.');
-                            }
-                        }
-                    } else {
-                        alert('An error prevented WooTax from verifying your business address(es). Please try again.');
-                    }
-                }
-            });
-        }
-
-    });
-
-    // Reset settings
-    jQuery('#resetSettings').click(function(e) {
-
-        // Verify that user wants to delete settings
-        var msg = 'Are you sure you want to clear your settings? This action is not reversible.';
-
-        if (confirm(msg)) {
-            jQuery.ajax({
-                type: 'POST',
-                url: WT.ajaxURL,
-                data: 'action=wootax-clear-settings',
-                success: function(resp) {
-                    resp = eval('(' + resp + ')');
-                    if (resp.status == 'success') {
-                        window.location.reload();
-                    } else {
-                        alert('Error: ' + resp);
-                    }
-                }
-            });
-        }
-
-        // Stop page jitter
-        e.preventDefault();
-    });
-
     // Uninstall WooTax
     jQuery( '#wootax_uninstall' ).click( function( e ) {
 
@@ -185,7 +37,7 @@ jQuery(function() {
         e.preventDefault();
 
         // Verify user action
-        var msg = 'Are you sure you want to uninstall WooTax? All of your settings will be erased.';
+        var msg = 'Are you sure you want to uninstall Simple Sales Tax? All of your settings will be erased.';
 
         if ( confirm( msg ) ) {
 
@@ -201,7 +53,7 @@ jQuery(function() {
                     resp = eval( '(' + resp + ')' );
 
                     if (resp.status == 'success') {
-                        alert( 'WooTax was uninstalled successfully. The page will now reload.' );
+                        alert( 'Simple Sales Tax was uninstalled successfully. The page will now reload.' );
                         
                         // Don't use window.location.reload(); this will cause form re-submission on the settings page
                         window.location.href = '/wp-admin/admin.php?page=wc-settings&tab=integration&section=wootax';
@@ -229,48 +81,6 @@ jQuery(function() {
         window.location.href = window.location.href + '&download_log=true';
 
     } );
-
-    // Set cookie function
-    function setCookie(cname, cvalue, exdays) {
-
-        var d = new Date();
-        d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
-
-        var expires = "expires=" + d.toGMTString();
-
-        document.cookie = cname + "=" + cvalue + "; " + expires;
-
-    }
-
-    // Get cookie function
-    function getCookie(cname) {
-
-        var name = cname + "=";
-        var ca = document.cookie.split(';');
-
-        for (var i = 0; i < ca.length; i++) {
-            var c = ca[i].trim();
-            if (c.indexOf(name) == 0) return c.substring(name.length, c.length);
-        }
-
-        return "";
-
-    }
-
-    // Remove product TIC
-    jQuery('#wootax-remove-tic').click(function(e) {
-
-        // Reset
-        jQuery(this).parent('span').html('Using Site Default');
-        jQuery('input[name="wootax_tic"], input[name="wootax_tic_desc"]').val('');
-
-        // Notify the user they must save
-        alert('The TIC for this product has been reset. Please remember to save your changes.');
-
-        // Prevent page movement
-        e.preventDefault();
-
-    });
 
     // Remove manually added tax rates
     jQuery('#remove-rates').click(function() {
@@ -363,7 +173,7 @@ jQuery(function() {
         e.preventDefault();
 
         if (jQuery(this).is('.disabled')) {
-            alert('This action is not permitted. You must have at least one business address entered for WooTax to work properly.');
+            alert('This action is not permitted. You must have at least one business address entered for Simple Sales Tax to work properly.');
         } else {
             var toHide = jQuery(this).closest('tr');
 
@@ -384,18 +194,6 @@ jQuery(function() {
         alert('IMPORTANT: Before issuing a refund, you must set this order\'s status to "completed" and save it. If you have already done so, you may ignore this message.');
    
     });
-
-    /**
-     * Initialize tipTip on multivendor settings pages
-     */
-    if ( jQuery('.wootax-vendor-settings').length == 1 ) {
-        jQuery(".tips, .help_tip").tipTip({
-            'attribute' : 'data-tip',
-            'fadeIn' : 50,
-            'fadeOut' : 50,
-            'delay' : 200
-        });
-    }
 
     /**
      * Dismiss persistent admin message

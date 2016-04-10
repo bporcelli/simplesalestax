@@ -1,6 +1,6 @@
 <tr>
 	<th id="delete_rates_table">
-		<h4>Whoops! WooTax found some extra rates in your tax tables.</h4>
+		<h4>Whoops! Simple Sales Tax found some extra rates in your tax tables.</h4>
 		<p>If you do not take action and delete these rates, your customers may be overtaxed. Please select all rates which you would like to remove and click "Delete rates in selected tax classes." Then, click "Save Changes" to continue.</p>
 
 		<input type="hidden" name="wt_rates_checked" value="1" />

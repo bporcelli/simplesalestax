@@ -1,8 +1,13 @@
 <?php
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly
+}
+
 /**
  * Represents a TaxCloud exemption certificate
  *
+ * @package Simple Sales Tax
  * @author Brett Porcelli
  * @since 1.0
  */

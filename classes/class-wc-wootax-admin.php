@@ -3,7 +3,7 @@
 /**
  * Contains all methods for actions performed within the WordPress admin panel
  *
- * @package WooTax
+ * @package Simple Sales Tax
  * @since 4.2
  */
 
@@ -147,7 +147,7 @@ class WC_WooTax_Admin {
 	 */
 	public static function register_admin_metaboxes() {
 		// Sales Tax metabox on "Edit Order" screen
-		add_meta_box( 'sales_tax_meta', 'WooTax', array( __CLASS__, 'output_tax_metabox' ), 'shop_order', 'side', 'high' );
+		add_meta_box( 'sales_tax_meta', 'Simple Sales Tax', array( __CLASS__, 'output_tax_metabox' ), 'shop_order', 'side', 'high' );
 	}
 	
 	/**
@@ -271,7 +271,7 @@ class WC_WooTax_Admin {
 		echo '</select>';
 
 		// Output help tooltip
-		wootax_tip(__('Used by WooTax for tax calculations. These are the addresses from which this product will be shipped.'));
+		wootax_tip(__('Used by Simple Sales Tax for tax calculations. These are the addresses from which this product will be shipped.'));
 	}
 
 	/**
@@ -305,7 +305,7 @@ class WC_WooTax_Admin {
 	public static function output_tax_report_button() {
 		?>
 		<div id="poststuff" class="wootax-reports-page">
-			<a target="_blank" href="https://taxcloud.net/res/" class="wp-core-ui button button-primary">Go to TaxCloud Reports Page</a>
+			<a target="_blank" href="https://simplesalestax.com/taxcloud/reports/" class="wp-core-ui button button-primary">Go to TaxCloud Reports Page</a>
 		</div>
 		<?php
 	}

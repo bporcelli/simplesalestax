@@ -1,6 +1,6 @@
-<h3>WooTax Data Update</h3>
+<h3>Simple Sales Tax Data Update</h3>
 
-<p>WooTax is working. Please do not close your browser window. You will be redirected away from this page when the data update is complete.</p>
+<p>Simple Sales Tax is working. Please do not close your browser window. You will be redirected away from this page when the data update is complete.</p>
 
 <p><strong>Status: </strong><span id="wootax_status">Starting update...</span></p>
 

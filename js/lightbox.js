@@ -1,6 +1,6 @@
 /**
  * JS for TaxCloud certificate management lightbox
- * Part of the WooTax plugin by Brett Porcelli
+ * Part of the Simple Sales Tax plugin by Brett Porcelli
  */
 
 var certManagerBox = {

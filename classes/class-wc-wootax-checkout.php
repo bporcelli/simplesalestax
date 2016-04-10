@@ -3,12 +3,12 @@
 /**
  * Responsible for determining the sales tax due during checkout and updating order totals accordingly
  *
- * @package WooTax
+ * @package Simple Sales Tax
  * @since 4.2
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Prevent data leaks
+	exit; // Exit if accessed directly
 }
 
 class WC_WooTax_Checkout {
@@ -707,11 +707,13 @@ class WC_WooTax_Checkout {
 		// Retrieve "tax based on" option
 		$tax_based_on = get_option( 'woocommerce_tax_based_on' );
 
+		// Return origin address if this is a local pickup order
 		if ( wt_is_local_pickup( $this->get_shipping_method() ) || $tax_based_on == 'base' ) {
-			// Return default origin address if this is a local pickup order
-			$address = wootax_get_address( apply_filters( 'wootax_pickup_address', WT_DEFAULT_ADDRESS, $this->addresses, -1 ) );
-		} else if ( $tax_based_on == 'billing' ) {
-			// Else return billing address if tax is based on customer billing address
+			return wootax_get_address( apply_filters( 'wootax_pickup_address', WT_DEFAULT_ADDRESS, $this->addresses, -1 ) );
+		}
+
+		// Attempt to fetch correct address
+		if ( $tax_based_on == 'billing' ) {
 			$address = array(
 				'Address1' => WC()->customer->get_address(),
 				'Address2' => WC()->customer->get_address_2(),
@@ -721,7 +723,6 @@ class WC_WooTax_Checkout {
 				'Zip5'     => WC()->customer->get_postcode(),
 			);
 		} else {
-			// Else return shipping address
 			$address = array(
 				'Address1' => WC()->customer->get_shipping_address(),
 				'Address2' => WC()->customer->get_shipping_address_2(),

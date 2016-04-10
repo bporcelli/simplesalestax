@@ -4,11 +4,12 @@
  * WC_WooTax_Order Object
  * Contains all methods for manipulating order taxes 
  *
+ * @package Simple Sales Tax
  * @since 4.2
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Do not all direct access
+	exit; // Exit if accessed directly
 }
 
 class WC_WooTax_Order {
@@ -572,45 +573,45 @@ class WC_WooTax_Order {
 
 		// Return origin address if this is a local pickup order
 		if ( wt_is_local_pickup( $this->get_shipping_method() ) || $tax_based_on == 'base' ) {
-			$address = wootax_get_address( apply_filters( 'wootax_pickup_address', WT_DEFAULT_ADDRESS, WT_Orders::$addresses, $this->order_id ) );
-		} else {
-			// Attempt to fetch preferred address according to "tax based on" option; return billing by default
-			$address_1 = $this->order->billing_address_1;
-			$address_2 = $this->order->billing_address_2;
-			$country   = $this->order->billing_country;
-			$state     = $this->order->billing_state;
-			$city      = $this->order->billing_city;
-			$zip5      = $this->order->billing_postcode;
-					
-			if ( $tax_based_on == 'shipping' ) {
-				$address_1 = !empty( $this->order->shipping_address_1 ) ? $this->order->shipping_address_1 : $address_1;
-				$address_2 = !empty( $this->order->shipping_address_2 ) ? $this->order->shipping_address_2 : $address_2;
-				$country   = !empty( $this->order->shipping_country ) ? $this->order->shipping_country : $country;
-				$state     = !empty( $this->order->shipping_state ) ? $this->order->shipping_state : $state;
-				$city      = !empty( $this->order->shipping_city ) ? $this->order->shipping_city : $city;
-				$zip5      = !empty( $this->order->shipping_postcode ) ? $this->order->shipping_postcode : $zip5;
-			} 
-
-			// If address isn't saved yet, we will fall back to POSTed fields
-			$post_zip     = isset( $_POST['postcode'] ) ? $_POST['postcode'] : '';
-			$post_country = isset( $_POST['country'] ) ? $_POST['country'] : '';
-			$post_state   = isset( $_POST['state'] ) ? $_POST['state'] : '';
-			$post_city    = isset( $_POST['city'] ) ? $_POST['city'] : '';
-
-			// Parse ZIP code, splitting it into its 5 and 4-digit components
-			$parsed_zip = parse_zip( !empty( $zip5 ) ? $zip5 : $post_zip );
-
-			// Return final address
-			$address = array(
-				'Address1' => !empty( $address_1 ) ? $address_1 : '',
-				'Address2' => !empty( $address_2 ) ? $address_2 : '',
-				'Country'  => !empty( $country ) ? $country : $post_country,
-				'State'    => !empty( $state ) ? $state : $post_state,
-				'City'     => !empty( $city ) ? $city : $post_city,
-				'Zip5'     => $parsed_zip['zip5'],
-				'Zip4'     => $parsed_zip['zip4'],
-			);
+			return wootax_get_address( apply_filters( 'wootax_pickup_address', WT_DEFAULT_ADDRESS, WT_Orders::$addresses, $this->order_id ) );
 		}
+
+		// Attempt to fetch preferred address according to "tax based on" option; return billing by default
+		$address_1 = $this->order->billing_address_1;
+		$address_2 = $this->order->billing_address_2;
+		$country   = $this->order->billing_country;
+		$state     = $this->order->billing_state;
+		$city      = $this->order->billing_city;
+		$zip5      = $this->order->billing_postcode;
+				
+		if ( $tax_based_on == 'shipping' ) {
+			$address_1 = !empty( $this->order->shipping_address_1 ) ? $this->order->shipping_address_1 : $address_1;
+			$address_2 = !empty( $this->order->shipping_address_2 ) ? $this->order->shipping_address_2 : $address_2;
+			$country   = !empty( $this->order->shipping_country ) ? $this->order->shipping_country : $country;
+			$state     = !empty( $this->order->shipping_state ) ? $this->order->shipping_state : $state;
+			$city      = !empty( $this->order->shipping_city ) ? $this->order->shipping_city : $city;
+			$zip5      = !empty( $this->order->shipping_postcode ) ? $this->order->shipping_postcode : $zip5;
+		} 
+
+		// If address isn't saved yet, we will fall back to POSTed fields
+		$post_zip     = isset( $_POST['postcode'] ) ? $_POST['postcode'] : '';
+		$post_country = isset( $_POST['country'] ) ? $_POST['country'] : '';
+		$post_state   = isset( $_POST['state'] ) ? $_POST['state'] : '';
+		$post_city    = isset( $_POST['city'] ) ? $_POST['city'] : '';
+
+		// Parse ZIP code, splitting it into its 5 and 4-digit components
+		$parsed_zip = parse_zip( !empty( $zip5 ) ? $zip5 : $post_zip );
+
+		// Return final address
+		$address = array(
+			'Address1' => !empty( $address_1 ) ? $address_1 : '',
+			'Address2' => !empty( $address_2 ) ? $address_2 : '',
+			'Country'  => !empty( $country ) ? $country : $post_country,
+			'State'    => !empty( $state ) ? $state : $post_state,
+			'City'     => !empty( $city ) ? $city : $post_city,
+			'Zip5'     => $parsed_zip['zip5'],
+			'Zip4'     => $parsed_zip['zip4'],
+		);
 
 		$this->destination_address = $address;
 	}

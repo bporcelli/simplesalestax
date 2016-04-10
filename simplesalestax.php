@@ -1,14 +1,14 @@
 <?php
 
 /**
- * Plugin Name: WooTax
- * Plugin URI: https://wootax.com
+ * Plugin Name: Simple Sales Tax
+ * Plugin URI: https://simplesalestax.com
  * Description: Harness the power of TaxCloud to accurately calculate sales tax for your WooCommerce store.
  * Version: 4.7
- * Author: The WooTax Corporation
- * Author URI: https://wootax.com
+ * Author: Simple Sales Tax
+ * Author URI: https://simplesalestax.com
  *
- * Copyright 2015 The WooTax Corporation (email: support@wootax.com)
+ * Copyright 2015 The WooTax Corporation (email: support@simplesalestax.com)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,10 +22,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * @package WooTax
- * @author  Brett Porcelli
- * @since   4.2
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -44,6 +40,8 @@ require 'includes/wc-wootax-messages.php';
  * The main WooTax class
  * Handles plugin activation/deactivation routines and a few miscellaneous tasks
  * 
+ * @package Simple Sales Tax
+ * @author  Brett Porcelli
  * @since 4.2
  */
 class WC_WooTax {
@@ -87,10 +85,10 @@ class WC_WooTax {
 	 */
 	private static function ready() {
 		if ( !class_exists( 'SoapClient' ) ) {
-			wootax_add_message( '<strong>Warning: WooTax has been disabled.</strong> The SoapClient class is required by WooTax, but it is not installed on your server. To resolve this issue, please contact your web host and ask them to enable PHP SOAP for you.' );
+			wootax_add_message( '<strong>Warning: Simple Sales Tax has been disabled.</strong> The SoapClient class is required by Simple Sales Tax, but it is not installed on your server. To resolve this issue, please contact your web host and ask them to enable PHP SOAP for you.' );
 			return false;
 		} else if ( !is_plugin_active( 'woocommerce/woocommerce.php' ) || !version_compare( WOOCOMMERCE_VERSION, '2.1', '>=' ) ) {
-			wootax_add_message( '<strong>Warning: WooTax has been disabled.</strong> WooCommerce version 2.1 or greater must be activated for WooTax to work properly.' );
+			wootax_add_message( '<strong>Warning: Simple Sales Tax has been disabled.</strong> WooCommerce version 2.1 or greater must be activated for Simple Sales Tax to work properly.' );
 			return false;
 		}
 
@@ -256,7 +254,7 @@ class WC_WooTax {
 		update_option( 'woocommerce_tax_total_display', 'itemized' );
 		
 		// Confirm activation with user
-		wootax_add_message( '<strong>Success!</strong> Your WooCommerce tax settings have been automatically adjusted to work with WooTax.', 'updated', 'activated', true, true );
+		wootax_add_message( '<strong>Success!</strong> Your WooCommerce tax settings have been automatically adjusted to work with Simple Sales Tax.', 'updated', 'activated', true, true );
 	}
 	
 	/**
@@ -397,7 +395,7 @@ class WC_WooTax {
 			return;
 		}
 
-		$wt_updater = new WT_Plugin_Updater( 'https://wootax.com', __FILE__, array( 
+		$wt_updater = new WT_Plugin_Updater( 'https://simplesalestax.com', __FILE__, array( 
 			'version' => WT_VERSION, // current version number
 		) );
 	}

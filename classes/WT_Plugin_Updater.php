@@ -1,12 +1,14 @@
 <?php
 
 /**
- * WooTax Updater Class
+ * Simple Sales Tax Updater Class
  *
  * Based on EDD SL Plugin Updater by Pippin Williamson
  *
+ * @package Simple Sales Tax
  * @version 1.0
  */
+
 class WT_Plugin_Updater {
 	private $api_url  = '';
 	private $api_data = array();

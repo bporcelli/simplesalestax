@@ -1,7 +1,7 @@
 <?php
 
-if ( !defined( 'ABSPATH' ) ) {
-	exit; // Prevent direct access
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly
 }
 
 // Do not execute script if partial refunds are not supported (WC < 2.2)
@@ -16,7 +16,7 @@ if ( !class_exists( 'WC_Order_Refund' ) ) {
  * WC_WooTax_Refund
  * Enables support for partial refunds
  *
- * @package WooTax
+ * @package Simple Sales Tax
  * @since 4.2
  */
 class WC_WooTax_Refund extends WC_Order_Refund {

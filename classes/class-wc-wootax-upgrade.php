@@ -1,13 +1,13 @@
 <?php
 
 /**
- * Scripts for updating WooTax data
+ * Scripts for updating Simple Sales Tax data
  *
  * @since 4.4
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Do not allow direct access 
+	exit; // Exit if accessed directly
 }
 
 class WC_WooTax_Upgrade {
@@ -45,7 +45,7 @@ class WC_WooTax_Upgrade {
 	 * @since 4.4
 	 */
 	public static function add_admin_page() {
-		add_submenu_page( '_nonexistent', 'WooTax Data Update', 'WooTax Data Update', 'manage_options', 'wt-update', array( __CLASS__, 'display_admin_page' ) );
+		add_submenu_page( '_nonexistent', 'Simple Sales Tax Data Update', 'Simple Sales Tax Data Update', 'manage_options', 'wt-update', array( __CLASS__, 'display_admin_page' ) );
 	}
 
 	/**
@@ -82,7 +82,7 @@ class WC_WooTax_Upgrade {
 			self::maybe_update_settings();
 
 			if ( self::needs_data_update() ) {
-				wootax_add_message( '<strong>WooTax data update required.</strong> Please backup your database, then click "Complete Update" to run the updater. <a class="button button-primary" href="'. admin_url( 'admin.php?page=wt-update' ) .'">Complete Update</a>', 'update-nag', 'upgrade-message', true, false );
+				wootax_add_message( '<strong>Simple Sales Tax data update required.</strong> Please backup your database, then click "Complete Update" to run the updater. <a class="button button-primary" href="'. admin_url( 'admin.php?page=wt-update' ) .'">Complete Update</a>', 'update-nag', 'upgrade-message', true, false );
 			} else {
 				update_option( 'wootax_version', WT_VERSION );
 			}
