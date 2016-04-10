@@ -7,17 +7,26 @@
  * @since 4.2
  */
 
-if ( ! defined( 'ABSPATH' ) )  {
-	exit; // Prevent direct access to script
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly
 }
 
-class WC_WooTax_Admin {
+final class WC_WooTax_Admin {
+
+	/**
+	 * Admin constructor
+	 * @since 4.7
+	 */
+	public function __construct() {
+		$this->hooks();
+		$this->includes();
+	}
+
 	/**
 	 * Hook into WordPress actions/filters
-	 *
-	 * @since 4.4
+	 * @since 4.7
 	 */
-	public static function init() {
+	private function hooks() {
 		// Register WooTax integration to build settings page
 		add_filter( 'woocommerce_integrations', array( __CLASS__, 'add_integration' ) );
 
@@ -37,7 +46,7 @@ class WC_WooTax_Admin {
 		add_action( 'save_post', array( __CLASS__, 'save_product_meta' ) );
 
 		// Add "settings" link to plugins page
-		add_filter( 'plugin_action_links_' . plugin_basename( WT_PLUGIN_PATH . '/woocommerce-wootax.php' ), array( __CLASS__, 'add_settings_link' ) );
+		add_filter( 'plugin_action_links_' . plugin_basename( SST()->plugin_path() ), array( __CLASS__, 'add_settings_link' ) );
 
 		// Allow for bulk editing of TICs
 		add_action( 'woocommerce_product_bulk_edit_start', array( __CLASS__, 'output_bulk_edit_fields' ) );
@@ -67,6 +76,22 @@ class WC_WooTax_Admin {
 	}
 
 	/**
+	 * Include required files
+	 * @since 4.7
+	 */
+	private function includes() {
+		$plugin_path = SST()->plugin_path();
+
+		require $plugin_path . '/classes/class-wt-orders.php';
+		require $plugin_path . '/classes/class-wc-wootax-upgrade.php';
+		require $plugin_path . '/classes/class-wc-wootax-settings.php';
+		require $plugin_path . '/classes/class-wc-wootax-refund.php';
+		require $plugin_path . '/classes/WT_Plugin_Updater.php';
+		require $plugin_path . '/includes/wc-wootax-subscriptions-admin.php';
+	}
+
+
+	/**
 	 * Register WooTax WooCommerce Integration
 	 *
 	 * @since 4.2
@@ -84,7 +109,7 @@ class WC_WooTax_Admin {
 	 */
 	public static function enqueue_scripts_and_styles() {
 		// WooTax admin JS
-		wp_enqueue_script( 'wootax-admin', WT_PLUGIN_DIR_URL .'js/admin.js', array( 'jquery', 'jquery-tiptip' ), '1.1' );
+		wp_enqueue_script( 'wootax-admin', SST()->plugin_url() . '/js/admin.js', array( 'jquery', 'jquery-tiptip' ), '1.1' );
 		
 		wp_localize_script( 'wootax-admin', 'WT', array( 
 			'ajaxURL'  => admin_url( 'admin-ajax.php' ),
@@ -92,7 +117,7 @@ class WC_WooTax_Admin {
 		) );
 
 		// WooTax admin CSS
-		wp_enqueue_style( 'wootax-admin-style', WT_PLUGIN_DIR_URL .'css/admin.css' );
+		wp_enqueue_style( 'wootax-admin-style', SST()->plugin_url() . '/css/admin.css' );
 
 		// WooCommerce scripts and styles we need
 		$assets_path = str_replace( array( 'http:', 'https:' ), '', WC()->plugin_url() ) . '/assets/';
@@ -113,18 +138,8 @@ class WC_WooTax_Admin {
 	 * @since 4.2
 	 */
 	public static function output_bulk_edit_fields() {
-		?>
-        <label class="alignleft">
-			<span class="title">TIC</span>
-			<span class="input-text-wrap">
-            	<input name="wootax_set_tic" id="wootax_set_tic" value="" />
-            	<input type="hidden" name="wootax_tic_desc" value="" />
-           	</span>
-		</label>
-		<script type="text/javascript">
-			window.initializeSelect();
-		</script>
-        <?php
+		$GLOBALS[ 'tic_list' ] = self::get_tic_list();
+		require_once SST()->templates_path() . '/admin/tic-select-bulk.php';
 	}
 	
 	/**
@@ -134,9 +149,14 @@ class WC_WooTax_Admin {
 	 * @param (WC_Product) $product a WC_Product object
 	 */
 	public static function save_bulk_edit_fields( $product ) {
-		if ( $product->id && isset( $_REQUEST['wootax_set_tic'] ) && !in_array( $_REQUEST['wootax_set_tic'], array( '', '[ - Select - ]') ) ) {
-			update_post_meta( $product->id, 'wootax_tic', $_REQUEST['wootax_set_tic'] );
-			update_post_meta( $product->id, 'wootax_tic_desc', trim( $_REQUEST['wootax_tic_desc'] ) );
+		if ( ! $product->id || ! isset( $_REQUEST[ 'wootax_set_tic' ] ) ) {
+			return;
+		}
+
+		$tic = sanitize_text_field( $_REQUEST[ 'wootax_set_tic' ] );
+
+		if ( ! empty( $tic ) ) {
+			update_post_meta( $product->id, 'wootax_tic', $tic == 'default' ? '' : $tic );
 		}
 	}
 	
@@ -336,7 +356,7 @@ class WC_WooTax_Admin {
 		$is_edit = false;
 		$tic_list = self::get_tic_list();
 		
-		require WT_PLUGIN_PATH .'templates/admin/tic-select-cat.php';
+		require SST()->templates_path() . '/admin/tic-select-cat.php';
 	}
 
 	/**
@@ -354,7 +374,7 @@ class WC_WooTax_Admin {
 		$tic_list = self::get_tic_list();
 		$is_edit = true;
 
-		require WT_PLUGIN_PATH .'templates/admin/tic-select-cat.php';
+		require SST()->templates_path() . '/admin/tic-select-cat.php';
 	}
 
 	/**
@@ -537,7 +557,7 @@ class WC_WooTax_Admin {
 		$tic_list = self::get_tic_list();
 		$current_tic = get_post_meta( $product_id, 'wootax_tic', true );
 
-		require WT_PLUGIN_PATH .'templates/admin/tic-select.php';
+		require SST()->templates_path() . '/admin/tic-select.php';
 	}
 
 	/**
@@ -564,4 +584,4 @@ class WC_WooTax_Admin {
 
 }
 
-WC_WooTax_Admin::init();
+new WC_WooTax_Admin();

@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @author Brett Porcelli
  */
 
-require( WT_PLUGIN_PATH .'classes/class-wt-exemption-certificate.php' );
+require SST()->plugin_path . 'classes/class-wt-exemption-certificate.php';
 
 /**
  * Define JS meta in footer
@@ -20,8 +20,8 @@ require( WT_PLUGIN_PATH .'classes/class-wt-exemption-certificate.php' );
  * @since 1.0
  */
 function wt_exempt_js_meta() { 
-	$merchant_name = WC_WooTax::get_option( 'company_name' );
-	$dir_url = WT_PLUGIN_DIR_URL;
+	$merchant_name = SST()->get_option( 'company_name' );
+	$dir_url = SST()->plugin_url();
 	$allow_blanket_certificates = is_user_logged_in();
 
 	if ( is_checkout() ) {
@@ -48,15 +48,15 @@ add_action( 'wp_footer', 'wt_exempt_js_meta', 1 );
 function maybe_display_exemption_link() {
 	global $current_user;
 
-	$restricted   = WC_WooTax::get_option( 'restrict_exempt' ) == 'yes' ? true : false;
-	$exempt_roles = is_array( WC_WooTax::get_option( 'exempt_roles' ) ) ? WC_WooTax::get_option( 'exempt_roles' ) : array();
+	$restricted   = SST()->get_option( 'restrict_exempt' ) == 'yes' ? true : false;
+	$exempt_roles = is_array( SST()->get_option( 'exempt_roles' ) ) ? SST()->get_option( 'exempt_roles' ) : array();
 
-	if ( WC_WooTax::get_option( 'show_exempt' ) == 'true' ) {
+	if ( SST()->get_option( 'show_exempt' ) == 'true' ) {
 		if ( $restricted === true && ( !is_user_logged_in() || count( array_intersect( $exempt_roles, $current_user->roles ) ) == 0 ) ) {
 			return;
 		}
 
-		$raw_link_text = trim( WC_WooTax::get_option( 'exemption_text' ) );
+		$raw_link_text = trim( SST()->get_option( 'exemption_text' ) );
 		$link_text = empty( $raw_link_text ) ? 'Click here to add or apply an exemption certificate.' : $raw_link_text;
 
 		$notice = 'Are you a tax exempt customer? <span id="wootax_exemption_link"><a href="#" style="text-decoration: none;">'. $link_text .'</a></span>';
@@ -407,7 +407,7 @@ add_action( 'wp_ajax_wootax-list-certificates', 'ajax_list_exemption_certificate
 function maybe_apply_exemption_certificate() {
 	global $current_user;
 
-	$exempt_roles = WC_WooTax::get_option( 'exempt_roles' );
+	$exempt_roles = SST()->get_option( 'exempt_roles' );
 
 	if ( is_object( WC()->session ) && !WC()->session->get( 'certificate_id' ) && !WC()->session->get( 'cert_removed' ) && in_array( site_url( $_SERVER['REQUEST_URI'] ), array( get_permalink( wc_get_page_id( 'cart' ) ), get_permalink( wc_get_page_id( 'checkout' ) ) ) ) ) {
 		if ( count( array_intersect( $exempt_roles, $current_user->roles ) ) > 0 ) {
@@ -453,7 +453,7 @@ function ajax_load_exemption_template() {
 	}
 
 	// Use cURL to load file contents (not sure how else to support query strings)
-	$ch = curl_init( WT_PLUGIN_DIR_URL . '/templates/lightbox/' . $template . '.php' . $querystr );
+	$ch = curl_init( SST()->plugin_url() . '/templates/lightbox/' . $template . '.php' . $querystr );
 	curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
 	$content = curl_exec( $ch );
 	curl_close( $ch );
@@ -472,7 +472,7 @@ add_action( 'wp_ajax_wootax-load-template', 'ajax_load_exemption_template' );
  * @since 1.0
  */
 function wt_do_template_substitutions( $content ) {
-	return str_replace( array( '{PLUGIN_PATH}', '{COMPANY_NAME}' ), array( WT_PLUGIN_DIR_URL, WC_WooTax::get_option( 'company_name' ) ), $content );	
+	return str_replace( array( '{PLUGIN_PATH}', '{COMPANY_NAME}' ), array( SST()->plugin_url(), SST()->get_option( 'company_name' ) ), $content );	
 }
 
 /**
@@ -527,11 +527,11 @@ add_action( 'wt_delete_session_data', 'wt_delete_certificate_data' );
 function enqueue_checkout_scripts() {
 	if ( !is_admin() && is_checkout() ) {
 		// Enqueue Magnific Popup
-		wp_enqueue_style( 'mpop-css', WT_PLUGIN_DIR_URL .'css/magnificPopup.css' );
-		wp_enqueue_script( 'mpop-js', WT_PLUGIN_DIR_URL .'js/magnificPopup.js', array( 'jquery' ), '1.0', true );
+		wp_enqueue_style( 'mpop-css', SST()->plugin_url() .'/css/magnificPopup.css' );
+		wp_enqueue_script( 'mpop-js', SST()->plugin_url() .'/js/magnificPopup.js', array( 'jquery' ), '1.0', true );
 
 		// Enqueue exemption JS
-		$exempt_js = WT_PLUGIN_DIR_URL .'js/certificate-manager.js?t='. time();
+		$exempt_js = SST()->plugin_url() .'/js/certificate-manager.js?t='. time();
 		wp_enqueue_script( 'exempt-js', $exempt_js, array( 'jquery', 'mpop-js' ), '1.0', true );
 	}
 }

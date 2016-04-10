@@ -1,3 +1,9 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly
+}
+?>
+
 <h3>Simple Sales Tax Data Update</h3>
 
 <p>Simple Sales Tax is working. Please do not close your browser window. You will be redirected away from this page when the data update is complete.</p>

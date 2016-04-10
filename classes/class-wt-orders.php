@@ -8,10 +8,10 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Do not all direct access
+	exit; // Exit if accessed directly
 }
 
-class WT_Orders {
+final class WT_Orders {
 	/** Meta prefix */
 	private static $prefix = '_wootax_';
 
@@ -49,8 +49,8 @@ class WT_Orders {
 	 * @since 4.4
 	 */
 	public static function init() {
+		self::includes();
 		self::hooks();
-
 		self::$addresses = fetch_business_addresses();
 
 		if ( WT_LOG_REQUESTS ) {
@@ -96,6 +96,14 @@ class WT_Orders {
 		// Send Returned request to TaxCloud when an order's status is changed to refunded or cancelled
 		add_action( 'woocommerce_order_status_refunded', array( __CLASS__, 'refund_order' ), 10, 1 );
 		add_action( 'woocommerce_order_status_cancelled', array( __CLASS__, 'refund_order' ), 10, 1 );
+	}
+
+	/**
+	 * Include all dependencies
+	 * @since 4.7
+	 */
+	private static function includes() {
+		require SST()->plugin_path() . '/classes/class-wc-wootax-order.php';
 	}
 
 	/**
@@ -423,7 +431,7 @@ class WT_Orders {
 
 				if ( is_array( $items['shipping_method_id'] ) && in_array( $item_id, $items['shipping_method_id'] ) ) {
 					// Shipping method
-					$tic  = WT_SHIPPING_TIC;
+					$tic  = apply_filters( 'wootax_shipping_tic', WT_DEFAULT_SHIPPING_TIC );
 					$cost = $items['shipping_cost'][$item_id];
 					$type = 'shipping';
 				} else if ( isset( $items['order_item_qty'][$item_id] ) ) {
@@ -434,10 +442,10 @@ class WT_Orders {
 					$tic  = wt_get_product_tic( $product_id, $variation_id );
 					$cost = $items['line_total'][ $item_id ];
 					$type = 'cart';
-					$qty  = WC_WooTax::get_option('tax_based_on') == 'line-subtotal' ? 1 : $items['order_item_qty'][ $item_id ];
+					$qty  = SST()->get_option('tax_based_on') == 'line-subtotal' ? 1 : $items['order_item_qty'][ $item_id ];
 				} else {
 					// Fee
-					$tic  = WT_FEE_TIC;
+					$tic  = apply_filters( 'wootax_fee_tic', WT_DEFAULT_FEE_TIC );
 					$cost = $items['line_total'][$item_id];
 					$type = 'fee';
 				}
@@ -755,7 +763,7 @@ class WT_Orders {
 	 * @since 4.5
 	 */
 	public static function maybe_capture_order( $order_id ) {
-		if ( WC_WooTax::get_option( 'capture_immediately' ) == 'yes' ) {
+		if ( SST()->get_option( 'capture_immediately' ) == 'yes' ) {
 			$res = self::capture_order( $order_id, true );
 
 			if ( $res !== true && self::$logger )

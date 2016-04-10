@@ -77,7 +77,7 @@ class WC_WooTax_Settings extends WC_Integration {
  		$rates_checked = get_option( 'wootax_rates_checked' );
 
 		if ( !$rates_checked && wt_has_other_rates() ) {
-			require WT_PLUGIN_PATH .'templates/admin/delete-rates.php';
+			require SST()->templates_path() . '/admin/delete-rates.php';
 
 			// Add WooTax tax rate if one is not present
 			WC_WooTax::maybe_add_wootax_rate();
@@ -419,7 +419,7 @@ class WC_WooTax_Settings extends WC_Integration {
 							<input type="text" name="wootax_zip5[<?php echo $i; ?>]" class="wootax_zip5" value="<?php echo $address['zip5']; ?>" /> - <input type="text" name="wootax_zip4[<?php echo $i; ?>]" value="<?php echo $address['zip4']; ?>" placeholder="(Optional)" class="wootax_zip4" />
 						</td>
 						<td>
-							<input type="radio" name="wootax_default_address" value="<?php echo $i; ?>"<?php echo (WC_WooTax::get_option('default_address') == $i || WC_WooTax::get_option('default_address') == '' && $i == 0) ? ' checked' : ''; ?> />
+							<input type="radio" name="wootax_default_address" value="<?php echo $i; ?>"<?php echo (SST()->get_option('default_address') == $i || SST()->get_option('default_address') == '' && $i == 0) ? ' checked' : ''; ?> />
 						</td>
 						<td>
 							<a class="remove_address<?php echo $i == 0 ? ' disabled' : ''; ?>">x</a>

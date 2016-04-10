@@ -52,7 +52,7 @@ function maybe_validate_address( $address, $order_id = -1 ) {
 			unset( $address['country'] );
 		}
 
-		$usps_id = WC_WooTax::get_option( 'usps_id' );
+		$usps_id = SST()->get_option( 'usps_id' );
 
 		if ( $usps_id ) {
 			$address['uspsUserID'] = $usps_id; // USPS Web Tools ID is required for calls to VerifyAddress
@@ -108,7 +108,7 @@ function fetch_product_origin_addresses( $product_id ) {
 
 	// Set origin address array to default if it hasn't been configured for this product
 	if ( !is_array( $raw_origin_addresses ) || count( $raw_origin_addresses ) == 0 ) {
-		$default_address = WC_WooTax::get_option( 'default_address' ) == false ? 0 : WC_WooTax::get_option( 'default_address' );
+		$default_address = SST()->get_option( 'default_address' ) == false ? 0 : SST()->get_option( 'default_address' );
 		$origin_addresses = array( $default_address );
 	} else {
 		$origin_addresses = $raw_origin_addresses;
@@ -124,7 +124,7 @@ function fetch_product_origin_addresses( $product_id ) {
  * @return (array) an array of origin addresses
  */
 function fetch_business_addresses() {
-	$addresses = WC_WooTax::get_option( 'addresses' );
+	$addresses = SST()->get_option( 'addresses' );
 
 	// Ensures that users who upgraded from older versions of the plugin are still good to go
 	if ( !is_array( $addresses ) ) {
@@ -253,7 +253,7 @@ function wootax_get_user_roles() {
  * @return (string) email address
  */
 function wootax_get_notification_email() {
-	$email = WC_WooTax::get_option( 'notification_email' );
+	$email = SST()->get_option( 'notification_email' );
 
 	if ( $email ) {
 		return $email;

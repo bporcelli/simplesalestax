@@ -63,7 +63,7 @@ class WC_WooTax_Upgrade {
 	 * @since 4.4
 	 */
 	public static function display_admin_page() {
-		include WT_PLUGIN_PATH .'templates/admin/data-update.php';
+		include SST()->templates_path() . '/admin/data-update.php';
 	}
 
 	/**
@@ -75,7 +75,7 @@ class WC_WooTax_Upgrade {
 	public static function maybe_update_wootax() {
 		global $wpdb;
 
-		if ( version_compare( self::$db_version, WT_VERSION, '=' ) ) {
+		if ( version_compare( self::$db_version, SST()->version, '=' ) ) {
 			return;
 		} else {
 			self::maybe_update_addresses();
@@ -84,7 +84,7 @@ class WC_WooTax_Upgrade {
 			if ( self::needs_data_update() ) {
 				wootax_add_message( '<strong>Simple Sales Tax data update required.</strong> Please backup your database, then click "Complete Update" to run the updater. <a class="button button-primary" href="'. admin_url( 'admin.php?page=wt-update' ) .'">Complete Update</a>', 'update-nag', 'upgrade-message', true, false );
 			} else {
-				update_option( 'wootax_version', WT_VERSION );
+				update_option( 'wootax_version', SST()->version );
 			}
 		}
 	}
@@ -197,7 +197,7 @@ class WC_WooTax_Upgrade {
 			$total_count = $wpdb->get_var( "SELECT COUNT(ID) FROM $wpdb->posts WHERE post_type = 'wootax_order'" );
 	
 			if ( $total_count == 0 ) {
-				update_option( 'wootax_version', WT_VERSION );
+				update_option( 'wootax_version', SST()->version );
 
 				self::dismiss_update_message();
 
@@ -215,7 +215,7 @@ class WC_WooTax_Upgrade {
 		$posts = $wpdb->get_results( "SELECT p.ID AS WTID, pm.meta_value AS WCID FROM $wpdb->posts p LEFT JOIN $wpdb->postmeta pm ON pm.post_id = p.ID WHERE p.post_type = 'wootax_order' AND pm.meta_key = '_wootax_wc_order_id' ORDER BY p.ID ASC LIMIT $last_post, $posts_per_page" );
 
 		if ( count ( $posts ) == 0 ) {
-			update_option( 'wootax_version', WT_VERSION );
+			update_option( 'wootax_version', SST()->version );
 
 			self::dismiss_update_message();
 			self::remove_order_posts();

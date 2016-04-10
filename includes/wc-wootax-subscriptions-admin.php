@@ -81,7 +81,7 @@ function wt_ajax_update_recurring_tax() {
 			$item_data[] = array(
 				'Index'  => '',
 				'ItemID' => WT_SHIPPING_ITEM, 
-				'TIC'    => WT_SHIPPING_TIC,
+				'TIC'    => apply_filters( 'wootax_shipping_tic', WT_DEFAULT_SHIPPING_TIC ),
 				'Qty'    => 1, 
 				'Price'  => $shipping,	
 				'Type'   => 'shipping',
@@ -98,7 +98,7 @@ function wt_ajax_update_recurring_tax() {
 			$item_data[] = array(
 				'Index'  => '',
 				'ItemID' => $item_id, 
-				'TIC'    => WT_FEE_TIC,
+				'TIC'    => apply_filters( 'wootax_fee_tic', WT_DEFAULT_FEE_TIC ),
 				'Qty'    => 1, 
 				'Price'  => $fee['recurring_line_total'],	
 				'Type'   => 'fee',

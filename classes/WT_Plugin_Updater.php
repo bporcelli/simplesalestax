@@ -9,7 +9,7 @@
  * @version 1.0
  */
 
-class WT_Plugin_Updater {
+final class WT_Plugin_Updater {
 	private $api_url  = '';
 	private $api_data = array();
 	private $name     = '';
@@ -152,3 +152,8 @@ class WT_Plugin_Updater {
 		endif;
 	}
 }
+
+// Instantiate updater to trigger update check
+new WT_Plugin_Updater( 'https://simplesalestax.com', __FILE__, array( 
+	'version' => SST()->version, // current version number
+) );

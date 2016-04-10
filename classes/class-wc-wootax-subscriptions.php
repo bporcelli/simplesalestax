@@ -110,7 +110,7 @@ class WC_WooTax_Subscriptions {
 		}
 
 		$final_items = $type_array = array();
-		$tax_based_on = WC_WooTax::get_option( 'tax_based_on' );
+		$tax_based_on = SST()->get_option( 'tax_based_on' );
 
 		foreach ( $order_items as $item_id => $item ) {
 			$type = $item['type'];
@@ -119,10 +119,10 @@ class WC_WooTax_Subscriptions {
 
 			switch ( $type ) {
 				case 'shipping':
-					$tic = WT_SHIPPING_TIC;
+					$tic = apply_filters( 'wootax_shipping_tic', WT_DEFAULT_SHIPPING_TIC );
 					break;
 				case 'fee':
-					$tic = WT_FEE_TIC;
+					$tic = apply_filters( 'wootax_fee_tic', WT_DEFAULT_FEE_TIC );
 					break;
 				case 'line_item':
 					$tic  = wt_get_product_tic( $item['product_id'], $item['variation_id'] );

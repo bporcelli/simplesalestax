@@ -1,4 +1,9 @@
-<?php global $rate, $data; ?>
+<?php 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly
+}
+
+global $rate, $data; ?>
 
 <tr class="flat_rate">
 	<th class="check-column"><input type="checkbox" data-val="<?php echo $rate; ?>" name="select"></th>

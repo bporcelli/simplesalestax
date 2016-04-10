@@ -151,7 +151,7 @@ class WC_WooTax_Refund extends WC_Order_Refund {
 			$refund_items[ $first_found ][] = array(
 				'Index'  => '', 
 				'ItemID' => $real_id, 
-				'TIC'    => WT_FEE_TIC,
+				'TIC'    => apply_filters( 'wootax_fee_tic', WT_DEFAULT_FEE_TIC ),
 				'Qty'    => 1, 
 				'Price'  => $fee['line_total'] * -1,
 			);
@@ -167,7 +167,7 @@ class WC_WooTax_Refund extends WC_Order_Refund {
 			$refund_items[ $first_found ][] = array(
 				'Index'  => '', 
 				'ItemID' => $item_id, 
-				'TIC'    => WT_SHIPPING_TIC, 
+				'TIC'    => apply_filters( 'wootax_shipping_tic', WT_DEFAULT_SHIPPING_TIC ), 
 				'Qty'    => 1, 
 				'Price'  => $shipping_cost * -1,
 			);

@@ -4,6 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 
+require_once SST()->plugin_path() . '/classes/class-wt-orders.php';
+
 /**
  * Update recurring tax for subscriptions
  * Not executed if Subscriptions plugin is not active
@@ -96,7 +98,7 @@ function wootax_update_recurring_tax() {
 					if ( $cost != 0 ) {
 						$unit_price = $cost / $qty;
 
-						if ( WC_WooTax::get_option( 'tax_based_on' ) != 'line-subtotal' ) {
+						if ( SST()->get_option( 'tax_based_on' ) != 'line-subtotal' ) {
 							$price = $unit_price; 
 						} else {
 							$qty   = 1;
@@ -129,7 +131,7 @@ function wootax_update_recurring_tax() {
 						'Qty'    => 1,
 						'Price'  => $fee['recurring_line_total'],
 						'Type'   => 'cart',
-						'TIC'    => WT_FEE_TIC,
+						'TIC'    => apply_filters( 'wootax_fee_tic', WT_DEFAULT_FEE_TIC ),
 					);
 
 					$type_array[ $fee_id ] = 'fee';
@@ -146,7 +148,7 @@ function wootax_update_recurring_tax() {
 					'Qty'    => 1,
 					'Price'  => isset( $method['cost'] ) ? $method['cost'] : $method['line_total'], // 'cost' key used by shipping methods in 2.2
 					'Type'   => 'shipping',
-					'TIC'    => WT_SHIPPING_TIC,
+					'TIC'    => apply_filters( 'wootax_shipping_tic', WT_DEFAULT_SHIPPING_TIC ),
 				);
 
 				$type_array[ $method_id ] = 'shipping';

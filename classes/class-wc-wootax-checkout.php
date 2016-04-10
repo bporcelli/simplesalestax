@@ -379,7 +379,7 @@ class WC_WooTax_Checkout {
 		$customer_state = $this->destination_address['State'];
 		$counters_array = $lookup_data = $mapping_array = array();
 		
-		$tax_based_on = WC_WooTax::get_option( 'tax_based_on' );
+		$tax_based_on = SST()->get_option( 'tax_based_on' );
 
 		// Add cart items
 		foreach ( $order_items as $item_id => $item ) {
@@ -473,7 +473,7 @@ class WC_WooTax_Checkout {
 				$lookup_data[ $first_location ][] = array(
 					'Index'  => $index,
 					'ItemID' => $item_id, 
-					'TIC'    => WT_SHIPPING_TIC, 
+					'TIC'    => apply_filters( 'wootax_shipping_tic', WT_DEFAULT_SHIPPING_TIC ), 
 					'Qty'    => 1, 
 					'Price'  => apply_filters( 'wootax_taxable_price', $shipping_total, true, $item_id ),
 				);
@@ -509,7 +509,7 @@ class WC_WooTax_Checkout {
 					$lookup_data[ $first_location ][] = array(
 						'Index'  => $index,
 						'ItemID' => $item_id, 
-						'TIC'    => WT_FEE_TIC,
+						'TIC'    => apply_filters( 'wootax_fee_tic', WT_DEFAULT_FEE_TIC ),
 						'Qty'    => 1, 
 						'Price'  => apply_filters( 'wootax_taxable_price', $fee->amount, true, $item_id ),
 					);
@@ -796,7 +796,7 @@ class WC_WooTax_Checkout {
 		$this->cart->{$tax_key}[ WT_RATE_ID ] = $new_tax;
 
 		// Maybe remove sales tax row if tax due is zero and the cart does not contain a subscription (removing the zero tax for subscription orders causes issues)
-		if ( !$this->is_subscription && WC_WooTax::get_option( 'show_zero_tax' ) != 'true' && $new_tax == 0 ) {
+		if ( !$this->is_subscription && SST()->get_option( 'show_zero_tax' ) != 'true' && $new_tax == 0 ) {
 			unset( $this->cart->{$tax_key}[ WT_RATE_ID ] );
 		}
 

@@ -1,4 +1,8 @@
-<?php 
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly
+}
+
 /**
  * Displays a TIC select box for a product category
  *

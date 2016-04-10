@@ -1,3 +1,9 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly
+}
+?>
+
 <tr>
 	<th id="delete_rates_table">
 		<h4>Whoops! Simple Sales Tax found some extra rates in your tax tables.</h4>
@@ -38,13 +44,13 @@
 				unset( $rate_counts[ $key ] );
 			}
 
-			require WT_PLUGIN_PATH .'/templates/admin/rate-table-header.php';
+			require SST()->templates_path() . '/admin/rate-table-header.php';
 
 			foreach ( $rate_counts as $rate => $data ) {
 				$GLOBALS['rate'] = $rate;
 				$GLOBALS['data'] = $data;
 
-				require WT_PLUGIN_PATH .'/templates/admin/rate-table-row.php';
+				require SST()->templates_path() . '/admin/rate-table-row.php';
 			}
 		
 			echo '</tbody>';

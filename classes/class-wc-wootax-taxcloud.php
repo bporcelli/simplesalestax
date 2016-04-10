@@ -273,11 +273,11 @@ class WC_WooTax_TaxCloud {
  */
 function TaxCloud( $login_id = false, $login_key = false ) {
 	if ( !$login_id ) {
-		$login_id = WC_WooTax::get_option( 'tc_id' );
+		$login_id = SST()->get_option( 'tc_id' );
 	}
 
 	if ( !$login_key ) {
-		$login_key = WC_WooTax::get_option( 'tc_key' );
+		$login_key = SST()->get_option( 'tc_key' );
 	}
 
 	$instance = WC_WooTax_TaxCloud::instance();

@@ -36,6 +36,8 @@ if( !function_exists( 'is_plugin_active' ) ) {
 // Seems weird to include this here... try to think of a better way in the future
 require 'includes/wc-wootax-messages.php';
 
+if ( ! class_exists( 'WC_WooTax' ) ):
+
 /**
  * The main WooTax class
  * Handles plugin activation/deactivation routines and a few miscellaneous tasks
@@ -44,55 +46,51 @@ require 'includes/wc-wootax-messages.php';
  * @author  Brett Porcelli
  * @since 4.2
  */
-class WC_WooTax {
-	/** Current plugin version */
-	private static $version = 4.7;
-
-	/** Key of option where plugin settings are stored */
-	private static $settings_key = 'woocommerce_wootax_settings';
-
-	/** Plugin settings */
-	private static $settings = array();
-
-	/** When this is true, the get_option method reloads the WooTax settings array */
-	public static $settings_changed = false;
+final class WC_WooTax {
+	/**
+	 * @var Plugin version
+	 */
+	public $version = 4.7;
 
 	/**
-	 * Initialize plugin
-	 * - Hook into WooCommerce
-	 * - Define WooTax constants
-	 * - Include dependencies
-	 *
-	 * @since 4.4
+	 * @var Key of option where plugin settings are stored
 	 */
-	public static function init() {
-		self::define_constants();
+	private static $settings_key = 'woocommerce_wootax_settings';
 
-		if ( !self::ready() ) {
-			return;
+	/**
+	 * @var Array containing plugin settings 
+	 */
+	private $settings = array();
+
+	/**
+	 * @var When this is true, the get_option method reloads the WooTax settings array
+	 */
+	private $settings_changed = false;
+
+	/**
+	 * @var WooTax The single instance of the WooTax class
+	 */
+	protected static $_instance;
+
+	/**
+	 * Return the single WooTax instance
+	 * @since 1.0
+	 */
+	public static function instance() {
+		if ( is_null( self::$_instance ) ) {
+			self::$_instance = new self();
 		}
-
-		self::includes();
-		self::hooks();
-		self::maybe_check_updates();
+		return self::$_instance;
 	}
 
 	/**
-	 * Determine if WooTax is ready to run
-	 * WooCommerce must be active and a valid TaxCloud API Key and Login ID (at the least) must be set
-	 *
-	 * @since 4.4
+	 * Plugin constructor
+	 * @since 4.7
 	 */
-	private static function ready() {
-		if ( !class_exists( 'SoapClient' ) ) {
-			wootax_add_message( '<strong>Warning: Simple Sales Tax has been disabled.</strong> The SoapClient class is required by Simple Sales Tax, but it is not installed on your server. To resolve this issue, please contact your web host and ask them to enable PHP SOAP for you.' );
-			return false;
-		} else if ( !is_plugin_active( 'woocommerce/woocommerce.php' ) || !version_compare( WOOCOMMERCE_VERSION, '2.1', '>=' ) ) {
-			wootax_add_message( '<strong>Warning: Simple Sales Tax has been disabled.</strong> WooCommerce version 2.1 or greater must be activated for Simple Sales Tax to work properly.' );
-			return false;
-		}
-
-		return true;
+	private function __construct() {
+		$this->define_constants();
+		$this->hooks();
+		$this->includes();
 	}
 
 	/**
@@ -100,18 +98,15 @@ class WC_WooTax {
 	 *
 	 * @since 4.4
 	 */
-	private static function define_constants() {
-		self::define( 'WT_VERSION', self::$version );
-		self::define( 'WT_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
-		self::define( 'WT_PLUGIN_DIR_URL', plugin_dir_url( __FILE__ ) );
-		self::define( 'WT_SHIPPING_TIC', apply_filters( 'wootax_shipping_tic', 11010 ) );
-		self::define( 'WT_SHIPPING_ITEM', 'SHIPPING' );
-		self::define( 'WT_FEE_TIC', apply_filters( 'wootax_fee_tic', 10010 ) );
-		self::define( 'WT_RATE_ID', get_option( 'wootax_rate_id' ) );
-		self::define( 'WT_CALC_TAXES', self::should_calc_taxes() );
-		self::define( 'WT_DEFAULT_ADDRESS', WC_WooTax::get_option( 'default_address' ) == false ? 0 : WC_WooTax::get_option( 'default_address' ) );
-		self::define( 'WT_SUBS_ACTIVE', class_exists( 'WC_Subscriptions' ) );
-		self::define( 'WT_LOG_REQUESTS', WC_WooTax::get_option( 'log_requests' ) == 'no' ? false : true );
+	private function define_constants() {
+		$this->define( 'WT_DEFAULT_SHIPPING_TIC', 11010 );
+		$this->define( 'WT_SHIPPING_ITEM', 'SHIPPING' );
+		$this->define( 'WT_DEFAULT_FEE_TIC', 10010 );
+		$this->define( 'WT_RATE_ID', get_option( 'wootax_rate_id' ) );
+		//$this->define( 'WT_CALC_TAXES', $this->should_calc_taxes() );
+		$this->define( 'WT_DEFAULT_ADDRESS', $this->get_option( 'default_address' ) == false ? 0 : $this->get_option( 'default_address' ) );
+		$this->define( 'WT_SUBS_ACTIVE', class_exists( 'WC_Subscriptions' ) );
+		$this->define( 'WT_LOG_REQUESTS', $this->get_option( 'log_requests' ) == 'no' ? false : true );
 	}
 
 	/**
@@ -119,8 +114,8 @@ class WC_WooTax {
 	 *
 	 * @since 4.4
 	 */
-	private static function define( $name, $value ) {
-		if ( !defined( $name ) ){
+	private function define( $name, $value ) {
+		if ( ! defined( $name ) ){
 			define( $name, $value );
 		}
 	}
@@ -130,12 +125,18 @@ class WC_WooTax {
 	 *
 	 * @since 4.4
 	 */
-	private static function hooks() {
+	private function hooks() {
+		// Activation routine
+		register_activation_hook( __FILE__, array( $this, 'activate' ) );
+
+		// Deactivation routine
+		register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
+
 		// Display correct rate label for older versions of WooCommerce
-		add_filter( 'woocommerce_rate_label', array( __CLASS__, 'get_rate_label' ), 15, 2 );
+		add_filter( 'woocommerce_rate_label', array( $this, 'get_rate_label' ), 15, 2 );
 
 		// Return correct rate code for WooTax tax rate
-		add_filter( 'woocommerce_rate_code', array( __CLASS__, 'get_rate_code' ), 12, 2 );
+		add_filter( 'woocommerce_rate_code', array( $this, 'get_rate_code' ), 12, 2 );
 	}
 
 	/**
@@ -146,7 +147,7 @@ class WC_WooTax {
 	 * @return bool
 	 * @see WooCommerce->is_request()
 	 */
-	private static function is_request( $type ) {
+	private function is_request( $type ) {
 		switch ( $type ) {
 			case 'admin' :
 				return is_admin();
@@ -160,89 +161,102 @@ class WC_WooTax {
 	}
 
 	/**
-	 * Include WooTax dependencies
-	 *
+	 * Includes
 	 * @since 4.4
 	 */
-	private static function includes() {
+	private function includes() {
 		// Used for all request types
-		require 'includes/wc-wootax-functions.php';
-		require 'classes/class-wc-wootax-taxcloud.php';
+		require_once 'includes/wc-wootax-functions.php';
+		require_once 'classes/class-wc-wootax-taxcloud.php';
+		require_once 'includes/wc-wootax-exemptions.php';
+
+		if ( WT_SUBS_ACTIVE ) {
+			require_once 'includes/wc-wootax-subscriptions.php';
+		}
 
 		// Used on frontend
-		if ( self::is_request( 'frontend' ) ) {
-			if ( WC_WooTax::get_option( 'show_exempt' ) == 'true' ) {
-				require 'includes/wc-wootax-exemptions-frontend.php';
-			}
-
-			if ( WT_SUBS_ACTIVE ) {
-				require 'includes/wc-wootax-subscriptions-frontend.php';
-			}
-			
-			require 'classes/class-wc-wootax-checkout.php';
-		}
-		
-		// Everywhere
-		if ( self::is_request( 'frontend' ) || self::is_request( 'admin' ) || self::is_request( 'ajax' ) || self::is_request( 'cron' ) ) {
-			require 'includes/wc-wootax-exemptions.php';
-
-			if ( WT_SUBS_ACTIVE ) {
-				require 'includes/wc-wootax-subscriptions.php';
-			}
+		if ( $this->is_request( 'frontend' ) ) {
+			$this->frontend_includes();
 		}
 
-		// Frontend and admin panel
-		if ( self::is_request( 'frontend' ) || self::is_request( 'admin' ) || self::is_request( 'cron' ) ) {
-			require 'classes/class-wc-wootax-order.php';
-			require 'classes/class-wt-orders.php';
-
-			if ( WT_SUBS_ACTIVE ) {
-				require 'classes/class-wc-wootax-subscriptions.php';
-			}
-
-			require 'includes/wc-wootax-cron-tasks.php';
+		// For cron requests
+		if ( $this->is_request( 'cron' ) ) {
+			require_once 'includes/wc-wootax-cron-tasks.php';			
 		}
 
 		// Strictly admin panel
-		if ( self::is_request( 'admin' ) ) {
-			require 'classes/class-wc-wootax-upgrade.php';
-			require 'classes/class-wc-wootax-settings.php';
-			require 'classes/class-wc-wootax-admin.php';
-			require 'classes/class-wc-wootax-refund.php';
-			require 'classes/WT_Plugin_Updater.php';
-			require 'includes/wc-wootax-subscriptions-admin.php';
+		if ( $this->is_request( 'admin' ) ) {
+			require_once 'classes/class-wc-wootax-admin.php';
 		}
 	}
 
 	/**
-	 * Run the WooTax activation routine
-	 *
-	 * @since 4.4
+	 * Frontend includes
+	 * @since 4.7
 	 */
-	public static function activate_wootax() {
-		self::configure_woocommerce();
-		self::maybe_add_wootax_rate();
-		self::add_exempt_user_role();
-		self::schedule_wootax_events();
+	private function frontend_includes() {
+		if ( $this->get_option( 'show_exempt' ) == 'true' ) {
+			require 'includes/wc-wootax-exemptions-frontend.php';
+		}
+
+		if ( WT_SUBS_ACTIVE ) {
+			require 'includes/wc-wootax-subscriptions-frontend.php';
+		}
+		
+		require 'classes/class-wc-wootax-checkout.php';
 	}
 
 	/**
-	 * Run the WooTax deactivation routine
-	 *
-	 * @since 4.4
+	 * Determine whether all WooTax dependencies are present in the environment.
+	 * @since 4.7
 	 */
-	public static function deactivate_wootax() {
-		self::unschedule_wootax_events();
+	private function has_dependencies() {
+		if ( ! class_exists( 'SoapClient' ) ) {
+			return false;
+		} else if ( ! is_plugin_active( 'woocommerce/woocommerce.php' ) || ! version_compare( WOOCOMMERCE_VERSION, '2.1', '>=' ) ) {
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
-	 * Configures WooCommerce tax settings to work with WooTax
-	 * Executed on plugin activation
+	 * WooTax activation routine.
+	 *
+	 * @since 4.7
+	 */
+	public function activate() {
+		// If all required dependencies are present...
+		if ( $this->has_dependencies() ) {
+			// Install WooTax and display a message
+			$this->configure_woocommerce();
+			$this->add_wootax_rate();
+			$this->add_exempt_user_role();
+			$this->schedule_events();
+
+			wootax_add_message( '<strong>Success!</strong> Simple Sales Tax was activated. Your WooCommerce tax settings have been adjusted for optimal plugin performance.', 'updated', 'activate-success', true, true );
+		} else {
+			wootax_add_message( '<strong>Simple Sales Tax could not be activated.</strong> Please ensure that PHP SOAP is supported by your server, and check that WooCommerce 2.1 or greater is installed.', 'error', 'activate-error', true, true );
+
+			deactivate_plugins( plugin_basename( __FILE__ ) );
+		}
+	}
+
+	/**
+	 * WooTax deactivation routine.
+	 *
+	 * @since 4.7
+	 */
+	public function deactivate() {
+		$this->unschedule_events();
+	}
+
+	/**
+	 * Configure WooCommerce tax settings to work with WooTax.
 	 *
 	 * @since 4.2
 	 */
- 	public static function configure_woocommerce() {
- 		// Update WooCommerce settings
+ 	private function configure_woocommerce() {
 		update_option( 'woocommerce_calc_taxes', 'yes' );
 		update_option( 'woocommerce_prices_include_tax', 'no' );
 		update_option( 'woocommerce_tax_based_on', 'shipping' );
@@ -252,20 +266,35 @@ class WC_WooTax {
 		update_option( 'woocommerce_tax_display_shop', 'excl' );
 		update_option( 'woocommerce_tax_display_cart', 'excl' );
 		update_option( 'woocommerce_tax_total_display', 'itemized' );
-		
-		// Confirm activation with user
-		wootax_add_message( '<strong>Success!</strong> Your WooCommerce tax settings have been automatically adjusted to work with Simple Sales Tax.', 'updated', 'activated', true, true );
 	}
 	
 	/**
-	 * Maybe insert a tax rate into the database for WooTax
-	 * Runs on plugin activation
-	 *
-	 * @since 4.4
+	 * Add a tax rate for WooTax if one doesn't exist.
+	 * @since 4.7
 	 */
-	public static function maybe_add_wootax_rate() {
-		if ( !self::has_tax_rate() ) {
-			self::add_rate_code();
+	private function add_wootax_rate() {
+		if ( ! $this->has_tax_rate() ) {
+			global $wpdb;
+
+			// Add new rate 
+			$_tax_rate = array(
+				'tax_rate_id'       => 0,
+				'tax_rate_country'  => 'WOOTAX',
+				'tax_rate_state'    => 'RATE',
+				'tax_rate'          => 0,
+				'tax_rate_name'     => 'DO-NOT-REMOVE',
+				'tax_rate_priority' => 0,
+				'tax_rate_compound' => 1,
+				'tax_rate_shipping' => 1,
+				'tax_rate_order'    => 0,
+				'tax_rate_class'    => 'standard',
+			);
+
+			$wpdb->insert( $wpdb->prefix . 'woocommerce_tax_rates', $_tax_rate );
+
+			$tax_rate_id = $wpdb->insert_id;
+
+			update_option( 'wootax_rate_id', $tax_rate_id );
 		}
 	}
 
@@ -275,12 +304,12 @@ class WC_WooTax {
 	 * @since 4.2
 	 * @return bool true/false
 	 */
-	private static function has_tax_rate() {
+	private function has_tax_rate() {
 		global $wpdb;
 
 		$wootax_rate_id = get_option( 'wootax_rate_id' ); // WT_RATE_ID is not defined yet when this method is executed
 
-		if ( !$wootax_rate_id ) {
+		if ( ! $wootax_rate_id ) {
 			return false;
 		} else {
 			$name = $wpdb->get_var( "SELECT tax_rate_name FROM {$wpdb->prefix}woocommerce_tax_rates WHERE tax_rate_id = $wootax_rate_id" );
@@ -294,12 +323,46 @@ class WC_WooTax {
 	}
 
 	/**
+	 * Adds a user role for tax exempt customers
+	 * Role is an exact copy of the "Customer" role
+	 *
+	 * @since 4.3
+	 */
+	private function add_exempt_user_role() {
+		add_role( 'exempt-customer', __( 'Exempt Customer', 'woocommerce' ), array(
+			'read' 			=> true,
+			'edit_posts' 	=> false,
+			'delete_posts' 	=> false,
+		) );
+	}
+
+	/**
+	 * Schedule events for the WooTax order checker and recurring payments updater
+	 *
+	 * @since 4.4
+	 */
+	private function schedule_events() {
+		// Updates recurring tax amounts if necessary
+		wp_schedule_event( time(), 'twicedaily', 'wootax_update_recurring_tax' );
+	}
+
+	/**
+	 * Unschedule events for the WooTax order checker and recurring payments updater
+	 * Hooks to be cleared are wootax_update_recurring_tax
+	 *
+	 * @since 4.4
+	 */
+	private function unschedule_events() {
+		wp_clear_scheduled_hook( 'wootax_update_recurring_tax' );
+	}
+
+	/**
 	 * Get appropriate label for tax rate (should be Sales Tax for the rate applied by WooTax)
 	 *
 	 * @param $name - the name of the tax (fetched from db; won't be populated in our case)
 	 * @param $key - the tax key (we want to return the appropriate name for the wootax rate)
 	 */
-	public static function get_rate_label( $name, $key = NULL ) {
+	public function get_rate_label( $name, $key = NULL ) {
 		if ( $name == WT_RATE_ID || $key == WT_RATE_ID ) {
 			return apply_filters( 'wootax_rate_label', 'Sales Tax' );
 		} else {
@@ -313,7 +376,7 @@ class WC_WooTax {
 	 * @param $code -the code WooCommerce generates @see WC_Tax->get_rate_code()
 	 * @param $key - the tax rate id; compare to stored wootax rate id and return 'WOOTAX-RATE-DO-NOT-REMOVE' if match is found
 	 */
-	public static function get_rate_code( $code, $key ) {
+	public function get_rate_code( $code, $key ) {
 		if ( $key == WT_RATE_ID ) {
 			return apply_filters( 'wootax_rate_code', 'WOOTAX-RATE-DO-NOT-REMOVE' );
 		} else {
@@ -322,97 +385,18 @@ class WC_WooTax {
 	}
 
 	/**
-	 * Adds a tax rate code for WooTax
-	 *
-	 * @since 4.0
-	 */
-	private static function add_rate_code() {
-		global $wpdb;
-
-		// Add new rate 
-		$_tax_rate = array(
-			'tax_rate_id'       => 0,
-			'tax_rate_country'  => 'WOOTAX',
-			'tax_rate_state'    => 'RATE',
-			'tax_rate'          => 0,
-			'tax_rate_name'     => 'DO-NOT-REMOVE',
-			'tax_rate_priority' => 0,
-			'tax_rate_compound' => 1,
-			'tax_rate_shipping' => 1,
-			'tax_rate_order'    => 0,
-			'tax_rate_class'    => 'standard',
-		);
-
-		$wpdb->insert( $wpdb->prefix . 'woocommerce_tax_rates', $_tax_rate );
-
-		$tax_rate_id = $wpdb->insert_id;
-
-		update_option( 'wootax_rate_id', $tax_rate_id );
-	}
-
-	/**
-	 * Adds a user role for tax exempt customers
-	 * Role is an exact copy of the "Customer" role
-	 *
-	 * @since 4.3
-	 */
-	public static function add_exempt_user_role() {
-		add_role( 'exempt-customer', __( 'Exempt Customer', 'woocommerce' ), array(
-			'read' 			=> true,
-			'edit_posts' 	=> false,
-			'delete_posts' 	=> false,
-		) );
-	}
-
-	/**
-	 * Schedule events for the WooTax order checker and recurring payments updater
-	 *
-	 * @since 4.4
-	 */
-	public static function schedule_wootax_events() {
-		// Updates recurring tax amounts if necessary
-		wp_schedule_event( time(), 'twicedaily', 'wootax_update_recurring_tax' );
-	}
-
-	/**
-	 * Unschedule events for the WooTax order checker and recurring payments updater
-	 * Hooks to be cleared are wootax_update_recurring_tax
-	 *
-	 * @since 4.4
-	 */
-	public static function unschedule_wootax_events() {
-		wp_clear_scheduled_hook( 'wootax_update_recurring_tax' );
-	}
-
-	/**
-	 * Maybe check for updates
-	 * Runs if we are serving an admin request and EDD_SL_Plugin_Updater is accessible
-	 *
-	 * @since 4.4
-	 */
-	private static function maybe_check_updates() {
-		if ( !self::is_request( 'admin' ) || !class_exists( 'WT_Plugin_Updater' ) ) {
-			return;
-		}
-
-		$wt_updater = new WT_Plugin_Updater( 'https://simplesalestax.com', __FILE__, array( 
-			'version' => WT_VERSION, // current version number
-		) );
-	}
-
-	/**
 	 * Return true if taxes are enabled
 	 *
 	 * @since 4.6
 	 * @return bool
-	 */
+	 
 	private static function should_calc_taxes() {
 		if ( function_exists( 'wc_taxes_enabled' ) ) {
 			return wc_taxes_enabled();
 		} else {
 			return apply_filters( 'wc_tax_enabled', get_option( 'woocommerce_calc_taxes' ) == 'yes' );
 		}
-	}
+	}*/
 
 	/**
 	 * Get the value of a WooTax option
@@ -421,16 +405,16 @@ class WC_WooTax {
 	 * @param (mixed) $key the key of the option to be fetched
 	 * @return (mixed) requested option or boolean false if it isn't set
 	 */
-	public static function get_option( $key ) {
-		if ( count( self::$settings ) == 0 || self::$settings_changed ) {
-			self::$settings = get_option( self::$settings_key );
-			self::$settings_changed = false;
+	public function get_option( $key ) {
+		if ( count( $this->settings ) == 0 || $this->settings_changed ) {
+			$this->settings = get_option( $this->settings_key );
+			$this->settings_changed = false;
 		}
 		
-		if ( !isset( self::$settings[ $key ] ) || !self::$settings[ $key ] ) {
+		if ( !isset( $this->settings[ $key ] ) || !$this->settings[ $key ] ) {
 			return false;
 		} else {
-			return self::$settings[ $key ];
+			return $this->settings[ $key ];
 		}
 	}
 
@@ -441,21 +425,53 @@ class WC_WooTax {
 	 * @param (mixed) $key the key of the option to be updated
 	 * @param (mixed) $value the new value of the option
 	 */
-	public static function set_option( $key, $value ) {
-		if ( count( self::$settings ) == 0 ) {
-			self::$settings = get_option( self::$settings_key );
+	public function set_option( $key, $value ) {
+		if ( count( $this->settings ) == 0 ) {
+			$this->settings = get_option( $this->settings_key );
 		}
 
-		self::$settings[ $key ] = $value;
+		$this->settings[ $key ] = $value;
 
-		update_option( self::$settings_key, self::$settings );
+		update_option( $this->settings_key, $this->settings );
+	}
+
+	/**
+	 * Get the plugin url.
+	 * @since 4.7
+	 * @return string
+	 */
+
+	public function plugin_url() {
+		return untrailingslashit( plugins_url( '/', __FILE__ ) );
+	}
+
+	/**
+	 * Get the plugin path.
+	 * @since 4.7
+	 * @return string
+	 */
+	public function plugin_path() {
+		return untrailingslashit( plugin_dir_path( __FILE__ ) );
+	}
+
+	/**
+	 * Get the templates path
+	 * @since 4.7
+	 * @return string
+	 */
+	public function templates_path() {
+		return $this->plugin_path() .'/templates';
 	}
 }
 
-add_action( 'plugins_loaded', array( 'WC_WooTax', 'init' ) );
+endif;
 
-// Activation routine
-register_activation_hook( __FILE__, array( 'WC_WooTax', 'activate_wootax' ) );
+/**
+ * Return the main Simple Sales Tax instance
+ * @since 1.0
+ */
+function SST() {
+	return WC_WooTax::instance();
+}
 
-// Deactivation routine
-register_deactivation_hook( __FILE__, array( 'WC_WooTax', 'deactivate_wootax' ) );
+add_action( 'plugins_loaded', 'SST', 20 );

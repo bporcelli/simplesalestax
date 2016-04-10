@@ -1,14 +1,19 @@
 <?php 
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly
+}
+
 /**
  * Displays a TIC select box for the bulk editor
  *
  * @var $tic_list - list of TICs that can be selected
  */
+
 global $tic_list;
 
 // Add "use site default" option
-array_unshift( $tic_list, array( 'id' => 'default', 'name' => 'Use site default' ) );
-?>
+array_unshift( $tic_list, array( 'id' => 'default', 'name' => 'Use site default' ) ); ?>
 
 <label class="alignleft">
 	<span class="title">TIC</span>
