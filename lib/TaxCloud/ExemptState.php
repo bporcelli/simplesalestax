@@ -41,7 +41,7 @@ class ExemptState implements \JsonSerializable
 
   private function setStateAbbr($StateAbbr)
   {
-    $this->StateAbbr = constant("State::$StateAbbr");
+    $this->StateAbbr = constant("\TaxCloud\State::$StateAbbr");
   }
 
   public function getStateAbbr()

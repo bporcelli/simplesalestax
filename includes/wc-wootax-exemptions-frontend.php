@@ -105,39 +105,55 @@ add_action( 'wp_ajax_wootax-update-certificate', 'ajax_update_exemption_certific
  * @since 1.0
  */
 function add_exemption_certificate() {
-	$certificate = new WT_Exemption_Certificate();
+	$customer_id = WC()->session->get( 'wootax_customer_id' );
 
-	$certificate->SinglePurchase     = $_POST['SinglePurchase'] == 'false' ? false : true;
-	$certificate->PurchaserFirstName = esc_attr( $_POST['PurchaserFirstName'] );
-	$certificate->PurchaserLastName	 = esc_attr( $_POST['PurchaserLastName'] );
-	$certificate->PurchaserTitle     = esc_attr( $_POST['PurchaserTitle'] );
-	$certificate->PurchaserAddress1  = esc_attr( $_POST['PurchaserAddress1'] );
-	$certificate->PurchaserCity      = esc_attr( $_POST['PurchaserCity'] );
-	$certificate->PurchaserState     = esc_attr( $_POST['PurchaserState'] );
-	$certificate->PurchaserZip       = esc_attr( $_POST['PurchaserZip'] );
+	// Construct certificate
+	$state_abbr = sanitize_text_field( $_POST[ 'ExemptState' ] );
+	
+	$exempt_state = new \TaxCloud\ExemptState( $state_abbr, '', '' ); // StateAbbr, ReasonForExemption, IDNumber
+	$exempt_states = array( $exempt_state );
+	
+	$single_purchase = sanitize_text_field( $_POST[ 'SinglePurchase' ] ) == 'false' ? false : true;
+	$first_name = sanitize_text_field( $_POST['PurchaserFirstName'] );
+	$last_name = sanitize_text_field( $_POST['PurchaserLastName'] );
+	$title = sanitize_text_field( $_POST['PurchaserTitle'] );
+	$address_1 = sanitize_text_field( $_POST['PurchaserAddress1'] );
+	$city = sanitize_text_field( $_POST['PurchaserCity'] );
+	$state = sanitize_text_field( $_POST['PurchaserState'] );
+	$zip = sanitize_text_field( $_POST['PurchaserZip'] );
+	$biz_type = sanitize_text_field( $_POST['PurchaserBusinessType'] );
+	$biz_type_other_value = isset( $_POST['PurchaserBusinessTypeOtherValue'] ) ? sanitize_text_field( $_POST['PurchaserBusinessTypeOtherValue'] ) : NULL;
+	$exemption_reason = sanitize_text_field( $_POST['PurchaserExemptionReason'] );
+	$exemption_reason_value = sanitize_text_field( $_POST['PurchaserExemptionReasonValue'] );
 
-	$certificate->PurchaserTaxID = array(
-		'TaxType'      => esc_attr( $_POST['TaxType'] ),
-		'IDNumber'     => esc_attr( $_POST['IDNumber'] ),
-		'StateOfIssue' => esc_attr( $_POST['StateOfIssue'] ),
+	$tax_type = sanitize_text_field( $_POST['TaxType'] );
+	$id_number = sanitize_text_field( $_POST['IDNumber'] );
+	$state_of_issue = sanitize_text_field( $_POST['StateOfIssue'] );
+	$tax_id = new \TaxCloud\TaxID( $tax_type, $id_number, $state_of_issue );
+
+	$certificate = new \TaxCloud\ExemptionCertificate(
+		$exempt_states,
+		$single_purchase,
+		NULL, // Single purchase order number not known at this time
+		$first_name,
+		$last_name,
+		$title,
+		$address_1,
+		NULL, // Address 2 not collected
+		$city,
+		$state,
+		$zip,
+		$tax_id,
+		$biz_type,
+		$biz_type_other_value,
+		$exemption_reason,
+		$exemption_reason_value
 	);
 
-	$certificate->ExemptStates = array( array( 
-		'StateAbbr' => esc_attr( $_POST['ExemptState'] ),
-	) );
-
-	$certificate->PurchaserBusinessType           = esc_attr( $_POST['PurchaserBusinessType'] );
-	$certificate->PurchaserBusinessTypeOtherValue = isset( $_POST['PurchaserBusinessTypeOtherValue'] ) ? esc_attr( $_POST['PurchaserBusinessTypeOtherValue'] ) : NULL;
-	$certificate->PurchaserExemptionReason        = esc_attr( $_POST['PurchaserExemptionReason'] );
-	$certificate->PurchaserExemptionReasonValue   = esc_attr( $_POST['PurchaserExemptionReasonValue'] );
-	
-	// Get certificate in TaxCloud-friendly format
-	$final_certificate = $certificate->get_formatted_certificate();
-
 	// If this certificate will only be used for a single purchase, store it in the session; Else, send AddCertificate request to TaxCloud
-	if ( true == $certificate->SinglePurchase ) {
+	if ( true === $single_purchase ) {
 		// Save cert to session for use during checkout
-		WC()->session->set( 'certificate_data', $final_certificate['exemptCert'] );
+		WC()->session->set( 'certificate_data', $certificate );
 		WC()->session->save_data();
 
 		// Send back success response; for single certificates, this should trigger the lightbox to close and cause cart totals to be recalculated
@@ -147,21 +163,24 @@ function add_exemption_certificate() {
 		) ) );
 	} else {
 		// Send request
-		$res = TaxCloud()->send_request( 'AddExemptCertificate', $final_certificate );
+		$tc_id = get_taxcloud_id();
+		$tc_key = get_taxcloud_key();
+		$client = new \TaxCloud\Client();
+		$request = new \TaxCloud\Request\AddExemptCertificate( $tc_id, $tc_key, $customer_id, $certificate );
 
-		// Check for errors
-		if ( $res !== false ) {
-			$certificate_id = $res->CertificateID;
+		try {
+			$result = $client->AddExemptCertificate( $request );
+			$certificate_id = $result->getAddExemptCertificateResult()->getCertificateID();
 
 			// For blanket certificates, a success response should lead to a redirect to the "manage-certificates" lightbox
 			die( json_encode( array( 
 				'status'  => 'success', 
 				'message' => 'Certificate ' . $certificate_id . ' saved successfully.' 
 			) ) );
-		} else {
+		} catch ( Exception $e ) {
 			die( json_encode( array( 
 				'status'  => 'error', 
-				'message' => 'There was an error while saving this certificate: ' . TaxCloud()->get_error_message() 
+				'message' => 'There was an error while saving this certificate: ' . $e->getMessage() 
 			) ) );
 		}
 	}
@@ -176,78 +195,97 @@ function add_exemption_certificate() {
 function remove_exemption_certificate() {
 	// Collect vars
 	$certificate_id = esc_attr( $_POST['certificateID'] );
-	$single         = esc_attr( $_POST['single'] );
+	// $single         = esc_attr( $_POST['single'] );
 
 	// Fetch customer ID
 	$customer_id = WC()->session->get( 'wootax_customer_id' );
 	
-	// If this is a "single purchase" cert, we need to remove all certificates with the same OrderID
-	if ( $single == 'true' || intval( $single ) == 1 ) {		
-		$response = TaxCloud()->send_request( 'GetExemptCertificates', array( 'customerID' => $customer_id ) );
+	$tc_id = get_taxcloud_id();
+	$tc_key = get_taxcloud_key();
+	$client = new \TaxCloud\Client();
+	$request = new \TaxCloud\Request\DeleteExemptCertificate( $tc_id, $tc_key, $certificate_id );
 
-		if ( $response !== false ) {
-			$certificates = $response->ExemptCertificates;
-			$duplicates = array();
+	try {
+		$client->DeleteExemptCertificate( $request );
 
-			// Dump certificates into object to be returned to client
-			if ( $certificates != NULL && is_object( $certificates ) ) {
-				foreach ( $certificates->ExemptionCertificate as $certificate ) {
-					// Add single purchase certificates to duplicate array
-					if ( $certificate->Detail->SinglePurchase == 1 ) {
-						$orderNum = $certificate->Detail->SinglePurchaseOrderNumber;
-						
-						if ( !isset( $duplicates[$orderNum] ) || !is_array( $duplicates[$orderNum] ) )
-							$duplicates[ $orderNum ]   = array();
-							$duplicates[ $orderNum ][] = $certificate->CertificateID;
-						}
-					}
-				}
-
-				// Loop through dupes array; delete all exemption certificates that share the orderID of cert with ID certificateID
-				foreach ($duplicates as $dupes) {
-					if ( in_array( $certificate_id, $dupes ) ) {
-						foreach ( $dupes as $certID ) {
-							// Send request
-							$res = TaxCloud()->send_request( 'DeleteExemptCertificate', array( 'certificateID' => $certID ) );
-							
-							// Check for errors
-							if ( $res == false ) {
-								die( json_encode( array( 
-									'status'  => 'error', 
-									'message' => 'There was an error while removing this certificate: ' . TaxCloud()->get_error_message() 
-								) ) );
-							}
-						}
-					}
-				}
-				
-				die( json_encode( array( 
-					'status'  => 'success', 
-					'message' => 'Certificate ' . $certificate_id . ' removed successfully.' 
-				) ) );
-		} else {
-			die( json_encode( array( 
-				'status'  => 'error', 
-				'message' => 'There was an error while removing this certificate: ' . TaxCloud()->get_error_message() 
-			) ) );
-		}
-	} else {
-		// Send request
-		$res = TaxCloud()->send_request( 'DeleteExemptCertificate', array( 'certificateID' => $certificate_id ) );
-
-		// Check for errors
-		if ( $res !== false ) {
-			die( json_encode( array( 
-				'status'  => 'success', 
-				'message' => 'Certificate ' . $certificate_id . ' removed successfully.' 
-			) ) );
-		} else {
-			die( json_encode( array( 
-				'status'  => 'error', 
-				'message' => 'There was an error while removing this certificate: ' . TaxCloud()->get_error_message() 
-			) ) );
-		}
+		die( json_encode( array( 
+			'status'  => 'success', 
+			'message' => 'Certificate ' . $certificate_id . ' removed successfully.' 
+		) ) );
+	} catch ( Exception $e ) {
+		die( json_encode( array( 
+			'status'  => 'error', 
+			'message' => 'There was an error while removing this certificate: ' . $e->getMessage() 
+		) ) );
 	}
+
+	// If this is a "single purchase" cert, we need to remove all certificates with the same OrderID
+	// if ( $single == 'true' || intval( $single ) == 1 ) {		
+	// 	$response = TaxCloud()->send_request( 'GetExemptCertificates', array( 'customerID' => $customer_id ) );
+
+	// 	if ( $response !== false ) {
+	// 		$certificates = $response->ExemptCertificates;
+	// 		$duplicates = array();
+
+	// 		// Dump certificates into object to be returned to client
+	// 		if ( $certificates != NULL && is_object( $certificates ) ) {
+	// 			foreach ( $certificates->ExemptionCertificate as $certificate ) {
+	// 				// Add single purchase certificates to duplicate array
+	// 				if ( $certificate->Detail->SinglePurchase == 1 ) {
+	// 					$orderNum = $certificate->Detail->SinglePurchaseOrderNumber;
+						
+	// 					if ( !isset( $duplicates[$orderNum] ) || !is_array( $duplicates[$orderNum] ) )
+	// 						$duplicates[ $orderNum ]   = array();
+	// 						$duplicates[ $orderNum ][] = $certificate->CertificateID;
+	// 					}
+	// 				}
+	// 			}
+
+	// 			// Loop through dupes array; delete all exemption certificates that share the orderID of cert with ID certificateID
+	// 			foreach ($duplicates as $dupes) {
+	// 				if ( in_array( $certificate_id, $dupes ) ) {
+	// 					foreach ( $dupes as $certID ) {
+	// 						// Send request
+	// 						$res = TaxCloud()->send_request( 'DeleteExemptCertificate', array( 'certificateID' => $certID ) );
+							
+	// 						// Check for errors
+	// 						if ( $res == false ) {
+	// 							die( json_encode( array( 
+	// 								'status'  => 'error', 
+	// 								'message' => 'There was an error while removing this certificate: ' . TaxCloud()->get_error_message() 
+	// 							) ) );
+	// 						}
+	// 					}
+	// 				}
+	// 			}
+				
+	// 			die( json_encode( array( 
+	// 				'status'  => 'success', 
+	// 				'message' => 'Certificate ' . $certificate_id . ' removed successfully.' 
+	// 			) ) );
+	// 	} else {
+	// 		die( json_encode( array( 
+	// 			'status'  => 'error', 
+	// 			'message' => 'There was an error while removing this certificate: ' . TaxCloud()->get_error_message() 
+	// 		) ) );
+	// 	}
+	// } else {
+	// 	// Send request
+	// 	$res = TaxCloud()->send_request( 'DeleteExemptCertificate', array( 'certificateID' => $certificate_id ) );
+
+	// 	// Check for errors
+	// 	if ( $res !== false ) {
+	// 		die( json_encode( array( 
+	// 			'status'  => 'success', 
+	// 			'message' => 'Certificate ' . $certificate_id . ' removed successfully.' 
+	// 		) ) );
+	// 	} else {
+	// 		die( json_encode( array( 
+	// 			'status'  => 'error', 
+	// 			'message' => 'There was an error while removing this certificate: ' . TaxCloud()->get_error_message() 
+	// 		) ) );
+	// 	}
+	// }
 }
 
 /**
@@ -399,12 +437,10 @@ function ajax_list_exemption_certificates() {
 
 	if ( $customer_id ) {
 		$certificates = get_user_exemption_certs( $customer_id );
-		
+
 		if ( count( $certificates ) > 0 ) {
 			$final_certificates = new stdClass();
 			$final_certificates->cert_list = $certificates;
-
-			// die(print_r($final_certificates));
 
 			// Convert to JSON and return
 			die( json_encode( $final_certificates ) );

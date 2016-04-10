@@ -49,7 +49,7 @@ class ExemptionCertificateDetail implements \JsonSerializable
   private $PurchaserExemptionReasonValue; // string
   private $CreatedDate; // dateTime
 
-  public function construct($ExemptStates, $SinglePurchase, $SinglePurchaseOrderNumber, $PurchaserFirstName, $PurchaserLastName, $PurchaserTitle, $PurchaserAddress1, $PurchaserAddress2, $PurchaserCity, $PurchaserState, $PurchaserZip, $PurchaserTaxID, $PurchaserBusinessType, $PurchaserBusinessTypeOtherValue, $PurchaserExemptionReason, $PurchaserExemptionReasonValue, $CreatedDate = NULL)
+  public function __construct($ExemptStates, $SinglePurchase, $SinglePurchaseOrderNumber, $PurchaserFirstName, $PurchaserLastName, $PurchaserTitle, $PurchaserAddress1, $PurchaserAddress2, $PurchaserCity, $PurchaserState, $PurchaserZip, $PurchaserTaxID, $PurchaserBusinessType, $PurchaserBusinessTypeOtherValue, $PurchaserExemptionReason, $PurchaserExemptionReasonValue, $CreatedDate = NULL)
   {
     $this->setExemptStates($ExemptStates);
     $this->setSinglePurchase($SinglePurchase);
@@ -130,7 +130,7 @@ class ExemptionCertificateDetail implements \JsonSerializable
     return $this->PurchaserTitle;
   }
 
-  private function setPurchaserAddress1($PuchaserAddress1)
+  private function setPurchaserAddress1($PurchaserAddress1)
   {
     $this->PurchaserAddress1 = $PurchaserAddress1;
   }
@@ -192,7 +192,7 @@ class ExemptionCertificateDetail implements \JsonSerializable
 
   private function setPurchaserBusinessType($PurchaserBusinessType)
   {
-    $this->PurchaserBusinessType = constant("BusinessType::$PurchaserBusinessType");
+    $this->PurchaserBusinessType = constant("\TaxCloud\BusinessType::$PurchaserBusinessType");
   }
 
   public function getPurchaserBusinessType()
@@ -212,7 +212,7 @@ class ExemptionCertificateDetail implements \JsonSerializable
 
   private function setPurchaserExemptionReason($PurchaserExemptionReason)
   {
-    $this->PurchaserExemptionReason = constant("ExemptionReason::$PurchaserExemptionReason");
+    $this->PurchaserExemptionReason = constant("\TaxCloud\ExemptionReason::$PurchaserExemptionReason");
   }
 
   public function getPurchaserExemptionReason()
