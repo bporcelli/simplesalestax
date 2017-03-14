@@ -1,0 +1,11 @@
+/* Styles for admin notices. */
+
+.wp-core-ui .button-secondary.wootax-button {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: .5em;
+}
+
+.wootax-message.update-nag p {
+    margin: 0 !important;
+}
