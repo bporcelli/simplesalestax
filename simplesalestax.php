@@ -136,7 +136,7 @@ final class WC_WooTax {
 	}
 
 	/**
-	 * Define a constant if it hasn't been defined already.
+	 * Define a constant if it hasn't been defined already
 	 *
 	 * @since 4.4
 	 */
@@ -160,12 +160,12 @@ final class WC_WooTax {
 	}
 
 	/**
-	 * Helper: Determine request type (admin, ajax, cron, or frontend).
+	 * What type of request is this?
 	 *
-	 * @since 4.4
 	 * @param string $type ajax, frontend or admin
 	 * @return bool
-	 * @see WooCommerce->is_request()
+     *
+	 * @since 4.4
 	 */
 	private function is_request( $type ) {
 		switch ( $type ) {
@@ -467,9 +467,9 @@ final class WC_WooTax {
 	 * if the option is not set.
 	 *
 	 * @since 4.2
-	 * @param (mixed) $key the key of the option to be fetched
-	 * @param 
-	 * @return (mixed) requested option or boolean false if it isn't set
+	 * @param mixed $key the key of the option to be fetched
+	 * @param mixed $default default value for option (default: false)
+	 * @return mixed requested option or default if it isn't set
 	 */
 	public function get_option( $key, $default = false ) {
 		if ( count( $this->settings ) == 0 || $this->settings_changed ) {

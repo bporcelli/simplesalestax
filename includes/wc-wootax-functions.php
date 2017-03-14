@@ -9,7 +9,7 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Do not all direct access
+	exit; // Exit if accessed directly
 }
 
 /**
