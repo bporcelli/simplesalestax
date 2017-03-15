@@ -5,6 +5,7 @@
 jQuery( function() {
 
     // Verify TaxCloud settings
+    // todo: update to work with wp_send_json_* methods
     jQuery( '#verifySettings' ).click( function( e ) {
 
         e.preventDefault();

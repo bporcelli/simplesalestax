@@ -1,11 +1,13 @@
 <?php
 
 /**
- * Core functions to enable WooCommerce Subscriptions support
+ * Class name
  *
- * @package Simple Sales Tax
- * @author Brett Porcelli
- * @since 1.0
+ * Core functions to enable WooCommerce Subscriptions support.
+ *
+ * @author 	Simple Sales Tax
+ * @package SST
+ * @since 	1.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -13,14 +15,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Set cart_tax/shipping_tax meta for Simple Sales Tax tax item
+ * Set cart_tax/shipping_tax meta for Simple Sales Tax tax item.
  *
- * @param (int) $order_id - ID of order being created
- * @return void
  * @since 1.0
+ *
+ * @param int $order_id
+ * @param int $item_id (default: null)
+ * @param int $tax_rate_id (defualt: null)
  */
 function wt_store_tax_item_totals( $order_id, $item_id = null, $tax_rate_id = null ) {
-	if ( !empty( $item_id ) ) {
+	if ( ! empty( $item_id ) ) {
 		$tax_item_id = $item_id;
 	} else {
 		$tax_item_id = WT_Orders::get_meta( $order_id, 'tax_item_id' );
@@ -40,11 +44,12 @@ if ( version_compare( WT_WOO_VERSION, '2.2', '<' ) ) {
 }
 
 /**
- * Determine whether or not an order requires a manual renewal
+ * Does the given order require manual renewal?
  *
- * @param $order WC_WooTax_Order object
- * @return bool
  * @since 1.0
+ *
+ * @param  WC_Order|WC_Subscription $order
+ * @return bool
  */
 function wt_is_manual( $order ) {
 	if ( class_exists( 'WC_Subscription' ) && $order instanceof WC_Subscription ) {
@@ -55,11 +60,12 @@ function wt_is_manual( $order ) {
 }
 
 /**
- * Determine whether or not the payment gateway for a subscription order supports changes to recurring totals
+ * Does the gateway used for the given order support changes in recurring totals?
  *
- * @param $order WC_WooTax_Order object
- * @return bool
  * @since 1.0
+ *
+ * @param  WC_Order|WC_Subscription $order
+ * @return bool
  */
 function wt_can_change( $order ) {
 	if ( class_exists( 'WC_Subscription' ) && $order instanceof WC_Subscription ) {
@@ -78,7 +84,11 @@ function wt_can_change( $order ) {
 }
 
 /**
- * Return true if WooCommerce Subscriptions 2.0 or greater is installed
+ * Is Subscriptions 2.0 or greater installed?
+ *
+ * @since 1.0
+ *
+ * @return bool
  */
 function wt_is_subs_2_0() {
 	return version_compare( WC_Subscriptions::$version, '2.0', '>=' );
@@ -89,6 +99,16 @@ function wt_is_subs_2_0() {
  * Not executed if Subscriptions plugin is not active
  *
  * @return void
+ * @since 1.0
+ */
+/**
+ * Update recurring tax for subscriptions.
+ *
+ * This method is executed ~2 times per day and recomputes the sales tax
+ * for all subscription orders with a payment due in 12 hours or less. It
+ * is intended to ensure that the sales tax total is updated accordingly
+ * if a customer's address changes during the duration of their subscription.
+ *
  * @since 1.0
  */
 function wootax_update_recurring_tax() {
@@ -154,11 +174,11 @@ function wootax_update_recurring_tax() {
 
 			foreach ( $order->get_items() as $item_id => $item ) {
 				if ( $subs_20_or_greater || WC_Subscriptions_Order::is_item_subscription( $order, $item ) ) {
-					$tic = wt_get_product_tic( $item['product_id'], $item['variation_id'] );
-					$qty = isset( $item['qty'] ) ? $item['qty'] : 1;
+					$tic = wt_get_product_tic( $item[ 'product_id' ], $item[ 'variation_id' ] );
+					$qty = isset( $item[ 'qty' ] ) ? $item[ 'qty' ] : 1;
 
-					$recurring_subtotal = isset( $item['item_meta']['_recurring_line_subtotal'] ) ? $item['item_meta']['_recurring_line_subtotal'][0] : 0;
-					$regular_subtotal   = isset( $item['item_meta']['_line_total'] ) ? $item['item_meta']['_line_total'][0] : 0;
+					$recurring_subtotal = isset( $item[ 'item_meta' ][ '_recurring_line_subtotal' ] ) ? $item[ 'item_meta' ][ '_recurring_line_subtotal' ][0] : 0;
+					$regular_subtotal   = isset( $item[ 'item_meta' ][ '_line_total' ] ) ? $item[ 'item_meta' ][ '_line_total' ][0] : 0;
 
 					$cost = $recurring_subtotal === '0' || ! empty( $recurring_subtotal ) ? $recurring_subtotal : $regular_subtotal;
 
@@ -166,7 +186,7 @@ function wootax_update_recurring_tax() {
 					$sign_up_fee = $subs_20_or_greater ? $order->get_items_sign_up_fee( $item ) : wc_get_order_item_meta( $item_id, '_subscription_sign_up_fee', true );
 
 					if ( $sign_up_fee == $cost ) {
-						$cost = $item['data']->get_price();
+						$cost = $item[ 'data' ]->get_price();
 					}
 
 					if ( $cost != 0 ) {
@@ -189,7 +209,7 @@ function wootax_update_recurring_tax() {
 					);
 
 					if ( $tic ) {
-						$item['TIC'] = $tic;
+						$item[ 'TIC' ] = $tic;
 					}
 
 					$type_array[ $item_id ] = 'cart';
@@ -198,12 +218,12 @@ function wootax_update_recurring_tax() {
 			}
 
 			foreach ( $order->get_fees() as $fee_id => $fee ) {
-				if ( $subs_20_or_greater || $fee['recurring_line_total'] > 0 ) {
+				if ( $subs_20_or_greater || $fee[ 'recurring_line_total' ] > 0 ) {
 					$item = array(
 						'Index'  => '',
 						'ItemID' => $fee_id,
 						'Qty'    => 1,
-						'Price'  => $fee['recurring_line_total'],
+						'Price'  => $fee[ 'recurring_line_total' ],
 						'Type'   => 'cart',
 						'TIC'    => apply_filters( 'wootax_fee_tic', WT_DEFAULT_FEE_TIC ),
 					);
@@ -220,7 +240,7 @@ function wootax_update_recurring_tax() {
 					'Index'  => '',
 					'ItemID' => $method_id,
 					'Qty'    => 1,
-					'Price'  => isset( $method['cost'] ) ? $method['cost'] : $method['line_total'], // 'cost' key used by shipping methods in 2.2
+					'Price'  => isset( $method[ 'cost' ] ) ? $method[ 'cost' ] : $method[ 'line_total' ], // 'cost' key used by shipping methods in 2.2
 					'Type'   => 'shipping',
 					'TIC'    => apply_filters( 'wootax_shipping_tic', WT_DEFAULT_SHIPPING_TIC ),
 				);
@@ -240,8 +260,8 @@ function wootax_update_recurring_tax() {
 			foreach ( $taxes as $item_id => $item ) {
 				if ( $item['rate_id'] == WT_RATE_ID ) {
 					$wootax_item_id   = $item_id;
-					$old_tax          = $item['tax_amount'];
-					$old_shipping_tax = $item['shipping_tax_amount'];
+					$old_tax          = $item[ 'tax_amount' ];
+					$old_shipping_tax = $item[ 'shipping_tax_amount' ];
 				}
 			}
 

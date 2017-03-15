@@ -1,25 +1,22 @@
 <?php
 
-/**
- * Represents a TaxCloud exemption certificate
- *
- * @author Brett Porcelli
- * @since 1.0
- */
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 
-if ( ! class_exists( 'WT_Exemption_Certificate' ) ):
-
+/**
+ * Exemption Certificate.
+ *
+ * Represents a TaxCloud exemption certificate.
+ *
+ * @author 	Simple Sales Tax
+ * @package SST
+ * @since 	5.0
+ */
 class WT_Exemption_Certificate {
 	
 	/**
-	 * String names of "ugly" keywords that need to be prettified.
-	 *
-	 * @var array $ugly_keywords String names of keywords to be prettified.
-	 * @access private
+	 * @var array String names of "ugly" keywords that need to be prettified.
 	 * @since 5.0
 	 */
 	private static $ugly_keywords = array( 
@@ -29,10 +26,7 @@ class WT_Exemption_Certificate {
 	);
 
 	/**
-	 * Map from ugly keywords to pretty keywords.
-	 *
-	 * @var array $pretty_keywords Map from ugly keywords to pretty keywords.
-	 * @access private
+	 * @var array Map from ugly keywords to pretty keywords.
 	 * @since 5.0
 	 */
 	private static $pretty_keywords = array(
@@ -114,19 +108,13 @@ class WT_Exemption_Certificate {
 	);
 
 	/**
-	 * Certificate ID 
-	 * 
-	 * @var string $CertificateID The certificate's ID.
-	 * @access private
+	 * @var string The certificate's ID.
 	 * @since 5.0
 	 */
 	private $CertificateID = NULL;
 
 	/**
-	 * Certificate detail
-	 *
-	 * @var array $Detail Map containing certificate details.
-	 * @access private
+	 * @var array Certificate detail.
 	 * @since 5.0
 	 */
 	private $Detail = array(
@@ -150,8 +138,7 @@ class WT_Exemption_Certificate {
 	);
 
 	/**
-	 * Constructor
-	 * Set CreatedDate property
+	 * Constructor.
 	 *
 	 * @since 4.2
 	 */
@@ -163,7 +150,8 @@ class WT_Exemption_Certificate {
 	 * Constructs a WT_Exemption_Certificate given a stdClass object.
 	 *
 	 * @since 5.0
-	 * @param object $obj stdClass object representing an exemption certificate.
+	 *
+	 * @param  object $obj stdClass object representing an exemption certificate.
 	 * @return WT_Exemption_Certificate
 	 */
 	public static function fromArray( $obj ) {
@@ -182,10 +170,11 @@ class WT_Exemption_Certificate {
 	}
 
 	/**
-	 * Returns this WT_Exemption_Certificate as a generic array.
+	 * Returns this WT_Exemption_Certificate cast to an array.
 	 *
 	 * @since 4.2
-	 * @return object 
+	 *
+	 * @return array 
 	 */
 	public function toArray() {
 		return array(
@@ -195,9 +184,10 @@ class WT_Exemption_Certificate {
 	}
 
 	/**
-	 * Return true if this certificate is a single purchase certificate.
+	 * Is this a single purchase certificate?
 	 *
 	 * @since 5.0
+	 *
 	 * @return bool
 	 */
 	public function is_single() {
@@ -205,9 +195,11 @@ class WT_Exemption_Certificate {
 	}
 
 	/**
-	 * Return the view URL for the certificate.
+	 * Return the "view" URL for the certificate. This URL is accessed to
+	 * display a preview of the certificate.
 	 *
 	 * @since 5.0
+	 *
 	 * @return string
 	 */
 	public function get_view_url() {
@@ -220,24 +212,27 @@ class WT_Exemption_Certificate {
 	}
 
 	/**
-	 * Helper: Get the pretty keyword corresponding to a given ugly keyword.
+	 * Get the pretty keyword corresponding to a given ugly keyword.
 	 *
 	 * @since 5.0
-	 * @param string $ugly The ugly keyword.
-	 * @return string The pretty keyword corresponding to the ugly keyword, or the ugly keyword if no pretty keyword exists.
+	 *
+	 * @param  string $ugly The ugly keyword.
+	 * @return string The pretty keyword corresponding to the ugly keyword, or
+	 * the ugly keyword if no pretty keyword exists.
 	 */
 	private static function get_pretty_word( $ugly ) {
-		if ( array_key_exists( $ugly, self::$pretty_keywords ) ) {
+		if ( array_key_exists( $ugly, self::$pretty_keywords ) )
 			return self::$pretty_keywords[ $ugly ];
-		}
-
-		return $ugly;
+		else
+			return $ugly;
 	}
 
 	/**
 	 * Setter.
 	 *
 	 * @since 4.6
+	 * @param mixed $key
+	 * @param mixed $value
 	 */
 	public function __set( $key, $value ) {
 		switch ( $key ) {
@@ -254,6 +249,7 @@ class WT_Exemption_Certificate {
 	 * Getter.
 	 * 
 	 * @since 4.6
+	 * @param mixed $key
 	 */
 	public function __get( $key ) {
 		switch ( $key ) {
@@ -270,5 +266,3 @@ class WT_Exemption_Certificate {
 	}
 
 }
-
-endif;

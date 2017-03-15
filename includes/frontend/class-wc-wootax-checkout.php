@@ -1,55 +1,41 @@
 <?php
 
-/**
- * Responsible for determining the sales tax due during checkout and updating order totals accordingly
- *
- * @package Simple Sales Tax
- * @since 4.2
- */
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 
-if ( ! class_exists( 'WC_WooTax_Checkout' ) ):
-
+/**
+ * WooTax Checkout.
+ *
+ * Responsible for computing the sales tax due during checkout.
+ *
+ * @author 	Simple Sales Tax
+ * @package SST
+ * @since 	4.2
+ */
 class WC_WooTax_Checkout {
-	// TODO: full code review. Try to simplify as much as possible (eliminate mapping arrays, etc.).
-	// TODO: before making lookup, check $_POST[ 'certificate_id' ] to determine
-	// whether a new single purchase or blanket exemption certificate should be
-	// added
-	// TODO: remove any special "knowledge" of subscriptions from this class
-	
+
 	/**
-	 * A unique identifier for the customer.
-	 *
-	 * @var string $customer_id Customer ID (user login or ID from session)
-	 * @access private
+	 * @var string Customer ID (user login or ID from session).
 	 * @since 5.0
 	 */
 	private $customer_id = "";
 
 	/**
-	 * Array of partial orders that comprise this order.
-	 *
-	 * @var array $order_parts The partial orders that comprise the current order.
-	 * @access private
+	 * @var array The partial orders that comprise the current order.
 	 * @since 5.0
 	 */
 	private $order_parts = array();
 
 	/**
-	 * The WT_Exemption_Certificate applied to this order, or NULL if
-	 * no certificate is applied.
-	 *
-	 * @var WT_Exemption_Certificate $exempt_cert The exemption certificate applied.
-	 * @access private
+	 * @var WT_Exemption_Certificate The exemption certificate applied to the
+	 * current order, or NULL if no certificate is applied.
 	 * @since 5.0
 	 */
 	private $exempt_cert = null;
 
 	/**
-	 * Constructor: Initialize hooks
+	 * Constructor: Initialize hooks.
 	 *
 	 * @since 4.2
 	 */
@@ -79,7 +65,6 @@ class WC_WooTax_Checkout {
 	public function init() {
 		$this->order_parts = WC()->session->get( 'order_parts', array() );
 
-		// todo: make sure this condition is sufficient
 		if ( ( $exempt_cert = WC()->session->get( 'exempt_cert', false ) ) ) {
 			$this->exempt_cert = WT_Exemption_Certificate::fromArray( $exempt_cert );
 		}
@@ -90,8 +75,9 @@ class WC_WooTax_Checkout {
 	/**
 	 * Calculate sales tax totals for the current cart.
 	 *
-	 * @param WC_Cart $cart The WooCommerce cart object.
 	 * @since 5.0
+	 *
+	 * @param WC_Cart $cart The WooCommerce cart object.
 	 */
 	public function calculate_tax_totals( $cart ) {
 
@@ -155,42 +141,44 @@ class WC_WooTax_Checkout {
 	}
 	
 	/**
-	 * Applies tax to the item with given key 
+	 * Sets the sales tax for the item with the given key.
 	 *
 	 * @since 4.2
-	 * @param (string) $key cartItem key
-	 * @param (float) $amt the tax to apply 
+	 *
+	 * @param string $key Key of cart item.
+	 * @param float $amt Sales tax for item.
 	 */
 	private function apply_item_tax( $key, $amt ) {
 		// Update tax values
-		$this->cart->cart_contents[ $key ]['line_tax'] += $amt;
-		$this->cart->cart_contents[ $key ]['line_subtotal_tax'] += $amt;
+		$this->cart->cart_contents[ $key ][ 'line_tax' ] += $amt;
+		$this->cart->cart_contents[ $key ][ 'line_subtotal_tax' ] += $amt;
 
 		// Add the "tax_data" array if we are dealing with WooCommerce 2.2+
 		if ( version_compare( WT_WOO_VERSION, '2.2', '>=' ) ) {
-			$tax_data = $this->cart->cart_contents[ $key ]['line_tax_data'];
+			$tax_data = $this->cart->cart_contents[ $key ][ 'line_tax_data' ];
 
-			if ( !isset( $tax_data['total'][ WT_RATE_ID ] ) ) {
+			if ( ! isset( $tax_data[ 'total' ][ WT_RATE_ID ] ) ) {
 				$tax_data['total'][ WT_RATE_ID ] = 0;
 			}
 
-			if ( !isset( $tax_data['subtotal'][ WT_RATE_ID ] ) ) {
-				$tax_data['subtotal'][ WT_RATE_ID ] = 0;
+			if ( ! isset( $tax_data[ 'subtotal' ][ WT_RATE_ID ] ) ) {
+				$tax_data[ 'subtotal' ][ WT_RATE_ID ] = 0;
 			}
 
-			$tax_data['subtotal'][ WT_RATE_ID ] += $amt;
-			$tax_data['total'][ WT_RATE_ID ]    += $amt;
+			$tax_data[ 'subtotal' ][ WT_RATE_ID ] += $amt;
+			$tax_data[ 'total' ][ WT_RATE_ID ]    += $amt;
 
-			$this->cart->cart_contents[ $key ]['line_tax_data'] = $tax_data;
+			$this->cart->cart_contents[ $key ][ 'line_tax_data' ] = $tax_data;
 		}
 	}
 	
 	/**
-	 * Apply tax to a fee
+	 * Set the sales tax for a given fee.
 	 *
 	 * @since 4.2
-	 * @param (int) $key the fee index
-	 * @param (float) $amt the tax amount to be applied
+	 *
+	 * @param int $key Fee index.
+	 * @param float $amt Sales tax for fee.
 	 */
 	private function apply_fee_tax( $key, $amt ) {
 		// Update tax value
@@ -200,7 +188,7 @@ class WC_WooTax_Checkout {
 		if ( version_compare( WT_WOO_VERSION, '2.2', '>=' ) ) {
 			$tax_data = $this->cart->fees[ $key ]->tax_data;
 
-			if ( !isset( $tax_data[ WT_RATE_ID ] ) ) {
+			if ( ! isset( $tax_data[ WT_RATE_ID ] ) ) {
 				$tax_data[ WT_RATE_ID ] = 0;
 			}
 
@@ -212,8 +200,8 @@ class WC_WooTax_Checkout {
 	}
 	
 	/**
-	 * Generates an array of items in TaxCloud-friendly format and organized by location key
-	 * Stores generated array in lookup_data property
+	 * Generates an array of CartItems organized by location key. Stores the
+	 * array in the lookup_data property.
 	 *
 	 * @since 4.2
 	 */
@@ -224,10 +212,10 @@ class WC_WooTax_Checkout {
 		// Exit if we do not have any items
 		$order_items = $this->cart->get_cart();
 
-		if ( !$order_items )
+		if ( ! $order_items )
 			return;
 
-		$customer_state = $this->destination_address['State'];
+		$customer_state = $this->destination_address[ 'State' ];
 		$counters_array = $lookup_data = $mapping_array = array();
 		
 		$tax_based_on = SST()->get_option( 'tax_based_on' );
@@ -237,21 +225,21 @@ class WC_WooTax_Checkout {
 			$final_item = array();
 
 			// Get some information about the product being sold
-			$product_id   = $item['product_id'];
-			$variation_id = $item['variation_id'];
+			$product_id   = $item[ 'product_id' ];
+			$variation_id = $item[ 'variation_id' ];
 
 			// TIC
 			$tic = wt_get_product_tic( $product_id, $variation_id );
 
 			// Quantity and price
-			$unit_price = $item['line_total'] / $item['quantity'];
+			$unit_price = $item[ 'line_total' ] / $item[ 'quantity' ];
 
 			if ( $tax_based_on == 'item-price' || !$tax_based_on ) {
-				$qty   = $item['quantity'];
+				$qty   = $item[ 'quantity' ];
 				$price = $unit_price; 
 			} else {
 				$qty   = 1;
-				$price = $unit_price * $item['quantity']; 
+				$price = $unit_price * $item[ 'quantity' ]; 
 			}
 
 			// Attempt to find origin address to use for product; if possible, we use the origin address in the customer's state
@@ -263,7 +251,7 @@ class WC_WooTax_Checkout {
 				$address_found = $origin_addresses[0];				
 			} else {
 				foreach ( $origin_addresses as $key ) {
-					if ( isset( $this->addresses[ $key ]['state'] ) && $this->addresses[ $key ]['state'] == $customer_state ) {
+					if ( isset( $this->addresses[ $key ][ 'state' ] ) && $this->addresses[ $key ][ 'state' ] == $customer_state ) {
 						$address_found = $key;
 						break;
 					}
@@ -289,7 +277,7 @@ class WC_WooTax_Checkout {
 			);
 
 			if ( $tic !== false )
-				$final_item['TIC'] = $tic; // Only add TIC if one other than default is being used
+				$final_item[ 'TIC' ] = $tic; // Only add TIC if one other than default is being used
 
 			$lookup_data[ $address_found ][] = $final_item;
 
@@ -385,8 +373,11 @@ class WC_WooTax_Checkout {
 	}
 	
 	/**
-	 * Update customer address using POSTed fields. Code ripped from WC_AJAX::update_order_review().
-	 * 
+	 * Update the customer address in the session.
+	 *
+	 * WooCommerce does not update the address when totals are recomputed through
+	 * an AJAX request.
+	 *
 	 * @since 4.8
 	 */
 	private function update_customer_address() {
@@ -469,14 +460,18 @@ class WC_WooTax_Checkout {
 		}
 	}
 
-	/** 
-	 * Set destination address for order
+	/**
+	 * Set the destination address for the current order.
+	 *
+	 * If the customer has selected a 'local pickup' shipping method, we will
+	 * use one of the origin addresses configured by the admin. Otherwise,
+	 * we will use the customer's address.
 	 *
 	 * @since 4.2
-	 * @return (array) associative array containing customer address
+	 *
+	 * @return array
 	 */
 	private function set_destination_address() {
-		// Retrieve "tax based on" option
 		$tax_based_on = get_option( 'woocommerce_tax_based_on' );
 
 		// Return origin address if this is a local pickup order
@@ -485,9 +480,7 @@ class WC_WooTax_Checkout {
 			return;
 		}
 
-		// If this call to calculate_totals was not triggered by an AJAX request, we must update the customer's address
-		// in the session before getting the destination address.
-		if ( ! defined( 'DOING_AJAX' ) && $_POST ) {
+		if ( ! defined( 'DOING_AJAX' ) && $_POST ) { // If this is not an AJAX request...
 			$this->update_customer_address();
 		}
 
@@ -513,18 +506,22 @@ class WC_WooTax_Checkout {
 		}
 		
 		// Parse ZIP to get ZIP +4 if possible
-		$parsed_zip = parse_zip( $address['Zip5'] );
+		$parsed_zip = parse_zip( $address[ 'Zip5' ] );
 
-		$address['Zip5'] = $parsed_zip['zip5'];
-		$address['Zip4'] = $parsed_zip['zip4'];
+		$address[ 'Zip5' ] = $parsed_zip[ 'zip5' ];
+		$address[ 'Zip4' ] = $parsed_zip[ 'zip4' ];
 
 		$this->destination_address = $address;
 	}
 	
 	/**
-	 * Get customerID for order and store it in the session
-	 * 
+	 * Return the customer ID to be used for the current order. If the customer
+	 * is logged in, return their username. Otherwise, return the customer ID
+	 * generated by WooCommerce.
+	 *
 	 * @since 4.2
+	 *
+	 * @return mixed
 	 */
 	private function get_customer_id() {
 		global $current_user;
@@ -539,11 +536,12 @@ class WC_WooTax_Checkout {
 	}
 
 	/**
-	 * Update order shipping/cart tax total
+	 * Update the cart or shipping tax total.
 	 *
 	 * @since 4.4
-	 * @param (string) $total_type "shipping" to update shipping tax total; "cart" to update cart tax total
-	 * @param (float) $new_tax new value for tax
+	 *
+	 * @param string $total_type "shipping" or "cart"
+	 * @param float $new_tax New tax total.
 	 */
 	private function update_tax_total( $total_type, $new_tax ) {
 		$total_type = $total_type == 'cart' ? '' : $total_type .'_';
@@ -560,11 +558,12 @@ class WC_WooTax_Checkout {
 	}
 
 	/**
-	 * Updates the cart tax/shipping tax totals for the order
+	 * Update the cart/shipping tax totals for the order.
 	 *
 	 * @since 4.2
-	 * @param float $cart_tax the total cart tax added by SST
-	 * @param float $shipping_tax the total shipping tax added by SST
+	 *
+	 * @param float $cart_tax Total cart tax.
+	 * @param float $shipping_tax Total shipping tax.
 	 */
 	private function update_tax_totals( $cart_tax = 0, $shipping_tax = 0 ) {	
 		$this->update_tax_total( 'cart', $cart_tax );
@@ -572,11 +571,16 @@ class WC_WooTax_Checkout {
 	}
 	
 	/**
-	 * Fetch order shipping method
-	 * Chosen method is retrieved from the session var chosen_shipping_method (WC < 2.1) OR chosen_shipping_methods (WC 2.1+)
+	 * Get the shipping method for the current order.
+	 *
+	 * If WC 2.1+ is installed, get the method from the chosen_shipping_methods
+	 * session variable. Otherwise, use chosen_shipping_method.
+	 *
+	 * If no method is selected, return false.
 	 *
 	 * @since 4.2
-	 * @return chosen shipping method (string)
+     *
+	 * @return string|bool
 	 */
 	private function get_shipping_method() {
 		if ( WC()->session->get( 'chosen_shipping_method', false ) ) {
@@ -589,23 +593,24 @@ class WC_WooTax_Checkout {
 	}
 
 	/**
-	 * Gets hash representing this unique order
-	 * Order is considered unique if it has different items (Lookup data) or destination address
+	 * Return a hash of the current order.
 	 *
 	 * @since 4.4
-	 * @return String
+	 *
+	 * @return string
 	 */
 	private function get_order_hash() {
 		return md5( json_encode( $this->get_customer_id() ) . json_encode( $this->destination_address ) . json_encode( $this->lookup_data ) . json_encode( $this->get_exemption_certificate() ) );
 	}
 
 	/**
-	 * Hide the Sales Tax line item if the tax total is $0.00 and
-	 * the user has elected to not show zero tax totals.
+	 * If the "Show Zero Tax" option is set to "No" and the tax total is
+	 * $0.00, hide the Sales Tax line item.
 	 *
 	 * @since 5.0
-	 * @param array $tax_totals array containing tax totals (@see WC_Cart->calculate_totals())
-	 * @return array modified $tax_totals array.
+	 *
+	 * @param  array $tax_totals Array of tax totals (@see WC_Cart->calculate_totals()).
+	 * @return array
 	 */
 	public function maybe_hide_tax_total( $tax_totals ) {
 		$hide_zero_taxes = SST()->get_option( 'show_zero_tax' ) != 'true';
@@ -619,11 +624,12 @@ class WC_WooTax_Checkout {
 	}
 
 	/**
-	 * Sets WooTax order meta when a new order is created
-	 * Inserts a log entry indicating an order has been created if logging is enabled
+	 * Save metadata when a new order is created. Create a new log entry if
+	 * logging is enabled.
 	 *
 	 * @since 4.2
-	 * @param int $order_id ID of newly created WooCommerce order
+	 *
+	 * @param int $order_id ID of new order.
 	 */
 	public function add_order_meta( $order_id ) {
 

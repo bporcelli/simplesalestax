@@ -1,21 +1,28 @@
 <?php
 
-/**
- * Scripts for updating WooTax data
- *
- * @since 4.4
- */
-
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Do not allow direct access 
+	exit; // Exit if accessed directly
 }
 
+/**
+ * WooTax Upgrade
+ *
+ * Manages WooTax data updates.
+ *
+ * @author 	Simple Sales Tax
+ * @package SST
+ * @since 	4.4
+ */
 class WC_WooTax_Upgrade {
-	/** Stored plugin version */
+
+	/**
+	 * @var float Current plugin version.
+	 * @since 4.4
+	 */
 	private static $db_version;
 
 	/**
-	 * Initialize updater
+	 * Initialize updater.
 	 *
 	 * @since 4.4
 	 */
@@ -27,7 +34,7 @@ class WC_WooTax_Upgrade {
 	}
 
 	/**
-	 * Hooks into WordPress actions/filters
+	 * Register WordPress action/filter hooks.
 	 *
 	 * @since 4.4
 	 */
@@ -40,7 +47,7 @@ class WC_WooTax_Upgrade {
 	}
 
 	/**
-	 * Add admin page for data update process to occur on
+	 * Add admin page where we can display update progress to the user.
 	 *
 	 * @since 4.4
 	 */
@@ -49,7 +56,7 @@ class WC_WooTax_Upgrade {
 	}
 
 	/**
-	 * Dismiss update nag message when admin completes the data update process
+	 * Dismiss upgrade message when update is completed.
 	 *
 	 * @since 4.4
 	 */
@@ -58,7 +65,7 @@ class WC_WooTax_Upgrade {
 	}
 
 	/**
-	 * Display data update interface
+	 * Display data update interface.
 	 *
 	 * @since 4.4
 	 */
@@ -67,8 +74,8 @@ class WC_WooTax_Upgrade {
 	}
 
 	/**
-	 * Determines whether or not WooTax needs to be updated
-	 * If a data update is necessary, initiates update by warning admin
+	 * Determines whether or not WooTax needs to be updated. If a data update
+	 * is necessary, prompts the admin to initiate it.
 	 *
 	 * @since 4.4
 	 */
@@ -90,7 +97,7 @@ class WC_WooTax_Upgrade {
 	}
 
 	/**
-	 * Maybe update address system from old, single address system to newer multi-address system
+	 * If necessary, reformat old address data.
 	 *
 	 * @since 4.4
 	 */
@@ -110,7 +117,11 @@ class WC_WooTax_Upgrade {
 	}
 
 	/**
-	 * Transfer settings from old option fields to new system based on WC Settings API
+	 * Transfer old settings and delete some settings that are no longer used.
+	 *
+	 * Settings to be deleted:
+	 * - wootax_shipping_taxable
+	 * - wootax_license_key
 	 *
 	 * @since 4.4
 	 */
@@ -147,10 +158,12 @@ class WC_WooTax_Upgrade {
 		}
 	}
 
-	/** 
-	 * Determine if a data update is necessary
-	 *
-	 * @return (bool) 
+	/**
+	 * Is a data update required?
+	 *			
+	 * @since 4.3
+     *
+	 * @return bool
 	 */
 	private static function needs_data_update() {
 		$needs_update = false;
@@ -164,8 +177,10 @@ class WC_WooTax_Upgrade {
 	}
 
 	/**
-	 * Delete remaining wootax_order posts from database
-	 * Used in upgrade to 4.2
+	 * Prior to 4.2, we used special 'wootax_order' posts to store data for an
+	 * order. This function removes these posts and all associated metadata.
+	 *
+	 * @since 4.2
 	 */
 	private static function remove_order_posts() {
 		global $wpdb;
@@ -175,9 +190,9 @@ class WC_WooTax_Upgrade {
 	}
 
 	/**
-	 * Perform data update
+	 * AJAX handler. Perform the data update. 
 	 *
-	 * @return JSON object with information about number of posts remaining, current update status
+	 * @since 4.2
 	 */
 	public static function update_post_data() {
 		global $wpdb;
@@ -186,11 +201,11 @@ class WC_WooTax_Upgrade {
 		$posts_per_page = 10;
 
 		// Index of last processed post
-		$last_post = $_POST['last_post'];
+		$last_post = $_POST[ 'last_post' ];
 
 		// Page counters
-		$total_pages  = $last_post == 0 ? 0 : $_POST['total_pages'];
-		$current_page = $last_post == 0 ? 1 : $_POST['current_page'];
+		$total_pages  = $last_post == 0 ? 0 : $_POST[ 'total_pages' ];
+		$current_page = $last_post == 0 ? 1 : $_POST[ 'current_page' ];
 
 		// On first run, determine $total_count/$total_pages
 		if ( $last_post == 0 ) {

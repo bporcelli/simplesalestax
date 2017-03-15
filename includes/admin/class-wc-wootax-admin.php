@@ -1,20 +1,23 @@
 <?php
 
-/**
- * Contains all methods for actions performed within the WordPress admin panel
- *
- * @package Simple Sales Tax
- * @since 4.2
- */
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 
+/**
+ * WooTax Admin
+ *
+ * Handles the admin interface.
+ *
+ * @author 	Simple Sales Tax
+ * @package SST
+ * @since 	4.2
+ */
 final class WC_WooTax_Admin {
 
 	/**
-	 * Admin constructor
+	 * Class constructor.
+	 *
 	 * @since 4.7
 	 */
 	public function __construct() {
@@ -23,7 +26,8 @@ final class WC_WooTax_Admin {
 	}
 
 	/**
-	 * Hook into WordPress actions/filters
+	 * Bootstraps the admin class.
+	 *
 	 * @since 4.7
 	 */
 	private function hooks() {
@@ -76,7 +80,8 @@ final class WC_WooTax_Admin {
 	}
 
 	/**
-	 * Include required files
+	 * Include dependencies.
+	 *
 	 * @since 4.7
 	 */
 	private function includes() {
@@ -91,7 +96,7 @@ final class WC_WooTax_Admin {
 
 
 	/**
-	 * Register WooTax WooCommerce Integration
+	 * Register our WooCommerce integration.
 	 *
 	 * @since 4.2
 	 */
@@ -100,12 +105,12 @@ final class WC_WooTax_Admin {
 		
 		return $integrations;
 	}
-	
+
 	/**
-	 * Enqueue WooTax admin scripts
+	 * Enqueue admin scripts and styles.
 	 *
 	 * @since 4.2
-	 */
+	 */	
 	public static function enqueue_scripts_and_styles() {
 		// WooTax admin JS
 		wp_enqueue_script( 'wootax-admin', SST()->plugin_url() . '/assets/js/admin.js', array( 'jquery', 'jquery-tiptip' ), '1.1' );
@@ -131,7 +136,7 @@ final class WC_WooTax_Admin {
 	}
 	
 	/**
-	 * Builds HTML for bulk TIC editor 
+	 * Output HTML for bulk TIC editor.
 	 *
 	 * @since 4.2
 	 */
@@ -141,10 +146,11 @@ final class WC_WooTax_Admin {
 	}
 	
 	/**
-	 * Saves TIC when bulk editor is used
+	 * Handle bulk TIC updates.
 	 *
 	 * @since 4.2
-	 * @param (WC_Product) $product a WC_Product object
+	 *
+	 * @param WC_Product $product The product being saved.
 	 */
 	public static function save_bulk_edit_fields( $product ) {
 		if ( ! $product->id || ! isset( $_REQUEST[ 'wootax_set_tic' ] ) ) {
@@ -159,7 +165,7 @@ final class WC_WooTax_Admin {
 	}
 	
 	/**
-	 * Registers admin metaboxes
+	 * Register "Sales Tax" metabox.
 	 *
 	 * @since 4.2
 	 */
@@ -169,11 +175,14 @@ final class WC_WooTax_Admin {
 	}
 	
 	/**
-	 * Save TIC and Shipping Origin Addresses when product is saved
-	 * As of 4.5, TIC will be set to first category default if not set
+	 * Save TIC and Shipping Origin Addresses when a product is saved.
+	 *
+	 * Since 4.5, TIC will be set to default for first product category
+	 * if no TIC is selected.
 	 *
 	 * @since 4.2
-	 * @param (int) $post_id the ID of the post/product being saved
+	 *
+	 * @param int $product_id The ID of the product being saved.
 	 */
 	public static function save_product_meta( $product_id ) {
 		if ( get_post_type( $product_id ) != 'product' )
@@ -237,10 +246,11 @@ final class WC_WooTax_Admin {
 	}
 	
 	/**
-	 * Outputs HTML for Sales Tax metabox
+	 * Output HTML for "Sales Tax" metabox.
 	 *
 	 * @since 4.2
-	 * @param (WP_Post) $post WordPress post object
+	 *
+	 * @param WP_Post $post WP_Post object for product being edited.
 	 */
 	public static function output_tax_metabox( $post ) {
 		// Load order
@@ -256,7 +266,7 @@ final class WC_WooTax_Admin {
 	}
 
 	/**
-	 * Output origin address select box
+	 * Output "Shipping Origin Addresses" select box.
 	 *
 	 * @since 4.6
 	 */
@@ -297,17 +307,18 @@ final class WC_WooTax_Admin {
 	}
 
 	/**
-	 * Adds a "Taxes" tab to the WooCommerce reports page
+	 * Add a "Taxes" tab to the WooCommerce reports page.
 	 *
 	 * @since 4.2
-	 * @param (array) $charts an array of charts to be rendered on the reports page
-	 * @return (array) modified $charts array
+	 *
+	 * @param  array $charts Array of charts to be rendered on the reports page.
+	 * @return array
 	 */
 	public static function add_reports_tax_tab( $charts ) {
-		$charts['taxes'] = array(
+		$charts[ 'taxes' ] = array(
 			'title'  => __( 'Taxes', 'woocommerce-wootax' ),
 			'charts' => array(
-				"overview" => array(
+				'overview' => array(
 					'title'       => __( 'Overview', 'woocommerce-wootax' ),
 					'description' => '',
 					'hide_title'  => true,
@@ -320,7 +331,7 @@ final class WC_WooTax_Admin {
 	}
 	
 	/**
-	 * Link to the TaxCloud reports page from the "Taxes" tab in the reports section
+	 * Link to TaxCloud "Reports" page from "Taxes" tab.
 	 *
 	 * @since 4.2
 	 */
@@ -333,22 +344,21 @@ final class WC_WooTax_Admin {
 	}
 
 	/**
-	 * Adds "settings" link to the "plugins" page
-	 * 
+	 * Add "Settings" plugin action link.
+	 *
 	 * @since 4.2
-	 * @param (array) $links the existing links for this plugin
-	 * @return (array) a modified $links array
+	 *
+	 * @param  array $links Existing action links for plugin.
+	 * @return array
 	 */
 	public static function add_settings_link( $links ) { 
 	 	$settings_link = '<a href="admin.php?page=wc-settings&tab=integration&section=wootax">Settings</a>'; 
-
 	  	array_unshift( $links, $settings_link ); 
-
 	  	return $links; 
 	}
 
 	/**
-	 * Add field for TIC to Product Category "Add New" screen
+	 * Add Default TIC field to "Add New Category" screen.
 	 *
 	 * @since 4.5
 	 */
@@ -362,10 +372,11 @@ final class WC_WooTax_Admin {
 	}
 
 	/**
-	 * Add field for TIC to Product Category "Edit" screen
+	 * Add Default TIC field to "Edit Category" screen.
 	 *
-	 * @param (Object) $term - WP Term object
 	 * @since 4.5
+	 *
+	 * @param WP_Term $term Term object for category being edited.
 	 */
 	public static function custom_edit_cat_field( $term ) {
 		global $current_tic, $tic_list, $is_edit;
@@ -380,10 +391,11 @@ final class WC_WooTax_Admin {
 	}
 
 	/**
-	 * Save TIC field when Product Category is created or edited
+	 * Save Default TIC for category.
 	 *
-	 * @param (int) $term_id - ID of term being saved
 	 * @since 4.5
+	 *
+	 * @param int $term_id ID of category being saved.
 	 */
 	public static function save_cat_tic( $term_id ) {
 		if ( isset( $_POST['wootax_set_tic'] ) ) {
@@ -420,16 +432,21 @@ final class WC_WooTax_Admin {
 	}
 
 	/**
-	 * Register our debug tool for deleting cached tax rates
-	 * 
+	 * WooCommerce will cache matched tax rates for a particular address. This can
+	 * be problematic if the user had existing tax rates at the time SST was installed.
+	 *
+	 * To handle problem cases, we provide a "debug tool" that removes all cached
+	 * tax rates. This method registers that debug tool with WooCommerce. 
+	 *
+	 * Note that our tool can be accessed from WooCommerce -> System Status -> Tools.
 	 *
 	 * @since 4.4
-	 * @param (array) $tools array of debug tools
-	 * @return (array) modified array of debug tools
-	 * @see WC_Tax::find_rates()
-	 */ 
+	 *
+	 * @param  array $tools Array of registered debug tools.
+	 * @return array
+	 */
 	public static function register_tax_rate_tool( $tools ) {
-		$tools['wootax_rate_tool'] = array(
+		$tools[ 'wootax_rate_tool' ] = array(
 			'name'		=> __( 'Delete cached tax rates',''),
 			'button'	=> __( 'Clear cache','woocommerce-wootax' ),
 			'desc'		=> __( 'This tool will remove any tax rates cached by WooCommerce.', '' ),
@@ -440,7 +457,7 @@ final class WC_WooTax_Admin {
 	}
 
 	/**
-	 * Delete transients holding cached tax rates
+	 * Delete cached tax rates.
 	 *
 	 * @since 4.5
 	 */
@@ -467,10 +484,15 @@ final class WC_WooTax_Admin {
 	}
 
 	/**
-	 * Add "hide-tax-options" body class if "Tax Class" and "Tax Status" option should be hidden
+	 * The presence of existing tax options like "Tax Class" and "Tax Status" can
+	 * be confusing to users. Therefore, we provide a mechanism to hide these options.
 	 *
-	 * @param (array) $classes - classes to add to body element
+	 * This method adds the class "hide-tax-options" to the body element when the tax
+	 * options should be hidden.
+	 *
 	 * @since 4.6
+	 *
+	 * @param array $classes Classes for body element.
 	 */
 	public static function set_body_class( $classes ) {
 		if ( apply_filters( 'wootax_hide_tax_options', true ) === true ) {
@@ -484,11 +506,13 @@ final class WC_WooTax_Admin {
 	}
 
 	/**
-     * Process TIC list and convert into format usable with Select2
-     *
-     * @param (array) $tic_list array of TICs to output
-     * @since 4.6
-     */
+	 * Process TIC list and convert into format usable with select2.
+	 *
+	 * @since 4.6
+	 *
+     * @param  array $tic_list TIC list retrieved through TaxCloud API.
+	 * @return array
+	 */
 	public static function process_tic_list( $tic_list, $data = array() ) {
 		foreach ( $tic_list as $tic ) {
 			$number = $tic->tic->id;
@@ -515,7 +539,10 @@ final class WC_WooTax_Admin {
 	}
 
 	/**
-	 * Get list of TaxCloud TICs
+	 * Get a list of TaxCloud TICs.
+	 *
+	 * If we have a cached version of the TIC list, return it. Otherwise,
+	 * use the TaxCloud API to fetch the list anew.
 	 *
 	 * @since 4.6
 	 */
@@ -538,12 +565,13 @@ final class WC_WooTax_Admin {
 	}
 
 	/**
-	 * Output TIC select box for a product or variation
+	 * Output TIC select box.
 	 *
-	 * @param (int) $loop - loop counter; used by WooCommerce when displaying variation attributes
-	 * @param (array) $variation_data - data for variation if a variation is being displayed
-	 * @param (array) $variation - variation if a variation is being displayed
 	 * @since 4.6
+	 *
+	 * @param int $loop Loop counter used by WooCommerce when displaying variation attributes (default: null).
+	 * @param array $variation_data Unused parameter (default: null).
+	 * @param WP_Post $variation WP_Post for variation if variation is being displayed (default: null).
 	 */
 	public static function display_tic_field( $loop = null, $variation_data = null, $variation = null ) {
 		global $post, $tic_list, $current_tic, $product_id, $is_variation;
@@ -563,7 +591,7 @@ final class WC_WooTax_Admin {
 	}
 
 	/**
-	 * Update variation TICs when saved via AJAX
+	 * Update variation TICs.
 	 *
 	 * @since 4.6
 	 */

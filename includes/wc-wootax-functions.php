@@ -1,11 +1,13 @@
 <?php
 
 /**
- * wc-wootax-functions.php
- * Contains common methods
+ * WooTax functions.
  *
- * @package Simple Sales Tax
- * @since 4.2
+ * Utility functions used throughout the plugin.
+ *
+ * @author 	Simple Sales Tax
+ * @package SST
+ * @since 	4.2
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -14,12 +16,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * If the passed address has not been validated already, run it through
- * TaxCloud's VerifyAddress API
+ * TaxCloud's VerifyAddress API.
  *
- * @since 1.0
- * @param (array) $address Associative array representing address
- * @param (int) $order_id -1 if the function is called during checkout. Otherwise, curent order ID.
- * @return (array) modified address array
+ * @since 4.2
+ *
+ * @param  array $address
+ * @param  int $order_id -1 if the function is called during checkout. Otherwise, curent order ID.
+ * @return array
  */
 function maybe_validate_address( $address, $order_id = -1 ) {
 	$hash = md5( json_encode( $address ) );
@@ -29,13 +32,13 @@ function maybe_validate_address( $address, $order_id = -1 ) {
 		$validated_addresses = WC()->session->get( 'validated_addresses', array() );
 	} else {
 		$validated_addresses = get_post_meta( $order_id, '_wootax_validated_addresses', true );
-		$validated_addresses = !is_array( $validated_addresses ) ? array() : $validated_addresses;
+		$validated_addresses = ! is_array( $validated_addresses ) ? array() : $validated_addresses;
 	}
 
-	$needs_validate = !array_key_exists( $hash, $validated_addresses );
+	$needs_validate = ! array_key_exists( $hash, $validated_addresses );
 
 	// Either validate address or return validated address
-	if ( !$needs_validate ) {
+	if ( ! $needs_validate ) {
 		return $validated_addresses[ $hash ];
 	} else {
 		$final_address = $address;
@@ -47,15 +50,15 @@ function maybe_validate_address( $address, $order_id = -1 ) {
 		// Unset country field; persist for later restoration
 		$country = '';
 		
-		if ( isset( $address['country'] ) ) {
-			$country = $address['country'];
-			unset( $address['country'] );
+		if ( isset( $address[ 'country' ] ) ) {
+			$country = $address[ 'country' ];
+			unset( $address[ 'country' ] );
 		}
 
 		$usps_id = SST()->get_option( 'usps_id' );
 
 		if ( $usps_id ) {
-			$address['uspsUserID'] = $usps_id; // USPS Web Tools ID is required for calls to VerifyAddress
+			$address[ 'uspsUserID' ] = $usps_id; // USPS Web Tools ID is required for calls to VerifyAddress
 
 			$res = TaxCloud()->send_request( 'VerifyAddress', $address );
 
@@ -68,7 +71,7 @@ function maybe_validate_address( $address, $order_id = -1 ) {
 				$res->Country = $country;
 
 				// Restore address field
-				if ( !isset( $res->Address2 ) ) {
+				if ( ! isset( $res->Address2 ) ) {
 					$res->Address2 = '';
 				}
 
@@ -91,23 +94,24 @@ function maybe_validate_address( $address, $order_id = -1 ) {
 }
 
 /**
- * Fetches valid origin addresses for a given product
- * Returns an array with the default origin address if the user has not set an origin address for a product
+ * Returns an array of origin addresses for a given product. If no origin
+ * addresses have been configured, returns default origin address.
  *
  * @since 3.8
- * @param (int) $product_id a product (post) ID
- * @return (array) an array of origin address IDs
+ *
+ * @param  int $product_id
+ * @return array
  */
 function fetch_product_origin_addresses( $product_id ) {
 	// We might receive a product variation id; to ensure that we have the actual product id, instantiate a WC_Product object
 	$product = get_product( $product_id );
-	$id = isset( $product->parent ) ? $product->parent->id : $product_id;
+	$id      = isset( $product->parent ) ? $product->parent->id : $product_id;
 
 	// Fetch origin addresses array
 	$raw_origin_addresses = get_post_meta( $product_id, '_wootax_origin_addresses', true );		
 
 	// Set origin address array to default if it hasn't been configured for this product
-	if ( !is_array( $raw_origin_addresses ) || count( $raw_origin_addresses ) == 0 ) {
+	if ( ! is_array( $raw_origin_addresses ) || count( $raw_origin_addresses ) == 0 ) {
 		$default_address = SST()->get_option( 'default_address' ) == false ? 0 : SST()->get_option( 'default_address' );
 		$origin_addresses = array( $default_address );
 	} else {
@@ -118,16 +122,17 @@ function fetch_product_origin_addresses( $product_id ) {
 }
 
 /**
- * Returns an array of all business addresses added by the user
+ * Returns an array of all businesses addresses configured by the admin.
  *
  * @since 3.8
- * @return (array) an array of origin addresses
+ *
+ * @return array
  */
 function fetch_business_addresses() {
 	$addresses = SST()->get_option( 'addresses' );
 
 	// Ensures that users who upgraded from older versions of the plugin are still good to go
-	if ( !is_array( $addresses ) ) {
+	if ( ! is_array( $addresses ) ) {
 		$addresses = array(
 			array(
 				'address_1' => get_option( 'wootax_address1' ),
@@ -145,32 +150,35 @@ function fetch_business_addresses() {
 }
 
 /**
- * Converts Address array into a formatted address string
+ * Converts an address array to a formatted string.
  *
  * @since 4.4
- * @param (array) $address an Address array
- * @return (string) the input address as a string
+ *
+ * @param  array $address
+ * @return string
  */
 function get_formatted_address( $address ) {
-	return $address['address_1'] .', '. $address['city'] .', '. $address['state'] .' '. $address['zip5'];
+	return $address[ 'address_1' ] .', '. $address[ 'city' ] .', '. $address[ 'state' ] .' '. $address[ 'zip5' ];
 }
 
-/** 
- * Generates an order ID for requests sent to TaxCloud
+/**
+ * Generates an order ID for requests sent to TaxCloud.
  *
  * @since 4.2
- * @return (string) order ID
+ *
+ * @return string
  */
 function wootax_generate_order_id() { 
 	return md5( $_SERVER['REMOTE_ADDR'] . microtime() );
 }
 
 /**
- * Parse a ZIP code and return its 5 and 4 digit parts
+ * Parse a ZIP code and extract its 5 and 4 digit parts.
  *
  * @since 4.2
- * @param (mixed) $zip the original ZIP code
- * @return (array) an associative array with two keys: 'zip5' and 'zip4'
+ *
+ * @param  mixed $zip ZIP code.
+ * @return array Associative array with two keys: 'zip5' and 'zip4'
  */
 function parse_zip( $zip ) {
 	$parsed_zip = array( 
@@ -178,21 +186,20 @@ function parse_zip( $zip ) {
 		'zip4' => '',
 	);
 
-	if ( empty( $zip ) ) {
+	if ( empty( $zip ) )
 		return $parsed_zip;
-	}
 
 	$new_zip = str_replace( array( ' ', '-' ), '', $zip );
 
 	if ( strlen( $new_zip ) == 5 ) {
-		$parsed_zip['zip5'] = $new_zip;
+		$parsed_zip[ 'zip5' ] = $new_zip;
 	} else if ( strlen( $new_zip ) == 4 ) {
-		$parsed_zip['zip4'] = $new_zip;
+		$parsed_zip[ 'zip4' ] = $new_zip;
 	} else if ( strlen( $new_zip ) == 9 ) {
-		$parsed_zip['zip5'] = substr( $new_zip, 0, 5 );
-		$parsed_zip['zip4'] = substr( $new_zip, 5, 10 );
+		$parsed_zip[ 'zip5' ] = substr( $new_zip, 0, 5 );
+		$parsed_zip[ 'zip4' ] = substr( $new_zip, 5, 10 );
 	} else {
-		$parsed_zip['zip5'] = $zip; // Use original ZIP if ZIP does not fit required format (i.e. if it is an international postcode)
+		$parsed_zip[ 'zip5' ] = $zip; // Use original ZIP if ZIP does not fit required format (i.e. if it is an international postcode)
 	}
 
 	return $parsed_zip;
@@ -204,9 +211,17 @@ function parse_zip( $zip ) {
  *
  * @since 4.6
  *
- * @param (array) $address associative array representing an address
- * @param (bool) $dest is a destination address being validated? If so, we also check that dest country is US
+ */
+/**
+ * Determines whether an address is "valid." An address is considered to be
+ * valid if a country, city, state, address, and ZIP code are provided.
  *
+ * In addition, if $dest is true, the destination country must be the US.
+ *
+ * @since 4.6
+ *
+ * @param  array $address
+ * @param  bool $dest True if destination address is being validated (default: false)
  * @return bool
  */
 function wootax_is_valid_address( $address, $dest = false ) {
@@ -230,10 +245,11 @@ function wootax_is_valid_address( $address, $dest = false ) {
 }
 
 /**
- * Get user roles for Exempt Roles select
+ * Get a list of user roles.
  *
  * @since 4.3
- * @return (array) an array of all registered user roles
+ *
+ * @return array
  */
 function wootax_get_user_roles() {
 	global $wp_roles;
@@ -246,11 +262,12 @@ function wootax_get_user_roles() {
 }
 
 /**
- * Returns the email to which WooTax notifications should be sent
- * If the notification_email is not set explicitly, return first admin email
+ * Returns the email to which important notifications should be sent. Default
+ * is admin email.
  *
- * @since 4.4
- * @return (string) email address
+ * @since Version
+ *
+ * @return string
  */
 function wootax_get_notification_email() {
 	$email = SST()->get_option( 'notification_email' );
@@ -271,9 +288,14 @@ function wootax_get_notification_email() {
  * Return business address with given index as an array
  *
  * @since 4.4
- * @param (int) $index the index of the address to return
- * @param (array) $addresses the array of addresses to search for the address at $index
- * @return (array) the address as an associative array
+ */
+/**
+ * Return business address with given location key.
+ *
+ * @since 4.4
+ *
+ * @param  int $index Location key.
+ * @return array
  */
 function wootax_get_address( $index ) {
 	$addresses = fetch_business_addresses();
@@ -289,44 +311,48 @@ function wootax_get_address( $index ) {
 	);
 
 	if ( is_array( $addresses ) && isset( $addresses[ $index ] ) ) {
-		$address['Address1'] = $addresses[ $index ]['address_1'];
-		$address['Address2'] = isset( $addresses[ $index ]['address_2'] ) ? $addresses[ $index ]['address_2'] : '';
-		$address['Country']  = $addresses[ $index ]['country'];
-		$address['State']    = $addresses[ $index ]['state'];
-		$address['City']     = $addresses[ $index ]['city'];
-		$address['Zip5']     = $addresses[ $index ]['zip5'];
-		$address['Zip4']     = $addresses[ $index ]['zip4'];
+		$address[ 'Address1' ] = $addresses[ $index ][ 'address_1' ];
+		$address[ 'Address2' ] = isset( $addresses[ $index ][ 'address_2' ] ) ? $addresses[ $index ][ 'address_2' ] : '';
+		$address[ 'Country' ]  = $addresses[ $index ][ 'country' ];
+		$address[ 'State' ]    = $addresses[ $index ][ 'state' ];
+		$address[ 'City' ]     = $addresses[ $index ][ 'city' ];
+		$address[ 'Zip5' ]     = $addresses[ $index ][ 'zip5' ];
+		$address[ 'Zip4' ]     = $addresses[ $index ][ 'zip4' ];
 	}
 
 	return $address;
 }
 
 /**
- * Determines if the provided shipping method is a registered local pickup method
+ * Is the provided shipping method a local pickup method?
  *
  * @since 4.4
- * @param (string) $method name of shipping method to check
- * @return (boolean) true if $method is local pickup method; else false
+ *
+ * @param  string $method Shipping method slug or name.
+ * @return bool
  */
 function wt_is_local_pickup( $method ) {
 	return in_array( $method, apply_filters( 'wootax_local_pickup_methods', array( 'local_pickup', 'Local Pickup' ) ) );
 }
 
 /**
- * Determines if the provided shipping method is a registered local delivery method
+ * Is the provided shipping method a local delivery method?
  *
  * @since 4.4
- * @param (string) $method name of shipping method to check
- * @return (boolean) true if $method is local delivery method; else false
+ *
+ * @param  string $method Method name or slug.
+ * @return bool
  */
 function wt_is_local_delivery( $method ) {
 	return in_array( $method, apply_filters( 'wootax_local_delivery_methods', array( 'local_delivery', 'Local Delivery' ) ) );
 }
 
 /**
- * Return true if tax rates aside from the WooTax tax rate are present in tax tables
+ * Are any extra tax rates present in the tax tables?
  *
  * @since 4.5
+ *
+ * @return bool
  */
 function wt_has_other_rates() {
 	global $wpdb;
@@ -343,10 +369,13 @@ function wt_has_other_rates() {
 }
 
 /**
- * Return a product's TIC, or false if it has not been set
+ * Get the TIC for a product. Return false if no TIC is set.
  *
- * @param (int) $product_id - ID of product
- * @param (int) $variation_id - ID of variation, if applicable
+ * @since 4.4
+ *
+ * @param  int $product_id
+ * @param  int $variation_id
+ * @return mixed
  */
 function wt_get_product_tic( $product_id, $variation_id = null ) {
 	$product_tic = get_post_meta( $product_id, 'wootax_tic', true );
@@ -365,13 +394,13 @@ function wt_get_product_tic( $product_id, $variation_id = null ) {
 }
 
 /**
- * Output HTML for a WooTax help tip
+ * Output HTML for a WooTax help tip.
  *
- * @param (string) $tip - the tip to be displayed when the tooltip is hovered
  * @since 4.6
+ *
+ * @param string $tip Tooltip content.
  */
 function wootax_tip( $tip ) {
-	// Prefer wc_help_tip method if available
 	if ( function_exists( 'wc_help_tip' ) ) {
 		echo wc_help_tip( $tip );
 	} else {

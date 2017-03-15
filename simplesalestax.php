@@ -32,12 +32,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 require 'includes/wc-wootax-messages.php';
 
 /**
- * The main WooTax class
- * Handles plugin activation/deactivation routines and a few miscellaneous tasks
- * 
- * @package Simple Sales Tax
- * @author  Brett Porcelli
- * @since 4.2
+ * WooTax.
+ *
+ * Main plugin class. Handles plugin activation/activation, dependency checking,
+ * and a few other tasks.
+ *
+ * @author 	Simple Sales Tax
+ * @package SST
+ * @since 	4.2
  */
 final class WC_WooTax {
 
@@ -62,12 +64,13 @@ final class WC_WooTax {
 	private $settings_changed = false;
 
 	/**
-	 * @var WooTax The single instance of the WooTax class
+	 * @var The single instance of the WC_WooTax class
 	 */
 	protected static $_instance = null;
 
 	/**
-	 * Return the single WooTax instance
+	 * Return the single WooTax instance.
+	 *
 	 * @since 1.0
 	 */
 	public static function instance() {
@@ -79,6 +82,7 @@ final class WC_WooTax {
 
 	/**
 	 * Cloning is forbidden.
+	 *
 	 * @since 4.7
 	 */
 	public function __clone() {
@@ -87,6 +91,7 @@ final class WC_WooTax {
 
 	/**
 	 * Unserializing instances of this class is forbidden.
+	 *
 	 * @since 4.7
 	 */
 	public function __wakeup() {
@@ -94,7 +99,8 @@ final class WC_WooTax {
 	}
 
 	/**
-	 * __construct() method. Sets up activation, deactivation, and initialization hooks.
+	 * __construct() method. Sets up activation, deactivation, and initialization
+	 * hooks.
 	 *
 	 * @since 4.7
 	 */
@@ -108,7 +114,8 @@ final class WC_WooTax {
 	}
 
 	/**
-	 * Plugin initialization method. Sets up WooCommerce hooks and loads plugin files.
+	 * Plugin initialization method. Sets up WooCommerce hooks and loads plugin
+	 * files.
 	 *
 	 * @since 5.0
 	 */
@@ -119,7 +126,7 @@ final class WC_WooTax {
 	}
 
 	/**
-	 * Define WooTax constants
+	 * Define WooTax constants.
 	 *
 	 * @since 4.4
 	 */
@@ -136,7 +143,7 @@ final class WC_WooTax {
 	}
 
 	/**
-	 * Define a constant if it hasn't been defined already
+	 * Define a constant if it hasn't been defined already.
 	 *
 	 * @since 4.4
 	 */
@@ -147,7 +154,7 @@ final class WC_WooTax {
 	}
 	
 	/**
-	 * Hook into WordPress/WooCommerce
+	 * Hook into WordPress/WooCommerce.
 	 *
 	 * @since 4.4
 	 */
@@ -162,10 +169,10 @@ final class WC_WooTax {
 	/**
 	 * What type of request is this?
 	 *
-	 * @param string $type ajax, frontend or admin
-	 * @return bool
-     *
 	 * @since 4.4
+     *
+	 * @param  string $type ajax, frontend or admin
+	 * @return bool
 	 */
 	private function is_request( $type ) {
 		switch ( $type ) {
@@ -225,38 +232,39 @@ final class WC_WooTax {
 	 * Return a list of strings describing missing dependencies.
 	 *
 	 * @since 5.0
-	 * @return array $missing Strings describing missing dependencies.
+	 *
+	 * @return string[]
 	 */
 	private function get_missing_dependencies() {
 		$missing = array();
 
-		if ( ! class_exists( 'SoapClient' ) ) {
+		if ( ! class_exists( 'SoapClient' ) )
 			$missing[] = 'PHP SOAP Extension';
-		}
 
-		if ( ! $this->woocommerce_active() || version_compare( $this->woocommerce_version(), '2.2', '<' ) ) {
+		if ( ! $this->woocommerce_active() || version_compare( $this->woocommerce_version(), '2.2', '<' ) )
 			$missing[] = 'WooCommerce 2.2+';
-		}
 
 		return $missing;
 	}
 
 	/**
-	 * Helper: Return a boolean indicating whether WooCommerce is active or not.
+	 * Is WooCommerce active?
 	 *
 	 * @since 5.0
-	 * @return bool Is WooCommerce active?
+	 *
+	 * @return bool
 	 */
 	private function woocommerce_active() {
 		return $this->is_plugin_active( 'woocommerce/woocommerce.php' );
 	}
 
 	/**
-	 * Helper: Return a boolean indicating whether a plugin with the given slug is active or not.
+	 * Is the plugin with the given slug active?
 	 *
 	 * @since 5.0
-	 * @param string 	$slug 	The slug of the plugin.
-	 * @return bool 	Is the plugin active?
+	 *
+	 * @param  string $slug Plugin slug.
+	 * @return bool
 	 */
 	private function is_plugin_active( $slug ) {
 		$active_plugins = (array) get_option( 'active_plugins', array() );
@@ -271,7 +279,8 @@ final class WC_WooTax {
 	 * Return the version number for WooCommerce.
 	 *
 	 * @since 5.0
-	 * @return string WooCommerce version number.
+	 *
+	 * @return string
 	 */
 	public function woocommerce_version() {
 		// Favor the WC_VERSION constant in 2.1+
@@ -334,6 +343,7 @@ final class WC_WooTax {
 	
 	/**
 	 * Add a tax rate for WooTax if one doesn't exist.
+	 *
 	 * @since 4.7
 	 */
 	private function add_wootax_rate() {
@@ -363,10 +373,11 @@ final class WC_WooTax {
 	}
 
 	/**
-	 * Determines if WooTax has added a tax rate
+	 * Have we added our own tax rate yet?
 	 *
 	 * @since 4.2
-	 * @return bool true/false
+	 *
+	 * @return bool
 	 */
 	private function has_tax_rate() {
 		global $wpdb;
@@ -387,8 +398,8 @@ final class WC_WooTax {
 	}
 
 	/**
-	 * Adds a user role for tax exempt customers
-	 * Role is an exact copy of the "Customer" role
+	 * Adds a user role for tax exempt customers. This role is an exact copy of
+	 * the default "Customer" role.
 	 *
 	 * @since 4.3
 	 */
@@ -401,7 +412,7 @@ final class WC_WooTax {
 	}
 
 	/**
-	 * Schedule events for the WooTax order checker and recurring payments updater
+	 * Schedule recurring events.
 	 *
 	 * @since 4.4
 	 */
@@ -411,8 +422,7 @@ final class WC_WooTax {
 	}
 
 	/**
-	 * Unschedule events for the WooTax order checker and recurring payments updater
-	 * Hooks to be cleared are wootax_update_recurring_tax
+	 * Unschedule recurring events.
 	 *
 	 * @since 4.4
 	 */
@@ -421,10 +431,13 @@ final class WC_WooTax {
 	}
 
 	/**
-	 * Get appropriate label for tax rate (should be Sales Tax for the rate applied by WooTax)
+	 * Ensures that the label for our tax rate is "Sales Tax."
 	 *
-	 * @param $name - the name of the tax (fetched from db; won't be populated in our case)
-	 * @param $key - the tax key (we want to return the appropriate name for the wootax rate)
+	 * @since 1.0
+	 *
+	 * @param  string $name Name of the tax, won't be populated in our case.
+	 * @param  int $key Tax key (default: null).
+	 * @return string
 	 */
 	public function get_rate_label( $name, $key = NULL ) {
 		if ( $name == WT_RATE_ID || $key == WT_RATE_ID ) {
@@ -435,10 +448,11 @@ final class WC_WooTax {
 	}
 
 	/**
-	 * Return correct rate code for WooTax tax rate
+	 * Return correct rate code for our tax rate. Should be WOOTAX-RATE-DO-NOT-REMOVE.
 	 *
-	 * @param $code -the code WooCommerce generates @see WC_Tax->get_rate_code()
-	 * @param $key - the tax rate id; compare to stored wootax rate id and return 'WOOTAX-RATE-DO-NOT-REMOVE' if match is found
+	 * @param  string $code Rate code generated by Woo @see WC_Tax->get_rate_code().
+	 * @param  int $key Tax rate ID.
+	 * @return string
 	 */
 	public function get_rate_code( $code, $key ) {
 		if ( $key == WT_RATE_ID ) {
@@ -449,9 +463,10 @@ final class WC_WooTax {
 	}
 
 	/**
-	 * Return true if taxes are enabled
+	 * Are taxes enabled?
 	 *
 	 * @since 4.6
+	 *
 	 * @return bool
 	 */
 	private static function should_calc_taxes() {
@@ -463,13 +478,14 @@ final class WC_WooTax {
 	}
 
 	/**
-	 * Get the value of a WooTax option. Return the provided default value
-	 * if the option is not set.
+	 * Get the value of an option. Return the provided default value if
+	 * the option is not set.
 	 *
 	 * @since 4.2
-	 * @param mixed $key the key of the option to be fetched
-	 * @param mixed $default default value for option (default: false)
-	 * @return mixed requested option or default if it isn't set
+	 *
+	 * @param  mixed $key the key of the option to be fetched
+	 * @param  mixed $default default value for option (default: false)
+	 * @return mixed
 	 */
 	public function get_option( $key, $default = false ) {
 		if ( count( $this->settings ) == 0 || $this->settings_changed ) {
@@ -485,11 +501,11 @@ final class WC_WooTax {
 	}
 
 	/**
-	 * Set the value of a WooTax option
+	 * Set the value of an option.
 	 *
 	 * @since 4.2
-	 * @param (mixed) $key the key of the option to be updated
-	 * @param (mixed) $value the new value of the option
+	 * @param mixed $key Option key.
+	 * @param mixed $value Option value.
 	 */
 	public function set_option( $key, $value ) {
 		if ( count( $this->settings ) == 0 ) {
@@ -502,7 +518,8 @@ final class WC_WooTax {
 	}
 
 	/**
-	 * Mark settings as changed
+	 * Mark settings as changed.
+	 *
 	 * @since 4.7
 	 */
 	public function settings_changed() {
@@ -511,7 +528,9 @@ final class WC_WooTax {
 
 	/**
 	 * Get the plugin url.
+	 *
 	 * @since 4.7
+	 *
 	 * @return string
 	 */
 	public function plugin_url() {
@@ -520,7 +539,9 @@ final class WC_WooTax {
 
 	/**
 	 * Get the plugin path.
+	 *
 	 * @since 4.7
+	 *
 	 * @return string
 	 */
 	public function plugin_path() {
@@ -529,7 +550,9 @@ final class WC_WooTax {
 
 	/**
 	 * Get path to main plugin file
+	 *
 	 * @since 4.8
+	 *
 	 * @return string
 	 */
 	public function plugin_file() {
@@ -538,17 +561,22 @@ final class WC_WooTax {
 
 	/**
 	 * Get the templates path
+	 *
 	 * @since 4.7
+	 *
 	 * @return string
 	 */
 	public function templates_path() {
-		return $this->plugin_path() .'/templates';
+		return $this->plugin_path() . '/templates';
 	}
 }
 
 /**
- * Return the main Simple Sales Tax instance
- * @since 1.0
+ * Get the singleton WC_WooTax instance.
+ *
+ * @since 4.2
+ *
+ * @return WC_WooTax
  */
 function SST() {
 	return WC_WooTax::instance();

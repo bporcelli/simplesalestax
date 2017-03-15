@@ -4,21 +4,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; 
 }
 
-/**
- * WooCommerce Integration for WooTax
- *
- * @package Simple Sales Tax
- */
- 
 if ( ! class_exists( 'WC_WooTax_Settings' ) ) :
- 
+
+/**
+ * WooTax Integration
+ *
+ * WooCommerce integration for WooTax.
+ *
+ * @author 	Simple Sales Tax
+ * @package SST
+ * @since 	4.5
+ */ 
 class WC_WooTax_Settings extends WC_Integration { 
+
 	/**
-	 * Init and hook in the integration.
+	 * Constructor. Initialize the integration.
+	 *
+	 * @since 4.5
 	 */
 	public function __construct() {
-		global $woocommerce;
- 
 		$this->id                 = 'wootax';
 		$this->method_title       = __( 'Simple Sales Tax', 'woocommerce-wootax' );
 		$this->method_description = __( '<p>Simple Sales Tax makes sales tax easy by connecting your store with <a href="https://taxcloud.net" target="_blank">TaxCloud</a>. If you have trouble with Simple Sales Tax, please consult the <a href="https://simplesalestax.com/#faq" target="_blank">FAQ</a> and the <a href="https://simplesalestax.com/installation-guide/" target="_blank">Installation Guide</a> before contacting support.</p><p>Need help? <a href="https://simplesalestax.com/contact-us/" target="_blank">Contact us</a>.</p>', 'woocommerce-wootax' );
@@ -31,7 +35,7 @@ class WC_WooTax_Settings extends WC_Integration {
 	}
 
 	/**
-	 * Hook into WordPress actions/filters
+	 * Register action/filter hooks.
 	 *
 	 * @since 4.5
 	 */
@@ -50,14 +54,14 @@ class WC_WooTax_Settings extends WC_Integration {
 	}
 
  	/**
- 	 * Generate settings page HTML
+ 	 * Generate settings page HTML.
  	 *
  	 * @since 4.5
  	 */
  	public function generate_settings_html( $form_fields = array(), $echo = true ) {
  		$rates_checked = get_option( 'wootax_rates_checked' );
 
-		if ( !$rates_checked && wt_has_other_rates() ) {
+		if ( ! $rates_checked && wt_has_other_rates() ) {
 			require SST()->templates_path() . '/admin/delete-rates.php';
 		} else {
 			if ( version_compare( WT_WOO_VERSION, '2.6', '>=' ) ) {
@@ -67,9 +71,11 @@ class WC_WooTax_Settings extends WC_Integration {
 		}
  	}
 
-	/**
-	 * Initialize integration settings form fields.
-	 */
+ 	/**
+ 	 * Initialize form fields for integration settings.
+ 	 *
+ 	 * @since 4.5
+ 	 */
 	public function init_form_fields() {
 		$this->form_fields = array(
 			'taxcloud_settings' => array(
@@ -246,15 +252,17 @@ class WC_WooTax_Settings extends WC_Integration {
 	}
  	
  	/**
- 	 * Output section HTML
- 	 */
+ 	 * Output HTML for field of type 'section.'
+ 	 *
+ 	 * @since 4.5
+	 */
  	public function generate_section_html( $key, $data ) {
  		ob_start();
  		?>
  		<tr valign="top">
  			<td colspan="2" style="padding-left: 0;">
- 				<h4 style="margin-top: 0;"><?php echo $data['title']; ?></h4>
- 				<p><?php echo $data['description']; ?></p>
+ 				<h4 style="margin-top: 0;"><?php echo $data[ 'title' ]; ?></h4>
+ 				<p><?php echo $data[ 'description' ]; ?></p>
  			</td>
  		</tr>
  		<?php
@@ -262,8 +270,10 @@ class WC_WooTax_Settings extends WC_Integration {
  	}
 
  	/**
- 	 * Output HTML for button 
- 	 */
+ 	 * Output HTML for field of type 'button.'
+ 	 *
+ 	 * @since 4.5
+	 */
  	public function generate_button_html( $key, $data ) {
  		$field = $this->plugin_id . $this->id . '_' . $key;
 
@@ -271,16 +281,17 @@ class WC_WooTax_Settings extends WC_Integration {
 		?>
 		<tr valign="top">
 			<th scope="row" class="titledesc">
-				<label for="<?php echo esc_attr( $field ); ?>"><?php echo wp_kses_post( $data['title'] ); ?></label>
+				<label for="<?php echo esc_attr( $field ); ?>"><?php echo wp_kses_post( $data[ 'title' ] ); ?></label>
 				<?php echo $this->get_tooltip_html( $data ); ?>
 			</th>
 			<td class="forminp">
 				<fieldset>
-					<legend class="screen-reader-text"><span><?php echo wp_kses_post( $data['title'] ); ?></span></legend>
-					<button class="wp-core-ui button button-secondary" type="button" id="<?php echo $data['id']; ?>"><?php echo wp_kses_post( $data['label'] ); ?></button>
+					<legend class="screen-reader-text"><span><?php echo wp_kses_post( $data[ 'title' ] ); ?></span></legend>
+					<button class="wp-core-ui button button-secondary" type="button" id="<?php echo $data[ 'id' ]; ?>"><?php echo wp_kses_post( $data[ 'label' ] ); ?></button>
 					<?php 
 
-						if ( isset( $data['loader'] ) ) {
+						if ( isset( $data[ 'loader' ] ) ) {
+							// TODO: USED?
 							echo '<div id="wootax-loader"></div>';
 						}
 
@@ -295,7 +306,9 @@ class WC_WooTax_Settings extends WC_Integration {
  	}
 
  	/**
- 	 * Output address table
+ 	 * Output HTML for 'address_table' field.
+ 	 *
+ 	 * @since 4.5
  	 */
  	public function generate_address_table_html( $key, $data ) {
  		ob_start();
@@ -413,8 +426,10 @@ class WC_WooTax_Settings extends WC_Integration {
  	}
 
  	/**
- 	 * If rate removal form is submitted, update wootax_rates_checked flag accordingly.
- 	 * If settings form is submitted, save settings.
+ 	 * Process form submissions.
+ 	 *
+ 	 * If the rate removal form is submitted, update wootax_rates_checked flag
+ 	 * accordingly. If the settings form is submitted, save plugin settings.
  	 *
  	 * @since 5.0
  	 */
@@ -425,7 +440,6 @@ class WC_WooTax_Settings extends WC_Integration {
  		}
 
  		// TODO: nonce checking?
-
  		parent::process_admin_options();
 
  		// Force settings update
@@ -433,7 +447,15 @@ class WC_WooTax_Settings extends WC_Integration {
  	}
 
  	/**
- 	 * Process address fields so they can be stored correctly
+ 	 * Sanitize submitted settings.
+ 	 * 
+ 	 * Validate addresses before they are saved and enforce
+ 	 * defaults for 'exempt_role' and 'default_address.'
+ 	 *
+ 	 * @since 4.5
+ 	 *
+ 	 * @param  array $settings Array of submitted settings.
+ 	 * @return array
  	 */
  	public function sanitize_settings( $settings ) {
 
@@ -511,7 +533,6 @@ class WC_WooTax_Settings extends WC_Integration {
 			$settings['default_address'] = $_POST[ 'wootax_default_address' ];
 
 			// Set settings_changed flag to "true" so WooTax reloads settings array
-			// TODO: Can we avoid this somehow? Doesn't seem right to have main plugin class handling settings.
 			SST()->settings_changed();
 		}
 
@@ -527,10 +548,10 @@ class WC_WooTax_Settings extends WC_Integration {
  	}
 
  	/**
-	 * Force download of log file if $_GET['download_log'] is set
-	 *
-	 * @since 4.4
-	 */
+ 	 * Force download log file if "Download Log" was clicked.
+ 	 *
+ 	 * @since 4.4
+ 	 */
 	public static function maybe_download_log_file() {
 		if ( isset( $_GET['download_log'] ) ) {
 			// If file doesn't exist, create it
@@ -542,7 +563,7 @@ class WC_WooTax_Settings extends WC_Integration {
 				$log_path = WC()->plugin_path() . '/logs/' . $handle . '-' . sanitize_file_name( wp_hash( $handle ) ) . '.txt';
 			}
 
-			if ( !file_exists( $log_path ) ) {
+			if ( ! file_exists( $log_path ) ) {
 				$fh = @fopen( $log_path, 'a' );
 				fclose( $fh );
 			}
@@ -563,16 +584,14 @@ class WC_WooTax_Settings extends WC_Integration {
 	}
 
 	/**
-	 * Validates the user's TaxCloud API ID/API Key by sending a Ping request to the TaxCloud API
+	 * AJAX handler. Validates the entered TaxCloud API ID/Key by sending a 
+	 * Ping request.
 	 *
 	 * @since 1.0
-	 * @return (boolean) true or an error message on failure
 	 */
 	public static function verify_taxcloud_settings() {
-		$taxcloud_id  = $_POST['wootax_tc_id'];
-		$taxcloud_key = $_POST['wootax_tc_key'];
-
-		// todo: update frontend code to work with wp_send_json_* methods
+		$taxcloud_id  = $_POST[ 'wootax_tc_id' ];
+		$taxcloud_key = $_POST[ 'wootax_tc_key' ];
 
 		if ( empty( $taxcloud_id ) || empty( $taxcloud_key ) ) {
 			wp_send_json_error();
@@ -591,11 +610,10 @@ class WC_WooTax_Settings extends WC_Integration {
 	}
 
 	/**
-	 * Delete tax rates from specified tax classes ("rates" POST param)
-	 * Ignore WooTax's own tax rate
+	 * Delete tax rates from the POSTed tax classes. Don't remove
+	 * our tax rate.
 	 *
 	 * @since 3.5
-	 * @return (mixed) boolean true on success; string error message on failure
 	 */
 	public static function wootax_delete_tax_rates() {
 		global $wpdb;
@@ -632,7 +650,6 @@ class WC_WooTax_Settings extends WC_Integration {
 	 * @since 4.2
 	 */
 	public static function uninstall_wootax() {
-		// TODO: Determine better way to remove WooTax tax rate
 		global $wpdb;
 
 		// Delete WooTax settings
@@ -646,7 +663,6 @@ class WC_WooTax_Settings extends WC_Integration {
 		// Remove default TIC assignments
 		$wpdb->query( "DELETE FROM {$wpdb->prefix}options WHERE option_name LIKE 'tic_%'" );
 
-		// TODO: update frontend code to work with this
 		wp_send_json_success();
 	}
 }

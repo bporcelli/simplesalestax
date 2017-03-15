@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Template for the "View Certificate" screen. You can override this template by copying it
  * to THEME_PATH/sst/lightbox/view-certificate.php.
