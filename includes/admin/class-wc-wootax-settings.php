@@ -49,7 +49,6 @@ class WC_WooTax_Settings extends WC_Integration {
 
 		// AJAX actions
 		add_action( 'wp_ajax_wootax-verify-taxcloud', array( __CLASS__, 'verify_taxcloud_settings' ) );
-		add_action( 'wp_ajax_wootax-uninstall', array( __CLASS__, 'uninstall_wootax' ) );
 		add_action( 'wp_ajax_wootax-delete-rates', array( __CLASS__, 'wootax_delete_tax_rates' ) );
 	}
 
@@ -637,31 +636,6 @@ class WC_WooTax_Settings extends WC_Integration {
 				wp_send_json_error( 'There was an error while deleting your tax rates. Please try again.' );
 			}
 		}
-
-		wp_send_json_success();
-	}
-
-	/**
-	 * Uninstall WooTax:
-	 * - Remove WooTax tax rate
-	 * - Delete WooTax settings
-	 * - Remove all default TIC options
-	 *
-	 * @since 4.2
-	 */
-	public static function uninstall_wootax() {
-		global $wpdb;
-
-		// Delete WooTax settings
-		delete_option( 'woocommerce_wootax_settings' );
-
-		// Delete WooTax options
-		delete_option( 'wootax_license_key' );
-		delete_option( 'wootax_rates_checked' );
-		delete_option( 'wootax_version' );
-
-		// Remove default TIC assignments
-		$wpdb->query( "DELETE FROM {$wpdb->prefix}options WHERE option_name LIKE 'tic_%'" );
 
 		wp_send_json_success();
 	}

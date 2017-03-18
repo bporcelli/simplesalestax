@@ -49,9 +49,6 @@ final class WC_WooTax_Admin {
 		// Save custom product meta
 		add_action( 'save_post', array( __CLASS__, 'save_product_meta' ) );
 
-		// Add "settings" link to plugins page
-		add_filter( 'plugin_action_links_' . plugin_basename( SST()->plugin_path() . '/simplesalestax.php' ), array( __CLASS__, 'add_settings_link' ) );
-
 		// Allow for bulk editing of TICs
 		add_action( 'woocommerce_product_bulk_edit_start', array( __CLASS__, 'output_bulk_edit_fields' ) );
 		add_action( 'woocommerce_product_bulk_edit_save', array( __CLASS__, 'save_bulk_edit_fields' ) );
@@ -341,20 +338,6 @@ final class WC_WooTax_Admin {
 			<a target="_blank" href="https://simplesalestax.com/taxcloud/reports/" class="wp-core-ui button button-primary">Go to TaxCloud Reports Page</a>
 		</div>
 		<?php
-	}
-
-	/**
-	 * Add "Settings" plugin action link.
-	 *
-	 * @since 4.2
-	 *
-	 * @param  array $links Existing action links for plugin.
-	 * @return array
-	 */
-	public static function add_settings_link( $links ) { 
-	 	$settings_link = '<a href="admin.php?page=wc-settings&tab=integration&section=wootax">Settings</a>'; 
-	  	array_unshift( $links, $settings_link ); 
-	  	return $links; 
 	}
 
 	/**
