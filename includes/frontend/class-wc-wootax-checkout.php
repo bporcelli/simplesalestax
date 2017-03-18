@@ -154,19 +154,19 @@ class WC_WooTax_Checkout {
 		$this->cart->cart_contents[ $key ][ 'line_subtotal_tax' ] += $amt;
 
 		// Add the "tax_data" array if we are dealing with WooCommerce 2.2+
-		if ( version_compare( WT_WOO_VERSION, '2.2', '>=' ) ) {
+		if ( version_compare( SST_WOO_VERSION, '2.2', '>=' ) ) {
 			$tax_data = $this->cart->cart_contents[ $key ][ 'line_tax_data' ];
 
-			if ( ! isset( $tax_data[ 'total' ][ WT_RATE_ID ] ) ) {
-				$tax_data['total'][ WT_RATE_ID ] = 0;
+			if ( ! isset( $tax_data[ 'total' ][ SST_RATE_ID ] ) ) {
+				$tax_data['total'][ SST_RATE_ID ] = 0;
 			}
 
-			if ( ! isset( $tax_data[ 'subtotal' ][ WT_RATE_ID ] ) ) {
-				$tax_data[ 'subtotal' ][ WT_RATE_ID ] = 0;
+			if ( ! isset( $tax_data[ 'subtotal' ][ SST_RATE_ID ] ) ) {
+				$tax_data[ 'subtotal' ][ SST_RATE_ID ] = 0;
 			}
 
-			$tax_data[ 'subtotal' ][ WT_RATE_ID ] += $amt;
-			$tax_data[ 'total' ][ WT_RATE_ID ]    += $amt;
+			$tax_data[ 'subtotal' ][ SST_RATE_ID ] += $amt;
+			$tax_data[ 'total' ][ SST_RATE_ID ]    += $amt;
 
 			$this->cart->cart_contents[ $key ][ 'line_tax_data' ] = $tax_data;
 		}
@@ -185,14 +185,14 @@ class WC_WooTax_Checkout {
 		$this->cart->fees[ $key ]->tax += $amt;
 
 		// Update tax_data array if we are dealing with WooCommerce 2.2+
-		if ( version_compare( WT_WOO_VERSION, '2.2', '>=' ) ) {
+		if ( version_compare( SST_WOO_VERSION, '2.2', '>=' ) ) {
 			$tax_data = $this->cart->fees[ $key ]->tax_data;
 
-			if ( ! isset( $tax_data[ WT_RATE_ID ] ) ) {
-				$tax_data[ WT_RATE_ID ] = 0;
+			if ( ! isset( $tax_data[ SST_RATE_ID ] ) ) {
+				$tax_data[ SST_RATE_ID ] = 0;
 			}
 
-			$tax_data[ WT_RATE_ID ] += $amt;
+			$tax_data[ SST_RATE_ID ] += $amt;
 
 			// Set new tax_data 
 			$this->cart->fees[ $key ]->tax_data = $tax_data;
@@ -307,12 +307,12 @@ class WC_WooTax_Checkout {
 
 			if ( $shipping_total > 0 ) {
 				$index   = $counters_array[ $first_location ];
-				$item_id = WT_SHIPPING_ITEM;
+				$item_id = SST_SHIPPING_ITEM;
 
 				$lookup_data[ $first_location ][] = array(
 					'Index'  => $index,
 					'ItemID' => $item_id, 
-					'TIC'    => apply_filters( 'wootax_shipping_tic', WT_DEFAULT_SHIPPING_TIC ), 
+					'TIC'    => apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC ), 
 					'Qty'    => 1, 
 					'Price'  => apply_filters( 'wootax_taxable_price', $shipping_total, true, $item_id ),
 				);
@@ -348,7 +348,7 @@ class WC_WooTax_Checkout {
 					$lookup_data[ $first_location ][] = array(
 						'Index'  => $index,
 						'ItemID' => $item_id, 
-						'TIC'    => apply_filters( 'wootax_fee_tic', WT_DEFAULT_FEE_TIC ),
+						'TIC'    => apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC ),
 						'Qty'    => 1, 
 						'Price'  => apply_filters( 'wootax_taxable_price', $fee->amount, true, $item_id ),
 					);
@@ -549,10 +549,10 @@ class WC_WooTax_Checkout {
 		$tax_key    = $total_type . 'taxes';
 		$total_key  = $total_type . 'tax_total';
 
-		$this->cart->{$tax_key}[ WT_RATE_ID ] = $new_tax;
+		$this->cart->{$tax_key}[ SST_RATE_ID ] = $new_tax;
 
 		// Use get_tax_total to set new tax total so we don't override other rates
-		$this->cart->$total_key = version_compare( WT_WOO_VERSION, '2.2', '>=' ) ? WC_Tax::get_tax_total( $this->cart->$tax_key ) : $this->cart->tax->get_tax_total( $this->cart->$tax_key );
+		$this->cart->$total_key = version_compare( SST_WOO_VERSION, '2.2', '>=' ) ? WC_Tax::get_tax_total( $this->cart->$tax_key ) : $this->cart->tax->get_tax_total( $this->cart->$tax_key );
 		
 		$this->$total_key = $new_tax;
 	}
@@ -643,7 +643,7 @@ class WC_WooTax_Checkout {
 
 		WT_Orders::update_meta( $order_id, 'wt_exempt_cert',  $exempt_cert );
 
-		if ( WT_LOG_REQUESTS ) {
+		if ( SST_LOG_REQUESTS ) {
 			$logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : WC()->logger();
 			$logger->add( 'wootax', "New order with ID $order_id created." );
 		}

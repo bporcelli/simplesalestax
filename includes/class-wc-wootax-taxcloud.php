@@ -106,7 +106,7 @@ class WC_WooTax_TaxCloud {
 		) ); 
 
 		// Set up logger
-		if ( WT_LOG_REQUESTS )
+		if ( SST_LOG_REQUESTS )
 			$this->logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : $woocommerce->logger();
 	}
 	
@@ -155,7 +155,7 @@ class WC_WooTax_TaxCloud {
 	public function send_request( $type, $params = array() ) {
 		$last_error = false;
 
-		if ( WT_LOG_REQUESTS )
+		if ( SST_LOG_REQUESTS )
 			$this->logger->add( 'wootax', 'Started '. $type .' request.' );
 
 		if ( ! $this->login_id || ! $this->key ) {
@@ -173,7 +173,7 @@ class WC_WooTax_TaxCloud {
 			try {
 				$response = $this->client->$type( $request );
 
-				if ( WT_LOG_REQUESTS ) {
+				if ( SST_LOG_REQUESTS ) {
 					$this->logger->add( 'wootax', 'Request: '. print_r( $request, true ) );
 					$this->logger->add( 'wootax', 'Response: '. print_r( $response, true ) );
 				}
@@ -192,12 +192,12 @@ class WC_WooTax_TaxCloud {
 		if ( $last_error ) {
 			$this->last_error = $last_error;
 
-			if ( WT_LOG_REQUESTS )
+			if ( SST_LOG_REQUESTS )
 				$this->logger->add( 'wootax', 'Request failed: '. $last_error );
 
 			return false;
 		} else {
-			if ( WT_LOG_REQUESTS )
+			if ( SST_LOG_REQUESTS )
 				$this->logger->add( 'wootax', 'Request succeeded!' );
 
 			return $response;

@@ -15,8 +15,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * 2.5 allowed users to manually disable shipping tax. This option was promptly eliminated
- * in 2.6. Delete it.
+ * In 2.6, we eliminated the ability to manually disable shipping tax. This
+ * function deletes the related option.
  *
  * @since 5.0
  */
@@ -25,8 +25,8 @@ function sst_update_26_remove_shipping_taxable_option() {
 }
 
 /**
- * In 3.8, we started allowing multiple business addresses ("Shipping Origin Addresses").
- * Update address data accordingly.
+ * In 3.8, we started allowing multiple business addresses. This function
+ * migrates existing address data to work with the new address system.
  *
  * @since 5.0
  */
@@ -185,8 +185,8 @@ function sst_update_42_migrate_order_data() {
 						$shipping_item_id = -1;
 
 						// Shipping
-						if ( version_compare( WT_WOO_VERSION, '2.2', '<' ) ) {
-							$shipping_item_id = WT_SHIPPING_ITEM;
+						if ( version_compare( SST_WOO_VERSION, '2.2', '<' ) ) {
+							$shipping_item_id = SST_SHIPPING_ITEM;
 
 							update_post_meta( $wc_order_id, '_wootax_first_found', $location_key );
 							update_post_meta( $wc_order_id, '_wootax_shipping_index', $index );
@@ -207,7 +207,7 @@ function sst_update_42_migrate_order_data() {
 						if ( $shipping_item_id != -1 ) {
 							$new_mapping_array[ $location_key ][ $item_ident ] = $index;
 
-							$identifiers[ WT_SHIPPING_ITEM ] = $item_ident;
+							$identifiers[ SST_SHIPPING_ITEM ] = $item_ident;
 						}
 					} else if ( in_array( get_post_type( $item_ident ), array( 'product', 'product-variation' ) ) ) {
 						// Cart item

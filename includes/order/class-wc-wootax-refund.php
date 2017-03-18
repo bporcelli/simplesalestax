@@ -91,11 +91,11 @@ class WC_WooTax_Refund extends WC_Order_Refund {
 			$id_array[ $fee_key ] = $identifier;
 		}
 
-		$id_array[ WT_SHIPPING_ITEM ] = isset( $identifiers[ WT_SHIPPING_ITEM ] ) ? $identifiers[ WT_SHIPPING_ITEM ] : WT_SHIPPING_ITEM;
+		$id_array[ SST_SHIPPING_ITEM ] = isset( $identifiers[ SST_SHIPPING_ITEM ] ) ? $identifiers[ SST_SHIPPING_ITEM ] : SST_SHIPPING_ITEM;
 
-		if ( version_compare( WT_WOO_VERSION, '2.2', '>=' ) && !isset( $identifiers[ WT_SHIPPING_ITEM ] ) ) {			
+		if ( version_compare( SST_WOO_VERSION, '2.2', '>=' ) && !isset( $identifiers[ SST_SHIPPING_ITEM ] ) ) {			
 			foreach ( $order->order->get_shipping_methods() as $method_id => $method ) {
-				$id_array[ WT_SHIPPING_ITEM ] = $method_id;
+				$id_array[ SST_SHIPPING_ITEM ] = $method_id;
 			}
 		}
 
@@ -168,7 +168,7 @@ class WC_WooTax_Refund extends WC_Order_Refund {
 			$refund_items[ $first_found ][] = array(
 				'Index'  => '', 
 				'ItemID' => $real_id, 
-				'TIC'    => apply_filters( 'wootax_fee_tic', WT_DEFAULT_FEE_TIC ),
+				'TIC'    => apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC ),
 				'Qty'    => 1, 
 				'Price'  => $line_total,
 			);
@@ -179,7 +179,7 @@ class WC_WooTax_Refund extends WC_Order_Refund {
 		$shipping_cost = $refund->get_total_shipping();
 
 		if ( $shipping_cost != 0 ) {
-			$item_id = $id_array[ WT_SHIPPING_ITEM ];
+			$item_id = $id_array[ SST_SHIPPING_ITEM ];
 
 			if ( $shipping_cost < 0 )
 				$shipping_cost *= -1;
@@ -187,7 +187,7 @@ class WC_WooTax_Refund extends WC_Order_Refund {
 			$refund_items[ $first_found ][] = array(
 				'Index'  => '', 
 				'ItemID' => $item_id, 
-				'TIC'    => apply_filters( 'wootax_shipping_tic', WT_DEFAULT_SHIPPING_TIC ), 
+				'TIC'    => apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC ), 
 				'Qty'    => 1, 
 				'Price'  => $shipping_cost,
 			);

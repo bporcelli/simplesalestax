@@ -74,7 +74,7 @@ class WT_Orders {
 
 		self::$addresses = fetch_business_addresses();
 
-		if ( WT_LOG_REQUESTS )
+		if ( SST_LOG_REQUESTS )
 			self::init_logger();
 	}
 
@@ -136,14 +136,14 @@ class WT_Orders {
      * @param int $order_id ID of new order.
 	 */
 	public static function maybe_store_shipping_index( $order_id ) {
-		if ( version_compare( WT_WOO_VERSION, '2.2', '<' ) ) {
+		if ( version_compare( SST_WOO_VERSION, '2.2', '<' ) ) {
 			$location_mapping = self::get_meta( $order_id, 'location_mapping_array' );
 			$mapping          = self::get_meta( $order_id, 'mapping_array' );
 
-			$location_id = isset( $location_mapping[ WT_SHIPPING_ITEM ] ) ? $location_mapping[ WT_SHIPPING_ITEM ] : 0;
+			$location_id = isset( $location_mapping[ SST_SHIPPING_ITEM ] ) ? $location_mapping[ SST_SHIPPING_ITEM ] : 0;
 
-			if ( isset( $mapping[ $location_id ][ WT_SHIPPING_ITEM ] ) ) {
-				self::update_meta( $order_id, 'shipping_index', $mapping[ $location_id ][ WT_SHIPPING_ITEM ] );
+			if ( isset( $mapping[ $location_id ][ SST_SHIPPING_ITEM ] ) ) {
+				self::update_meta( $order_id, 'shipping_index', $mapping[ $location_id ][ SST_SHIPPING_ITEM ] );
 			}
 		}
 	}
@@ -160,7 +160,7 @@ class WT_Orders {
 	 */
 	public static function add_shipping_tax( $order_id, $item_id, $shipping_rate )  {
 		$taxes = array_map( 'wc_format_decimal', $shipping_rate->taxes );
-		$taxes[ WT_RATE_ID ] = self::get_meta( $order_id, 'shipping_tax_total' );
+		$taxes[ SST_RATE_ID ] = self::get_meta( $order_id, 'shipping_tax_total' );
 		wc_update_order_item_meta( $item_id, 'taxes', $taxes );
 	}
 
@@ -174,7 +174,7 @@ class WT_Orders {
 	 * @param int $tax_rate_id ID of rate associated with tax item.
 	 */
 	public static function add_order_tax_rate( $order_id, $item_id, $tax_rate_id ) {
-		if( $tax_rate_id != WT_RATE_ID )
+		if( $tax_rate_id != SST_RATE_ID )
 			return;
 
 		// Store tax item id
@@ -207,9 +207,9 @@ class WT_Orders {
 			return; // Returning here allows WC_AJAX::calc_line_taxes to take over for non-US orders
 		} else {
 			// Build items array
-			if ( version_compare( WT_WOO_VERSION, '2.2', '>=' ) ) {
+			if ( version_compare( SST_WOO_VERSION, '2.2', '>=' ) ) {
 			    parse_str( $_POST[ 'items' ], $items );
-			} else if ( version_compare( WT_WOO_VERSION, '2.1.0', '>=' ) ) {
+			} else if ( version_compare( SST_WOO_VERSION, '2.1.0', '>=' ) ) {
 				$items = array(
 					'order_item_id'      => array(),
 					'order_item_qty'     => array(),
@@ -231,8 +231,8 @@ class WT_Orders {
 
 				// Add item for shipping cost
 				if ( isset( $_POST[ 'shipping' ] ) && $_POST[ 'shipping' ] != 0 ) {
-					$items[ 'shipping_cost' ][ WT_SHIPPING_ITEM ] = $_POST[ 'shipping' ];
-					$items[ 'shipping_method_id' ][]              = WT_SHIPPING_ITEM;
+					$items[ 'shipping_cost' ][ SST_SHIPPING_ITEM ] = $_POST[ 'shipping' ];
+					$items[ 'shipping_method_id' ][]              = SST_SHIPPING_ITEM;
 				}
 			}
 
@@ -253,7 +253,7 @@ class WT_Orders {
 
 				if ( is_array( $items[ 'shipping_method_id' ] ) && in_array( $item_id, $items[ 'shipping_method_id' ] ) ) {
 					// Shipping method
-					$tic  = apply_filters( 'wootax_shipping_tic', WT_DEFAULT_SHIPPING_TIC );
+					$tic  = apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC );
 					$cost = $items[ 'shipping_cost' ][$item_id];
 					$type = 'shipping';
 				} else if ( isset( $items[ 'order_item_qty' ][$item_id] ) ) {
@@ -267,7 +267,7 @@ class WT_Orders {
 					$qty  = SST()->get_option( 'tax_based_on' ) == 'line-subtotal' ? 1 : $items[ 'order_item_qty' ][ $item_id ];
 				} else {
 					// Fee
-					$tic  = apply_filters( 'wootax_fee_tic', WT_DEFAULT_FEE_TIC );
+					$tic  = apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC );
 					$cost = $items[ 'line_total' ][$item_id];
 					$type = 'fee';
 				}
@@ -305,7 +305,7 @@ class WT_Orders {
 			// Convert response array to be sent back to client
 			// @see WC_AJAX::calc_line_taxes()
 			if ( is_array( $res ) ) {
-				if ( version_compare( WT_WOO_VERSION, '2.2', '>=' ) ) {
+				if ( version_compare( SST_WOO_VERSION, '2.2', '>=' ) ) {
 					
 					if ( ! isset( $items[ 'line_tax' ] ) )
 						$items[ 'line_tax' ] = array();
@@ -319,10 +319,10 @@ class WT_Orders {
 						$tax = $item->TaxAmount; 
 
 						if ( is_array( $items[ 'shipping_method_id' ] ) && in_array( $id, $items[ 'shipping_method_id' ] ) ) {
-							$items[ 'shipping_taxes' ][ $id ][ WT_RATE_ID ] = $tax;
+							$items[ 'shipping_taxes' ][ $id ][ SST_RATE_ID ] = $tax;
 						} else {
-							$items[ 'line_tax' ][ $id ][ WT_RATE_ID ] = $tax;
-							$items[ 'line_subtotal_tax' ][ $id ][ WT_RATE_ID ] = $tax;
+							$items[ 'line_tax' ][ $id ][ SST_RATE_ID ] = $tax;
+							$items[ 'line_subtotal_tax' ][ $id ][ SST_RATE_ID ] = $tax;
 						}
 					}
 
@@ -332,11 +332,11 @@ class WT_Orders {
 					$tax_item_id = self::get_meta( $order_id, 'tax_item_id' );
 
 					if ( empty( $tax_item_id ) || ! in_array( $tax_item_id, array_keys( $taxes ) ) ) {
-						$tax_item_id = $order->add_tax( WT_RATE_ID, $tax_total, $shipping_tax_total );
+						$tax_item_id = $order->add_tax( SST_RATE_ID, $tax_total, $shipping_tax_total );
 						self::update_meta( $order_id, 'tax_item_id', $tax_item_id );
 					}
 
-					$items[ 'order_taxes' ][ $tax_item_id ] = absint( WT_RATE_ID );
+					$items[ 'order_taxes' ][ $tax_item_id ] = absint( SST_RATE_ID );
 
 					// Save order items
 					wc_save_order_items( $order_id, $items );
@@ -347,7 +347,7 @@ class WT_Orders {
 					include( ABSPATH . '/'. PLUGINDIR . '/woocommerce/includes/admin/meta-boxes/views/html-order-items.php' );
 
 					die();
-				} else if ( version_compare( WT_WOO_VERSION, '2.1', '>=' ) ) {
+				} else if ( version_compare( SST_WOO_VERSION, '2.1', '>=' ) ) {
 					// We are going to send back a JSON response
 					header( 'Content-Type: application/json; charset=utf-8' );
 
@@ -360,7 +360,7 @@ class WT_Orders {
 						$id  = $item->ItemID;
 						$tax = $item->TaxAmount; 
 
-						if ( $id == WT_SHIPPING_ITEM ) {
+						if ( $id == SST_SHIPPING_ITEM ) {
 							$shipping_tax += $tax;
 						} else {
 							$item_taxes[ $id ] = array(

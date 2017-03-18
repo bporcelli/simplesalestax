@@ -77,14 +77,14 @@ function wt_ajax_update_recurring_tax() {
 		if ( $shipping > 0 ) {
 			$item_data[] = array(
 				'Index'  => '',
-				'ItemID' => WT_SHIPPING_ITEM, 
-				'TIC'    => apply_filters( 'wootax_shipping_tic', WT_DEFAULT_SHIPPING_TIC ),
+				'ItemID' => SST_SHIPPING_ITEM, 
+				'TIC'    => apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC ),
 				'Qty'    => 1, 
 				'Price'  => $shipping,	
 				'Type'   => 'shipping',
 			);
 
-			$type_array[ WT_SHIPPING_ITEM ] = 'shipping';
+			$type_array[ SST_SHIPPING_ITEM ] = 'shipping';
 		}
 
 		// Add fees to items array
@@ -95,7 +95,7 @@ function wt_ajax_update_recurring_tax() {
 			$item_data[] = array(
 				'Index'  => '',
 				'ItemID' => $item_id, 
-				'TIC'    => apply_filters( 'wootax_fee_tic', WT_DEFAULT_FEE_TIC ),
+				'TIC'    => apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC ),
 				'Qty'    => 1, 
 				'Price'  => $fee[ 'recurring_line_total' ],	
 				'Type'   => 'fee',
@@ -117,7 +117,7 @@ function wt_ajax_update_recurring_tax() {
 				$item_id  = $item->ItemID;
 				$item_tax = $item->TaxAmount;
 
-				if ( $item_id == WT_SHIPPING_ITEM ) {
+				if ( $item_id == SST_SHIPPING_ITEM ) {
 					$return[ 'recurring_shipping_tax' ] += $item_tax;
 				} else {
 					$return[ 'recurring_line_subtotal_tax' ] += $item_tax;
@@ -126,11 +126,11 @@ function wt_ajax_update_recurring_tax() {
 
 			}
 
-			$taxes[ WT_RATE_ID ]          = $return[ 'recurring_line_tax' ];
-			$shipping_taxes[ WT_RATE_ID ] = $return[ 'recurring_shipping_tax' ];
+			$taxes[ SST_RATE_ID ]          = $return[ 'recurring_line_tax' ];
+			$shipping_taxes[ SST_RATE_ID ] = $return[ 'recurring_shipping_tax' ];
 
 		 	// Get tax rates
-			$tax_codes = array( WT_RATE_ID => apply_filters( 'wootax_rate_code', 'WOOTAX-RATE-DO-NOT-REMOVE' ) );
+			$tax_codes = array( SST_RATE_ID => apply_filters( 'wootax_rate_code', 'WOOTAX-RATE-DO-NOT-REMOVE' ) );
 
 			// Remove old tax rows
 			$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}woocommerce_order_itemmeta WHERE order_item_id IN ( SELECT order_item_id FROM {$wpdb->prefix}woocommerce_order_items WHERE order_id = %d AND order_item_type = 'recurring_tax' )", $order_id ) );
@@ -144,7 +144,7 @@ function wt_ajax_update_recurring_tax() {
 				$item[ 'rate_id' ] = $key;
 				$item[ 'name' ]    = $tax_codes[ $key ];
 
-				if ( version_compare( WT_WOO_VERSION, '2.2', '>=' ) ) {
+				if ( version_compare( SST_WOO_VERSION, '2.2', '>=' ) ) {
 					$item[ 'label' ]    = WC_Tax::get_rate_label( $key );
 					$item[ 'compound' ] = WC_Tax::is_compound( $key );
 				} else {

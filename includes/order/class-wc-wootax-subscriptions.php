@@ -109,13 +109,13 @@ class WC_WooTax_Subscriptions {
 		// Build and format items array
 		$order_items = $order->order->get_items() + $order->order->get_fees();
 
-		if ( version_compare( WT_WOO_VERSION, '2.2', '<' ) ) {
+		if ( version_compare( SST_WOO_VERSION, '2.2', '<' ) ) {
 			$shipping_method = array( 
 				'type' => 'shipping',
 				'cost' => $order->order->get_total_shipping(),
 			);
 
-			$order_items = $order_items + array( WT_SHIPPING_ITEM => $shipping_method );
+			$order_items = $order_items + array( SST_SHIPPING_ITEM => $shipping_method );
 		} else {
 			$order_items = $order_items + $order->order->get_shipping_methods();
 		}
@@ -130,10 +130,10 @@ class WC_WooTax_Subscriptions {
 
 			switch ( $type ) {
 				case 'shipping':
-					$tic = apply_filters( 'wootax_shipping_tic', WT_DEFAULT_SHIPPING_TIC );
+					$tic = apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC );
 					break;
 				case 'fee':
-					$tic = apply_filters( 'wootax_fee_tic', WT_DEFAULT_FEE_TIC );
+					$tic = apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC );
 					break;
 				case 'line_item':
 					$tic  = wt_get_product_tic( $item[ 'product_id' ], $item[ 'variation_id' ] );
@@ -247,7 +247,7 @@ class WC_WooTax_Subscriptions {
 		$to_remove      = array();
 
 		foreach ( $original_taxes as $tax_item_id => $data ) {
-			if ( $data[ 'rate_id' ] != WT_RATE_ID ) {
+			if ( $data[ 'rate_id' ] != SST_RATE_ID ) {
 				continue;
 			}
 

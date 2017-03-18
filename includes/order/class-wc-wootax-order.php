@@ -65,7 +65,7 @@ class WC_WooTax_Order {
 		if ( isset( $mapping_array[ $item_id ] ) ) {
 			return $mapping_array[ $item_id ];
 		} else {
-			if ( $item_id == WT_SHIPPING_ITEM ) { // WC 2.1 shipping
+			if ( $item_id == SST_SHIPPING_ITEM ) { // WC 2.1 shipping
 				return WT_Orders::get_meta( $this->order_id, 'shipping_index' );
 			} else {
 				return $this->get_item_meta( $item_id, '_wootax_index' );
@@ -79,7 +79,7 @@ class WC_WooTax_Order {
 	 * @since 4.2
 	 */
 	public function remove_tax() {		
-		if ( version_compare( WT_WOO_VERSION, '2.2', '<' ) ) {
+		if ( version_compare( SST_WOO_VERSION, '2.2', '<' ) ) {
 			$items = $this->order->get_items() + $this->order->get_fees();
 		} else {
 			$items = $this->order->get_items() + $this->order->get_fees() + $this->order->get_shipping_methods();
@@ -105,7 +105,7 @@ class WC_WooTax_Order {
 	public function get_item_tax( $item_id ) {
 		$tax = 0.0;
 
-		if ( $item_id == WT_SHIPPING_ITEM ) { // This will occur for WooCommerce 2.1.x
+		if ( $item_id == SST_SHIPPING_ITEM ) { // This will occur for WooCommerce 2.1.x
 			$tax = WT_Orders::get_meta( $this->order_id, 'shipping_tax_total' );
 		} else if ( $this->get_item_meta( $item_id, '_wootax_tax_amount' ) ) {
 			$tax = $this->get_item_meta( $item_id, '_wootax_tax_amount' );
@@ -128,7 +128,7 @@ class WC_WooTax_Order {
 	 * @param float $amt Sales tax for item.
 	 */
 	private function apply_item_tax( $item_id, $amt ) {
-		if ( $item_id == WT_SHIPPING_ITEM ) { // WooCommerce 2.1.x shipping 
+		if ( $item_id == SST_SHIPPING_ITEM ) { // WooCommerce 2.1.x shipping 
 			WT_Orders::update_meta( $this->order_id, 'shipping_tax_total', WT_Orders::get_meta( $this->order_id, 'shipping_tax_total' ) + $amt );
 		} else {
 			// Calculate new tax values
@@ -141,25 +141,25 @@ class WC_WooTax_Order {
 			wc_update_order_item_meta( $item_id, '_wootax_tax_amount', $amt ); 
 
 			// Update the "tax_data" array if we are dealing with WooCommerce 2.2+
-			if ( version_compare( WT_WOO_VERSION, '2.2', '>=' ) ) {
+			if ( version_compare( SST_WOO_VERSION, '2.2', '>=' ) ) {
 				$tax_data = $this->get_item_meta( $item_id, '_line_tax_data' );
 				$taxes    = $this->get_item_meta( $item_id, 'taxes' );
 
 				if ( $taxes ) {
 					// Shipping item
-					if ( isset( $taxes[ WT_RATE_ID ] ) ) {
-						$taxes[ WT_RATE_ID ] = $amt;
+					if ( isset( $taxes[ SST_RATE_ID ] ) ) {
+						$taxes[ SST_RATE_ID ] = $amt;
 					}
 
 					wc_update_order_item_meta( $item_id, 'taxes', $taxes );
 				} else {
 					if ( isset( $tax_data['total'] ) ) {
 						// Cart items
-						$tax_data['subtotal'][ WT_RATE_ID ] = $amt;
-						$tax_data['total'][ WT_RATE_ID ]    = $amt;
+						$tax_data['subtotal'][ SST_RATE_ID ] = $amt;
+						$tax_data['total'][ SST_RATE_ID ]    = $amt;
 					} else {
 						// Fee
-						$tax_data[ WT_RATE_ID ] = $amt;
+						$tax_data[ SST_RATE_ID ] = $amt;
 					}
 
 					wc_update_order_item_meta( $item_id, '_line_tax_data', $tax_data );
@@ -198,7 +198,7 @@ class WC_WooTax_Order {
 		$applied_tax = $this->get_item_tax( $item_id );
 
 		if ( $applied_tax != 0 ) {
-			if ( $item_id == WT_SHIPPING_ITEM ) { // WooCommerce 2.1.x shipping charges
+			if ( $item_id == SST_SHIPPING_ITEM ) { // WooCommerce 2.1.x shipping charges
 				WT_Orders::update_meta( $this->order_id, 'shipping_tax_total', 0 );
 			} else {
 				// Calculate new tax values
@@ -215,25 +215,25 @@ class WC_WooTax_Order {
 				wc_update_order_item_meta( $item_id, '_wootax_tax_amount', 0 );
 
 				// Update the "tax_data" array if we are dealing with WooCommerce 2.2+
-				if ( version_compare( WT_WOO_VERSION, '2.2', '>=' ) ) {
+				if ( version_compare( SST_WOO_VERSION, '2.2', '>=' ) ) {
 					$tax_data = $this->get_item_meta( $item_id, '_line_tax_data' );
 					$taxes    = $this->get_item_meta( $item_id, 'taxes' );
 
 					if ( $taxes ) {
 						// Shipping item
-						if ( isset( $taxes[ WT_RATE_ID ] ) ) {
-							$taxes[ WT_RATE_ID ] = 0;
+						if ( isset( $taxes[ SST_RATE_ID ] ) ) {
+							$taxes[ SST_RATE_ID ] = 0;
 						}
 
 						wc_update_order_item_meta( $item_id, 'taxes', $taxes );
 					} else {
 						if ( isset( $tax_data['total'] ) ) {
 							// Cart items
-							$tax_data['subtotal'][ WT_RATE_ID ] = 0;
-							$tax_data['total'][ WT_RATE_ID ]    = 0;
+							$tax_data['subtotal'][ SST_RATE_ID ] = 0;
+							$tax_data['total'][ SST_RATE_ID ]    = 0;
 						} else {
 							// Fee
-							$tax_data[ WT_RATE_ID ] = 0;
+							$tax_data[ SST_RATE_ID ] = 0;
 						}
 
 						wc_update_order_item_meta( $item_id, '_line_tax_data', $tax_data );
@@ -556,7 +556,7 @@ class WC_WooTax_Order {
 					foreach ( $items as $item ) {
 						$item_id = $item['ItemID'];
 
-						if ( $item_id == WT_SHIPPING_ITEM ) { // WC 2.1 shipping
+						if ( $item_id == SST_SHIPPING_ITEM ) { // WC 2.1 shipping
 							WT_Orders::update_meta( $this->order_id, 'shipping_index', $item[ 'Index' ] );
 						} else {
 							wc_update_order_item_meta( $item_id, '_wootax_location_id', $address_key );
@@ -781,7 +781,7 @@ class WC_WooTax_Order {
 
 		// Find first rate with matching rate id; set $tax_item_id accordingly
 		foreach ( $this->order->get_taxes() as $key => $data ) {
-			if ( $data[ 'rate_id' ] == WT_RATE_ID ) {
+			if ( $data[ 'rate_id' ] == SST_RATE_ID ) {
 				$tax_item_id = $key;
 				break;
 			}
@@ -822,9 +822,9 @@ class WC_WooTax_Order {
 		}
 
 		// Update tax item meta
-		wc_update_order_item_meta( $tax_item_id, 'rate_id', WT_RATE_ID );
-		wc_update_order_item_meta( $tax_item_id, 'label', SST()->get_rate_label( WT_RATE_ID ) );
-		wc_update_order_item_meta( $tax_item_id, 'name', SST()->get_rate_label( WT_RATE_ID ) );
+		wc_update_order_item_meta( $tax_item_id, 'rate_id', SST_RATE_ID );
+		wc_update_order_item_meta( $tax_item_id, 'label', SST()->get_rate_label( SST_RATE_ID ) );
+		wc_update_order_item_meta( $tax_item_id, 'name', SST()->get_rate_label( SST_RATE_ID ) );
 		wc_update_order_item_meta( $tax_item_id, 'compound', true );
 		wc_update_order_item_meta( $tax_item_id, 'tax_amount', $cart_tax );
 		wc_update_order_item_meta( $tax_item_id, 'shipping_tax_amount', $shipping_tax );

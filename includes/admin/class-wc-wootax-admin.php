@@ -287,7 +287,7 @@ final class WC_WooTax_Admin {
 		// Output select box
 		$origin_addresses = fetch_product_origin_addresses( $post->ID );
 
-		echo '<select class="'. ( version_compare( WT_WOO_VERSION, '2.3', '<' ) ? 'chosen_select' : 'wc-enhanced-select' ) .'" name="_wootax_origin_addresses[]" multiple>';
+		echo '<select class="'. ( version_compare( SST_WOO_VERSION, '2.3', '<' ) ? 'chosen_select' : 'wc-enhanced-select' ) .'" name="_wootax_origin_addresses[]" multiple>';
 
 		if ( is_array( $addresses ) && count( $addresses ) > 0 ) {
 			foreach ( $addresses as $key => $address ) {
@@ -481,7 +481,7 @@ final class WC_WooTax_Admin {
 		if ( apply_filters( 'wootax_hide_tax_options', true ) === true ) {
 			$classes .= ' hide-tax-options';
 
-			$version = str_replace( '.', '-', WT_WOO_VERSION );
+			$version = str_replace( '.', '-', SST_WOO_VERSION );
 			$classes .= ' wc-' . substr( $version, 0, 3 );
 		}
 

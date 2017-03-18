@@ -104,26 +104,23 @@ final class WC_WooTax {
 	 * @since 4.7
 	 */
 	public function __construct() {
-		$this->define_constants();
 		$this->includes();
+		$this->define_constants();
 		$this->hooks();
 	}
 
 	/**
-	 * Define WooTax constants.
+	 * Define constants.
 	 *
 	 * @since 4.4
 	 */
 	private function define_constants() {
-		$this->define( 'WT_DEFAULT_SHIPPING_TIC', 11010 );
-		$this->define( 'WT_SHIPPING_ITEM', 'SHIPPING' );
-		$this->define( 'WT_DEFAULT_FEE_TIC', 10010 );
-		$this->define( 'WT_RATE_ID', get_option( 'wootax_rate_id' ) );
-		$this->define( 'WT_CALC_TAXES', $this->should_calc_taxes() );
-		$this->define( 'WT_DEFAULT_ADDRESS', $this->get_option( 'default_address' ) == false ? 0 : $this->get_option( 'default_address' ) );
-		$this->define( 'WT_SUBS_ACTIVE', $this->is_plugin_active( 'woocommerce-subscriptions/woocommerce-subscriptions.php' ) );
-		$this->define( 'WT_LOG_REQUESTS', $this->get_option( 'log_requests' ) == 'no' ? false : true );
-		$this->define( 'WT_WOO_VERSION', $this->woocommerce_version() );
+		$this->define( 'SST_DEFAULT_SHIPPING_TIC', 11010 );
+		$this->define( 'SST_SHIPPING_ITEM', 'SHIPPING' );
+		$this->define( 'SST_DEFAULT_FEE_TIC', 10010 );
+		$this->define( 'SST_RATE_ID', get_option( 'wootax_rate_id' ) );
+		$this->define( 'SST_LOG_REQUESTS', $this->get_option( 'log_requests' ) !== 'no' );
+		$this->define( 'SST_WOO_VERSION', SST_Compatibility::woocommerce_version() );
 		$this->define( 'SST_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 	}
 
@@ -165,7 +162,8 @@ final class WC_WooTax {
 	 * @since 4.4
 	 */
 	private function includes() {
-		// TODO: INCLUDE INSTALL CLASS
+		// TODO: INCLUDE UPDATE FUNCTIONS
+		// TODO: INCLUDE INSTALL/UPDATER/WOOCOMPAT CLASS
 		// Used for all request types
 		require_once 'includes/class-wc-wootax-taxcloud.php';
 		require_once 'includes/wc-wootax-functions.php';
@@ -173,9 +171,9 @@ final class WC_WooTax {
 		require_once 'includes/order/class-wt-orders.php';
 
 		// Only used when Subscriptions is active
-		if ( WT_SUBS_ACTIVE ) {
-			require_once 'includes/wc-wootax-subscriptions.php';
-		}
+		// if ( WT_SUBS_ACTIVE ) {
+		// 	require_once 'includes/wc-wootax-subscriptions.php';
+		// }
 
 		// Used on frontend
 		if ( $this->is_request( 'frontend' ) ) {
@@ -187,10 +185,10 @@ final class WC_WooTax {
 				require_once 'includes/class-wt-certificate-manager.php';
 			}
 
-			if ( WT_SUBS_ACTIVE ) {
-				require_once 'includes/order/class-wc-wootax-subscriptions.php';
-				require_once 'includes/frontend/wc-wootax-subscriptions-frontend.php';
-			}
+			// if ( WT_SUBS_ACTIVE ) {
+			// 	require_once 'includes/order/class-wc-wootax-subscriptions.php';
+			// 	require_once 'includes/frontend/wc-wootax-subscriptions-frontend.php';
+			// }
 			
 			require_once 'includes/frontend/class-wc-wootax-checkout.php';
 		}
@@ -207,6 +205,7 @@ final class WC_WooTax {
 	 * @since 4.4
 	 */
 	private function hooks() {
+		// TODO: LOAD TEXTDOMAIN
 		register_activation_hook( __FILE__, array( 'SST_Install', 'activate' ) );
 		add_filter( 'woocommerce_rate_label', array( $this, 'get_rate_label' ), 15, 2 );
 		add_filter( 'woocommerce_rate_code', array( $this, 'get_rate_code' ), 12, 2 );
@@ -222,7 +221,7 @@ final class WC_WooTax {
 	 * @return string
 	 */
 	public function get_rate_label( $name, $key = NULL ) {
-		if ( $name == WT_RATE_ID || $key == WT_RATE_ID ) {
+		if ( $name == SST_RATE_ID || $key == SST_RATE_ID ) {
 			return apply_filters( 'wootax_rate_label', 'Sales Tax' );
 		} else {
 			return $name;
@@ -237,25 +236,10 @@ final class WC_WooTax {
 	 * @return string
 	 */
 	public function get_rate_code( $code, $key ) {
-		if ( $key == WT_RATE_ID ) {
+		if ( $key == SST_RATE_ID ) {
 			return apply_filters( 'wootax_rate_code', 'WOOTAX-RATE-DO-NOT-REMOVE' );
 		} else {
 			return $code;
-		}
-	}
-
-	/**
-	 * Are taxes enabled?
-	 *
-	 * @since 4.6
-	 *
-	 * @return bool
-	 */
-	private static function should_calc_taxes() {
-		if ( function_exists( 'wc_taxes_enabled' ) ) {
-			return wc_taxes_enabled();
-		} else {
-			return apply_filters( 'wc_tax_enabled', get_option( 'woocommerce_calc_taxes' ) == 'yes' );
 		}
 	}
 

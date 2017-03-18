@@ -37,7 +37,7 @@ function wt_store_tax_item_totals( $order_id, $item_id = null, $tax_rate_id = nu
 	wc_add_order_item_meta( $tax_item_id, 'shipping_tax', wc_format_decimal( $shipping_tax_total ) );
 }
 
-if ( version_compare( WT_WOO_VERSION, '2.2', '<' ) ) {
+if ( version_compare( SST_WOO_VERSION, '2.2', '<' ) ) {
 	add_action( 'woocommerce_checkout_update_order_meta', 'wt_store_tax_item_totals', 10, 1 );
 } else {
 	add_action( 'woocommerce_order_add_tax', 'wt_store_tax_item_totals', 12, 3 );
@@ -125,7 +125,7 @@ function wootax_update_recurring_tax() {
 	// Set up logger
 	$logger = false;
 
-	if ( WT_LOG_REQUESTS ) {
+	if ( SST_LOG_REQUESTS ) {
 		$logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : WC()->logger();
 		$logger->add( 'wootax', 'Starting recurring tax update. Subscriptions with payments due before '. $date .' are being considered.' );
 	}
@@ -225,7 +225,7 @@ function wootax_update_recurring_tax() {
 						'Qty'    => 1,
 						'Price'  => $fee[ 'recurring_line_total' ],
 						'Type'   => 'cart',
-						'TIC'    => apply_filters( 'wootax_fee_tic', WT_DEFAULT_FEE_TIC ),
+						'TIC'    => apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC ),
 					);
 
 					$type_array[ $fee_id ] = 'fee';
@@ -242,7 +242,7 @@ function wootax_update_recurring_tax() {
 					'Qty'    => 1,
 					'Price'  => isset( $method[ 'cost' ] ) ? $method[ 'cost' ] : $method[ 'line_total' ], // 'cost' key used by shipping methods in 2.2
 					'Type'   => 'shipping',
-					'TIC'    => apply_filters( 'wootax_shipping_tic', WT_DEFAULT_SHIPPING_TIC ),
+					'TIC'    => apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC ),
 				);
 
 				$type_array[ $method_id ] = 'shipping';
@@ -258,7 +258,7 @@ function wootax_update_recurring_tax() {
 			$taxes = $subs_20_or_greater ? $order->get_items( 'tax' ) : $order->get_items( 'recurring_tax' );
 
 			foreach ( $taxes as $item_id => $item ) {
-				if ( $item['rate_id'] == WT_RATE_ID ) {
+				if ( $item['rate_id'] == SST_RATE_ID ) {
 					$wootax_item_id   = $item_id;
 					$old_tax          = $item[ 'tax_amount' ];
 					$old_shipping_tax = $item[ 'shipping_tax_amount' ];

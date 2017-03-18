@@ -63,7 +63,7 @@ class WC_WooTax_Settings extends WC_Integration {
 		if ( ! $rates_checked && wt_has_other_rates() ) {
 			require SST()->templates_path() . '/admin/delete-rates.php';
 		} else {
-			if ( version_compare( WT_WOO_VERSION, '2.6', '>=' ) ) {
+			if ( version_compare( SST_WOO_VERSION, '2.6', '>=' ) ) {
 				echo '<table class="form-table">'; // In 2.6, settings pages not wrapped in table by default
 			}
 			parent::generate_settings_html( $form_fields );
@@ -158,7 +158,7 @@ class WC_WooTax_Settings extends WC_Integration {
 			'exempt_roles' => array(
 				'title'             => 'Exempt User Roles',
 				'type'              => 'multiselect',
-				'class'             => version_compare( WT_WOO_VERSION, '2.3', '<' ) ? 'chosen_select' : 'wc-enhanced-select',
+				'class'             => version_compare( SST_WOO_VERSION, '2.3', '<' ) ? 'chosen_select' : 'wc-enhanced-select',
 				'options'           => wootax_get_user_roles(),
 				'default'           => array( 'exempt-customer' ),
 				'description'       => 'When a user with one of these roles shops on your site, WooTax will automatically find and apply the first exemption certificate associated with their account. Convenient if you have repeat exempt customers.',
@@ -618,7 +618,7 @@ class WC_WooTax_Settings extends WC_Integration {
 		global $wpdb;
 
 		$rate_classes   = explode( ',', $_POST['rates'] );
-		$wootax_rate_id = WT_RATE_ID == false ? 999999 : WT_RATE_ID;
+		$wootax_rate_id = SST_RATE_ID == false ? 999999 : SST_RATE_ID;
 
 		foreach ( $rate_classes as $rate_class ) {
 			$res = $wpdb->query( $wpdb->prepare( "

@@ -359,8 +359,8 @@ function wt_has_other_rates() {
 
 	$query = "SELECT COUNT(*) FROM {$wpdb->prefix}woocommerce_tax_rates";
 
-	if ( WT_RATE_ID ) {
-		$query .= " WHERE tax_rate_id != ". WT_RATE_ID;
+	if ( SST_RATE_ID ) {
+		$query .= " WHERE tax_rate_id != ". SST_RATE_ID;
 	}
 
 	$rate_count = $wpdb->get_var( $query );

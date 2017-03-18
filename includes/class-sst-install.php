@@ -35,8 +35,11 @@ class SST_Install {
 		),
 	);
 
-	// TODO: MAKE A PLACE FOR THE UPDATER TO LIVE; INIT UPDATER (SEE WOO CODE)
-	// MAYBE WE CAN USE THE WOO UPDATER?
+	/**
+	 * @var SST_Updater Background updater.
+	 * @since 5.0
+	 */
+	private static $background_updater;
 
 	/**
 	 * Initialize installer.
@@ -44,8 +47,20 @@ class SST_Install {
 	 * @since 4.4
 	 */
 	public static function init() {
-		add_action( 'init', array( __CLASS__, 'check_version' ) );
+		add_action( 'init', array( __CLASS__, 'check_version' ), 5 );
+		add_action( 'init', array( __CLASS__, 'init_background_updater' ), 5 );
+		add_action( 'admin_init', array( __CLASS__, 'trigger_update' ) );
 		add_filter( 'plugin_action_links_' . SST_PLUGIN_BASENAME, array( __CLASS__, 'add_action_links' ) );
+	}
+
+	/**
+	 * Initialize the background updater.
+	 *
+	 * @since 5.0
+	 */
+	public static function init_background_updater() {
+		include_once 'class-sst-updater.php';
+		self::$background_updater = new SST_Updater();
 	}
 
 	/**
@@ -67,10 +82,10 @@ class SST_Install {
 	 */
 	public static function install() {
 		// If any dependencies are missing, display a message and die.
-		if ( ( $missing = $this->get_missing_dependencies() ) ) {
+		if ( ( $missing = SST_Compatibility::get_missing_dependencies() ) ) {
 			deactivate_plugins( SST_PLUGIN_BASENAME );
 			$missing_list = implode( ', ', $missing );
-			$message = sprintf( _( 'Simple Sales Tax needs the following to run: %s. Please ensure that all requirements are met and try again.', 'simplesalestax' ), $missing_list );
+			$message = sprintf( __( 'Simple Sales Tax needs the following to run: %s. Please ensure that all requirements are met and try again.', 'simplesalestax' ), $missing_list );
 			wp_die( $message );
 		}
 
@@ -85,16 +100,62 @@ class SST_Install {
 		self::configure_woocommerce();
 		self::schedule_events();
 
+		// Remove existing notices, if any
+		WC_Admin_Notices::remove_notice( 'sst_update' );
+
 		// Queue updates if needed (if db version not set, use default value of 1.0)
 		$db_version = get_option( 'wootax_version', '1.0' );
 
 		if ( version_compare( $db_version, max( array_keys( self::$update_hooks ) ), '<' ) ) {
-			// TODO: queue updates, notify admin
-			// TODO: DISPLAY SUCCESS NOTICE AFTER UPDATES RUN
+			$update_url    = esc_url( add_query_arg( 'do_sst_update', true ) );
+			$update_notice = sprintf( __( 'A Simple Sales Tax data update is required. <a href="%s">Click here</a> to start the update.', 'simplesalestax' ), $update_url );
+			WC_Admin_Notices::add_custom_notice( 'sst_update', $update_notice );
+		} else {
+			update_option( 'wootax_version', SST()->version );
 		}
-		
-		// Update plugin version
-		update_option( 'wootax_version', SST()->version );
+	}
+
+	/**
+	 * Start update when a user clicks the "Update" button in the dashboard.
+	 *
+	 * @since 5.0
+	 */
+	public static function trigger_update() {
+		if ( ! empty( $_GET[ 'do_sst_update'] ) ) {
+			self::update();
+
+			// Remove "update required" notice
+			WC_Admin_Notices::remove_notice( 'sst_update' );
+			
+			// Add "update in progress" notice
+			$notice = __( 'Simple Sales Tax is updating. This notice will disappear when the update is complete.', 'simplesalestax' );
+			WC_Admin_Notices::add_custom_notice( 'sst_updating', $notice );
+		}
+	}
+	/**
+	 * Queue all required updates to run in the background. Ripped from
+	 * WooCommerce core.
+	 *
+	 * @since 5.0
+	 */
+	private static function update() {
+		$current_db_version = get_option( 'wootax_version', '1.0' );
+		$logger             = new WC_Logger();
+		$update_queued      = false;
+
+		foreach ( self::$db_updates as $version => $update_callbacks ) {
+			if ( version_compare( $current_db_version, $version, '<' ) ) {
+				foreach ( $update_callbacks as $update_callback ) {
+					$logger->add( 'sst_db_updates', sprintf( 'Queuing %s - %s', $version, $update_callback ) );
+					self::$background_updater->push_to_queue( $update_callback );
+					$update_queued = true;
+				}
+			}
+		}
+
+		if ( $update_queued ) {
+			self::$background_updater->save()->dispatch();
+		}
 	}
 
 	/**
@@ -170,122 +231,36 @@ class SST_Install {
 	 * @since 5.0
 	 */
 	private static function add_tax_rate() {
-		// TODO: REFACTOR
-		if ( ! $this->has_tax_rate() ) {
-			global $wpdb;
-
-			// Add new rate 
-			$_tax_rate = array(
-				'tax_rate_id'       => 0,
-				'tax_rate_country'  => 'WOOTAX',
-				'tax_rate_state'    => 'RATE',
-				'tax_rate'          => 0,
-				'tax_rate_name'     => 'DO-NOT-REMOVE',
-				'tax_rate_priority' => 0,
-				'tax_rate_compound' => 1,
-				'tax_rate_shipping' => 1,
-				'tax_rate_order'    => 0,
-				'tax_rate_class'    => 'standard',
-			);
-
-			$wpdb->insert( $wpdb->prefix . 'woocommerce_tax_rates', $_tax_rate );
-
-			$tax_rate_id = $wpdb->insert_id;
-
-			update_option( 'wootax_rate_id', $tax_rate_id );
-		}
-	}
-
-	/**
-	 * Have we added our own tax rate yet?
-	 *
-	 * @since 4.2
-	 *
-	 * @return bool
-	 */
-	private static function has_tax_rate() {
-		// TODO: STILL NEEDED?
 		global $wpdb;
 
-		$wootax_rate_id = get_option( 'wootax_rate_id' ); // WT_RATE_ID is not defined yet when this method is executed
+		$tax_rates_table = "{$wpdb->prefix}woocommerce_tax_rates";
 
-		if ( ! $wootax_rate_id ) {
-			return false;
+		// Get existing rate, if any
+		$rate_id  = get_option( 'wootax_rate_id', 0 );
+		$existing = $wpdb->get_row( $wpdb->prepare( "
+			SELECT * FROM {$tax_rates_table} WHERE tax_rate_id = %d;
+		", $rate_id ) );
+
+		// Add or update tax rate
+		$_tax_rate = array(
+			'tax_rate_country'  => 'WOOTAX',
+			'tax_rate_state'    => 'RATE',
+			'tax_rate'          => 0,
+			'tax_rate_name'     => 'DO-NOT-REMOVE',
+			'tax_rate_priority' => 0,
+			'tax_rate_compound' => 1,
+			'tax_rate_shipping' => 1,
+			'tax_rate_order'    => 0,
+			'tax_rate_class'    => 'standard',
+		);
+
+		if ( is_null( $existing ) ) {
+			$wpdb->insert( $tax_rates_table, $_tax_rate );
+			update_option( 'wootax_rate_id', $wpdb->insert_id );
 		} else {
-			$name = $wpdb->get_var( "SELECT tax_rate_name FROM {$wpdb->prefix}woocommerce_tax_rates WHERE tax_rate_id = $wootax_rate_id" );
-
-			if ( empty( $name ) ) {
-				return false;
-			}	
+			$where = array( 'tax_rate_id' => $rate_id );
+			$wpdb->update( $tax_rates_table, $_tax_rate, $where );
 		}
-
-		return true;
-	}
-
-	/**
-	 * Return a list of strings describing missing dependencies.
-	 *
-	 * @since 5.0
-	 *
-	 * @return string[]
-	 */
-	// TODO: WORK ON THE METHODS BELOW!
-	private function get_missing_dependencies() {
-		$missing = array();
-
-		if ( ! class_exists( 'SoapClient' ) )
-			$missing[] = 'PHP SOAP Extension';
-
-		if ( ! $this->woocommerce_active() || version_compare( $this->woocommerce_version(), '2.2', '<' ) )
-			$missing[] = 'WooCommerce 2.2+';
-
-		return $missing;
-	}
-
-	/**
-	 * Is WooCommerce active?
-	 *
-	 * @since 5.0
-	 *
-	 * @return bool
-	 */
-	private function woocommerce_active() {
-		return $this->is_plugin_active( 'woocommerce/woocommerce.php' );
-	}
-
-	/**
-	 * Is the plugin with the given slug active?
-	 *
-	 * @since 5.0
-	 *
-	 * @param  string $slug Plugin slug.
-	 * @return bool
-	 */
-	private function is_plugin_active( $slug ) {
-		$active_plugins = (array) get_option( 'active_plugins', array() );
-
-		if ( is_multisite() )
-			$active_plugins = array_merge( $active_plugins, get_site_option( 'active_sitewide_plugins', array() ) );
-
-		return in_array( $slug, $active_plugins ) || array_key_exists( $slug, $active_plugins );
-	}
-
-	/**
-	 * Return the version number for WooCommerce.
-	 *
-	 * @since 5.0
-	 *
-	 * @return string
-	 */
-	public function woocommerce_version() {
-		// Favor the WC_VERSION constant in 2.1+
-		if ( defined( 'WC_VERSION' ) ) {
-			return WC_VERSION;
-		} else {
-			return WOOCOMMERCE_VERSION;
-		}
-
-		return '';
 	}
 
 }
