@@ -34,48 +34,6 @@ jQuery( function() {
         }
 
     } );
-
-    // Uninstall WooTax
-    // todo: use anchor tag instead of uninstall button; use JS only to confirm the action
-    jQuery( '#wootax_uninstall' ).click( function( e ) {
-
-        e.preventDefault();
-
-        // Verify user action
-        var msg = 'Are you sure you want to uninstall Simple Sales Tax? All of your settings will be erased.';
-
-        if ( confirm( msg ) ) {
-
-            // Show loader
-            jQuery( '#wootax-loader' ).css( 'display', 'inline-block' );
-            
-            jQuery.post(
-                ajaxurl,
-                {
-                    action: 'wootax-uninstall'
-                },
-                function( resp ) {
-
-                    resp = eval( '(' + resp + ')' );
-
-                    if ( resp.success ) {
-                        alert( 'Simple Sales Tax was uninstalled successfully. The page will now reload.' );
-                        
-                        // Don't use window.location.reload(); this will cause form re-submission on the settings page
-                        window.location.href = '/wp-admin/admin.php?page=wc-settings&tab=integration&section=wootax';
-                    } else {
-                        alert( 'Error: ' + resp );
-                    }
-
-                    // Hide loader
-                    jQuery( '#wootax-loader' ).hide();
-
-                }
-            );
-
-        }
-
-    } );
     
     // Download log file
     // todo: rewrite to use anchor tag! This is stupid.

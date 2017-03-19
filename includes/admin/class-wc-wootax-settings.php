@@ -286,16 +286,7 @@ class WC_WooTax_Settings extends WC_Integration {
 				<fieldset>
 					<legend class="screen-reader-text"><span><?php echo wp_kses_post( $data[ 'title' ] ); ?></span></legend>
 					<button class="wp-core-ui button button-secondary" type="button" id="<?php echo $data[ 'id' ]; ?>"><?php echo wp_kses_post( $data[ 'label' ] ); ?></button>
-					<?php 
-
-						if ( isset( $data[ 'loader' ] ) ) {
-							// TODO: USED?
-							echo '<div id="wootax-loader"></div>';
-						}
-
-						echo $this->get_description_html( $data ); 
-
-					?>
+					<?php echo $this->get_description_html( $data ); ?>
 				</fieldset>
 			</td>
 		</tr>
