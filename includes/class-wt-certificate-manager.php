@@ -180,7 +180,7 @@ class WT_Certificate_Manager {
 	public function ajax_list_certificates() {
 
 		$certificates  = $this->get_certificates( false );
-		$template_path = SST()->templates_path();
+		$template_path = SST()->plugin_path() . '/templates';
 
 		if ( count( $certificates ) > 0 ) {
 			wc_get_template( 'certificate-list.php', array_merge( array(
@@ -282,7 +282,7 @@ class WT_Certificate_Manager {
 			'plugin_url'  => SST()->plugin_url(),
 			'seller_name' => SST()->get_option( 'company_name' ),
 			'certificate' => $certificates[ $certificate_id ],
-		), 'sst/lightbox/', SST()->templates_path() . '/lightbox/' );
+		), 'sst/lightbox/', SST()->plugin_path() . '/templates/lightbox/' );
 
 		die;
 	}
@@ -334,7 +334,7 @@ class WT_Certificate_Manager {
 
 		echo '<div id="tax_details">';
 
-		$template_path = SST()->templates_path();
+		$template_path = SST()->plugin_path() . '/templates';
 
 		if ( is_user_logged_in() ) {
 			wc_get_template( 'form-tax-exempt.php', array(
@@ -360,7 +360,7 @@ class WT_Certificate_Manager {
 		if ( ! $show_exempt )
 			return;
 
-		$template_path = SST()->templates_path();
+		$template_path = SST()->plugin_path() . '/templates';
 
 		echo "<h2 id='saved-certificates'>Saved certificates</h2>";
 		

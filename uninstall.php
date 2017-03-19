@@ -16,8 +16,11 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 
 wp_clear_scheduled_hook( 'wootax_update_recurring_tax' );
 
-// TODO: ONLY RUN FOLLOWING IF USER SELECTS "REMOVE DATA ON UNINSTALL" OPTION
-if ( $setting ) {
+// Remove data, but only if "Remove Data on Delete" option is enabled 
+$settings    = get_option( 'woocommerce_wootax_settings' );
+$remove_data = isset( $settings[ 'remove_all_data' ] ) ? 'yes' === $settings[ 'remove_all_data' ] : false;
+
+if ( $remove_data ) {
 	global $wpdb;
 
 	// Roles
@@ -25,11 +28,19 @@ if ( $setting ) {
 	SST_Install::remove_roles();
 
 	// Options
-	$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'woocommerce\_wootax%' OR option_name LIKE 'wootax\_%';" );
-
-	// Default TICs
-	$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'tic\_%';" );
+	$wpdb->query( "
+		DELETE FROM {$wpdb->options} 
+		WHERE option_name LIKE 'woocommerce\_wootax%' 
+		OR option_name LIKE 'wootax\_%'
+		OR option_name LIKE 'tic\_%';
+	" );
 
 	// Product settings
-	// TODO: remove product settings (shipping origin addresses, tic, etc.)
+	$wpdb->query( "
+		DELETE FROM {$wpdb->postmeta} pm, {$wpdb->posts} p
+		WHERE p.post_type IN ( 'product', 'product_variation' )
+		AND p.ID = pm.post_id
+		AND meta_key LIKE 'wootax_\%'
+		OR meta_key LIKE '\_wootax\_%';
+	" );
 }

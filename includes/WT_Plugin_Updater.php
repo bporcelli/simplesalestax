@@ -152,8 +152,3 @@ final class WT_Plugin_Updater {
 		endif;
 	}
 }
-
-// Instantiate updater to trigger update check
-new WT_Plugin_Updater( 'https://simplesalestax.com', SST()->plugin_file(), array( 
-	'version' => SST()->version, // current version number
-) );

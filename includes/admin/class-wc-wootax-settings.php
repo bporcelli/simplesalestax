@@ -61,7 +61,7 @@ class WC_WooTax_Settings extends WC_Integration {
  		$rates_checked = get_option( 'wootax_rates_checked' );
 
 		if ( ! $rates_checked && wt_has_other_rates() ) {
-			require SST()->templates_path() . '/admin/delete-rates.php';
+			require SST()->plugin_path() . '/templates/admin/delete-rates.php';
 		} else {
 			if ( version_compare( SST_WOO_VERSION, '2.6', '>=' ) ) {
 				echo '<table class="form-table">'; // In 2.6, settings pages not wrapped in table by default
@@ -230,15 +230,14 @@ class WC_WooTax_Settings extends WC_Integration {
 				'description' 		=> __( 'If Simple Sales Tax detects an error that needs attention, it will send a notification to this email address.', 'woocommerce-wootax' ),
 				'desc_tip'			=> true
 			),
-			'uninstall_button' => array(
-				'title'				=> 'Uninstall Simple Sales Tax',
-				'label'				=> 'Uninstall',
-				'type'				=> 'button',
-				'id'				=> 'wootax_uninstall',
-				'description'		=> __( 'Click this button to uninstall Simple Sales Tax. All of your settings will be erased.', 'woocommerce-wootax' ),
-				'desc_tip'			=> true,
-				'loader'            => true,
-			), 
+			'remove_all_data' => array(
+				'title' 	  => 'Remove All Data',
+				'label'       => ' ',
+				'type' 		  => 'checkbox',
+				'default'     => 'no',
+				'description' => __( 'When this feature is enabled, all Simple Sales Tax options and data will be removed when you click deactivate and delete the plugin.', 'woocommerce-wootax' ),
+				'desc_tip'    => true,
+			),
 			'download_log_button' => array(
 				'title'				=> 'Download Log File',
 				'label'				=> 'Download Log',

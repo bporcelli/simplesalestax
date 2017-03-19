@@ -44,27 +44,20 @@ require 'includes/wc-wootax-messages.php';
 final class WC_WooTax {
 
 	/**
-	 * @var Plugin version
+	 * @var string Plugin version.
+	 * @since 4.2
 	 */
 	public $version = 5.0;
 
 	/**
-	 * @var Key of option where plugin settings are stored
+	 * @var WC_Integration WooCommerce integration for Simple Sales Tax.
+	 * @since 5.0
 	 */
-	private static $settings_key = 'woocommerce_wootax_settings';
+	public $settings = null;
 
 	/**
-	 * @var Array containing plugin settings 
-	 */
-	private $settings = array();
-
-	/**
-	 * @var When this is true, the get_option method reloads the WooTax settings array
-	 */
-	private $settings_changed = false;
-
-	/**
-	 * @var The single instance of the WC_WooTax class
+	 * @var WC_WooTax The single plugin instance.
+	 * @since 4.2
 	 */
 	protected static $_instance = null;
 
@@ -162,17 +155,18 @@ final class WC_WooTax {
 	 * @since 4.4
 	 */
 	private function includes() {
-		// TODO: INCLUDE UPDATE FUNCTIONS
-		// TODO: INCLUDE INSTALL/UPDATER/WOOCOMPAT CLASS
 		// Used for all request types
-		require_once 'includes/class-wc-wootax-taxcloud.php';
-		require_once 'includes/wc-wootax-functions.php';
-		require_once 'includes/class-wt-exemption-certificate.php';
-		require_once 'includes/order/class-wt-orders.php';
+		require 'includes/class-sst-compatibility.php';
+		require 'includes/class-sst-install.php';
+		require 'includes/class-wc-wootax-taxcloud.php';
+		require 'includes/wc-wootax-functions.php';
+		require 'includes/class-wt-exemption-certificate.php';
+		require 'includes/order/class-wt-orders.php';
+		require 'includes/WT_Plugin_Updater.php';
 
 		// Only used when Subscriptions is active
 		// if ( WT_SUBS_ACTIVE ) {
-		// 	require_once 'includes/wc-wootax-subscriptions.php';
+		// 	require 'includes/wc-wootax-subscriptions.php';
 		// }
 
 		// Used on frontend
@@ -182,20 +176,20 @@ final class WC_WooTax {
 
 			if ( $show_exempt ) {
 				// todo: determine where to include this!
-				require_once 'includes/class-wt-certificate-manager.php';
+				require 'includes/class-wt-certificate-manager.php';
 			}
 
 			// if ( WT_SUBS_ACTIVE ) {
-			// 	require_once 'includes/order/class-wc-wootax-subscriptions.php';
-			// 	require_once 'includes/frontend/wc-wootax-subscriptions-frontend.php';
+			// 	require 'includes/order/class-wc-wootax-subscriptions.php';
+			// 	require 'includes/frontend/wc-wootax-subscriptions-frontend.php';
 			// }
 			
-			require_once 'includes/frontend/class-wc-wootax-checkout.php';
+			require 'includes/frontend/class-wc-wootax-checkout.php';
 		}
 
 		// Strictly admin panel
 		if ( $this->is_request( 'admin' ) ) {
-			require_once 'includes/admin/class-wc-wootax-admin.php';
+			require 'includes/admin/class-wc-wootax-admin.php';
 		}
 	}
 
@@ -205,10 +199,30 @@ final class WC_WooTax {
 	 * @since 4.4
 	 */
 	private function hooks() {
-		// TODO: LOAD TEXTDOMAIN
 		register_activation_hook( __FILE__, array( 'SST_Install', 'activate' ) );
+		add_action( 'init', array( $this, 'initialize_settings' ) );
+		add_action( 'init', array( $this, 'load_textdomain' ) );
+		add_action( 'init', array( $this, 'check_updates' ) );
 		add_filter( 'woocommerce_rate_label', array( $this, 'get_rate_label' ), 15, 2 );
 		add_filter( 'woocommerce_rate_code', array( $this, 'get_rate_code' ), 12, 2 );
+	}
+
+	/**
+	 * Load plugin textdomain.
+	 *
+	 * @since 5.0
+	 */
+	public function load_textdomain() {
+		load_plugin_textdomain( 'simplesalestax', plugin_basename( __FILE__ ) . '/languages' );
+	}
+
+	/**
+	 * Initialize settings.
+	 *
+	 * @since 5.0
+	 */
+	public function initialize_settings() {
+		$this->settings = new WC_WooTax_Settings();
 	}
 
 	/**
@@ -244,52 +258,15 @@ final class WC_WooTax {
 	}
 
 	/**
-	 * Get the value of an option. Return the provided default value if
-	 * the option is not set.
+	 * Check for updates.
 	 *
-	 * @since 4.2
-	 *
-	 * @param  mixed $key the key of the option to be fetched
-	 * @param  mixed $default default value for option (default: false)
-	 * @return mixed
+	 * @since 5.0
 	 */
-	public function get_option( $key, $default = false ) {
-		if ( count( $this->settings ) == 0 || $this->settings_changed ) {
-			$this->settings = get_option( self::$settings_key );
-			$this->settings_changed = false;
-		}
-
-		if ( ! isset( $this->settings[ $key ] ) || ! $this->settings[ $key ] ) {
-			return $default;
-		} else {
-			return $this->settings[ $key ];
-		}
-	}
-
-	/**
-	 * Set the value of an option.
-	 *
-	 * @since 4.2
-	 * @param mixed $key Option key.
-	 * @param mixed $value Option value.
-	 */
-	public function set_option( $key, $value ) {
-		if ( count( $this->settings ) == 0 ) {
-			$this->settings = get_option( self::$settings_key );
-		}
-
-		$this->settings[ $key ] = $value;
-
-		update_option( self::$settings_key, $this->settings );
-	}
-
-	/**
-	 * Mark settings as changed.
-	 *
-	 * @since 4.7
-	 */
-	public function settings_changed() {
-		$this->settings_changed = true;
+	public function check_updates() {
+		// Instantiate updater to trigger update check
+		new WT_Plugin_Updater( 'https://simplesalestax.com', $this->plugin_file(), array( 
+			'version' => $this->version, // current version number
+		) );
 	}
 
 	/**
@@ -323,17 +300,6 @@ final class WC_WooTax {
 	 */
 	public function plugin_file() {
 		return plugin_dir_path( __FILE__ ) . basename( __FILE__ );
-	}
-
-	/**
-	 * Get the templates path
-	 *
-	 * @since 4.7
-	 *
-	 * @return string
-	 */
-	public function templates_path() {
-		return $this->plugin_path() . '/templates';
 	}
 }
 

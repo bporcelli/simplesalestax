@@ -87,7 +87,6 @@ final class WC_WooTax_Admin {
 		require $plugin_path . '/includes/admin/class-wc-wootax-upgrade.php';
 		require $plugin_path . '/includes/admin/class-wc-wootax-settings.php';
 		require $plugin_path . '/includes/order/class-wc-wootax-refund.php';
-		require $plugin_path . '/includes/WT_Plugin_Updater.php';
 		require $plugin_path . '/includes/admin/wc-wootax-subscriptions-admin.php';
 	}
 
@@ -139,7 +138,7 @@ final class WC_WooTax_Admin {
 	 */
 	public static function output_bulk_edit_fields() {
 		$GLOBALS[ 'tic_list' ] = self::get_tic_list();
-		require_once SST()->templates_path() . '/admin/tic-select-bulk.php';
+		require_once SST()->plugin_path() . '/templates/admin/tic-select-bulk.php';
 	}
 	
 	/**
@@ -351,7 +350,7 @@ final class WC_WooTax_Admin {
 		$is_edit = false;
 		$tic_list = self::get_tic_list();
 		
-		require SST()->templates_path() . '/admin/tic-select-cat.php';
+		require SST()->plugin_path() . '/templates/admin/tic-select-cat.php';
 	}
 
 	/**
@@ -370,7 +369,7 @@ final class WC_WooTax_Admin {
 		$tic_list = self::get_tic_list();
 		$is_edit = true;
 
-		require SST()->templates_path() . '/admin/tic-select-cat.php';
+		require SST()->plugin_path() . '/templates/admin/tic-select-cat.php';
 	}
 
 	/**
@@ -570,7 +569,7 @@ final class WC_WooTax_Admin {
 		$tic_list = self::get_tic_list();
 		$current_tic = get_post_meta( $product_id, 'wootax_tic', true );
 
-		require SST()->templates_path() . '/admin/tic-select.php';
+		require SST()->plugin_path() . '/templates/admin/tic-select.php';
 	}
 
 	/**
