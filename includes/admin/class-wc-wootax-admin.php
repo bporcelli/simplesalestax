@@ -111,8 +111,17 @@ final class WC_WooTax_Admin {
 		// WooTax admin JS
 		wp_enqueue_script( 'wootax-admin', SST()->plugin_url() . '/assets/js/admin.js', array( 'jquery', 'jquery-tiptip' ), '1.1' );
 		
-		wp_localize_script( 'wootax-admin', 'WT', array(
+		wp_localize_script( 'wootax-admin', 'SST', array(
 			'rateCode' => apply_filters( 'wootax_rate_code', 'WOOTAX-RATE-DO-NOT-REMOVE' ),
+			'strings'  => array(
+				'enter_id_and_key'     => __( 'Please enter your API Login ID and API Key.', 'simplesalestax' ),
+				'settings_valid'       => __( 'Success! Your TaxCloud settings are valid.', 'simplesalestax' ),
+				'verify_failed'        => __( 'Connection to TaxCloud failed.', 'simplesalestax' ),
+				'select_classes'       => __( 'Please select the tax rate classes you would like to remove.', 'simplesalestax' ),
+				'confirm_rate_removal' => __( 'This action is irreversible. Are you sure you want to proceed?', 'simplesalestax' ),
+				'rates_removed'        => __( 'The selected tax rates were removed successfully. Click "Save Changes" to complete the installation process.', 'simplesalestax' ),
+				'cant_remove_address'  => __( 'This action is not permitted. You must have at least one business address entered for Simple Sales Tax to work properly.', 'simplesalestax' ),
+			),
 		) );
 
 		// WooTax admin CSS
