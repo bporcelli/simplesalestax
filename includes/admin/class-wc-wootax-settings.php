@@ -241,8 +241,9 @@ class WC_WooTax_Settings extends WC_Integration {
 			'download_log_button' => array(
 				'title'				=> 'Download Log File',
 				'label'				=> 'Download Log',
-				'type'				=> 'button',
-				'id'				=> 'wootax_download_log',
+				'type'				=> 'anchor',
+				'url'               => add_query_arg( 'download_log', true );
+				'id'				=> 'download_log_button',
 				'description'		=> __( 'Click this button to download the Simple Sales Tax log file for debugging purposes.', 'woocommerce-wootax' ),
 				'desc_tip'			=> true,
 			), 
@@ -286,6 +287,33 @@ class WC_WooTax_Settings extends WC_Integration {
 				<fieldset>
 					<legend class="screen-reader-text"><span><?php echo wp_kses_post( $data[ 'title' ] ); ?></span></legend>
 					<button class="wp-core-ui button button-secondary" type="button" id="<?php echo $data[ 'id' ]; ?>"><?php echo wp_kses_post( $data[ 'label' ] ); ?></button>
+					<?php echo $this->get_description_html( $data ); ?>
+				</fieldset>
+			</td>
+		</tr>
+		<?php
+		return ob_get_clean();
+ 	}
+
+ 	/**
+ 	 * Output HTML for field of type 'anchor.'
+ 	 *
+ 	 * @since 5.0
+	 */
+ 	public function generate_anchor_html( $key, $data ) {
+ 		$field = $this->plugin_id . $this->id . '_' . $key;
+
+ 		ob_start();
+		?>
+		<tr valign="top">
+			<th scope="row" class="titledesc">
+				<label for="<?php echo esc_attr( $field ); ?>"><?php echo wp_kses_post( $data[ 'title' ] ); ?></label>
+				<?php echo $this->get_tooltip_html( $data ); ?>
+			</th>
+			<td class="forminp">
+				<fieldset>
+					<legend class="screen-reader-text"><span><?php echo wp_kses_post( $data[ 'title' ] ); ?></span></legend>
+					<a href="<?php echo esc_url( $data[ 'url' ] ); ?>" target="_blank" class="wp-core-ui button button-secondary" id="<?php echo $data[ 'id' ]; ?>"><?php echo wp_kses_post( $data[ 'label' ] ); ?></a>
 					<?php echo $this->get_description_html( $data ); ?>
 				</fieldset>
 			</td>
@@ -520,9 +548,6 @@ class WC_WooTax_Settings extends WC_Integration {
 
 			// Next, update the default address
 			$settings['default_address'] = $_POST[ 'wootax_default_address' ];
-
-			// Set settings_changed flag to "true" so WooTax reloads settings array
-			SST()->settings_changed();
 		}
 
 		// Force exempt-customer role to be an exempt role

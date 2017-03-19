@@ -35,18 +35,6 @@ jQuery( function() {
 
     } );
     
-    // Download log file
-    // todo: rewrite to use anchor tag! This is stupid.
-    jQuery( '#wootax_download_log' ).click( function( e ) {
-
-        // Stop jitter
-        e.preventDefault();
-
-        // Redirect to initiate file download
-        window.location.href = window.location.href + '&download_log=true';
-
-    } );
-
     // Remove manually added tax rates
     // todo: rewrite to NOT use ajax. doesn't add to user experience and is unecessary.
     jQuery( '#remove-rates' ).click(function() {
