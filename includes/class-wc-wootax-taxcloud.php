@@ -19,7 +19,7 @@ class WC_WooTax_TaxCloud {
 	 * @var string TaxCloud API endpoint.
 	 * @since 4.2
 	 */
-	private $tc_endpoint = 'https://api.taxcloud.net/1.0/?wsdl';
+	private $tc_endpoint = 'https://api.taxcloud.net/1.0/TaxCloud/';
 
 	/**
 	 * @var string API Login ID.

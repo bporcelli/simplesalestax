@@ -285,11 +285,6 @@ function wootax_get_notification_email() {
 }
 
 /**
- * Return business address with given index as an array
- *
- * @since 4.4
- */
-/**
  * Return business address with given location key.
  *
  * @since 4.4
