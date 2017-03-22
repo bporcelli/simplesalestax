@@ -44,13 +44,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 				unset( $rate_counts[ $key ] );
 			}
 
-			require SST()->templates_path() .'/admin/rate-table-header.php';
+			require SST()->plugin_path() .'/templates/admin/rate-table-header.php';
 
 			foreach ( $rate_counts as $rate => $data ) {
 				$GLOBALS['rate'] = $rate;
 				$GLOBALS['data'] = $data;
 
-				require SST()->templates_path() .'/admin/rate-table-row.php';
+				require SST()->plugin_path() .'/templates/admin/rate-table-row.php';
 			}
 		
 			echo '</tbody>';

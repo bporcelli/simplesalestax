@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Template for tax exemption form. You may override this template by copying it
  * to THEME_PATH/sst/checkout/form-tax-exempt.php.

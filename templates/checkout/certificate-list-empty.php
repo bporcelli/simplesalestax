@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Template displayed when there are no certificates to display in the
  * certificates table. You can override this template by copying it

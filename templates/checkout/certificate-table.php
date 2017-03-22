@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Template for certificates table. You may override this template by copying it
  * to THEME_PATH/sst/checkout/certificate-table.php.

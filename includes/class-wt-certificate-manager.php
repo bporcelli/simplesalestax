@@ -1,44 +1,36 @@
 <?php
 
-/**
- * This class contains methods for storing, deleting, and retrieving customer exemption certificates.
- *
- * @since 5.0
- * @author Brett Porcelli
- * @package Simple Sales Tax
- */
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 
-if ( ! class_exists( 'WT_Certificate_Manager' ) ):
-
+/**
+ * Certificate Manager.
+ *
+ * Used for creating, updating, and deleting customer exemption certificates.
+ *
+ * @author 	Simple Sales Tax
+ * @package SST
+ * @since 	5.0
+ */
 class WT_Certificate_Manager {
 
 	/**
-	 * The user meta key under which certificates are stored.
-	 *
-	 * @var string CERT_META_KEY The meta key used to store certificates.
-	 * @access private
+	 * @var string Meta key used to store certificates.
+	 * @since 5.0
 	 */
 	const CERT_META_KEY = '_sst_certificates';
 
 	/**
-	 * The WT_Exemption_Certificates for the customer with ID
-	 * $customer_id.
-	 *
-	 * @var array $certificates array of WT_Exemption_Certificate.
-	 * @access private
+	 * @var WT_Exemption_Certificate[] Array of certificates for current user.
+	 * @since 5.0
 	 */
 	private $certificates;
 
 	/**
-	 * Boolean flag denoting whether the certificates array
-	 * has been modified.
-	 *
-	 * @var bool $_dirty True if the certificates array was changed.
-	 * @access private
+	 * @var bool Boolean flag denoting whether the certificates array has been
+	 * modified.
+	 * @since 5.0
 	 */
 	private $_dirty = false;
 
@@ -52,7 +44,7 @@ class WT_Certificate_Manager {
 	}
 
 	/**
-	 * Hook into WordPress/WooCommerce
+	 * Register action/filter hooks.
 	 *
 	 * @since 5.0
 	 */
@@ -80,17 +72,17 @@ class WT_Certificate_Manager {
 	}
 
 	/**
-	 * Get the stored exemption certificates for the current user.
-	 * This method first attempts to fetch the certificates associated 
-	 * with the current user's account. If no certificates are associated 
-	 * with the user, the GetExemptCertificates API is called.
+	 * Get the stored exemption certificates for the current user. This method
+	 * first attempts to fetch the certificates associated with the current user's
+	 * account. If no certificates are associated with the user, the 
+	 * GetExemptCertificates API is called.
 	 *
 	 * @since 5.0
-	 * @param bool $include_single (default: true) Should single use certificates be returned?
-	 * @return array of WT_Exemption_Certificate.
+	 *
+	 * @param  bool $include_single Should single use certificates be returned? (default: true)
+	 * @return WT_Exemption_Certificate[]
 	 */
 	private function get_certificates( $include_single = true ) {
-
 		if ( ! is_user_logged_in() )
 			return array();
 
@@ -127,10 +119,10 @@ class WT_Certificate_Manager {
 	 * Fetch the user's exemption certificates from TaxCloud.
 	 *
 	 * @since 5.0
-	 * @return array of certificate objects.
+	 *
+	 * @return array
 	 */
 	private function fetch_certificates() {
-		
 		if ( ! is_user_logged_in() )
 			return array();
 
@@ -188,7 +180,7 @@ class WT_Certificate_Manager {
 	public function ajax_list_certificates() {
 
 		$certificates  = $this->get_certificates( false );
-		$template_path = SST()->templates_path();
+		$template_path = SST()->plugin_path() . '/templates';
 
 		if ( count( $certificates ) > 0 ) {
 			wc_get_template( 'certificate-list.php', array_merge( array(
@@ -207,7 +199,6 @@ class WT_Certificate_Manager {
 	 * @since 5.0
 	 */
 	public function maybe_delete_certificate() {
-
 		if ( ! isset( $_POST[ 'delete_certificate' ] ) || ! wp_verify_nonce( $_POST[ '_wpnonce' ], 'delete_certificate' ) )
 			return;
 
@@ -218,18 +209,17 @@ class WT_Certificate_Manager {
 		} else {
 			wc_add_notice( 'Certificate deletion failed. Please try again.', 'error' );
 		}
-
 	}
 
 	/**
-	 * Helper: Delete the certificate with the given ID.
+	 * Delete a certificate.
 	 *
-	 * @param string $certificate_id The ID of the certificate to remove.
-	 * @return bool True if the certificate was removed successfully, else false.
 	 * @since 5.0
+	 *
+	 * @param  string $certificate_id
+	 * @return bool True if cert removed successfully, otherwise false.
 	 */
 	private function delete( $certificate_id ) {
-
 		$certificates = $this->get_certificates();
 
 		// Can't remove a nonexistent certificate!
@@ -281,7 +271,6 @@ class WT_Certificate_Manager {
 	 * @since 5.0
 	 */
 	public function ajax_display_certificate() {
-
 		$certificates   = $this->get_certificates();
 		$certificate_id = esc_attr( $_REQUEST[ 'certID' ] );
 		
@@ -293,40 +282,37 @@ class WT_Certificate_Manager {
 			'plugin_url'  => SST()->plugin_url(),
 			'seller_name' => SST()->get_option( 'company_name' ),
 			'certificate' => $certificates[ $certificate_id ],
-		), 'sst/lightbox/', SST()->templates_path() . '/lightbox/' );
+		), 'sst/lightbox/', SST()->plugin_path() . '/templates/lightbox/' );
 
 		die;
 	}
 
 	/**
-	 * Save user certificates on shutdown if the certificates
-	 * array has been changed.
+	 * Save user certificates on shutdown. Note that certificates are only
+	 * saved if the certificates array was modified and a user is logged in.
 	 *
 	 * @since 5.0
 	 */
 	public function save_certificates() {
-		if ( ! is_user_logged_in() )
-			return;
-
-		if ( $this->_dirty )
-			update_user_meta( get_current_user_id(), self::CERT_META_KEY, $this->certificates );
+		if ( ( $user_id = get_current_user_id() ) && $this->_dirty ) {
+			update_user_meta( $user_id, self::CERT_META_KEY, $this->certificates );
+		}
 	}
 
 	/**
-	 * Output Tax Details section of checkout form
+	 * Output Tax Details section of checkout form.
 	 *
 	 * @since 5.0
 	 */
 	public function output_tax_details_form() {
-
 		// Exit if exemptions are disabled...
 		$show_exempt = SST()->get_option( 'show_exempt' ) == 'true';
 
 		if ( ! $show_exempt )
 			return;
 
-		// ... or if the form should only be shown to exempt users and the current user is not
-		// exempt
+		// ... or if the form should only be shown to exempt users and the current
+		// user is not exempt
 		$current_user = wp_get_current_user();
 
 		$restricted = SST()->get_option( 'restrict_exempt' ) == 'yes';
@@ -337,17 +323,18 @@ class WT_Certificate_Manager {
 		if ( $restricted && ( ! is_user_logged_in() || ! $user_exempt ) )
 			return;
 
-		// If we get to this point, the form should be displayed
 		// Check the "Tax exempt" checkbox by default if:
-		//  1) Checkout is being loaded for the first time (GET request) and the customer has a tax exempt user role, or
-		// 	2) Checkout form has been submitted (POST request) and the tax exempt box is still checked
+		// - Checkout is being loaded for the first time (GET) and the customer
+		// has a tax exempt user role, OR
+		// - Checkout form has been submitted (POST) and the tax exempt box is
+		// still checked
 		$checked = $_GET && $user_exempt || $_POST && isset( $_POST[ 'tax_exempt' ] );
 
 		echo '<h3>Tax exempt? <input type="checkbox" name="tax_exempt" id="tax_exempt_checkbox" class="input-checkbox" value="1"'. checked( $checked, true, false ) .'></h3>';
 
 		echo '<div id="tax_details">';
 
-		$template_path = SST()->templates_path();
+		$template_path = SST()->plugin_path() . '/templates';
 
 		if ( is_user_logged_in() ) {
 			wc_get_template( 'form-tax-exempt.php', array(
@@ -362,19 +349,18 @@ class WT_Certificate_Manager {
 	}
 
 	/**
-	 * Output Tax Details section of checkout form
+	 * Output list of saved certificates.
 	 *
 	 * @since 5.0
 	 */
 	public function output_saved_certificates() {
-
 		// Exit if exemptions are disabled...
 		$show_exempt = SST()->get_option( 'show_exempt' ) == 'true';
 
 		if ( ! $show_exempt )
 			return;
 
-		$template_path = SST()->templates_path();
+		$template_path = SST()->plugin_path() . '/templates';
 
 		echo "<h2 id='saved-certificates'>Saved certificates</h2>";
 		
@@ -388,7 +374,9 @@ class WT_Certificate_Manager {
 	}
 
 	/**
-	 * Enqueue JS/CSS for exemption management interface
+	 * Enqueue JS/CSS for exemption management interface.
+	 *
+	 * @since 5.0
 	 */
 	public static function enqueue_checkout_scripts() {
 		if ( is_admin() )
@@ -420,5 +408,3 @@ class WT_Certificate_Manager {
 }
 
 new WT_Certificate_Manager();
-
-endif;

@@ -1,161 +1,168 @@
 <?php
 
-/**
- * Utility for making TaxCloud API requests
- * 
- * @since 4.2
- * @package Simple Sales Tax
- */
-
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Prevent direct access
+	exit; // Exit if accessed directly
 }
 
+/**
+ * WooTax TaxCloud.
+ *
+ * Facilitates communication with TaxCloud API.
+ *
+ * @author 	Simple Sales Tax
+ * @package SST
+ * @since 	4.2
+ */
 class WC_WooTax_TaxCloud {
-	/** TaxCloud API Endpoint */
-	private $tc_endpoint = 'https://api.taxcloud.net/1.0/?wsdl';
 
-	/** API Login ID and key */
+	/**
+	 * @var string TaxCloud API endpoint.
+	 * @since 4.2
+	 */
+	private $tc_endpoint = 'https://api.taxcloud.net/1.0/TaxCloud/';
+
+	/**
+	 * @var string API Login ID.
+	 * @since 4.2
+	 */
 	private $login_id;
+
+	/**
+	 * @var string API Key.
+	 * @since 4.2
+	 */
 	private $key;
 
-	/** Information about last request and response */
-	private $last_request;
-	private $last_response;
-	private $last_response_code;
+	/**
+	 * @var string Last error message.
+	 * @since 4.2
+	 */
 	private $last_error;
 
-	/** WooCommerce logger */
+	/**
+	 * @var WC_Logger WooCommerce logger.
+	 * @since 4.2
+	 */
 	private $logger;
 
-	/** SoapClient object */
+	/**
+	 * @var SoapClient SOAPClient.
+	 * @since 4.2
+	 */
 	private $client;
 
-	/** The only instance of WC_WooTax_TaxCloud */
+	/**
+	 * @var WC_WooTax_TaxCloud The only instance of WC_WooTax_TaxCloud.
+	 * @since 4.2
+	 */
 	protected static $_instance;
 
 	/**
-	 * Returns main WC_WooTax_TaxCloud Instance
+	 * Returns the singleton instance.
 	 *
 	 * @since 4.4
-	 * @static
-	 * @see TaxCloud()
-	 * @return Main instance of WC_WooTax_TaxCloud class
+	 *
+	 * @return WC_WooTax_TaxCloud
 	 */
 	public static function instance() {
-		if ( is_null( self::$_instance ) ) {
+		if ( is_null( self::$_instance ) )
 			self::$_instance = new self();
-		}
 		return self::$_instance;
 	}
 
 	/**
-	 * Cloning is forbidden.
-	 * @since 2.1
+	 * Forbid cloning.
+	 *
+	 * @since 4.2
 	 */
 	public function __clone() {
 		return;
 	}
 
 	/**
-	 * Unserializing instances of this class is forbidden.
-	 * @since 2.1
+	 * Forbid deserialization.
+	 *
+	 * @since 4.2
 	 */
 	public function __wakeup() {
 		return;
 	}
 
 	/**
-	 * Class constructor
+	 * Constructor.
 	 *
 	 * @since 4.2
-	 * @param $login_id 
+	 *
+	 * @param $login_id
 	 */
 	public function __construct() {
 		// Instantiate SoapClient
 		$opts = array( 'http' => array( 'protocol_version' => '1.0' ) );
 		$context = stream_context_create( $opts );
 		$this->client = new SoapClient( $this->tc_endpoint, array( 
-			'trace' => true, 
-			'soap_version' => SOAP_1_2,
+			'trace'          => true, 
+			'soap_version'   => SOAP_1_2,
 			'stream_context' => $context,
 		) ); 
 
 		// Set up logger
-		if ( WT_LOG_REQUESTS ) {
+		if ( SST_LOG_REQUESTS )
 			$this->logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : $woocommerce->logger();
-		}
 	}
 	
 	/**
-	 * Sets the API Login ID
+	 * Set the API Login ID.
 	 *
 	 * @since 4.2
-	 * @param (string) $id TaxCloud API Login ID
+	 *
+	 * @param string $id TaxCloud API Login ID.
 	 */
 	public function set_id( $id ) {
 		$this->login_id = $id;
 	} 
 	
 	/**
-	 * Sets the API Key
+	 * Sets the API Key.
 	 *
 	 * @since 4.2
-	 * @param (string) $key TaxCloud API Key
+	 *
+	 * @param string $key TaxCloud API Key.
 	 */
 	public function set_key( $key ) {
 		$this->key = $key;
 	}
 	
 	/**
-	 * Returns the last error message
+	 * Getter for last_error.
 	 *
 	 * @since 4.2
-	 * @return last error message (string) 
+	 *
+	 * @return string 
 	 */
 	public function get_error_message() {
 		return $this->last_error;
 	}
 	
 	/**
-	 * Returns the contents of the last API request
+	 * Send API request.
 	 *
 	 * @since 4.2
-	 * @return last request content (string)
-	 */
-	public function get_last_request() {
-		return $this->last_request;	
-	}
-	
-	/**
-	 * Returns the contents of the last API response
 	 *
-	 * @since 4.2
-	 * @return last API response (string)
-	 */
-	public function get_last_response() {
-		return $this->last_response;
-	}
-	
-	/**
-	 * Send API request
-	 *
-	 * @since 4.2
-	 * @param $type    string  type of request being sent
-	 * @param $params  array   request parameters
-	 * @return (mixed) response result or boolean false if an error occurs
+	 * @param  string $type Type of request being sent.
+	 * @param  array $params Request parameters.s
+	 * @return mixed
 	 */
 	public function send_request( $type, $params = array() ) {
 		$last_error = false;
 
-		if ( WT_LOG_REQUESTS )
+		if ( SST_LOG_REQUESTS )
 			$this->logger->add( 'wootax', 'Started '. $type .' request.' );
 
-		if ( !$this->login_id || !$this->key ) {
+		if ( ! $this->login_id || ! $this->key ) {
 			$last_error = 'Could not make '. $type .' request: API Login ID and API Key are required.';
-		} else if ( $type == 'Lookup' && ( !wootax_is_valid_address( $params['origin'] ) || !wootax_is_valid_address( $params['destination'], true ) ) ) {
+		} else if ( $type == 'Lookup' && ( !wootax_is_valid_address( $params[ 'origin' ] ) || !wootax_is_valid_address( $params[ 'destination' ], true ) ) ) {
 			$last_error = 'Could not make '. $type .' request: Valid origin and destination addresses are required.';
-		} else if ( $type == 'VerifyAddress' && !$params['uspsUserID'] ) {
+		} else if ( $type == 'VerifyAddress' && ! $params[ 'uspsUserID' ] ) {
 			$last_error = 'Could not make '. $type .' request: A USPS Web Tools ID is required.';
 		} else {
 			$request = array_merge( array( 
@@ -166,16 +173,7 @@ class WC_WooTax_TaxCloud {
 			try {
 				$response = $this->client->$type( $request );
 
-				// Parse out the last response HTTP code
-				$headers = $this->client->__getLastResponseHeaders();
-
-				if ( $c = preg_match_all( "/.*?\\d+.*?\\d+.*?(\\d+)/is", $headers, $matches ) )					  
-					$http_code = $matches[1][0];
-				
-				// Record request details (response headers, request/response)
-				$this->log_request_details( $request, $response, $http_code );
-
-				if ( WT_LOG_REQUESTS ) {
+				if ( SST_LOG_REQUESTS ) {
 					$this->logger->add( 'wootax', 'Request: '. print_r( $request, true ) );
 					$this->logger->add( 'wootax', 'Response: '. print_r( $response, true ) );
 				}
@@ -194,12 +192,12 @@ class WC_WooTax_TaxCloud {
 		if ( $last_error ) {
 			$this->last_error = $last_error;
 
-			if ( WT_LOG_REQUESTS )
+			if ( SST_LOG_REQUESTS )
 				$this->logger->add( 'wootax', 'Request failed: '. $last_error );
 
 			return false;
 		} else {
-			if ( WT_LOG_REQUESTS )
+			if ( SST_LOG_REQUESTS )
 				$this->logger->add( 'wootax', 'Request succeeded!' );
 
 			return $response;
@@ -208,20 +206,23 @@ class WC_WooTax_TaxCloud {
 
 	/**
 	 * Checks if the provided response is an error
+	 * 
 	 * Responses will be considered "errors" if:
-	 * - a) a TaxCloud error is returned, or
-	 * - b) an HTTP error code is returned
+	 * 1. a TaxCloud error is returned, or
+	 * 2. an HTTP error code is returned
 	 *
 	 * Stores the last error message in last_error and adds log message if appropriate
 	 * 
 	 * @since 4.2
-	 * @param (array) $resp response from TaxCloud 
-	 * @return (bool) true if the response has an error, otherwise false
+	 *
+	 * @param  array $resp TaxCloud response. 
+	 * @return bool True if response is error, otherwise false.
 	 */
 	private function is_response_error( $resp ) {
 		$this->last_error = false;
 
-		// Check for bool false resp/HTTP code other than 200 
+		// Check for bool false resp/HTTP code other than 200
+		// TODO: GET RESPONSE CODE DIRECTLY FROM RESP
 		if ( $resp == false || $this->last_response_code != '200' ) {
 			$this->last_error = 'HTTP code '. $this->last_response_code .' received.';
 		} else {
@@ -249,39 +250,24 @@ class WC_WooTax_TaxCloud {
 			}
 		}
 	}
-
-	/**
-	 * Fills in debug information, including the last request message and the last response message
-	 * Executed after each request to the TaxCloud API
-	 *
-	 * @since 4.2
-	 * @param (string) $request the last request in JSON format
-	 * @param (string) $reponse the last response in JSON format
-	 * @param (int) $http_code the last http code received from TaxCloud
-	 */
-	private function log_request_details( $request, $response, $http_code ) {
-		$this->last_request       = $request;
-		$this->last_response      = $response;
-		$this->last_response_code = $http_code;
-	}
 }
 
-/** 
- * Return instance of WC_WooTax_TaxCloud class, optionally initialized with Login ID/Key
- * If no login ID/key are provided, use stored settings
+/**
+ * Return an instance of WC_WooTax_TaxCloud. If no login ID/key provided,
+ * use saved values.
  *
  * @since 4.4
- * @param (string) $login_id optional API Login ID
- * @param (string) $login_key optional API Login Key
+ *
+ * @param string $login_id API Login ID (default: null)
+ * @param string $login_key API Key (default: null)
+ * @return WC_WooTax_TaxCloud
  */
-function TaxCloud( $login_id = false, $login_key = false ) {
-	if ( !$login_id ) {
+function TaxCloud( $login_id = null, $login_key = null ) {
+	if ( ! $login_id )
 		$login_id = SST()->get_option( 'tc_id' );
-	}
 
-	if ( !$login_key ) {
+	if ( ! $login_key )
 		$login_key = SST()->get_option( 'tc_key' );
-	}
 
 	$instance = WC_WooTax_TaxCloud::instance();
 

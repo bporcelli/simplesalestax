@@ -1,20 +1,21 @@
 <?php
 
 /**
- * Frontend functionality for Subscriptions extensions
+ * Functions for handling subscriptions on frontend.
  *
- * @author Brett Porcelli
- * @since 1.0
+ * @author 	Simple Sales Tax
+ * @package SST
+ * @since 	1.0
  */
 
-// Exit if accessed directly
-if ( ! defined( 'ABSPATH' ) ) 
-	exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly
+}
 
 /**
- * Take measures to maintain calculated shipping taxes while Subscriptions calculates recurring totals
+ * Ensure shipping tax totals are preserved when WooCommerce Subscriptions
+ * calculates recurring order totals.
  *
- * @return void
  * @since 1.0
  */
 function wt_handle_subscription_checkout() {
@@ -27,11 +28,12 @@ function wt_handle_subscription_checkout() {
 add_action( 'wt_start_lookup_checkout', 'wt_handle_subscription_checkout', 10 );
 
 /**
- * Set is_renewal flag during checkout when recurring total is being calculated
+ * Used to set is_renewal flag when recurring order totals are being calculated.
  *
- * @param (bool) $is_renewal
- * @return (bool) new value of $is_renewal
  * @since 1.0
+ *
+ * @param  bool $is_renewal
+ * @return bool
  */
 function wt_is_renewal( $is_renewal ) {
 	if ( WT_SUBS_ACTIVE && WC_Subscriptions_Cart::get_calculation_type() == 'recurring_total' ) {
@@ -44,11 +46,13 @@ function wt_is_renewal( $is_renewal ) {
 add_filter( 'wt_cart_is_renewal', 'wt_is_renewal', 10, 1 );
 
 /**
- * Set is_subscription flag during checkout when recurring total is being calculated
+ * Used to set is_subscription flag when recurring order totals are being 
+ * calculated
  *
- * @param (bool) $is_subscription
- * @return (bool) new value of $is_subscription
  * @since 1.0
+ *
+ * @param  bool $is_subscription
+ * @return bool
  */
 function wt_is_subscription( $is_subscription ) {
 	if ( WT_SUBS_ACTIVE && WC_Subscriptions_Cart::cart_contains_subscription() ) {
@@ -61,12 +65,14 @@ function wt_is_subscription( $is_subscription ) {
 add_filter( 'wt_cart_is_subscription', 'wt_is_subscription', 10, 1 );
 
 /**
- * Store shipping taxes as determined by WooTax before recurring tax totals are determined
+ * Save calculated shipping taxes to session before recurring tax totals are updated.
+ * If this isn't done, the totals will be reset by Subscriptions.
  *
- * @param (double) $total the current cart total
- * @param (WC_Cart) $cart WC_Cart object
- * @return void
  * @since 1.0
+ *
+ * @param  double $total Current cart total.
+ * @param  WC_Cart $cart Cart object.
+ * @return double
  */
 function wt_store_shipping_taxes( $total, $cart ) {
 	$calc_type = WC_Subscriptions_Cart::get_calculation_type();
@@ -74,7 +80,7 @@ function wt_store_shipping_taxes( $total, $cart ) {
 	if ( in_array( $calc_type, array( 'none', 'recurring_total' ) ) ) {
 		$shipping_taxes_back = WC()->session->get( 'shipping_taxes_back' );
 
-		if ( !is_array( $shipping_taxes_back ) ) {
+		if ( ! is_array( $shipping_taxes_back ) ) {
 			$shipping_taxes_back = array();
 		}
 
@@ -86,9 +92,8 @@ function wt_store_shipping_taxes( $total, $cart ) {
 }
 
 /**
- * Restores the shipping_taxes property of the cart object after recurring order totals are calculated
- *
- * @return void
+ * Restore calculated shipping tax total after recurring order totals are updated.
+ *	
  * @since 1.0
  */
 function wt_restore_shipping_taxes() {
@@ -104,9 +109,8 @@ function wt_restore_shipping_taxes() {
 }
 
 /**
- * Remove session data after checkout is complete
+ * Remove session data after checkout.
  *
- * @return void
  * @since 1.0
  */
 function wt_subs_remove_session_data() {

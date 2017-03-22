@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Template for tax exemption form, displayed to logged out customers. You may override 
  * this template by copying it to THEME_PATH/sst/checkout/form-tax-exempt-logged-out.php.

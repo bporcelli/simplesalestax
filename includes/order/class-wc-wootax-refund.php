@@ -4,20 +4,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 
-if ( !class_exists( 'WC_Order_Refund' ) ) {
-	require_once( WC()->plugin_path() .'/includes/class-wc-order-refund.php' );
+if ( ! class_exists( 'WC_Order_Refund' ) ) {
+	require_once WC()->plugin_path() . '/includes/class-wc-order-refund.php';
 }
 
 /**
- * WC_WooTax_Refund
- * Enables support for partial refunds
+ * WooTax Refund.
  *
- * @package Simple Sales Tax
- * @since 4.2
+ * Enables support for partial order refunds.
+ *
+ * @author 	Simple Sales Tax
+ * @package SST
+ * @since 	4.2
  */
 class WC_WooTax_Refund extends WC_Order_Refund {
+
 	/**
-	 * Call parent constructor when this object is created
+	 * __construct() method. Calls parent constructor.
+	 *
+	 * @since 4.2
+	 *
 	 * @param int|WC_Order_Refund $refund
 	 */
 	public function __construct( $refund ) {
@@ -25,7 +31,7 @@ class WC_WooTax_Refund extends WC_Order_Refund {
 	}
 
 	/**
-	 * Calls the parent calculate_totals method and tells WooTax to process partial refund
+	 * Calculate the new order totals, then process the refund.
 	 *
 	 * @since 4.2
 	 */
@@ -35,11 +41,12 @@ class WC_WooTax_Refund extends WC_Order_Refund {
 	}
 
 	/**
-	 * Process partial refunds; prepare data and send Returned request to TaxCloud
+	 * Process partial refund by sending a Returned request to TaxCloud.
 	 * 
 	 * @since 4.4
-	 * @param (WC_WooTax_Refund) $refund refund order object
-	 * @param (bool) $cron is this method being called from a WooTax cronjob?
+	 *
+	 * @param WC_WooTax_Refund $refund
+	 * @param bool $cron True if this function is being called from a cronjob.
 	 */
 	public static function process_refund( $refund, $cron = false ) {
 		$refund_items = array();
@@ -59,7 +66,7 @@ class WC_WooTax_Refund extends WC_Order_Refund {
 		$identifiers   = WT_Orders::get_meta( $order_id, 'identifiers' );
 
 		foreach ( $order->order->get_items() as $item_id => $item ) {
-			$product_id = !empty( $item['variation_id'] ) ? $item['variation_id'] : $item['product_id'];
+			$product_id = !empty( $item[ 'variation_id' ] ) ? $item[ 'variation_id' ] : $item[ 'product_id' ];
 			
 			$mapping_array[ $product_id ] = $order->get_item_meta( $item_id, '_wootax_location_id' );
 
@@ -84,11 +91,11 @@ class WC_WooTax_Refund extends WC_Order_Refund {
 			$id_array[ $fee_key ] = $identifier;
 		}
 
-		$id_array[ WT_SHIPPING_ITEM ] = isset( $identifiers[ WT_SHIPPING_ITEM ] ) ? $identifiers[ WT_SHIPPING_ITEM ] : WT_SHIPPING_ITEM;
+		$id_array[ SST_SHIPPING_ITEM ] = isset( $identifiers[ SST_SHIPPING_ITEM ] ) ? $identifiers[ SST_SHIPPING_ITEM ] : SST_SHIPPING_ITEM;
 
-		if ( version_compare( WT_WOO_VERSION, '2.2', '>=' ) && !isset( $identifiers[ WT_SHIPPING_ITEM ] ) ) {			
+		if ( version_compare( SST_WOO_VERSION, '2.2', '>=' ) && !isset( $identifiers[ SST_SHIPPING_ITEM ] ) ) {			
 			foreach ( $order->order->get_shipping_methods() as $method_id => $method ) {
-				$id_array[ WT_SHIPPING_ITEM ] = $method_id;
+				$id_array[ SST_SHIPPING_ITEM ] = $method_id;
 			}
 		}
 
@@ -96,12 +103,12 @@ class WC_WooTax_Refund extends WC_Order_Refund {
 		foreach ( $refund->get_items() as $item_id => $item ) {
 			$product = $refund->get_product_from_item( $item );
 
-			if ( $item['qty'] == 0 ) {
+			if ( $item[ 'qty' ] == 0 ) {
 				continue;
 			}
 
-			$product_id = !empty( $item['variation_id'] ) ? $item['variation_id'] : $item['product_id'];
-			$tic        = get_post_meta( $item['product_id'], 'wootax_tic', true );
+			$product_id = !empty( $item[ 'variation_id' ] ) ? $item[ 'variation_id' ] : $item[ 'product_id' ];
+			$tic        = get_post_meta( $item[ 'product_id' ], 'wootax_tic', true );
 
 			// Get location key for item
 			$location_key = $mapping_array[ $product_id ];
@@ -115,15 +122,15 @@ class WC_WooTax_Refund extends WC_Order_Refund {
 				$first_found = $location_key;
 			}
 
-			if ( !isset( $refund_items[ $location_key ] ) ) {
+			if ( ! isset( $refund_items[ $location_key ] ) ) {
 				$refund_items[ $location_key ] = array();
 			}
 
-			$qty = $item['qty'];
+			$qty = $item[ 'qty' ];
 			if ( $qty < 0 )
 				$qty *= -1;
 
-			$line_total = $item['line_total'];
+			$line_total = $item[ 'line_total' ];
 			if ( $line_total < 0 )
 				$line_total *= -1;
 
@@ -138,7 +145,7 @@ class WC_WooTax_Refund extends WC_Order_Refund {
 			);
 
 			if ( $tic !== false && !empty( $tic ) ) {
-				$new_item['TIC'] = $tic;
+				$new_item[ 'TIC' ] = $tic;
 			} 
 
 			$refund_items[ $location_key ][] = $new_item;
@@ -146,22 +153,22 @@ class WC_WooTax_Refund extends WC_Order_Refund {
 
 		// Add fees 
 		foreach ( $refund->get_fees() as $fee_id => $fee ) {
-			if ( $fee['line_total'] == 0 ) {
+			if ( $fee[ 'line_total' ] == 0 ) {
 				continue; 
 			}
 
 			// Get item ID
-			$key     = sanitize_title( $fee['name'] );
+			$key     = sanitize_title( $fee[ 'name' ] );
 			$real_id = $id_array[ $key ];
 
-			$line_total = $fee['line_total'];
+			$line_total = $fee[ 'line_total' ];
 			if ( $line_total < 0 )
 				$line_total *= -1;
 
 			$refund_items[ $first_found ][] = array(
 				'Index'  => '', 
 				'ItemID' => $real_id, 
-				'TIC'    => apply_filters( 'wootax_fee_tic', WT_DEFAULT_FEE_TIC ),
+				'TIC'    => apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC ),
 				'Qty'    => 1, 
 				'Price'  => $line_total,
 			);
@@ -172,7 +179,7 @@ class WC_WooTax_Refund extends WC_Order_Refund {
 		$shipping_cost = $refund->get_total_shipping();
 
 		if ( $shipping_cost != 0 ) {
-			$item_id = $id_array[ WT_SHIPPING_ITEM ];
+			$item_id = $id_array[ SST_SHIPPING_ITEM ];
 
 			if ( $shipping_cost < 0 )
 				$shipping_cost *= -1;
@@ -180,7 +187,7 @@ class WC_WooTax_Refund extends WC_Order_Refund {
 			$refund_items[ $first_found ][] = array(
 				'Index'  => '', 
 				'ItemID' => $item_id, 
-				'TIC'    => apply_filters( 'wootax_shipping_tic', WT_DEFAULT_SHIPPING_TIC ), 
+				'TIC'    => apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC ), 
 				'Qty'    => 1, 
 				'Price'  => $shipping_cost,
 			);
@@ -203,11 +210,12 @@ class WC_WooTax_Refund extends WC_Order_Refund {
 	}
 
 	/**
-	 * Returns the name of our custom wrapper for the WC_Order_Refund class
+	 * Returns the name of our refund class.
 	 *
 	 * @since 4.4
-	 * @param (string) $classname the classname WooCommerce wants to use for the order object being generated
-	 * @return (string) original class name or WC_WooTax_Refund
+	 *
+	 * @param  string $classname Existing refund class name.
+	 * @return string
 	 */
 	public static function get_refund_classname( $classname ) {
 		if ( $classname == 'WC_Order_Refund' ) {
