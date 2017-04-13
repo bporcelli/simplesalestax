@@ -368,3 +368,14 @@ function wootax_update_recurring_tax() {
 }
 
 add_action( 'wootax_update_recurring_tax', 'wootax_update_recurring_tax' );
+
+/**
+ * Is subscriptions active?
+ *
+ * @since 5.0
+ *
+ * @return bool
+ */
+function sst_subs_active() {
+	return class_exists( 'WC_Subscriptions' );
+}

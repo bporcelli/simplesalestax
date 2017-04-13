@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 1.0
  */
 function wt_handle_subscription_checkout() {
-	if ( WT_SUBS_ACTIVE && WC_Subscriptions_Cart::cart_contains_subscription() ) {
+	if ( sst_subs_active() && WC_Subscriptions_Cart::cart_contains_subscription() ) {
 		add_filter( 'woocommerce_calculated_total', 'wt_store_shipping_taxes', 10, 2 );
 		add_action( 'woocommerce_cart_updated', 'wt_restore_shipping_taxes' );
 	}
@@ -36,7 +36,7 @@ add_action( 'wt_start_lookup_checkout', 'wt_handle_subscription_checkout', 10 );
  * @return bool
  */
 function wt_is_renewal( $is_renewal ) {
-	if ( WT_SUBS_ACTIVE && WC_Subscriptions_Cart::get_calculation_type() == 'recurring_total' ) {
+	if ( sst_subs_active() && WC_Subscriptions_Cart::get_calculation_type() == 'recurring_total' ) {
 		return true;
 	} else {
 		return false;
@@ -55,7 +55,7 @@ add_filter( 'wt_cart_is_renewal', 'wt_is_renewal', 10, 1 );
  * @return bool
  */
 function wt_is_subscription( $is_subscription ) {
-	if ( WT_SUBS_ACTIVE && WC_Subscriptions_Cart::cart_contains_subscription() ) {
+	if ( sst_subs_active() && WC_Subscriptions_Cart::cart_contains_subscription() ) {
 		return true;
 	} else {
 		return false;

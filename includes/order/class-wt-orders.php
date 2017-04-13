@@ -203,7 +203,7 @@ class WT_Orders {
 		// Get WC_WooTax_Order object
 		$order = self::get_order( $order_id );
 	
-		if ( $country != 'US' && $country != 'United States' || ! WT_CALC_TAXES ) {
+		if ( $country != 'US' && $country != 'United States' || ! SST_Compatibility::taxes_enabled() ) {
 			return; // Returning here allows WC_AJAX::calc_line_taxes to take over for non-US orders
 		} else {
 			// Build items array
