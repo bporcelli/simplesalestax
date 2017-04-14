@@ -14,17 +14,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 	5.0
  */
 class SST_Shipping {
-	
+
 	/**
-	 * Is the provided shipping method a local pickup method?
+	 * Is the shipping method for the present order a local pickup method?
 	 *
 	 * @since 5.0
 	 *
-	 * @param  string $method Shipping method slug or name.
 	 * @return bool
 	 */
-	public static function is_local_pickup( $method ) {
-		return in_array( $method, apply_filters( 'wootax_local_pickup_methods', array( 'local_pickup', 'Local Pickup' ) ) );
+	public static function is_local_pickup() {
+		return ( true === apply_filters( 'woocommerce_apply_base_tax_for_local_pickup', true ) && sizeof( array_intersect( wc_get_chosen_shipping_method_ids(), apply_filters( 'woocommerce_local_pickup_methods', array( 'legacy_local_pickup', 'local_pickup' ) ) ) ) > 0 );
 	}
 
 	/**
@@ -32,10 +31,10 @@ class SST_Shipping {
 	 *
 	 * @since 5.0
 	 *
-	 * @param  string $method Method name or slug.
+	 * @param  string $method_id Method ID (default '')
 	 * @return bool
 	 */
-	public static function is_local_delivery( $method ) {
-		return in_array( $method, apply_filters( 'wootax_local_delivery_methods', array( 'local_delivery', 'Local Delivery' ) ) );
+	public static function is_local_delivery( $method_id = '' ) {
+		return in_array( $method_id, apply_filters( 'wootax_local_delivery_methods', array( 'local_delivery' ) );
 	}
 }

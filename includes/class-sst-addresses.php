@@ -140,8 +140,7 @@ class SST_Addresses {
 	 * @return array
 	 */
 	private static function get_default_address() {
-		$default_id = 0; // TODO: GET FROM DB
-		return self::get_address( $default_id );
+		return self::get_address( SST()->settings->get_option( 'default_address' ) );
 	}
 
 	/**
@@ -156,9 +155,8 @@ class SST_Addresses {
 		$tax_based_on = get_option( 'woocommerce_tax_based_on' );
 
 		// Handle local pickups (ripped from core)
-		if ( true === apply_filters( 'woocommerce_apply_base_tax_for_local_pickup', true ) && sizeof( array_intersect( wc_get_chosen_shipping_method_ids(), apply_filters( 'woocommerce_local_pickup_methods', array( 'legacy_local_pickup', 'local_pickup' ) ) ) ) > 0 ) {
+		if ( SST_Shipping::is_local_pickup() )
 			return apply_filters( 'wootax_pickup_address', self::get_default_address(), -1 );
-		}
 
 		$billing = 'billing' === $tax_based_on;
 

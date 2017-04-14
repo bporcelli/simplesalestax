@@ -85,7 +85,6 @@ final class WC_WooTax_Admin {
 		$plugin_path = SST()->plugin_path();
 
 		require $plugin_path . '/includes/admin/class-wc-wootax-upgrade.php';
-		require $plugin_path . '/includes/admin/class-wc-wootax-settings.php';
 		require $plugin_path . '/includes/order/class-wc-wootax-refund.php';
 		require $plugin_path . '/includes/admin/wc-wootax-subscriptions-admin.php';
 	}

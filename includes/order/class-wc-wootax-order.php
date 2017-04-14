@@ -452,7 +452,7 @@ class WC_WooTax_Order {
 			// Fetch some information about the order
 			$exempt_cert         = $this->get_exemption_certificate();
 			$customer_id         = $this->get_customer_id();
-			$delivered_by_seller = wt_is_local_delivery( $this->get_shipping_method() );
+			$delivered_by_seller = SST_Shipping::is_local_delivery( $this->get_shipping_method() );
 
 			// Loop through locations in lookup_data array and send a Lookup request for each
 			foreach ( $lookup_data as $location_key => $items ) {
