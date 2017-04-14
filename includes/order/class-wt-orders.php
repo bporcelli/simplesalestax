@@ -264,7 +264,7 @@ class WT_Orders {
 					$tic  = SST_Product::get_tic( $product_id, $variation_id );
 					$cost = $items[ 'line_total' ][ $item_id ];
 					$type = 'cart';
-					$qty  = SST()->get_option( 'tax_based_on' ) == 'line-subtotal' ? 1 : $items[ 'order_item_qty' ][ $item_id ];
+					$qty  = SST()->settings->get_option( 'tax_based_on' ) == 'line-subtotal' ? 1 : $items[ 'order_item_qty' ][ $item_id ];
 				} else {
 					// Fee
 					$tic  = apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC );
@@ -585,7 +585,7 @@ class WT_Orders {
 	 * @param int $order_id ID of new order.
 	 */
 	public static function maybe_capture_order( $order_id ) {
-		if ( SST()->get_option( 'capture_immediately' ) == 'yes' ) {
+		if ( SST()->settings->get_option( 'capture_immediately' ) == 'yes' ) {
 			$res = self::capture_order( $order_id, true );
 
 			if ( $res !== true && self::$logger )

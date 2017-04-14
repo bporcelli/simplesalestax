@@ -219,7 +219,7 @@ class WC_WooTax_Checkout {
 		$customer_state = $this->destination_address[ 'State' ];
 		$counters_array = $lookup_data = $mapping_array = array();
 		
-		$tax_based_on = SST()->get_option( 'tax_based_on' );
+		$tax_based_on = SST()->settings->get_option( 'tax_based_on' );
 
 		// Add cart items
 		foreach ( $order_items as $item_id => $item ) {
@@ -560,7 +560,7 @@ class WC_WooTax_Checkout {
 	 * @return array
 	 */
 	public function maybe_hide_tax_total( $tax_totals ) {
-		$hide_zero_taxes = SST()->get_option( 'show_zero_tax' ) != 'true';
+		$hide_zero_taxes = SST()->settings->get_option( 'show_zero_tax' ) != 'true';
 
 		if ( $hide_zero_taxes ) {
 			$amounts    = array_filter( wp_list_pluck( $tax_totals, 'amount' ) );

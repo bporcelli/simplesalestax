@@ -27,7 +27,7 @@ class SST_Product {
 	public static function get_origin_addresses( $product_id ) {
 		$origin_addresses = get_post_meta( $product_id, '_wootax_origin_addresses', true );		
 		if ( ! $origin_addresses ) {
-			$origin_addresses = array( SST()->get_option( 'default_address' ) );
+			$origin_addresses = array( SST()->settings->get_option( 'default_address' ) );
 		}
 		return $origin_addresses;
 	}

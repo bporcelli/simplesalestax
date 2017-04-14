@@ -192,7 +192,7 @@ function wootax_update_recurring_tax() {
 					if ( $cost != 0 ) {
 						$unit_price = $cost / $qty;
 
-						if ( SST()->get_option( 'tax_based_on' ) != 'line-subtotal' ) {
+						if ( SST()->settings->get_option( 'tax_based_on' ) != 'line-subtotal' ) {
 							$price = $unit_price; 
 						} else {
 							$qty   = 1;

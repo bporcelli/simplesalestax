@@ -280,7 +280,7 @@ class WT_Certificate_Manager {
 
 		wc_get_template( 'view-certificate.php', array( 
 			'plugin_url'  => SST()->plugin_url(),
-			'seller_name' => SST()->get_option( 'company_name' ),
+			'seller_name' => SST()->settings->get_option( 'company_name' ),
 			'certificate' => $certificates[ $certificate_id ],
 		), 'sst/lightbox/', SST()->plugin_path() . '/templates/lightbox/' );
 
@@ -306,7 +306,7 @@ class WT_Certificate_Manager {
 	 */
 	public function output_tax_details_form() {
 		// Exit if exemptions are disabled...
-		$show_exempt = SST()->get_option( 'show_exempt' ) == 'true';
+		$show_exempt = SST()->settings->get_option( 'show_exempt' ) == 'true';
 
 		if ( ! $show_exempt )
 			return;
@@ -315,8 +315,8 @@ class WT_Certificate_Manager {
 		// user is not exempt
 		$current_user = wp_get_current_user();
 
-		$restricted = SST()->get_option( 'restrict_exempt' ) == 'yes';
-		$exempt_roles = SST()->get_option( 'exempt_roles', array() );
+		$restricted = SST()->settings->get_option( 'restrict_exempt' ) == 'yes';
+		$exempt_roles = SST()->settings->get_option( 'exempt_roles', array() );
 		$user_roles = is_user_logged_in() ? $current_user->roles : array();
 		$user_exempt = count( array_intersect( $exempt_roles, $user_roles ) ) > 0;
 
@@ -355,7 +355,7 @@ class WT_Certificate_Manager {
 	 */
 	public function output_saved_certificates() {
 		// Exit if exemptions are disabled...
-		$show_exempt = SST()->get_option( 'show_exempt' ) == 'true';
+		$show_exempt = SST()->settings->get_option( 'show_exempt' ) == 'true';
 
 		if ( ! $show_exempt )
 			return;

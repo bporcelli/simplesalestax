@@ -121,7 +121,7 @@ class WC_WooTax_Subscriptions {
 		}
 
 		$final_items = $type_array = array();
-		$tax_based_on = SST()->get_option( 'tax_based_on' );
+		$tax_based_on = SST()->settings->get_option( 'tax_based_on' );
 
 		foreach ( $order_items as $item_id => $item ) {
 			$type = $item[ 'type' ];

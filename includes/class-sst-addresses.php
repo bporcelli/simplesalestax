@@ -108,7 +108,7 @@ class SST_Addresses {
 				unset( $request['country'] );
 			}
 
-			if ( ( $usps_id = SST()->get_option( 'usps_id' ) ) ) {
+			if ( ( $usps_id = SST()->settings->get_option( 'usps_id' ) ) ) {
 				$request['uspsUserID'] = $usps_id;
 
 				$res = TaxCloud()->send_request( 'VerifyAddress', $address );
@@ -193,7 +193,7 @@ class SST_Addresses {
 	 * @return array
 	 */
 	public static function get_origin_addresses() {
-		$addresses = SST()->get_option( 'addresses' );
+		$addresses = SST()->settings->get_option( 'addresses' );
 
 		// Ensures that users who upgraded from older versions of the plugin are still good to go
 		if ( ! is_array( $addresses ) ) {

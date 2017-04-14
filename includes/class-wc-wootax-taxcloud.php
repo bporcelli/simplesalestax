@@ -264,10 +264,10 @@ class WC_WooTax_TaxCloud {
  */
 function TaxCloud( $login_id = null, $login_key = null ) {
 	if ( ! $login_id )
-		$login_id = SST()->get_option( 'tc_id' );
+		$login_id = SST()->settings->get_option( 'tc_id' );
 
 	if ( ! $login_key )
-		$login_key = SST()->get_option( 'tc_key' );
+		$login_key = SST()->settings->get_option( 'tc_key' );
 
 	$instance = WC_WooTax_TaxCloud::instance();
 
