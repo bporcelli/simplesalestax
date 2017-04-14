@@ -174,7 +174,7 @@ function wootax_update_recurring_tax() {
 
 			foreach ( $order->get_items() as $item_id => $item ) {
 				if ( $subs_20_or_greater || WC_Subscriptions_Order::is_item_subscription( $order, $item ) ) {
-					$tic = wt_get_product_tic( $item[ 'product_id' ], $item[ 'variation_id' ] );
+					$tic = SST_Product::get_tic( $item[ 'product_id' ], $item[ 'variation_id' ] );
 					$qty = isset( $item[ 'qty' ] ) ? $item[ 'qty' ] : 1;
 
 					$recurring_subtotal = isset( $item[ 'item_meta' ][ '_recurring_line_subtotal' ] ) ? $item[ 'item_meta' ][ '_recurring_line_subtotal' ][0] : 0;

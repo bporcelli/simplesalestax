@@ -87,6 +87,7 @@ class WC_WooTax_Checkout {
 		// If lookup is needed for one of the parts, send Lookup request
 		//  - Store lookup result as order part metadata
 		// Set shipping/cart tax totals
+		// TODO: USE SST_ADDRESSES::GET_DESTINATION_ADDRESS()
 
 		/**
 		 * // Fetch cart_id
@@ -229,7 +230,7 @@ class WC_WooTax_Checkout {
 			$variation_id = $item[ 'variation_id' ];
 
 			// TIC
-			$tic = wt_get_product_tic( $product_id, $variation_id );
+			$tic = SST_Product::get_tic( $product_id, $variation_id );
 
 			// Quantity and price
 			$unit_price = $item[ 'line_total' ] / $item[ 'quantity' ];
@@ -244,7 +245,7 @@ class WC_WooTax_Checkout {
 
 			// Attempt to find origin address to use for product; if possible, we use the origin address in the customer's state
 			// Developers can adjust the final address used with the wootax_origin_address filter (see below)
-			$origin_addresses = fetch_product_origin_addresses( $product_id );
+			$origin_addresses = SST_Product::get_origin_addresses( $product_id );
 			$address_found    = WT_DEFAULT_ADDRESS;
 
 			if ( count( $origin_addresses ) == 1 ) {
@@ -458,60 +459,6 @@ class WC_WooTax_Checkout {
 				WC()->customer->set_shipping_address_2( $_POST[ 'shipping_address_2' ] );
 			}
 		}
-	}
-
-	/**
-	 * Set the destination address for the current order.
-	 *
-	 * If the customer has selected a 'local pickup' shipping method, we will
-	 * use one of the origin addresses configured by the admin. Otherwise,
-	 * we will use the customer's address.
-	 *
-	 * @since 4.2
-	 *
-	 * @return array
-	 */
-	private function set_destination_address() {
-		$tax_based_on = get_option( 'woocommerce_tax_based_on' );
-
-		// Return origin address if this is a local pickup order
-		if ( wt_is_local_pickup( $this->get_shipping_method() ) || $tax_based_on == 'base' ) {
-			$this->destination_address = wootax_get_address( apply_filters( 'wootax_pickup_address', WT_DEFAULT_ADDRESS, $this->addresses, -1 ) );
-			return;
-		}
-
-		if ( ! defined( 'DOING_AJAX' ) && $_POST ) { // If this is not an AJAX request...
-			$this->update_customer_address();
-		}
-
-		// Attempt to fetch correct address
-		if ( $tax_based_on == 'billing' ) {
-			$address = array(
-				'Address1' => WC()->customer->get_address(),
-				'Address2' => WC()->customer->get_address_2(),
-				'Country'  => WC()->customer->get_country(),
-				'State'    => WC()->customer->get_state(),
-				'City'     => WC()->customer->get_city(),
-				'Zip5'     => WC()->customer->get_postcode(),
-			);
-		} else {
-			$address = array(
-				'Address1' => WC()->customer->get_shipping_address(),
-				'Address2' => WC()->customer->get_shipping_address_2(),
-				'Country'  => WC()->customer->get_shipping_country(),
-				'State'    => WC()->customer->get_shipping_state(),
-				'City'     => WC()->customer->get_shipping_city(),
-				'Zip5'     => WC()->customer->get_shipping_postcode(),
-			);
-		}
-		
-		// Parse ZIP to get ZIP +4 if possible
-		$parsed_zip = parse_zip( $address[ 'Zip5' ] );
-
-		$address[ 'Zip5' ] = $parsed_zip[ 'zip5' ];
-		$address[ 'Zip4' ] = $parsed_zip[ 'zip4' ];
-
-		$this->destination_address = $address;
 	}
 	
 	/**

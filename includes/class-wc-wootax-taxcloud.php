@@ -160,7 +160,7 @@ class WC_WooTax_TaxCloud {
 
 		if ( ! $this->login_id || ! $this->key ) {
 			$last_error = 'Could not make '. $type .' request: API Login ID and API Key are required.';
-		} else if ( $type == 'Lookup' && ( !wootax_is_valid_address( $params[ 'origin' ] ) || !wootax_is_valid_address( $params[ 'destination' ], true ) ) ) {
+		} else if ( $type == 'Lookup' && ( !SST_Addresses::is_valid( $params[ 'origin' ] ) || !SST_Addresses::is_valid( $params[ 'destination' ] ) ) ) {
 			$last_error = 'Could not make '. $type .' request: Valid origin and destination addresses are required.';
 		} else if ( $type == 'VerifyAddress' && ! $params[ 'uspsUserID' ] ) {
 			$last_error = 'Could not make '. $type .' request: A USPS Web Tools ID is required.';

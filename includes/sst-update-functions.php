@@ -32,7 +32,7 @@ function sst_update_26_remove_shipping_taxable_option() {
  */
 function sst_update_38_update_addresses() {
 	// Set new address array 
-	SST()->set_option( 'wootax_addresses', fetch_business_addresses() );
+	SST()->set_option( 'wootax_addresses', SST_Addresses::get_origin_addresses() );
 
 	// Delete old options
 	delete_option( 'wootax_address1' );

@@ -278,7 +278,7 @@ final class WC_WooTax_Admin {
 	public static function display_shipping_origin_field() {
 		global $post;
 
-		$addresses = fetch_business_addresses();
+		$addresses = SST_Addresses::get_origin_addresses();
 
 		// Do not display if there is less than 2 origin addresses to select from
 		if ( !is_array( $addresses ) || count( $addresses ) <= 1 ) {
@@ -293,13 +293,13 @@ final class WC_WooTax_Admin {
 		echo '<p class="form-field" id="shipping_origin_field"><label for="_wootax_origin_addresses[]">Origin addresses</label>';
 
 		// Output select box
-		$origin_addresses = fetch_product_origin_addresses( $post->ID );
+		$origin_addresses = SST_Product::get_origin_addresses( $post->ID );
 
 		echo '<select class="'. ( version_compare( SST_WOO_VERSION, '2.3', '<' ) ? 'chosen_select' : 'wc-enhanced-select' ) .'" name="_wootax_origin_addresses[]" multiple>';
 
 		if ( is_array( $addresses ) && count( $addresses ) > 0 ) {
 			foreach ( $addresses as $key => $address ) {
-				echo '<option value="'. $key .'"'. ( in_array( $key, $origin_addresses ) ? " selected" : "") .'>'. get_formatted_address( $address ) .'</option>';
+				echo '<option value="'. $key .'"'. ( in_array( $key, $origin_addresses ) ? " selected" : "") .'>'. SST_Addresses::format( $address ) .'</option>';
 			}
 		} else {
 			echo '<option value="">There are no addresses to select.</option>';

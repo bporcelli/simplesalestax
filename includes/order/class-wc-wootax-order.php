@@ -41,13 +41,10 @@ class WC_WooTax_Order {
 	 * @param int $order_id ID of order to load. 
 	 */
 	public function load( $order_id = -1 ) {
-		if ( $order_id == -1 ) {
-			return;
-		} else {
-			$this->order_id = $order_id;
-			$this->order    = wc_get_order( $this->order_id );
-
-			$this->set_destination_address();
+		if ( $order_id > 0 ) {
+			$this->order_id            = $order_id;
+			$this->order               = wc_get_order( $this->order_id );
+			$this->destination_address = SST_Addresses::get_destination_address( $this->order );
 		}
 	}
 
@@ -282,7 +279,7 @@ class WC_WooTax_Order {
 					);
 
 					$product          = $this->order->get_product_from_item( $item_ids );
-					$origin_addresses = fetch_product_origin_addresses( $product->id );
+					$origin_addresses = SST_Product::get_origin_addresses( $product->id );
 					$address_found    = WT_DEFAULT_ADDRESS;
 
 					/**
@@ -404,7 +401,7 @@ class WC_WooTax_Order {
 			if ( ! isset( $taxcloud_ids[ $location ] ) ) {
 				$taxcloud_ids[ $location ] = array(
 					'cart_id'  => '',
-					'order_id' => wootax_generate_order_id(),
+					'order_id' => md5( $_SERVER['REMOTE_ADDR'] . microtime() ),
 				);
 			}
 		}
@@ -446,7 +443,7 @@ class WC_WooTax_Order {
 			$mapping_array = WT_Orders::get_meta( $this->order_id, 'mapping_array' );
 
 			// Retrieve validated destination addresses
-			$destination_address = maybe_validate_address( $this->destination_address, $this->order_id );
+			$destination_address = SST_Addresses::get_destination_address( $this->order );
 			
 			// Used in every tax lookup
 			$all_cart_items = array();
@@ -597,75 +594,6 @@ class WC_WooTax_Order {
 	}
 	
 	/**
-	 * Set the destination address for the order.
-	 *
-	 * If a 'local pickup' shipping method is being used, use one of the origin
-	 * addresses configured by the admin. Otherwise, use the customer's shipping
-	 * or billing address.
-	 *
-	 * @since 4.2
-	 */
-	public function set_destination_address() {
-		// Retrieve "tax based on" option
-		$tax_based_on = get_option( 'woocommerce_tax_based_on' );
-
-		// Return origin address if this is a local pickup order
-		if ( wt_is_local_pickup( $this->get_shipping_method() ) || $tax_based_on == 'base' ) {
-			// TODO: DON'T RETURN!
-			return wootax_get_address( apply_filters( 'wootax_pickup_address', WT_DEFAULT_ADDRESS, WT_Orders::$addresses, $this->order_id ) );
-		}
-
-		// Attempt to fetch preferred address according to "tax based on" option; return billing by default
-		$address_1 = $this->order->billing_address_1;
-		$address_2 = $this->order->billing_address_2;
-		$country   = $this->order->billing_country;
-		$state     = $this->order->billing_state;
-		$city      = $this->order->billing_city;
-		$zip5      = $this->order->billing_postcode;
-				
-		if ( $tax_based_on == 'shipping' ) {
-			$address_1 = !empty( $this->order->shipping_address_1 ) ? $this->order->shipping_address_1 : $address_1;
-			$address_2 = !empty( $this->order->shipping_address_2 ) ? $this->order->shipping_address_2 : $address_2;
-			$country   = !empty( $this->order->shipping_country ) ? $this->order->shipping_country : $country;
-			$state     = !empty( $this->order->shipping_state ) ? $this->order->shipping_state : $state;
-			$city      = !empty( $this->order->shipping_city ) ? $this->order->shipping_city : $city;
-			$zip5      = !empty( $this->order->shipping_postcode ) ? $this->order->shipping_postcode : $zip5;
-		} 
-
-		// If address isn't saved yet, we will fall back to POSTed fields
-		$post_zip     = isset( $_POST['postcode'] ) ? $_POST['postcode'] : '';
-		$post_country = isset( $_POST['country'] ) ? $_POST['country'] : '';
-		$post_state   = isset( $_POST['state'] ) ? $_POST['state'] : '';
-		$post_city    = isset( $_POST['city'] ) ? $_POST['city'] : '';
-
-		// Parse ZIP code, splitting it into its 5 and 4-digit components
-		$parsed_zip = parse_zip( !empty( $zip5 ) ? $zip5 : $post_zip );
-
-		// Return final address
-		$address = array(
-			'Address1' => !empty( $address_1 ) ? $address_1 : '',
-			'Address2' => !empty( $address_2 ) ? $address_2 : '',
-			'Country'  => !empty( $country ) ? $country : $post_country,
-			'State'    => !empty( $state ) ? $state : $post_state,
-			'City'     => !empty( $city ) ? $city : $post_city,
-			'Zip5'     => $parsed_zip['zip5'],
-			'Zip4'     => $parsed_zip['zip4'],
-		);
-
-		$this->destination_address = $address;
-	}
-	
-	/** 
-	 * Determines if an order is ready for a lookup request
-	 * For an order to be "ready," three criteria must be met:
-	 * - At least one origin address is added to the site
-	 * - The customer's full address is available
-	 * - The order has not already been captured
-	 *
-	 * @since 4.2
-	 * @return boolean true if the order is ready for a tax lookup; otherwise, false
-	 */
-	/**
 	 * Can we issue a Lookup for this order?
 	 *
 	 * Three conditions must be met:
@@ -689,7 +617,7 @@ class WC_WooTax_Order {
 		}
 
 		// Check for a valid destinaton address
-		if ( !wootax_is_valid_address( $this->destination_address, true ) ) {
+		if ( !SST_Addresses::is_valid( $this->destination_address ) ) {
 			return false;
 		}
 		

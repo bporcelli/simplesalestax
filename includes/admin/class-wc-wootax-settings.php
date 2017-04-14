@@ -60,7 +60,7 @@ class WC_WooTax_Settings extends WC_Integration {
  	public function generate_settings_html( $form_fields = array(), $echo = true ) {
  		$rates_checked = get_option( 'wootax_rates_checked' );
 
-		if ( ! $rates_checked && wt_has_other_rates() ) {
+		if ( ! $rates_checked && $this->has_other_rates() ) {
 			require SST()->plugin_path() . '/templates/admin/delete-rates.php';
 		} else {
 			if ( version_compare( SST_WOO_VERSION, '2.6', '>=' ) ) {
@@ -159,7 +159,7 @@ class WC_WooTax_Settings extends WC_Integration {
 				'title'             => 'Exempt User Roles',
 				'type'              => 'multiselect',
 				'class'             => version_compare( SST_WOO_VERSION, '2.3', '<' ) ? 'chosen_select' : 'wc-enhanced-select',
-				'options'           => wootax_get_user_roles(),
+				'options'           => $this->get_user_roles(),
 				'default'           => array( 'exempt-customer' ),
 				'description'       => 'When a user with one of these roles shops on your site, WooTax will automatically find and apply the first exemption certificate associated with their account. Convenient if you have repeat exempt customers.',
 				'desc_tip'          => true,
@@ -221,13 +221,6 @@ class WC_WooTax_Settings extends WC_Integration {
 				),
 				'default' 			=> 'item-price',
 				'description' 		=> __( '"Item Price": TaxCloud determines the taxable amount for a line item by multiplying the item price by its quantity. "Line Subtotal": the taxable amount is determined by the line subtotal. Useful in instances where rounding becomes an issue.', 'woocommerce-wootax' ),
-				'desc_tip'			=> true
-			),
-			'notification_email' => array(
-				'title'				=> 'Error Notification Email',
-				'type'				=> 'text',
-				'default'			=> wootax_get_notification_email(),
-				'description' 		=> __( 'If Simple Sales Tax detects an error that needs attention, it will send a notification to this email address.', 'woocommerce-wootax' ),
 				'desc_tip'			=> true
 			),
 			'remove_all_data' => array(
@@ -334,13 +327,13 @@ class WC_WooTax_Settings extends WC_Integration {
  		<table id="address_table" class="wp-list-table striped widefat">
 			<thead>
 				<tr>
-					<th><span>Address 1</span> <?php wootax_tip( "Line 1 of your business address." ) ?> 
-					<th><span>Address 2</span> <?php wootax_tip( "Line 2 of your business address." ) ?>
-					<th><span>City</span> <?php wootax_tip( "The city in which your business operates." ) ?>
-					<th><span>State</span> <?php wootax_tip( "The state where your business is located." ); ?>
-					<th><span>ZIP Code</span> <?php wootax_tip( "5 or 9-digit ZIP code of your business address." ); ?>
-					<th><span>Make Default</span> <?php wootax_tip( "Check this if you want an address to be used as the default 'Shipment Origin Address' for your products. If you only have one business address, it will be used as your default address automatically." ); ?>
-					<th><span>Remove</span> <?php wootax_tip( "Click the red X to remove a business address. Remember, at least one valid address is required for Simple Sales Tax to work." ); ?> 
+					<th><span>Address 1</span> <?php sst_tip( "Line 1 of your business address." ) ?> 
+					<th><span>Address 2</span> <?php sst_tip( "Line 2 of your business address." ) ?>
+					<th><span>City</span> <?php sst_tip( "The city in which your business operates." ) ?>
+					<th><span>State</span> <?php sst_tip( "The state where your business is located." ); ?>
+					<th><span>ZIP Code</span> <?php sst_tip( "5 or 9-digit ZIP code of your business address." ); ?>
+					<th><span>Make Default</span> <?php sst_tip( "Check this if you want an address to be used as the default 'Shipment Origin Address' for your products. If you only have one business address, it will be used as your default address automatically." ); ?>
+					<th><span>Remove</span> <?php sst_tip( "Click the red X to remove a business address. Remember, at least one valid address is required for Simple Sales Tax to work." ); ?> 
 				</tr>
 			</thead>
 			<tfoot>
@@ -354,7 +347,7 @@ class WC_WooTax_Settings extends WC_Integration {
 			<?php
 				$default_address = (int) $this->get_option( 'default_address', 0 );
 
-				foreach ( fetch_business_addresses() as $i => $address ) { ?>
+				foreach ( SST_Addresses::get_origin_addresses() as $i => $address ) { ?>
 
 					<tr>
 						<td>
@@ -653,6 +646,42 @@ class WC_WooTax_Settings extends WC_Integration {
 		}
 
 		wp_send_json_success();
+	}
+
+	/**
+	 * Get a list of user roles.
+	 *
+	 * @since 5.0
+	 *
+	 * @return array
+	 */
+	protected function get_user_roles() {
+		global $wp_roles;
+		if ( ! isset( $wp_roles ) ) {
+		    $wp_roles = new WP_Roles();
+		}
+		return $wp_roles->get_names();
+	}
+
+	/**
+	 * Are any extra tax rates present in the tax tables?
+	 *
+	 * @since 4.5
+	 *
+	 * @return bool
+	 */
+	protected function has_other_rates() {
+		global $wpdb;
+
+		$query = "SELECT COUNT(*) FROM {$wpdb->prefix}woocommerce_tax_rates";
+
+		if ( SST_RATE_ID ) {
+			$query .= " WHERE tax_rate_id != ". SST_RATE_ID;
+		}
+
+		$rate_count = $wpdb->get_var( $query );
+
+		return $rate_count > 0;
 	}
 }
  

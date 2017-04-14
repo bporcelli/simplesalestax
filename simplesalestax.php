@@ -158,8 +158,10 @@ final class WC_WooTax {
 		// Used for all request types
 		require 'includes/class-sst-compatibility.php';
 		require 'includes/class-sst-install.php';
+		require 'includes/class-sst-address.php';
+		require 'includes/class-sst-product.php';
 		require 'includes/class-wc-wootax-taxcloud.php';
-		require 'includes/wc-wootax-functions.php';
+		require 'includes/sst-functions.php';
 		require 'includes/class-wt-exemption-certificate.php';
 		require 'includes/order/class-wt-orders.php';
 		require 'includes/WT_Plugin_Updater.php';

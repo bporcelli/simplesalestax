@@ -72,7 +72,7 @@ class WT_Orders {
 	public static function init() {
 		self::hooks();
 
-		self::$addresses = fetch_business_addresses();
+		self::$addresses = SST_Addresses::get_origin_addresses();
 
 		if ( SST_LOG_REQUESTS )
 			self::init_logger();
@@ -261,7 +261,7 @@ class WT_Orders {
 					$product_id   = $order->get_item_meta( $item_id, '_product_id' );
 					$variation_id = $order->get_item_meta( $item_id, '_variation_id' );
 
-					$tic  = wt_get_product_tic( $product_id, $variation_id );
+					$tic  = SST_Product::get_tic( $product_id, $variation_id );
 					$cost = $items[ 'line_total' ][ $item_id ];
 					$type = 'cart';
 					$qty  = SST()->get_option( 'tax_based_on' ) == 'line-subtotal' ? 1 : $items[ 'order_item_qty' ][ $item_id ];

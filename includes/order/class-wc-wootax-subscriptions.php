@@ -97,7 +97,7 @@ class WC_WooTax_Subscriptions {
 		}
 
 		// Get customer address from original order/subscription if necessary
-		if ( ! wootax_is_valid_address( $order->destination_address, true ) ) {
+		if ( ! SST_Addresses::is_valid( $order->destination_address ) ) {
 			$order->destination_address = $this->get_destination_address( $parent_order );
 		}
 
@@ -136,7 +136,7 @@ class WC_WooTax_Subscriptions {
 					$tic = apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC );
 					break;
 				case 'line_item':
-					$tic  = wt_get_product_tic( $item[ 'product_id' ], $item[ 'variation_id' ] );
+					$tic  = SST_Product::get_tic( $item[ 'product_id' ], $item[ 'variation_id' ] );
 					$type = 'cart';
 					break;
 			}
@@ -213,22 +213,7 @@ class WC_WooTax_Subscriptions {
 	 * @return array
 	 */
 	public function get_destination_address( $order ) {
-		// Initialize blank address array
-		$address = array();
-		
-		// Construct final address arraya
-		$parsed_zip = parse_zip( $order->shipping_postcode );
-
-		$address[ 'Address1' ] = $order->shipping_address_1;
-		$address[ 'Address2' ] = $order->shipping_address_2;
-		$address[ 'Country' ]  = $order->shipping_country;
-		$address[ 'State' ]    = $order->shipping_state;
-		$address[ 'City' ]     = $order->shipping_city;
-		$address[ 'Zip5' ]     = $parsed_zip[ 'zip5' ];
-		$address[ 'Zip4' ]     = $parsed_zip[ 'zip4' ]; 
-
-		// Return final address
-		return $address;
+		return SST_Addresses::get_destination_address( $order );
 	}
 
 	/**

@@ -64,7 +64,7 @@ function wt_ajax_update_recurring_tax() {
 			'Type'   => 'cart',
 		);
 
-		$tic = wt_get_product_tic( $product_id, $variation_id );
+		$tic = SST_Product::get_tic( $product_id, $variation_id );
 
 		if ( ! empty( $tic ) && $tic )
 			$item_info[ 'TIC' ] = $tic;
