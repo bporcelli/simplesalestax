@@ -50,6 +50,7 @@ class SST_Install {
 		add_action( 'init', array( __CLASS__, 'check_version' ), 5 );
 		add_action( 'init', array( __CLASS__, 'init_background_updater' ), 5 );
 		add_action( 'admin_init', array( __CLASS__, 'trigger_update' ) );
+		add_action( 'admin_init', array( __CLASS__, 'trigger_rate_removal' ) );
 		add_filter( 'plugin_action_links_' . SST_PLUGIN_BASENAME, array( __CLASS__, 'add_action_links' ) );
 	}
 
@@ -113,6 +114,14 @@ class SST_Install {
 		} else {
 			update_option( 'wootax_version', SST()->version );
 		}
+
+		// Prompt user to remove rates if any are present
+		if ( self::has_other_rates() ) {
+			$keep_url   = esc_url( add_query_arg( 'sst_keep_rates', 'yes' ) );
+			$delete_url = esc_url( add_query_arg( 'sst_keep_rates', 'no' ) );
+			$notice     = sprintf( __( 'Simple Sales Tax found extra rates in your tax tables. Please choose to <a href="%s">keep the rates</a> or <a href="%s">delete them</a>.', 'simplesalestax' ), $keep_url, $delete_url );
+			WC_Admin_Notices::add_custom_notice( 'sst_rates', $notice );
+		}
 	}
 
 	/**
@@ -132,6 +141,23 @@ class SST_Install {
 			WC_Admin_Notices::add_custom_notice( 'sst_updating', $notice );
 		}
 	}
+
+	/**
+	 * Remove rates when user clicks 'keep the rates' or 'delete them.'
+	 *
+	 * @since 5.0
+	 */
+	public static function trigger_rate_removal() {
+		global $wpdb;
+
+		if ( ! empty( $_GET[ 'sst_keep_rates'] ) ) {
+			if ( 'no' === $_GET[ 'sst_keep_rates' ] ) {
+				$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}woocommerce_tax_rates WHERE tax_rate_id != %d", SST_RATE_ID ) );
+			}
+			WC_Admin_Notices::remove_notice( 'sst_rates' );
+		}
+	}
+
 	/**
 	 * Queue all required updates to run in the background. Ripped from
 	 * WooCommerce core.
@@ -261,6 +287,22 @@ class SST_Install {
 			$where = array( 'tax_rate_id' => $rate_id );
 			$wpdb->update( $tax_rates_table, $_tax_rate, $where );
 		}
+	}
+
+	/**
+	 * Are any extra tax rates present in the tax tables?
+	 *
+	 * @since 4.5
+	 *
+	 * @return bool
+	 */
+	private static function has_other_rates() {
+		global $wpdb;
+		$rate_count = $wpdb->get_var( $wpdb->prepare( 
+			"SELECT COUNT(*) FROM {$wpdb->prefix}woocommerce_tax_rates WHERE tax_rate_id != %d",
+			SST_RATE_ID
+		) );
+		return $rate_count > 0;
 	}
 
 }

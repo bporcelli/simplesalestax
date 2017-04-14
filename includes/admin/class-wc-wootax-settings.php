@@ -49,7 +49,6 @@ class WC_WooTax_Settings extends WC_Integration {
 
 		// AJAX actions
 		add_action( 'wp_ajax_wootax-verify-taxcloud', array( __CLASS__, 'verify_taxcloud_settings' ) );
-		add_action( 'wp_ajax_wootax-delete-rates', array( __CLASS__, 'wootax_delete_tax_rates' ) );
 	}
 
  	/**
@@ -58,16 +57,10 @@ class WC_WooTax_Settings extends WC_Integration {
  	 * @since 4.5
  	 */
  	public function generate_settings_html( $form_fields = array(), $echo = true ) {
- 		$rates_checked = get_option( 'wootax_rates_checked' );
-
-		if ( ! $rates_checked && $this->has_other_rates() ) {
-			require SST()->plugin_path() . '/templates/admin/delete-rates.php';
-		} else {
-			if ( version_compare( SST_WOO_VERSION, '2.6', '>=' ) ) {
-				echo '<table class="form-table">'; // In 2.6, settings pages not wrapped in table by default
-			}
-			parent::generate_settings_html( $form_fields );
+ 		if ( version_compare( SST_WOO_VERSION, '2.6', '>=' ) ) {
+			echo '<table class="form-table">'; // In 2.6, settings pages not wrapped in table by default
 		}
+		parent::generate_settings_html( $form_fields );
  	}
 
  	/**
@@ -438,21 +431,12 @@ class WC_WooTax_Settings extends WC_Integration {
  	/**
  	 * Process form submissions.
  	 *
- 	 * If the rate removal form is submitted, update wootax_rates_checked flag
- 	 * accordingly. If the settings form is submitted, save plugin settings.
- 	 *
  	 * @since 5.0
  	 */
  	public function process_admin_options() {
- 		if ( isset( $_REQUEST[ 'wt_rates_checked' ] ) ) {
- 			update_option( 'wootax_rates_checked', true );
- 			return;
- 		}
-
  		// TODO: nonce checking?
  		parent::process_admin_options();
 
- 		// Force settings update
  		$this->init_settings();
  	}
 
@@ -617,38 +601,6 @@ class WC_WooTax_Settings extends WC_Integration {
 	}
 
 	/**
-	 * Delete tax rates from the POSTed tax classes. Don't remove
-	 * our tax rate.
-	 *
-	 * @since 3.5
-	 */
-	public static function wootax_delete_tax_rates() {
-		global $wpdb;
-
-		$rate_classes   = explode( ',', $_POST['rates'] );
-		$wootax_rate_id = SST_RATE_ID == false ? 999999 : SST_RATE_ID;
-
-		foreach ( $rate_classes as $rate_class ) {
-			$res = $wpdb->query( $wpdb->prepare( "
-				DELETE FROM
-					{$wpdb->prefix}woocommerce_tax_rates 
-				WHERE 
-					tax_rate_class = %s
-				AND
-					tax_rate_id != $wootax_rate_id
-				",
-				( $rate_class == 'standard-rate' ? '' : $rate_class )
-			) );
-
-			if ( $res === false ) {
-				wp_send_json_error( 'There was an error while deleting your tax rates. Please try again.' );
-			}
-		}
-
-		wp_send_json_success();
-	}
-
-	/**
 	 * Get a list of user roles.
 	 *
 	 * @since 5.0
@@ -661,27 +613,6 @@ class WC_WooTax_Settings extends WC_Integration {
 		    $wp_roles = new WP_Roles();
 		}
 		return $wp_roles->get_names();
-	}
-
-	/**
-	 * Are any extra tax rates present in the tax tables?
-	 *
-	 * @since 4.5
-	 *
-	 * @return bool
-	 */
-	protected function has_other_rates() {
-		global $wpdb;
-
-		$query = "SELECT COUNT(*) FROM {$wpdb->prefix}woocommerce_tax_rates";
-
-		if ( SST_RATE_ID ) {
-			$query .= " WHERE tax_rate_id != ". SST_RATE_ID;
-		}
-
-		$rate_count = $wpdb->get_var( $query );
-
-		return $rate_count > 0;
 	}
 }
  
