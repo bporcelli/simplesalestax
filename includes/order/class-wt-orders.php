@@ -451,7 +451,7 @@ class WT_Orders {
 			// Check for errors
 			if ( $res == false ) {
 				if ( !$cron ) {
-					wootax_add_message( 'There was an error while marking the order as Captured. '. TaxCloud()->get_error_message() );
+					SST_Admin_Notices::add_notice( 'capture_error', 'There was an error while marking the order as Captured. '. TaxCloud()->get_error_message(), false, 'error' );
 					return;
 				} else {
 					return TaxCloud()->get_error_message();
@@ -486,7 +486,7 @@ class WT_Orders {
 			return;
 		} else if( !self::get_meta( $order_id, 'captured' ) ) {
 			if ( !$cron && $full_refund ) {
-				wootax_add_message( '<strong>WARNING:</strong> This order was not refunded in TaxCloud because it has not been captured yet. Please set the order\'s status to completed before refunding it.', 'update-nag' );
+				SST_Admin_Notices::add_notice( 'refund_error', '<strong>WARNING:</strong> This order was not refunded in TaxCloud because it has not been captured yet. Please set the order\'s status to completed before refunding it.', false, 'update-nag' );
 			} else if ( !$cron ) {
 				return "You must set this order's status to 'completed' before refunding any items.";
 			}
@@ -543,7 +543,7 @@ class WT_Orders {
 			// Check for errors
 			if ( $res == false ) {
 				if ( !$cron && $full_refund ) {
-					wootax_add_message( 'There was an error while refunding the order. '. TaxCloud()->get_error_message() );
+					SST_Admin_Notices::add_notice( 'refund_error', 'There was an error while refunding the order. '. TaxCloud()->get_error_message(), false, 'error' );
 					break;
 				} else {
 					return TaxCloud()->get_error_message();

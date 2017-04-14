@@ -158,6 +158,7 @@ final class WC_WooTax {
 		// Used for all request types
 		require 'includes/sst-functions.php';
 		require 'includes/admin/class-wc-wootax-settings.php';
+		require 'includes/admin/sst-admin-notices.php';
 		require 'includes/class-sst-compatibility.php';
 		require 'includes/class-sst-install.php';
 		require 'includes/class-wc-wootax-taxcloud.php';
