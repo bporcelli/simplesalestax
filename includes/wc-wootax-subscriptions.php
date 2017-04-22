@@ -37,7 +37,7 @@ function wt_store_tax_item_totals( $order_id, $item_id = null, $tax_rate_id = nu
 	wc_add_order_item_meta( $tax_item_id, 'shipping_tax', wc_format_decimal( $shipping_tax_total ) );
 }
 
-if ( version_compare( SST_WOO_VERSION, '2.2', '<' ) ) {
+if ( version_compare( WC_VERSION, '2.2', '<' ) ) {
 	add_action( 'woocommerce_checkout_update_order_meta', 'wt_store_tax_item_totals', 10, 1 );
 } else {
 	add_action( 'woocommerce_order_add_tax', 'wt_store_tax_item_totals', 12, 3 );
@@ -192,7 +192,7 @@ function wootax_update_recurring_tax() {
 					if ( $cost != 0 ) {
 						$unit_price = $cost / $qty;
 
-						if ( SST()->settings->get_option( 'tax_based_on' ) != 'line-subtotal' ) {
+						if ( SST_Settings::get( 'tax_based_on' ) != 'line-subtotal' ) {
 							$price = $unit_price; 
 						} else {
 							$qty   = 1;

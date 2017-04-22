@@ -76,7 +76,7 @@ class WC_WooTax_Order {
 	 * @since 4.2
 	 */
 	public function remove_tax() {		
-		if ( version_compare( SST_WOO_VERSION, '2.2', '<' ) ) {
+		if ( version_compare( WC_VERSION, '2.2', '<' ) ) {
 			$items = $this->order->get_items() + $this->order->get_fees();
 		} else {
 			$items = $this->order->get_items() + $this->order->get_fees() + $this->order->get_shipping_methods();
@@ -138,7 +138,7 @@ class WC_WooTax_Order {
 			wc_update_order_item_meta( $item_id, '_wootax_tax_amount', $amt ); 
 
 			// Update the "tax_data" array if we are dealing with WooCommerce 2.2+
-			if ( version_compare( SST_WOO_VERSION, '2.2', '>=' ) ) {
+			if ( version_compare( WC_VERSION, '2.2', '>=' ) ) {
 				$tax_data = $this->get_item_meta( $item_id, '_line_tax_data' );
 				$taxes    = $this->get_item_meta( $item_id, 'taxes' );
 
@@ -212,7 +212,7 @@ class WC_WooTax_Order {
 				wc_update_order_item_meta( $item_id, '_wootax_tax_amount', 0 );
 
 				// Update the "tax_data" array if we are dealing with WooCommerce 2.2+
-				if ( version_compare( SST_WOO_VERSION, '2.2', '>=' ) ) {
+				if ( version_compare( WC_VERSION, '2.2', '>=' ) ) {
 					$tax_data = $this->get_item_meta( $item_id, '_line_tax_data' );
 					$taxes    = $this->get_item_meta( $item_id, 'taxes' );
 
@@ -582,12 +582,12 @@ class WC_WooTax_Order {
 	 *
 	 * @since 4.2
 	 *
-	 * @return WT_Exemption_Certificate|null
+	 * @return ExemptionCertificate|null
 	 */
 	public function get_exemption_certificate() {
 		$exemption_applied = WT_Orders::get_meta( $this->order_id, 'exemption_applied' );
 		
-		if ( $exemption_applied instanceof WT_Exemption_Certificate )
+		if ( $exemption_applied instanceof TaxCloud\ExemptionCertificate )
 			return $exemption_applied;
 		else
 			return null;
@@ -756,8 +756,8 @@ class WC_WooTax_Order {
 		wc_update_order_item_meta( $tax_item_id, 'compound', true );
 		wc_update_order_item_meta( $tax_item_id, 'tax_amount', $cart_tax );
 		wc_update_order_item_meta( $tax_item_id, 'shipping_tax_amount', $shipping_tax );
-
-		do_action( 'wt_tax_item_updated', $tax_item_id, $cart_tax, $shipping_tax );
+		wc_update_order_item_meta( $tax_item_id, 'cart_tax', $cart_tax );
+		wc_update_order_item_meta( $tax_item_id, 'shipping_tax', $shipping_tax );
 	}
 	
 	/**

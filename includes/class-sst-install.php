@@ -214,9 +214,9 @@ class SST_Install {
 	 * @param  array $links Existing action links for plugin.
 	 * @return array
 	 */
-	public static function add_settings_link( $links ) { 
+	public static function add_action_links( $links ) { 
 	 	$settings_link = '<a href="admin.php?page=wc-settings&tab=integration&section=wootax">Settings</a>'; 
-	  	array_unshift( $links, $settings_link ); 
+	  	array_unshift( $links, $settings_link );
 	  	return $links; 
 	}
 
@@ -306,3 +306,5 @@ class SST_Install {
 	}
 
 }
+
+SST_Install::init();

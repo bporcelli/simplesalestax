@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * WooTax Admin
+ * Admin.
  *
  * Handles the admin interface.
  *
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @package SST
  * @since 	4.2
  */
-final class WC_WooTax_Admin {
+final class SST_Admin {
 
 	/**
 	 * Class constructor.
@@ -21,8 +21,8 @@ final class WC_WooTax_Admin {
 	 * @since 4.7
 	 */
 	public function __construct() {
-		$this->hooks();
 		$this->includes();
+		$this->hooks();
 	}
 
 	/**
@@ -74,21 +74,18 @@ final class WC_WooTax_Admin {
 		// Update variation TICs via AJAX
 		add_action( 'woocommerce_ajax_save_product_variations', array( __CLASS__, 'ajax_save_variation_tics' ), 10 );
 
+		add_action( 'init', array( __CLASS__, 'maybe_download_log_file' ) );
 	}
 
 	/**
-	 * Include dependencies.
+	 * Include required files.
 	 *
-	 * @since 4.7
+	 * @since 5.0
 	 */
-	private function includes() {
-		$plugin_path = SST()->plugin_path();
-
-		require $plugin_path . '/includes/admin/class-wc-wootax-upgrade.php';
-		require $plugin_path . '/includes/order/class-wc-wootax-refund.php';
-		require $plugin_path . '/includes/admin/wc-wootax-subscriptions-admin.php';
+	public function includes() {
+		include_once 'class-sst-admin-notices.php';
+		include_once 'class-sst-integration.php';
 	}
-
 
 	/**
 	 * Register our WooCommerce integration.
@@ -96,7 +93,7 @@ final class WC_WooTax_Admin {
 	 * @since 4.2
 	 */
 	public static function add_integration( $integrations ) {
-		$integrations[] = 'WC_WooTax_Settings';
+		$integrations[] = 'SST_Integration';
 		
 		return $integrations;
 	}
@@ -294,7 +291,7 @@ final class WC_WooTax_Admin {
 		// Output select box
 		$origin_addresses = SST_Product::get_origin_addresses( $post->ID );
 
-		echo '<select class="'. ( version_compare( SST_WOO_VERSION, '2.3', '<' ) ? 'chosen_select' : 'wc-enhanced-select' ) .'" name="_wootax_origin_addresses[]" multiple>';
+		echo '<select class="'. ( version_compare( WC_VERSION, '2.3', '<' ) ? 'chosen_select' : 'wc-enhanced-select' ) .'" name="_wootax_origin_addresses[]" multiple>';
 
 		if ( is_array( $addresses ) && count( $addresses ) > 0 ) {
 			foreach ( $addresses as $key => $address ) {
@@ -488,7 +485,7 @@ final class WC_WooTax_Admin {
 		if ( apply_filters( 'wootax_hide_tax_options', true ) === true ) {
 			$classes .= ' hide-tax-options';
 
-			$version = str_replace( '.', '-', SST_WOO_VERSION );
+			$version = str_replace( '.', '-', WC_VERSION );
 			$classes .= ' wc-' . substr( $version, 0, 3 );
 		}
 
@@ -602,6 +599,41 @@ final class WC_WooTax_Admin {
 		}
 	}
 
+	/**
+ 	 * Force download log file if "Download Log" was clicked.
+ 	 *
+ 	 * @since 4.4
+ 	 */
+	public static function maybe_download_log_file() {
+		if ( isset( $_GET['download_log'] ) ) {
+			// If file doesn't exist, create it
+			$handle = 'wootax';
+
+			if ( function_exists( 'wc_get_log_file_path' ) ) {
+				$log_path = wc_get_log_file_path( $handle );
+			} else {
+				$log_path = WC()->plugin_path() . '/logs/' . $handle . '-' . sanitize_file_name( wp_hash( $handle ) ) . '.txt';
+			}
+
+			if ( ! file_exists( $log_path ) ) {
+				$fh = @fopen( $log_path, 'a' );
+				fclose( $fh );
+			}
+
+			// Force download
+			header( 'Content-Description: File Transfer' );
+		    header( 'Content-Type: application/octet-stream' );
+		    header( 'Content-Disposition: attachment; filename=' . basename( $log_path ) );
+		    header( 'Expires: 0' );
+		    header( 'Cache-Control: must-revalidate' );
+		    header( 'Pragma: public' );
+		    header( 'Content-Length: ' . filesize( $log_path ) );
+
+		    readfile( $log_path );
+
+		    exit;
+		}
+	}
 }
 
-new WC_WooTax_Admin();
+new SST_Admin();

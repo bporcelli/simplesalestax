@@ -16,22 +16,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SST_Admin_Notices extends WC_Admin_Notices {
 
 	/**
-	 * Show a notice.
-	 * @param string $name
-	 */
-	private static function add( $name ) {
-		self::$notices = array_unique( array_merge( self::get_notices(), array( $name ) ) );
-	}
-
-	/**
 	 * Add a custom notice.
 	 * @param string $name
 	 * @param string $notice_html
 	 * @param bool $persistent (default: false)
 	 * @param string $class (default: 'updated')
 	 */
-	public static function add_notice( $name, $notice_html, $persistent = false, $class = 'updated' ) {
-		self::add( $name );
+	public static function add( $name, $notice_html, $persistent = false, $class = 'updated' ) {
+		self::add_notice( $name );
 
 		update_option( 'woocommerce_admin_notice_' . $name, array(
 			'message'    => wp_kses_post( $notice_html ),

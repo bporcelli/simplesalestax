@@ -109,7 +109,7 @@ class WC_WooTax_Subscriptions {
 		// Build and format items array
 		$order_items = $order->order->get_items() + $order->order->get_fees();
 
-		if ( version_compare( SST_WOO_VERSION, '2.2', '<' ) ) {
+		if ( version_compare( WC_VERSION, '2.2', '<' ) ) {
 			$shipping_method = array( 
 				'type' => 'shipping',
 				'cost' => $order->order->get_total_shipping(),
@@ -121,7 +121,7 @@ class WC_WooTax_Subscriptions {
 		}
 
 		$final_items = $type_array = array();
-		$tax_based_on = SST()->settings->get_option( 'tax_based_on' );
+		$tax_based_on = SST_Settings::get( 'tax_based_on' );
 
 		foreach ( $order_items as $item_id => $item ) {
 			$type = $item[ 'type' ];

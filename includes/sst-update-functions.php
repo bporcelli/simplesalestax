@@ -180,7 +180,7 @@ function sst_update_42_migrate_order_data() {
 						}
 					break;
 					case 'shipping':
-						if ( version_compare( SST_WOO_VERSION, '2.2', '<' ) ) {
+						if ( version_compare( WC_VERSION, '2.2', '<' ) ) {
 							update_post_meta( $order->wc_oid, '_wootax_first_found', $location_key );
 							update_post_meta( $order->wc_oid, '_wootax_shipping_index', $index );
 						} else {

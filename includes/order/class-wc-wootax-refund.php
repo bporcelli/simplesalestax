@@ -93,7 +93,7 @@ class WC_WooTax_Refund extends WC_Order_Refund {
 
 		$id_array[ SST_SHIPPING_ITEM ] = isset( $identifiers[ SST_SHIPPING_ITEM ] ) ? $identifiers[ SST_SHIPPING_ITEM ] : SST_SHIPPING_ITEM;
 
-		if ( version_compare( SST_WOO_VERSION, '2.2', '>=' ) && !isset( $identifiers[ SST_SHIPPING_ITEM ] ) ) {			
+		if ( version_compare( WC_VERSION, '2.2', '>=' ) && !isset( $identifiers[ SST_SHIPPING_ITEM ] ) ) {			
 			foreach ( $order->order->get_shipping_methods() as $method_id => $method ) {
 				$id_array[ SST_SHIPPING_ITEM ] = $method_id;
 			}

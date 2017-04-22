@@ -136,7 +136,7 @@ class WT_Orders {
      * @param int $order_id ID of new order.
 	 */
 	public static function maybe_store_shipping_index( $order_id ) {
-		if ( version_compare( SST_WOO_VERSION, '2.2', '<' ) ) {
+		if ( version_compare( WC_VERSION, '2.2', '<' ) ) {
 			$location_mapping = self::get_meta( $order_id, 'location_mapping_array' );
 			$mapping          = self::get_meta( $order_id, 'mapping_array' );
 
@@ -207,9 +207,9 @@ class WT_Orders {
 			return; // Returning here allows WC_AJAX::calc_line_taxes to take over for non-US orders
 		} else {
 			// Build items array
-			if ( version_compare( SST_WOO_VERSION, '2.2', '>=' ) ) {
+			if ( version_compare( WC_VERSION, '2.2', '>=' ) ) {
 			    parse_str( $_POST[ 'items' ], $items );
-			} else if ( version_compare( SST_WOO_VERSION, '2.1.0', '>=' ) ) {
+			} else if ( version_compare( WC_VERSION, '2.1.0', '>=' ) ) {
 				$items = array(
 					'order_item_id'      => array(),
 					'order_item_qty'     => array(),
@@ -264,7 +264,7 @@ class WT_Orders {
 					$tic  = SST_Product::get_tic( $product_id, $variation_id );
 					$cost = $items[ 'line_total' ][ $item_id ];
 					$type = 'cart';
-					$qty  = SST()->settings->get_option( 'tax_based_on' ) == 'line-subtotal' ? 1 : $items[ 'order_item_qty' ][ $item_id ];
+					$qty  = SST_Settings::get( 'tax_based_on' ) == 'line-subtotal' ? 1 : $items[ 'order_item_qty' ][ $item_id ];
 				} else {
 					// Fee
 					$tic  = apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC );
@@ -305,7 +305,7 @@ class WT_Orders {
 			// Convert response array to be sent back to client
 			// @see WC_AJAX::calc_line_taxes()
 			if ( is_array( $res ) ) {
-				if ( version_compare( SST_WOO_VERSION, '2.2', '>=' ) ) {
+				if ( version_compare( WC_VERSION, '2.2', '>=' ) ) {
 					
 					if ( ! isset( $items[ 'line_tax' ] ) )
 						$items[ 'line_tax' ] = array();
@@ -347,7 +347,7 @@ class WT_Orders {
 					include( ABSPATH . '/'. PLUGINDIR . '/woocommerce/includes/admin/meta-boxes/views/html-order-items.php' );
 
 					die();
-				} else if ( version_compare( SST_WOO_VERSION, '2.1', '>=' ) ) {
+				} else if ( version_compare( WC_VERSION, '2.1', '>=' ) ) {
 					// We are going to send back a JSON response
 					header( 'Content-Type: application/json; charset=utf-8' );
 
@@ -451,7 +451,7 @@ class WT_Orders {
 			// Check for errors
 			if ( $res == false ) {
 				if ( !$cron ) {
-					SST_Admin_Notices::add_notice( 'capture_error', 'There was an error while marking the order as Captured. '. TaxCloud()->get_error_message(), false, 'error' );
+					SST_Admin_Notices::add( 'capture_error', 'There was an error while marking the order as Captured. '. TaxCloud()->get_error_message(), false, 'error' );
 					return;
 				} else {
 					return TaxCloud()->get_error_message();
@@ -486,7 +486,7 @@ class WT_Orders {
 			return;
 		} else if( !self::get_meta( $order_id, 'captured' ) ) {
 			if ( !$cron && $full_refund ) {
-				SST_Admin_Notices::add_notice( 'refund_error', '<strong>WARNING:</strong> This order was not refunded in TaxCloud because it has not been captured yet. Please set the order\'s status to completed before refunding it.', false, 'update-nag' );
+				SST_Admin_Notices::add( 'refund_error', '<strong>WARNING:</strong> This order was not refunded in TaxCloud because it has not been captured yet. Please set the order\'s status to completed before refunding it.', false, 'update-nag' );
 			} else if ( !$cron ) {
 				return "You must set this order's status to 'completed' before refunding any items.";
 			}
@@ -543,7 +543,7 @@ class WT_Orders {
 			// Check for errors
 			if ( $res == false ) {
 				if ( !$cron && $full_refund ) {
-					SST_Admin_Notices::add_notice( 'refund_error', 'There was an error while refunding the order. '. TaxCloud()->get_error_message(), false, 'error' );
+					SST_Admin_Notices::add( 'refund_error', 'There was an error while refunding the order. '. TaxCloud()->get_error_message(), false, 'error' );
 					break;
 				} else {
 					return TaxCloud()->get_error_message();
@@ -585,7 +585,7 @@ class WT_Orders {
 	 * @param int $order_id ID of new order.
 	 */
 	public static function maybe_capture_order( $order_id ) {
-		if ( SST()->settings->get_option( 'capture_immediately' ) == 'yes' ) {
+		if ( SST_Settings::get( 'capture_immediately' ) == 'yes' ) {
 			$res = self::capture_order( $order_id, true );
 
 			if ( $res !== true && self::$logger )

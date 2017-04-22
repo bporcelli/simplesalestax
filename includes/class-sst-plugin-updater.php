@@ -9,7 +9,7 @@
  * @version 1.0
  */
 
-final class WT_Plugin_Updater {
+final class SST_Plugin_Updater {
 	private $api_url  = '';
 	private $api_data = array();
 	private $name     = '';

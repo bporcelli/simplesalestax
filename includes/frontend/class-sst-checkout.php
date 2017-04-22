@@ -13,8 +13,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @package SST
  * @since 	4.2
  */
-class WC_WooTax_Checkout {
+class SST_Checkout {
 
+	// TODO: INVALIDATE CERTIFICATE CACHE WHEN NEW CERTIFICATE ADDED
+	
 	/**
 	 * @var string Customer ID (user login or ID from session).
 	 * @since 5.0
@@ -28,8 +30,7 @@ class WC_WooTax_Checkout {
 	private $order_parts = array();
 
 	/**
-	 * @var WT_Exemption_Certificate The exemption certificate applied to the
-	 * current order, or NULL if no certificate is applied.
+	 * @var ExemptionCertificate Exemption certificate for the order.
 	 * @since 5.0
 	 */
 	private $exempt_cert = null;
@@ -39,22 +40,25 @@ class WC_WooTax_Checkout {
 	 *
 	 * @since 4.2
 	 */
-	public function __construct( $cart ) {
+	public function __construct() {
 		// Load data from the session after WP is loaded
-		add_action( 'wp_loaded', array( $this, 'init' ) );
+		// add_action( 'wp_loaded', array( $this, 'init' ) );
 
 		// Don't allow WooCommerce to hide zero taxes; we'll handle this
-		add_filter( 'woocommerce_cart_hide_zero_taxes', '__return_false' );
+		// add_filter( 'woocommerce_cart_hide_zero_taxes', '__return_false' );
 
 		// Maybe hide Sales Tax line item if tax total is $0.00
-		add_filter( 'woocommerce_cart_tax_totals', array( $this, 'maybe_hide_tax_total' ), 10, 1 );
+		// add_filter( 'woocommerce_cart_tax_totals', array( $this, 'maybe_hide_tax_total' ), 10, 1 );
 		
 		// Set cart/shipping tax totals when cart totals are calculated
-		add_action( 'woocommerce_calculate_totals', array( $this, 'calculate_tax_totals' ), 10, 1 );
+		// add_action( 'woocommerce_calculate_totals', array( $this, 'calculate_tax_totals' ), 10, 1 );
 	
 		// When an order is created or resumed, associate session data with it
-		add_action( 'woocommerce_new_order', array( $this, 'add_order_meta' ), 10, 1 );
-		add_action( 'woocommerce_resume_order', array( $this, 'add_order_meta' ), 10, 1 );
+		// add_action( 'woocommerce_new_order', array( $this, 'add_order_meta' ), 10, 1 );
+		// add_action( 'woocommerce_resume_order', array( $this, 'add_order_meta' ), 10, 1 );
+
+		add_action( 'woocommerce_checkout_after_customer_details', array( $this, 'output_tax_details_form' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 	}
 
 	/**
@@ -66,7 +70,7 @@ class WC_WooTax_Checkout {
 		$this->order_parts = WC()->session->get( 'order_parts', array() );
 
 		if ( ( $exempt_cert = WC()->session->get( 'exempt_cert', false ) ) ) {
-			$this->exempt_cert = WT_Exemption_Certificate::fromArray( $exempt_cert );
+			$this->exempt_cert = TaxCloud\ExemptionCertificate::fromArray( $exempt_cert );
 		}
 
 		$this->customer_id = $this->get_customer_id();
@@ -155,7 +159,7 @@ class WC_WooTax_Checkout {
 		$this->cart->cart_contents[ $key ][ 'line_subtotal_tax' ] += $amt;
 
 		// Add the "tax_data" array if we are dealing with WooCommerce 2.2+
-		if ( version_compare( SST_WOO_VERSION, '2.2', '>=' ) ) {
+		if ( version_compare( WC_VERSION, '2.2', '>=' ) ) {
 			$tax_data = $this->cart->cart_contents[ $key ][ 'line_tax_data' ];
 
 			if ( ! isset( $tax_data[ 'total' ][ SST_RATE_ID ] ) ) {
@@ -186,7 +190,7 @@ class WC_WooTax_Checkout {
 		$this->cart->fees[ $key ]->tax += $amt;
 
 		// Update tax_data array if we are dealing with WooCommerce 2.2+
-		if ( version_compare( SST_WOO_VERSION, '2.2', '>=' ) ) {
+		if ( version_compare( WC_VERSION, '2.2', '>=' ) ) {
 			$tax_data = $this->cart->fees[ $key ]->tax_data;
 
 			if ( ! isset( $tax_data[ SST_RATE_ID ] ) ) {
@@ -219,7 +223,7 @@ class WC_WooTax_Checkout {
 		$customer_state = $this->destination_address[ 'State' ];
 		$counters_array = $lookup_data = $mapping_array = array();
 		
-		$tax_based_on = SST()->settings->get_option( 'tax_based_on' );
+		$tax_based_on = SST_Settings::get( 'tax_based_on' );
 
 		// Add cart items
 		foreach ( $order_items as $item_id => $item ) {
@@ -499,7 +503,7 @@ class WC_WooTax_Checkout {
 		$this->cart->{$tax_key}[ SST_RATE_ID ] = $new_tax;
 
 		// Use get_tax_total to set new tax total so we don't override other rates
-		$this->cart->$total_key = version_compare( SST_WOO_VERSION, '2.2', '>=' ) ? WC_Tax::get_tax_total( $this->cart->$tax_key ) : $this->cart->tax->get_tax_total( $this->cart->$tax_key );
+		$this->cart->$total_key = version_compare( WC_VERSION, '2.2', '>=' ) ? WC_Tax::get_tax_total( $this->cart->$tax_key ) : $this->cart->tax->get_tax_total( $this->cart->$tax_key );
 		
 		$this->$total_key = $new_tax;
 	}
@@ -560,7 +564,7 @@ class WC_WooTax_Checkout {
 	 * @return array
 	 */
 	public function maybe_hide_tax_total( $tax_totals ) {
-		$hide_zero_taxes = SST()->settings->get_option( 'show_zero_tax' ) != 'true';
+		$hide_zero_taxes = SST_Settings::get( 'show_zero_tax' ) != 'true';
 
 		if ( $hide_zero_taxes ) {
 			$amounts    = array_filter( wp_list_pluck( $tax_totals, 'amount' ) );
@@ -584,7 +588,7 @@ class WC_WooTax_Checkout {
 		WT_Orders::update_meta( $order_id, 'wt_order_parts', $this->order_parts );
 
 		$exempt_cert = $this->exempt_cert;
-		if ( $exempt_cert instanceof WT_Exemption_Certificate ) {
+		if ( $exempt_cert instanceof TaxCloud\ExemptionCertificate ) {
 			$exempt_cert = $this->exempt_cert->toArray();
 		}
 
@@ -598,6 +602,78 @@ class WC_WooTax_Checkout {
 		// TODO: maybe delete session data
 	}
 
+	/**
+	 * Output Tax Details section of checkout form.
+	 *
+	 * @since 5.0
+	 */
+	public function output_tax_details_form() {
+		// Exit if exemptions are disabled...
+		$show_exempt = SST_Settings::get( 'show_exempt' ) == 'true';
+
+		if ( ! $show_exempt )
+			return;
+
+		// ... or if the form should only be shown to exempt users and the current
+		// user is not exempt
+		$current_user = wp_get_current_user();
+
+		$restricted = SST_Settings::get( 'restrict_exempt' ) == 'yes';
+		$exempt_roles = SST_Settings::get( 'exempt_roles', array() );
+		$user_roles = is_user_logged_in() ? $current_user->roles : array();
+		$user_exempt = count( array_intersect( $exempt_roles, $user_roles ) ) > 0;
+
+		if ( $restricted && ( ! is_user_logged_in() || ! $user_exempt ) )
+			return;
+
+		// Check the "Tax exempt" checkbox by default if:
+		// - Checkout is being loaded for the first time (GET) and the customer
+		// has a tax exempt user role, OR
+		// - Checkout form has been submitted (POST) and the tax exempt box is
+		// still checked
+		$checked = $_GET && $user_exempt || $_POST && isset( $_POST[ 'tax_exempt' ] );
+
+		echo '<h3>Tax exempt? <input type="checkbox" name="tax_exempt" id="tax_exempt_checkbox" class="input-checkbox" value="1"'. checked( $checked, true, false ) .'></h3>';
+
+		echo '<div id="tax_details">';
+
+		$template_path = SST()->plugin_path() . '/templates';
+
+		if ( is_user_logged_in() ) {
+			wc_get_template( 'form-tax-exempt.php', array(
+				'certificates'  => SST_Certificates::get_certificates( false ),
+				'template_path' => $template_path,
+			), 'sst/checkout/', $template_path .'/checkout/' );
+		} else {
+			wc_get_template( 'form-tax-exempt-logged-out.php', array(), 'sst/checkout/', $template_path .'/checkout/' );
+		}
+
+		echo '</div>';
+	}
+
+	/**
+	 * Enqueue JS/CSS for exemption management interface.
+	 *
+	 * @since 5.0
+	 */
+	public function enqueue_scripts() {
+		// Magnific Popup
+		wp_enqueue_style( 'mpop', SST()->plugin_url() . '/assets/css/magnific-popup.css' );
+		wp_enqueue_script( 'mpop', SST()->plugin_url() . '/assets/js/magnific-popup.js', array( 'jquery' ), '1.0', true );
+
+		// Certificate table JS
+		wp_enqueue_script( 'certificate-table', SST()->plugin_url() . '/assets/js/certificate-table.js', array( 'mpop' ) );
+
+		// Checkout CSS
+		wp_enqueue_style( 'sst-checkout', SST()->plugin_url() . "/assets/css/checkout.css" );
+
+		// Checkout JS
+		wp_enqueue_script( 'sst-checkout', SST()->plugin_url() . "/assets/js/checkout.js", array( 'jquery', 'mpop' ), '1.0', true );
+		wp_localize_script( 'sst-checkout', 'WT', array(
+			'ajaxURL' => admin_url( 'admin-ajax.php' ) 
+		) );
+	}
+
 }
 
-endif;
+new SST_Checkout();

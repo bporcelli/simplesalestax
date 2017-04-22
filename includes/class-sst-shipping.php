@@ -35,6 +35,6 @@ class SST_Shipping {
 	 * @return bool
 	 */
 	public static function is_local_delivery( $method_id = '' ) {
-		return in_array( $method_id, apply_filters( 'wootax_local_delivery_methods', array( 'local_delivery' ) );
+		return in_array( $method_id, apply_filters( 'wootax_local_delivery_methods', array( 'local_delivery' ) ) );
 	}
 }
