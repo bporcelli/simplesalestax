@@ -1,0 +1,18 @@
+{
+    "config": {
+        "vendor-dir": "includes/vendor"
+    },
+    "name": "simplesalestax/simplesalestax",
+    "description": "Sales tax compliance solution for WooCommerce.",
+    "type": "project",
+    "require": {
+        "bporcelli/php-taxcloud": "^0.2.0"
+    },
+    "license": "GPL-3.0+",
+    "authors": [
+        {
+            "name": "The WooTax Corporation",
+            "email": "support@simplesalestax.com"
+        }
+    ]
+}

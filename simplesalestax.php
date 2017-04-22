@@ -28,20 +28,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 
-// Seems weird to include this here... try to think of a better way in the future
-require 'includes/wc-wootax-messages.php';
-
 /**
- * WooTax.
- *
- * Main plugin class. Handles plugin activation/activation, dependency checking,
- * and a few other tasks.
+ * Simple Sales Tax.
  *
  * @author 	Simple Sales Tax
  * @package SST
  * @since 	4.2
  */
-final class WC_WooTax {
+final class SST {
 
 	/**
 	 * @var string Plugin version.
@@ -50,13 +44,7 @@ final class WC_WooTax {
 	public $version = 5.0;
 
 	/**
-	 * @var WC_Integration WooCommerce integration for Simple Sales Tax.
-	 * @since 5.0
-	 */
-	public $settings = null;
-
-	/**
-	 * @var WC_WooTax The single plugin instance.
+	 * @var SST The single plugin instance.
 	 * @since 4.2
 	 */
 	protected static $_instance = null;
@@ -97,8 +85,8 @@ final class WC_WooTax {
 	 * @since 4.7
 	 */
 	public function __construct() {
-		$this->includes();
 		$this->define_constants();
+		$this->critical_includes();
 		$this->hooks();
 	}
 
@@ -112,8 +100,6 @@ final class WC_WooTax {
 		$this->define( 'SST_SHIPPING_ITEM', 'SHIPPING' );
 		$this->define( 'SST_DEFAULT_FEE_TIC', 10010 );
 		$this->define( 'SST_RATE_ID', get_option( 'wootax_rate_id' ) );
-		$this->define( 'SST_LOG_REQUESTS', $this->get_option( 'log_requests' ) !== 'no' );
-		$this->define( 'SST_WOO_VERSION', SST_Compatibility::woocommerce_version() );
 		$this->define( 'SST_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 	}
 
@@ -150,65 +136,82 @@ final class WC_WooTax {
 	}
 
 	/**
+	 * Critical includes (required before Woo loads).
+	 *
+	 * @since 5.0
+	 */
+	private function critical_includes() {
+		include_once 'includes/class-sst-compatibility.php';
+		include_once 'includes/class-sst-install.php';
+	}
+
+	/**
 	 * Include required plugin files.
 	 *
 	 * @since 4.4
 	 */
 	private function includes() {
-		// Used for all request types
-		require 'includes/sst-functions.php';
-		require 'includes/admin/class-wc-wootax-settings.php';
-		require 'includes/admin/sst-admin-notices.php';
-		require 'includes/class-sst-compatibility.php';
-		require 'includes/class-sst-install.php';
-		require 'includes/class-wc-wootax-taxcloud.php';
-		require 'includes/class-sst-address.php';
-		require 'includes/class-sst-product.php';
-		require 'includes/class-wt-exemption-certificate.php';
-		require 'includes/order/class-wt-orders.php';
-		require 'includes/WT_Plugin_Updater.php';
+		/**
+		 * Autoloader.
+		 */
+		include_once 'includes/vendor/autoload.php';
 
-		// Only used when Subscriptions is active
-		// if ( WT_SUBS_ACTIVE ) {
-		// 	require 'includes/wc-wootax-subscriptions.php';
-		// }
+		/**
+		 * Core classes.
+		 */
+		include_once 'includes/sst-functions.php';
+		include_once 'includes/class-sst-settings.php';
+		include_once 'includes/class-sst-plugin-updater.php';
+		include_once 'includes/class-sst-ajax.php';
+		include_once 'includes/class-sst-product.php';
+		include_once 'includes/class-sst-shipping.php';
+		include_once 'includes/class-sst-addresses.php';
+		include_once 'includes/class-sst-certificates.php';
 
-		// Used on frontend
-		if ( $this->is_request( 'frontend' ) ) {
-
-			$show_exempt = $this->get_option( 'show_exempt' ) == 'true';
-
-			if ( $show_exempt ) {
-				// todo: determine where to include this!
-				require 'includes/class-wt-certificate-manager.php';
-			}
-
-			// if ( WT_SUBS_ACTIVE ) {
-			// 	require 'includes/order/class-wc-wootax-subscriptions.php';
-			// 	require 'includes/frontend/wc-wootax-subscriptions-frontend.php';
-			// }
-			
-			require 'includes/frontend/class-wc-wootax-checkout.php';
+		/**
+		 * Admin only.
+		 */
+		if ( $this->is_request( 'admin' ) ) {
+			include_once 'includes/admin/class-sst-admin.php';
 		}
 
-		// Strictly admin panel
-		if ( $this->is_request( 'admin' ) ) {
-			require 'includes/admin/class-wc-wootax-admin.php';
+		/**
+		 * Frontend only.
+		 */
+		if ( $this->is_request( 'frontend' ) ) {
+			$this->frontend_includes();
 		}
 	}
 
 	/**
-	 * Hook into WordPress/WooCommerce.
+	 * Frontend includes.
 	 *
-	 * @since 4.4
+	 * @since 5.0
+	 */
+	private function frontend_includes() {
+		include_once 'includes/frontend/class-sst-checkout.php';
+		include_once 'includes/frontend/class-sst-account.php';
+	}
+
+	/**
+	 * Register action hooks.
+	 *
+	 * @since 5.0
 	 */
 	private function hooks() {
-		register_activation_hook( __FILE__, array( 'SST_Install', 'activate' ) );
-		add_action( 'init', array( $this, 'initialize_settings' ) );
-		add_action( 'init', array( $this, 'load_textdomain' ) );
-		add_action( 'init', array( $this, 'check_updates' ) );
-		add_filter( 'woocommerce_rate_label', array( $this, 'get_rate_label' ), 15, 2 );
-		add_filter( 'woocommerce_rate_code', array( $this, 'get_rate_code' ), 12, 2 );
+		register_activation_hook( __FILE__, array( 'SST_Install', 'install' ) );
+		add_action( 'plugins_loaded', array( $this, 'initialize' ) );
+	}
+
+	/**
+	 * Initialize.
+	 *
+	 * @since 5.0
+	 */
+	public function initialize() {
+		$this->includes();
+		$this->load_textdomain();
+		$this->check_updates();
 	}
 
 	/**
@@ -216,17 +219,20 @@ final class WC_WooTax {
 	 *
 	 * @since 5.0
 	 */
-	public function load_textdomain() {
-		load_plugin_textdomain( 'simplesalestax', plugin_basename( __FILE__ ) . '/languages' );
+	private function load_textdomain() {
+		load_plugin_textdomain( 'simplesalestax', false, plugin_basename( __FILE__ ) . '/languages' );
 	}
 
 	/**
-	 * Initialize settings.
+	 * Check for updates.
 	 *
 	 * @since 5.0
 	 */
-	public function initialize_settings() {
-		$this->settings = new WC_WooTax_Settings();
+	private function check_updates() {
+		// Instantiate updater to trigger update check
+		new SST_Plugin_Updater( 'https://simplesalestax.com', $this->plugin_file(), array( 
+			'version' => $this->version, // current version number
+		) );
 	}
 
 	/**
@@ -237,14 +243,14 @@ final class WC_WooTax {
 	 * @param  string $name Name of the tax, won't be populated in our case.
 	 * @param  int $key Tax key (default: null).
 	 * @return string
-	 */
+	 woocommerce_rate_label
 	public function get_rate_label( $name, $key = NULL ) {
 		if ( $name == SST_RATE_ID || $key == SST_RATE_ID ) {
 			return apply_filters( 'wootax_rate_label', 'Sales Tax' );
 		} else {
 			return $name;
 		}
-	}
+	}*/
 
 	/**
 	 * Return correct rate code for our tax rate. Should be WOOTAX-RATE-DO-NOT-REMOVE.
@@ -252,26 +258,14 @@ final class WC_WooTax {
 	 * @param  string $code Rate code generated by Woo @see WC_Tax->get_rate_code().
 	 * @param  int $key Tax rate ID.
 	 * @return string
-	 */
+	 woocommerce_rate_code
 	public function get_rate_code( $code, $key ) {
 		if ( $key == SST_RATE_ID ) {
 			return apply_filters( 'wootax_rate_code', 'WOOTAX-RATE-DO-NOT-REMOVE' );
 		} else {
 			return $code;
 		}
-	}
-
-	/**
-	 * Check for updates.
-	 *
-	 * @since 5.0
-	 */
-	public function check_updates() {
-		// Instantiate updater to trigger update check
-		new WT_Plugin_Updater( 'https://simplesalestax.com', $this->plugin_file(), array( 
-			'version' => $this->version, // current version number
-		) );
-	}
+	}*/
 
 	/**
 	 * Get the plugin url.
@@ -308,14 +302,14 @@ final class WC_WooTax {
 }
 
 /**
- * Get the singleton WC_WooTax instance.
+ * Get the singleton SST instance.
  *
  * @since 4.2
  *
- * @return WC_WooTax
+ * @return SST
  */
 function SST() {
-	return WC_WooTax::instance();
+	return SST::instance();
 }
 
 SST();

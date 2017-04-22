@@ -7,26 +7,27 @@
  * @package Simple Sales Tax
  * @author Brett Porcelli
  * @since 4.7
- * @version 2.0
  */ 
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly
-} 
+}
+
+$detail = $certificate->getDetail();
 
 // Prepare values for display
-$class = $certificate->is_single() ? 'single' : '';
+$class = $detail->getSinglePurchase() ? 'single' : '';
 
 $values = array(
-    "PurchaserName"            => $certificate->PurchaserName,
-    "PurchaserAddress"         => $certificate->PurchaserAddress1,
-    "PurchaserState"           => $certificate->PurchaserState,
-    "PurchaserExemptionReason" => $certificate->PurchaserExemptionReason,
-    "OrderID"                  => $certificate->SinglePurchaseOrderNumber,
-    "Date"                     => date( 'm/d/Y', strtotime( $certificate->CreatedDate ) ),
-    "TaxType"                  => $certificate->PurchaserTaxID->TaxType,
-    "IDNumber"                 => $certificate->PurchaserTaxID->IDNumber,
-    "PurchaserBusinessType"    => $certificate->PurchaserBusinessType,
+    "PurchaserName"            => $detail->getPurchaserFirstName() . " " . $detail->getPurchaserLastName(),
+    "PurchaserAddress"         => $detail->getPurchaserAddress1(),
+    "PurchaserState"           => sst_prettify( $detail->getPurchaserState() ),
+    "PurchaserExemptionReason" => sst_prettify( $detail->getPurchaserExemptionReason() ),
+    "OrderID"                  => $detail->getSinglePurchaseOrderNumber(),
+    "Date"                     => date( 'm/d/Y', strtotime( $detail->getCreatedDate() ) ),
+    "TaxType"                  => $detail->getPurchaserTaxID()->getTaxType(),
+    "IDNumber"                 => $detail->getPurchaserTaxID()->getIDNumber(),
+    "PurchaserBusinessType"    => sst_prettify( $detail->getPurchaserBusinessType() ),
     "MerchantName"             => $seller_name
 ); ?>
 

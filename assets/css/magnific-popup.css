@@ -116,7 +116,8 @@ button.mfp-arrow {
   padding: 0;
   z-index: 1046;
   box-shadow: none;
-  touch-action: manipulation; }
+  touch-action: manipulation;
+  background: none !important; }
 
 button::-moz-focus-inner {
   padding: 0;

@@ -14,7 +14,7 @@
                 jQuery.post(
                     ajaxurl,
                     {
-                        action: 'wootax-verify-taxcloud',
+                        action: 'sst_verify_taxcloud',
                         wootax_tc_id: apiID,
                         wootax_tc_key: apiKey
                     },
@@ -28,49 +28,6 @@
                 );
             }
         } );
-        
-        // Remove manually added tax rates
-        jQuery( '#remove-rates' ).click(function() {
-            var toRemove = [];
-            var count = 0;
-            var $table = jQuery('table#delete-rates');
-
-            $table.find('tr').each(function() {
-                var rates = jQuery(this).find('td').eq(1).text();
-                var check = jQuery(this).find('th').find('input');
-                var rate = check.data('val');
-
-                if (check.is(':checked') && typeof(rate) != 'undefined') {
-                    count += parseInt(rates);
-                    toRemove.push(rate);
-                }
-            });
-
-            if (toRemove.length == 0) {
-                alert( data.strings.select_classes );
-            } else if (confirm(data.strings.confirm_rate_removal)) {
-                jQuery.post(
-                    ajaxurl,
-                    {
-                        action: 'wootax-delete-rates',
-                        rates: toRemove.join()
-                    },
-                    function(resp) {
-                        if (resp.success) {
-                            jQuery(toRemove).each(function() {
-                                $table.find('input[data-val="'+ this +'"]').attr('checked', false).closest('tr').find('td').eq(1).text('0');
-                            });
-
-                            $table.find('.check_column input').trigger('click');
-
-                            alert( data.strings.rates_removed );
-                        } else {
-                            alert( resp.data );
-                        }
-                    }
-                );
-            }
-        });
 
         /**
          * Add row to address table

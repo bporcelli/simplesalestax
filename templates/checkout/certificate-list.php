@@ -26,8 +26,12 @@ if ( empty( $selected ) ) {
 $i = 1;
 
 foreach ( $certificates as $id => $certificate ):
-
-	$view_url = $certificate->get_view_url(); ?>
+	$detail   = $certificate->getDetail();
+	$name     = $detail->getPurchaserFirstName() . " " . $detail->getPurchaserLastName();
+	$view_url = add_query_arg( array(
+		'action' => 'sst_view_certificate',
+		'certID' => $id,
+	), admin_url( 'admin-ajax.php' ) ); ?>
 
 	<tr id="<?php echo $id; ?>">
 		<td>
@@ -36,15 +40,8 @@ foreach ( $certificates as $id => $certificate ):
 		<td>
 			<abbr title="<?php echo $id; ?>"><?php echo $i++; ?></abbr>
 		</td>
-	    <td>
-	    	<?php echo $certificate->PurchaserName ?>
-	    </td>
-	    <td>
-			<?php echo date( 'm/d/Y', strtotime( $certificate->CreatedDate ) ); ?>
-		</td>
-	    <td>
-	    	<?php echo "<a href='$view_url' class='sst-action popup-link mfp-iframe' target='_blank'>View</a>"; ?>
-	    </td>
+	    <td><?php echo $name; ?></td>
+	    <td><?php echo date( 'm/d/Y', strtotime( $detail->getCreatedDate() ) ); ?></td>
+	    <td><?php echo "<a href='$view_url' class='sst-action popup-link mfp-iframe' target='_blank'>View</a>"; ?></td>
 	</tr>
-
 <?php endforeach; ?>

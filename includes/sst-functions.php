@@ -30,3 +30,108 @@ function sst_tip( $tip ) {
 		printf( $format, $tip, $img_path );
 	}
 }
+
+/**
+ * Given an "ugly" string, return the corresponding "pretty" string.
+ *
+ * @since 5.0
+ *
+ * @param  string $ugly
+ * @return Pretty string if found, otherwise original string.
+ */
+function sst_prettify( $ugly ) {
+	// Map from ugly string to pretty strings
+	$ugly_strings = array(
+		'AccommodationAndFoodServices'            => 'Accommodation and Food Services',
+	    'Agricultural_Forestry_Fishing_Hunting'   => 'Agricultural/Forestry/Fishing/Hunting',
+	    'FinanceAndInsurance'                     => 'Finance and Insurance',
+	    'Information_PublishingAndCommunications' => 'Information Publishing and Communications',
+	    'RealEstate'                              => 'Real Estate',
+	    'RentalAndLeasing'                        => 'Rental and Leasing',
+	    'RetailTrade'                             => 'Retail Trade',
+	    'TransportationAndWarehousing'            => 'Transportation and Warehousing',
+	    'WholesaleTrade'                          => 'Wholesale Trade',
+	    'BusinessServices'                        => 'Business Services',
+	    'ProfessionalServices'                    => 'Professional Services',
+	    'EducationAndHealthCareServices'          => 'Education and Health Care Services',
+	    'NonprofitOrganization'                   => 'Nonprofit Organization',
+	    'NotABusiness'                            => 'Not a Business',
+	    'FederalGovernmentDepartment'             => 'Federal Government Department',
+	    'StateOrLocalGovernmentName'              => 'State or Local Government',
+	    'TribalGovernmentName'                    => 'Tribal Government',
+	    'ForeignDiplomat'                         => 'Foreign Diplomat',
+	    'CharitableOrganization'                  => 'Charitable Organization',
+	    'ReligiousOrEducationalOrganization'      => 'Religious or Educational Organization',
+	    'AgriculturalProduction'                  => 'Agricultural Production',
+	    'IndustrialProductionOrManufacturing'     => 'Industrial Production or Manufacturing',
+	    'DirectPayPermit'                         => 'Direct Pay Permit',
+	    'DirectMail'                              => 'Direct Mail',
+	    'AL'                                      => 'Alabama',
+	    'AK'                                      => 'Alaska',
+	    'AZ'                                      => 'Arizona',
+	    'AR'                                      => 'Arkansas',
+	    'CA'                                      => 'California',
+	    'CO'                                      => 'Colorado',
+	    'CT'                                      => 'Connecticut',
+	    'DE'                                      => 'Delaware',
+	    'FL'                                      => 'Florida',
+	    'GA'                                      => 'Georgia',
+	    'HI'                                      => 'Hawaii',
+	    'ID'                                      => 'Idaho',
+	    'IL'                                      => 'Illinois',
+	    'IN'                                      => 'Indiana',
+	    'IA'                                      => 'Iowa',
+	    'KS'                                      => 'Kansas',
+	    'KY'                                      => 'Kentucky',
+	    'LA'                                      => 'Louisiana',
+	    'ME'                                      => 'Maine',
+	    'MD'                                      => 'Maryland',
+	    'MA'                                      => 'Massachusetts',
+	    'MI'                                      => 'Michigan',
+	    'MN'                                      => 'Minnesota',
+	    'MS'                                      => 'Mississippi',
+	    'MO'                                      => 'Missouri',
+	    'MT'                                      => 'Montana',
+	    'NE'                                      => 'Nebraska',
+	    'NV'                                      => 'Nevada',
+	    'NH'                                      => 'New Hampshire',
+	    'NJ'                                      => 'New Jersey',
+	    'NM'                                      => 'New Mexico',
+	    'NY'                                      => 'New York',
+	    'NC'                                      => 'North Carolina',
+	    'ND'                                      => 'North Dakota',
+	    'OH'                                      => 'Ohio',
+	    'OK'                                      => 'Oklahoma',
+	    'OR'                                      => 'Oregon',
+	    'PA'                                      => 'Pennsylvania',
+	    'RI'                                      => 'Rhode Island',
+	    'SC'                                      => 'South Carolina',
+	    'SD'                                      => 'South Dakota',
+	    'TN'                                      => 'Tennessee',
+	    'TX'                                      => 'Texas',
+	    'UT'                                      => 'Utah',
+	    'VT'                                      => 'Vermont',
+	    'VA'                                      => 'Virginia',
+	    'WA'                                      => 'Washington',
+	    'DC'                                      => 'Washington DC',
+	    'WV'                                      => 'West Virginia',
+	    'WI'                                      => 'Wisconsin',
+	    'WY'                                      => 'Wyoming',
+	);
+
+	if ( array_key_exists( $ugly, $ugly_strings ) )
+		return $ugly_strings[ $ugly ];
+	else
+		return $ugly;
+}
+
+/**
+ * Return an API client instance.
+ *
+ * @since 5.0
+ *
+ * @return Client
+ */
+function TaxCloud() {
+	return new TaxCloud\Client();
+}
