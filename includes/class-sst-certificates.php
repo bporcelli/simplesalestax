@@ -33,7 +33,7 @@ class SST_Certificates {
 		if ( ! is_user_logged_in() ) {
 			return array();
 		}
-
+		
 		// Get certificates, using cached certificates if possible
 		$trans_key    = self::get_transient_name();
 		$raw_certs    = get_transient( $trans_key );
@@ -60,6 +60,38 @@ class SST_Certificates {
 	}
 
 	/**
+	 * Get saved exemption certificates for the current customer, formatted
+	 * for display in the certificate table.
+	 *
+	 * @since 5.0
+	 *
+	 * @param  bool $include_single Should single use certificates be returned? (default: true)
+	 * @return array()
+	 */
+	public static function get_certificates_formatted( $include_single = true ) {
+		$certificates = array();
+
+		foreach ( self::get_certificates( $include_single ) as $id => $raw_cert ) {
+			$detail              = $raw_cert->getDetail();
+			$certificates[ $id ] = array(
+				'CertificateID'              => $id,
+				'PurchaserName'              => $detail->getPurchaserFirstName() . ' ' . $detail->getPurchaserLastName(),
+				'CreatedDate'                => date( 'm/d/Y', strtotime( $detail->getCreatedDate() ) ),
+				'PurchaserAddress'           => $detail->getPurchaserAddress1(),
+				'PurchaserState'             => sst_prettify( $detail->getPurchaserState() ),
+				'PurchaserExemptionReason'   => sst_prettify( $detail->getPurchaserExemptionReason() ),
+				'SinglePurchase'             => $detail->getSinglePurchase(),
+				'SinglePurchaserOrderNumber' => $detail->getSinglePurchaseOrderNumber(),
+				'TaxType'                    => sst_prettify( $detail->getPurchaserTaxID()->getTaxType() ),
+				'IDNumber'                   => $detail->getPurchaserTaxID()->getIDNumber(),
+				'PurchaserBusinessType'      => sst_prettify( $detail->getPurchaserBusinessType() )
+			);
+		}
+
+		return $certificates;
+	}
+
+	/**
 	 * Set saved exemption certificates for the current customer.
 	 *
 	 * @since 5.0
@@ -80,9 +112,14 @@ class SST_Certificates {
 	private static function fetch_certificates() {
 		$user = wp_get_current_user();
 	
-		$request = new TaxCloud\Request\GetExemptCertificates( SST_Settings::get( 'tc_id' ), SST_Settings::get( 'tc_key' ), $user->user_login );
+		$request = new TaxCloud\Request\GetExemptCertificates(
+			SST_Settings::get( 'tc_id' ),
+			SST_Settings::get( 'tc_key' ),
+			$user->user_login
+		);
+		
 		try {
-			$certificates = TaxCloud()->GetExemptCertificates( $request ); // TODO: TEST SINGLE CERT CASE
+			$certificates = TaxCloud()->GetExemptCertificates( $request );
 
 			$final_certs = array();
 			

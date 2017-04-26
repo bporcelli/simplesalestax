@@ -21,7 +21,8 @@ class SST_Ajax {
 	 */
 	private static $hooks = array(
 		'sst_verify_taxcloud'                            => false,
-		'sst_view_certificate'                           => false,
+		'sst_delete_certificate'                         => false,
+		'sst_add_certificate'                            => false,
 		'woocommerce_subscriptions_calculate_line_taxes' => false,
 	);
 
@@ -61,28 +62,6 @@ class SST_Ajax {
 				wp_send_json_error( $ex->getMessage() );
 			}
 		}
-	}
-
-	/**
-	 * Display an entity exemption certificate certificate.
-	 *
-	 * @since 5.0
-	 */
-	public static function view_certificate() {
-		$certificates   = SST_Certificates::get_certificates();
-		$certificate_id = esc_attr( $_REQUEST[ 'certID' ] );
-		
-		// Can't view a certificate that doesn't exist!
-		if ( ! $certificate_id || ! array_key_exists( $certificate_id, $certificates ) ) {
-			wp_die( 'Invalid request.' );
-		}
-
-		wc_get_template( 'view-certificate.php', array( 
-			'plugin_url'  => SST()->plugin_url(),
-			'seller_name' => SST_Settings::get( 'company_name' ),
-			'certificate' => $certificates[ $certificate_id ],
-		), 'sst/lightbox/', SST()->plugin_path() . '/templates/lightbox/' );
-		die;
 	}
 
 	/**
@@ -260,6 +239,123 @@ class SST_Ajax {
 		}
 
 		die();
+	}
+
+	/**
+	 * Respond when user requests to delete a certificate.
+	 *
+	 * @since 5.0
+	 */
+	public static function delete_certificate() {
+		if ( ! isset( $_POST[ 'nonce' ] ) || ! wp_verify_nonce( $_POST[ 'nonce' ], 'sst_delete_certificate' ) ) {
+			return;
+		}
+
+		$certificate_id = esc_attr( $_POST[ 'certificate_id' ] );
+
+		$request = new TaxCloud\Request\DeleteExemptCertificate(
+			SST_Settings::get( 'tc_id' ),
+			SST_Settings::get( 'tc_key' ),
+			$certificate_id
+		);
+
+		try {
+			TaxCloud()->DeleteExemptCertificate( $request );
+			
+			// Invalidate cached certificates
+			SST_Certificates::delete_certificates();
+
+			wp_send_json_success( array(
+				'certificates' => SST_Certificates::get_certificates_formatted( false ), 
+			) );
+		} catch ( Exception $ex ) { /* Failed to delete */
+			wp_send_json_error( $ex->getMessage() );
+		}
+	}
+
+	/**
+	 * Add an exemption certificate for the customer.
+	 *
+	 * NOTE: Single purchase exemption certificates not supported at this
+	 * time.
+	 *
+	 * @since 5.0
+	 */
+	public static function add_certificate() {
+		// Handle invalid requests
+		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'sst_add_certificate' ) ) {
+			return;
+		}
+
+		if ( ! isset( $_POST['form_data'] ) || ! isset( $_POST['certificate'] ) ) {
+			wp_send_json_error( __( 'Invalid request.', 'simplesalestax' ) );
+		}
+
+		// Get data
+		$form_data = array();
+		parse_str( $_POST['form_data'], $form_data );
+		$form_data = array_merge( $_POST['certificate'], $form_data );
+
+		// Construct certificate
+		$exempt_state = new TaxCloud\ExemptState(
+			$form_data['ExemptState'],
+			$form_data['PurchaserExemptionReason'],
+			$form_data['IDNumber'] 
+		);
+
+		$tax_id = new TaxCloud\TaxID(
+			$form_data['TaxType'],
+			$form_data['IDNumber'],
+			$form_data['StateOfIssue']
+		);
+
+		$certificate = new TaxCloud\ExemptionCertificate(
+			array( $exempt_state ),
+			false,
+			'',
+			$form_data['billing_first_name'],
+			$form_data['billing_last_name'],
+			'',
+			$form_data['billing_address_1'],
+			$form_data['billing_address_2'],
+			$form_data['billing_city'],
+			$form_data['billing_state'],
+			$form_data['billing_postcode'],
+			$tax_id,
+			$form_data['PurchaserBusinessType'],
+			$form_data['PurchaserBusinessTypeOtherValue'],
+			$form_data['PurchaserExemptionReason'],
+			$form_data['PurchaserExemptionReasonValue']
+		);
+
+		// Add certificate
+		$user = wp_get_current_user();
+
+		$request = new TaxCloud\Request\AddExemptCertificate(
+			SST_Settings::get( 'tc_id' ),
+			SST_Settings::get( 'tc_key' ),
+			$user->user_login,	// TODO: USE ID?
+			$certificate
+		);
+
+		$certificate_id = '';
+
+		try {
+			$certificate_id = TaxCloud()->AddExemptCertificate( $request );
+			SST_Certificates::delete_certificates();  // Invalidate cache
+		} catch ( Exception $ex ) {
+			wp_send_json_error( $ex->getMessage() );
+		}
+
+		// Save to session
+		WC()->session->set( 'sst_cert_id', $certificate_id );
+
+		$data = array(
+			'certificate_id' => $certificate_id,
+			'certificates'   => SST_Certificates::get_certificates_formatted( false ),
+		);
+
+		wp_send_json_success( $data );
 	}
 }
 
