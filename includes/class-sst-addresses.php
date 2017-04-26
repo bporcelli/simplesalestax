@@ -57,7 +57,7 @@ class SST_Addresses {
 	 *
 	 * @param  int $index Location key.
 	 * @return SST_Origin_Address|NULL
-	 */ // TODO: MAKE WORK WITH IDS
+	 */
 	public static function get_address( $index ) {
 		$addresses = self::get_origin_addresses();
 		

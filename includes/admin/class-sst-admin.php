@@ -31,6 +31,8 @@ final class SST_Admin {
 	 * @since 4.7
 	 */
 	private function hooks() {
+		add_filter( 'woocommerce_hidden_order_itemmeta', array( __CLASS__, 'hide_order_item_meta' ), 10, 1 );
+
 		// Register WooTax integration to build settings page
 		add_filter( 'woocommerce_integrations', array( __CLASS__, 'add_integration' ) );
 
@@ -255,7 +257,7 @@ final class SST_Admin {
 	 */
 	public static function output_tax_metabox( $post ) {
 		// Load order
-		$order = WT_Orders::get_order( $post->ID );
+		$order = wc_get_order( $post->ID );
 
 		// Display tax totals
 		?>
@@ -635,6 +637,23 @@ final class SST_Admin {
 		    exit;
 		}
 	}
+
+	/**
+	 * Hide WooTax item meta.
+	 *
+	 * @since 4.2
+	 *
+	 * @param  array $to_hide Array of keys of hidden meta fields.
+	 * @return array
+	 */
+	public static function hide_order_item_meta( $to_hide ) {
+		$to_hide[] = '_wootax_tax_amount';
+		$to_hide[] = '_wootax_location_id';
+		$to_hide[] = '_wootax_index';
+
+		return $to_hide;
+	}
+
 }
 
 new SST_Admin();

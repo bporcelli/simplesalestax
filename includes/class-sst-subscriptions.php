@@ -108,7 +108,7 @@ class SST_Subscriptions {
 	public function issue_renewal_lookup( $renewal_order, $order_or_subscription ) {
 		$renewal_order_id = $renewal_order->id;
 
-		$order = WT_Orders::get_order( $renewal_order_id );
+		$order = new SST_Order( $renewal_order_id );
 
 		// Find parent order object
 		$parent_order = $order_or_subscription;
@@ -127,9 +127,7 @@ class SST_Subscriptions {
 		}
 
 		// Reset WooTax meta values
-		foreach ( WT_Orders::$defaults as $key => $val ) {
-			WT_Orders::update_meta( $renewal_order_id, $key, $val );
-		}
+		$order->reset_meta_data();
 
 		// Build and format items array
 		$order_items = $order->order->get_items() + $order->order->get_fees() + $order->order->get_shipping_methods();
@@ -319,11 +317,10 @@ class SST_Subscriptions {
 	 * @param int $order_id
 	 * @param int $item_id
 	 */
-	public function save_taxes_2_6( $order_id, $item_id ) {
-		$tax_total          = WT_Orders::get_meta( $order_id, 'tax_total' );
-		$shipping_tax_total = WT_Orders::get_meta( $order_id, 'shipping_tax_total' );
-		wc_add_order_item_meta( $item_id, 'cart_tax', wc_format_decimal( $tax_total ) );
-		wc_add_order_item_meta( $item_id, 'shipping_tax', wc_format_decimal( $shipping_tax_total ) );
+	public function save_taxes_2_6( $order_id, $item_id ) { // TODO: 3.0 COMPAT?
+		$order = new SST_Order( $order_id );
+		wc_add_order_item_meta( $item_id, 'cart_tax', wc_format_decimal( $order->get_meta( 'tax_total' ) ) );
+		wc_add_order_item_meta( $item_id, 'shipping_tax', wc_format_decimal( $order->get_meta( 'shipping_tax_total' ) ) );
 	}
 
 	/**
@@ -389,8 +386,7 @@ class SST_Subscriptions {
 					continue;
 				}
 
-				$wt_order = WT_Orders::get_order( $order_id );
-				$order = $wt_order->order;
+				$order = new SST_Order( $order_id );
 
 				// Determine whether or not selected payment gateway supports changes to recurring totals
 				$changes_supported = $order->is_manual() || $order->payment_method_supports( 'subscription_amount_changes' );
@@ -471,9 +467,9 @@ class SST_Subscriptions {
 					$order_items[] = $item;
 				}
 
-				// Set "captured" flag to false so a lookup is always sent
-				$captured = WT_Orders::get_meta( $order_id, 'captured' );
-				WT_Orders::update_meta( $order_id, 'captured', false );
+				// Set status to pending so a lookup is always sent
+				$status = $order->get_meta( 'status' );
+				$order->update_meta_data( 'status', 'pending' );
 
 				// Store old tax totals, then issue lookup request
 				$old_tax = $old_shipping_tax = $wootax_item_id = 0;
@@ -487,10 +483,10 @@ class SST_Subscriptions {
 					}
 				}
 
-				$res = $wt_order->do_lookup( $order_items, $type_array, ! $changes_supported );
+				$res = $order->do_lookup( $order_items, $type_array, ! $changes_supported );
 
-				// Reset captured flag
-				WT_Orders::update_meta( $order_id, 'captured', $captured );
+				// Reset status
+				$order->update_meta_data( 'status', $status );
 
 				// Update recurring tax totals as described here: http://docs.woothemes.com/document/subscriptions/add-or-modify-a-subscription/#change-recurring-total
 				if ( is_array ( $res ) ) {

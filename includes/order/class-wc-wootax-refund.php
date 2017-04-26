@@ -49,6 +49,7 @@ class WC_WooTax_Refund extends WC_Order_Refund {
 	 * @param bool $cron True if this function is being called from a cronjob.
 	 */
 	public static function process_refund( $refund, $cron = false ) {
+		// TODO: REWRITE (NO MORE WT_ORDERS)
 		$refund_items = array();
 
 		// Get order object (use original order ID, not refund order ID)

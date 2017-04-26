@@ -51,6 +51,7 @@ class SST_Checkout {
 		add_filter( 'woocommerce_cart_hide_zero_taxes', array( $this, 'hide_zero_taxes' ) );
 		add_action( 'woocommerce_new_order', array( $this, 'add_order_meta' ) );
 		add_action( 'woocommerce_resume_order', array( $this, 'add_order_meta' ) );
+		// add_action( 'woocommerce_checkout_update_order_meta', array( __CLASS__, 'maybe_capture_order' ), 15, 1 );
 	}
 
 	/**
@@ -84,6 +85,8 @@ class SST_Checkout {
 	 * @return bool
 	 */
 	protected function ready() {
+		// TODO: MODIFY TO ACCOUNT FOR MULTIPLE DESTINATIONS
+		// IDEA: SKIP PACKAGE IF DEST ADDRESS IS INVALID.
 		if ( is_null( $this->destination_address ) || ! SST_Addresses::is_valid( $this->destination_address ) )
 			return false;
 		if ( empty( $this->taxcloud_id ) || empty( $this->taxcloud_key ) )
@@ -563,14 +566,19 @@ class SST_Checkout {
 	 *
 	 * @param int $order_id ID of new order.
 	 */
-	public function add_order_meta( $order_id ) {
-		// TODO: LOG NEW ORDER
-		WT_Orders::update_meta( $order_id, 'customer_id', $this->customer_id );
-		WT_Orders::update_meta( $order_id, 'packages', json_encode( WC()->session->get( 'sst_packages' ) ) );
+	public function add_order_meta( $order_id ) { // TODO: TEST
+		$order = new SST_Order( $order_id );
+
+		$order->update_meta_data( 'tax_total', WC()->cart->get_tax_amount( SST_RATE_ID ) );
+		$order->update_meta_data( 'shipping_tax_total', WC()->cart->get_shipping_tax_amount( SST_RATE_ID ) );
+		$order->update_meta_data( 'customer_id', $this->customer_id );
+		$order->update_meta_data( 'packages', json_encode( WC()->session->get( 'sst_packages' ) ) );
 
 		if ( ( $exempt_cert = $this->get_certificate() ) ) {
-			WT_Orders::update_meta( $order_id, 'exempt_cert', json_encode( $exempt_cert ) );
+			$order->update_meta_data( 'exempt_cert', json_encode( $exempt_cert ) );
 		}
+
+		$order->save();
 
 		$this->reset_session();
 	}
@@ -650,6 +658,25 @@ class SST_Checkout {
 			'checked'  => $_GET && $this->is_user_exempt() || $_POST && isset( $_POST[ 'tax_exempt' ] ),
 			'selected' => isset( $_POST['certificate_id'] ) ? $_POST['certificate_id'] : '',
 		), 'sst/checkout/', SST()->plugin_path() . '/includes/frontend/views/' );
+	}
+
+	/**
+	 * If "Capture Orders Immediately" is enabled, capture newly created orders
+	 * immediately after checkout.
+	 *
+	 * @since 5.0
+	 *
+	 * @param int $order_id ID of new order.
+	 */
+	public static function maybe_capture_order( $order_id ) {
+		if ( SST_Settings::get( 'capture_immediately' ) == 'yes' ) {
+			// TODO: ENSURE ORDERS ARE CAPTURED ONLY AFTER PAYMENT IS RECEIVED
+			$order = new SST_Order( $order_id );
+
+			if ( ! $order->capture() ) {
+				// TODO: LOG FAILED REQUEST
+			}
+		}
 	}
 }
 

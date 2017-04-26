@@ -168,6 +168,8 @@ final class SST {
 		include_once 'includes/class-sst-addresses.php';
 		include_once 'includes/class-sst-origin-address.php';
 		include_once 'includes/class-sst-certificates.php';
+		include_once 'includes/class-sst-order.php';
+		include_once 'includes/class-sst-order-controller.php';
 
 		/**
 		 * Subscriptions support.
