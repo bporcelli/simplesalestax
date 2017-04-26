@@ -45,14 +45,12 @@ class SST_Checkout {
 	 * @since 5.0
 	 */
 	public function __construct() {
-		// When an order is created or resumed, associate session data with it
-		// add_action( 'woocommerce_new_order', array( $this, 'add_order_meta' ), 10, 1 );
-		// add_action( 'woocommerce_resume_order', array( $this, 'add_order_meta' ), 10, 1 );
-
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'woocommerce_checkout_after_customer_details', array( $this, 'output_exemption_form' ) );
 		add_action( 'woocommerce_calculate_totals', array( $this, 'calculate_tax_totals' ) );
 		add_filter( 'woocommerce_cart_hide_zero_taxes', array( $this, 'hide_zero_taxes' ) );
+		add_action( 'woocommerce_new_order', array( $this, 'add_order_meta' ) );
+		add_action( 'woocommerce_resume_order', array( $this, 'add_order_meta' ) );
 	}
 
 	/**
@@ -345,6 +343,9 @@ class SST_Checkout {
 				unset( $package['rates'] );
 			}
 
+			/* Set certificate */
+			$package['certificate'] = $this->get_certificate();
+
 			$packages[ $this->get_package_hash( $package ) ] = $package;
 		}
 
@@ -359,6 +360,7 @@ class SST_Checkout {
 				'contents'      => $digital_items,
 				'fees'          => array(),
 				'contents_cost' => array_sum( wp_list_pluck( $digital_items, 'line_total' ) ),
+				'certificate'   => $this->get_certificate(),
 				'origin'        => null,
 				'destination'   => null,
 				'user'          => array(
@@ -499,8 +501,9 @@ class SST_Checkout {
 			$items,
 			$package['origin'],
 			$package['destination'],
-			SST_Shipping::is_local_delivery( $shipping_id )
-		); // TODO: ADD EXEMPT CERTIFICATE SUPPORT
+			SST_Shipping::is_local_delivery( $shipping_id ),
+			$package['certificate']
+		);
 
 		return $request;
 	}
@@ -521,6 +524,38 @@ class SST_Checkout {
 	}
 
 	/**
+	 * Get the customer exemption certificate.
+	 *
+	 * @since 5.0
+	 *
+	 * @return ExemptionCertificateBase|NULL
+	 */
+	protected function get_certificate() {
+		if ( ! $_POST || ! isset( $_POST['post_data'] ) ) {
+			return NULL;
+		}
+
+		$post_data = array();
+		parse_str( $_POST['post_data'], $post_data );
+		
+		if ( isset( $post_data['tax_exempt'] ) && isset( $post_data['certificate_id'] ) ) {
+			$certificate_id = sanitize_text_field( $post_data['certificate_id'] );
+			return new TaxCloud\ExemptionCertificateBase( $certificate_id );
+		}
+
+		return NULL;
+	}
+
+	/**
+	 * Reset session.
+	 *
+	 * @since 5.0
+	 */
+	protected function reset_session() {
+		WC()->session->set( 'sst_packages', array() );
+	}
+
+	/**
 	 * Save metadata when a new order is created. Create a new log entry if
 	 * logging is enabled.
 	 *
@@ -529,21 +564,15 @@ class SST_Checkout {
 	 * @param int $order_id ID of new order.
 	 */
 	public function add_order_meta( $order_id ) {
-		// TODO: REVISIT AFTER REQUIRED META DECIDED; DELETE SESS DATA?
-		WT_Orders::update_meta( $order_id, 'wt_customer_id', $this->customer_id );
-		WT_Orders::update_meta( $order_id, 'wt_order_parts', $this->order_parts );
+		// TODO: LOG NEW ORDER
+		WT_Orders::update_meta( $order_id, 'customer_id', $this->customer_id );
+		WT_Orders::update_meta( $order_id, 'packages', json_encode( WC()->session->get( 'sst_packages' ) ) );
 
-		$exempt_cert = $this->exempt_cert;
-		if ( $exempt_cert instanceof TaxCloud\ExemptionCertificate ) {
-			$exempt_cert = $this->exempt_cert->toArray();
+		if ( ( $exempt_cert = $this->get_certificate() ) ) {
+			WT_Orders::update_meta( $order_id, 'exempt_cert', json_encode( $exempt_cert ) );
 		}
 
-		WT_Orders::update_meta( $order_id, 'wt_exempt_cert',  $exempt_cert );
-
-		if ( SST_LOG_REQUESTS ) {
-			$logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : WC()->logger();
-			$logger->add( 'wootax', "New order with ID $order_id created." );
-		}
+		$this->reset_session();
 	}
 
 	/**

@@ -60,6 +60,24 @@ class SST_Certificates {
 	}
 
 	/**
+	 * Get a certificate by ID.
+	 *
+	 * @since 5.0
+	 *
+	 * @param  string $id Certificate ID.
+	 * @return ExemptionCertificate|NULL
+	 */
+	public static function get_certificate( $id ) {
+		$certificates = self::get_certificates();
+
+		if ( isset( $certificates[ $id ] ) ) {
+			return $certificates[ $id ];
+		} else {
+			return NULL;
+		}
+	}
+	
+	/**
 	 * Get saved exemption certificates for the current customer, formatted
 	 * for display in the certificate table.
 	 *
