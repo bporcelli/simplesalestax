@@ -5,573 +5,519 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * WooTax Checkout.
+ * Checkout.
  *
  * Responsible for computing the sales tax due during checkout.
  *
  * @author 	Simple Sales Tax
  * @package SST
- * @since 	4.2
+ * @since 	5.0
  */
 class SST_Checkout {
 
-	// TODO: INVALIDATE CERTIFICATE CACHE WHEN NEW CERTIFICATE ADDED
+	/**
+	 * @var Address Destination address.
+	 * @since 5.0
+	 */
+	protected $destination_address;
 	
 	/**
-	 * @var string Customer ID (user login or ID from session).
+	 * @var int Customer ID.
 	 * @since 5.0
 	 */
-	private $customer_id = "";
+	protected $customer_id;
 
 	/**
-	 * @var array The partial orders that comprise the current order.
+	 * @var string TaxCloud API Login ID.
 	 * @since 5.0
 	 */
-	private $order_parts = array();
+	protected $taxcloud_id;
 
 	/**
-	 * @var ExemptionCertificate Exemption certificate for the order.
+	 * @var string TaxCloud API key.
 	 * @since 5.0
 	 */
-	private $exempt_cert = null;
+	protected $taxcloud_key;
 
 	/**
 	 * Constructor: Initialize hooks.
 	 *
-	 * @since 4.2
+	 * @since 5.0
 	 */
 	public function __construct() {
-		// Load data from the session after WP is loaded
-		// add_action( 'wp_loaded', array( $this, 'init' ) );
-
-		// Don't allow WooCommerce to hide zero taxes; we'll handle this
-		// add_filter( 'woocommerce_cart_hide_zero_taxes', '__return_false' );
-
-		// Maybe hide Sales Tax line item if tax total is $0.00
-		// add_filter( 'woocommerce_cart_tax_totals', array( $this, 'maybe_hide_tax_total' ), 10, 1 );
-		
-		// Set cart/shipping tax totals when cart totals are calculated
-		// add_action( 'woocommerce_calculate_totals', array( $this, 'calculate_tax_totals' ), 10, 1 );
-	
 		// When an order is created or resumed, associate session data with it
 		// add_action( 'woocommerce_new_order', array( $this, 'add_order_meta' ), 10, 1 );
 		// add_action( 'woocommerce_resume_order', array( $this, 'add_order_meta' ), 10, 1 );
 
-		add_action( 'woocommerce_checkout_after_customer_details', array( $this, 'output_tax_details_form' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+		add_action( 'woocommerce_checkout_after_customer_details', array( $this, 'output_exemption_form' ) );
+		add_action( 'woocommerce_calculate_totals', array( $this, 'calculate_tax_totals' ) );
+		add_filter( 'woocommerce_cart_hide_zero_taxes', array( $this, 'hide_zero_taxes' ) );
 	}
 
 	/**
-	 * Load tax data from the session.
+	 * Should the Sales Tax line item be hidden if no tax is due?
 	 *
-	 * @since 4.2
+	 * @since 5.0
+	 *
+	 * @return bool
 	 */
-	public function init() {
-		$this->order_parts = WC()->session->get( 'order_parts', array() );
+	public function hide_zero_taxes() {
+		return SST_Settings::get( 'show_zero_tax' ) != 'true';
+	}
 
-		if ( ( $exempt_cert = WC()->session->get( 'exempt_cert', false ) ) ) {
-			$this->exempt_cert = TaxCloud\ExemptionCertificate::fromArray( $exempt_cert );
-		}
+	/**
+	 * Initialize class properties.
+	 *
+	 * @since 5.0
+	 */
+	protected function init() {
+		$this->destination_address = SST_Addresses::get_destination_address();
+		$this->customer_id         = WC()->session->get_customer_id();
+		$this->taxcloud_id         = SST_Settings::get( 'tc_id' );
+		$this->taxcloud_key        = SST_Settings::get( 'tc_key' );
+	}
 
-		$this->customer_id = $this->get_customer_id();
+	/**
+	 * Ready for a lookup?
+	 *
+	 * @since 5.0
+	 *
+	 * @return bool
+	 */
+	protected function ready() {
+		if ( is_null( $this->destination_address ) || ! SST_Addresses::is_valid( $this->destination_address ) )
+			return false;
+		if ( empty( $this->taxcloud_id ) || empty( $this->taxcloud_key ) )
+			return false;
+		return true;
+	}
+
+	/**
+	 * Set the tax total for a cart item.
+	 *
+	 * @since 5.0
+	 *
+	 * @param string $key Cart item key.
+	 * @param float $amt Sales tax for item.
+	 */
+	protected function set_item_tax( $key, $amt ) {
+		// Update tax data
+		$tax_data = WC()->cart->cart_contents[ $key ][ 'line_tax_data' ];
+
+		$tax_data['subtotal'][ SST_RATE_ID ] = $amt;
+		$tax_data['total'][ SST_RATE_ID ]    = $amt;
+
+		WC()->cart->cart_contents[ $key ][ 'line_tax_data' ] = $tax_data;
+
+		// Update totals
+		WC()->cart->cart_contents[ $key ]['line_subtotal_tax'] = array_sum( $tax_data['subtotal'] );
+		WC()->cart->cart_contents[ $key ]['line_tax']          = array_sum( $tax_data['total'] );
 	}
 	
+	/**
+	 * Set the sales tax total for a fee.
+	 *
+	 * @since 5.0
+	 *
+	 * @param int $key Fee key.
+	 * @param float $amt Sales tax for fee.
+	 */
+	protected function set_fee_tax( $key, $amt ) {
+		WC()->cart->fees[ $key ]->tax_data[ SST_RATE_ID ] = $amt;
+		WC()->cart->fees[ $key ]->tax = array_sum( WC()->cart->fees[ $key ]->tax_data );
+	}
+
 	/**
 	 * Calculate sales tax totals for the current cart.
 	 *
 	 * @since 5.0
-	 *
-	 * @param WC_Cart $cart The WooCommerce cart object.
 	 */
-	public function calculate_tax_totals( $cart ) {
+	public function calculate_tax_totals() {
+		$this->init();
 
-		// Remove taxes appled by Simple Sales Tax, if necessary		
-		// Generate order parts if necessary
-		// Get/validate customer address
-		// If lookup is needed for one of the parts, send Lookup request
-		//  - Store lookup result as order part metadata
-		// Set shipping/cart tax totals
-		// TODO: USE SST_ADDRESSES::GET_DESTINATION_ADDRESS()
-
-		/**
-		 * // Fetch cart_id
-			$cart_id = isset( $this->taxcloud_ids[ $location_key ] ) ? $this->taxcloud_ids[ $location_key ]['cart_id'] : '';
-
-			// Get the origin address
-			$origin_address = wootax_get_address( $location_key );
-
-			// Build Lookup request (cartID empty for first request)
-			$req = array(
-				'customerID'        => $customer_id, 
-				'cartID'            => $cart_id, 
-				'cartItems'         => $items, 
-				'origin'            => $origin_address, 
-				'destination'       => $destination_address, 
-				'deliveredBySeller' => $delivered_by_seller,
-			);
-
-			if ( !empty( $exempt_cert ) ) {
-				$req['exemptCert'] = $exempt_cert;
-			}
-
-			// Send Lookup request 
-			$res = $this->taxcloud->send_request( 'Lookup', $req );
-
-			if ( $res !== false ) {
-				// Initialize some vars
-				$cart_items = $res->CartItemsResponse->CartItemResponse;
-
-				// Store cartID to improve efficiency of subsequent lookup requests
-				$this->taxcloud_ids[ $location_key ]['cart_id']  = $res->CartID;
-
-				// If cart_items only contains one item, it will not be an array.
-				// In that case, convert to an array to avoid the need for extra code
-				if ( !is_array( $cart_items ) ) {
-					$cart_items = array( $cart_items );
-				}
-			} else {
-				// We will not display ZIP mismatch errors or SoapFaults. These messages tend to be disruptive and there is not much the customer can do to resolve them.
-				$error = $this->taxcloud->get_error_message();
-
-				if ( strpos( $error, 'zip' ) === false && strpos( $error, 'SoapFault' ) === false ) {			
-					wc_add_notice( 'An error occurred while calculating the tax for this order. '. $error, 'error' );
-				}
-				
-				return;
-			}
-
-			// Save updated tax totals
-			$this->update_tax_totals( $tax_total, $shipping_tax_total );
-			*/
-	}
-	
-	/**
-	 * Sets the sales tax for the item with the given key.
-	 *
-	 * @since 4.2
-	 *
-	 * @param string $key Key of cart item.
-	 * @param float $amt Sales tax for item.
-	 */
-	private function apply_item_tax( $key, $amt ) {
-		// Update tax values
-		$this->cart->cart_contents[ $key ][ 'line_tax' ] += $amt;
-		$this->cart->cart_contents[ $key ][ 'line_subtotal_tax' ] += $amt;
-
-		// Add the "tax_data" array if we are dealing with WooCommerce 2.2+
-		if ( version_compare( WC_VERSION, '2.2', '>=' ) ) {
-			$tax_data = $this->cart->cart_contents[ $key ][ 'line_tax_data' ];
-
-			if ( ! isset( $tax_data[ 'total' ][ SST_RATE_ID ] ) ) {
-				$tax_data['total'][ SST_RATE_ID ] = 0;
-			}
-
-			if ( ! isset( $tax_data[ 'subtotal' ][ SST_RATE_ID ] ) ) {
-				$tax_data[ 'subtotal' ][ SST_RATE_ID ] = 0;
-			}
-
-			$tax_data[ 'subtotal' ][ SST_RATE_ID ] += $amt;
-			$tax_data[ 'total' ][ SST_RATE_ID ]    += $amt;
-
-			$this->cart->cart_contents[ $key ][ 'line_tax_data' ] = $tax_data;
-		}
-	}
-	
-	/**
-	 * Set the sales tax for a given fee.
-	 *
-	 * @since 4.2
-	 *
-	 * @param int $key Fee index.
-	 * @param float $amt Sales tax for fee.
-	 */
-	private function apply_fee_tax( $key, $amt ) {
-		// Update tax value
-		$this->cart->fees[ $key ]->tax += $amt;
-
-		// Update tax_data array if we are dealing with WooCommerce 2.2+
-		if ( version_compare( WC_VERSION, '2.2', '>=' ) ) {
-			$tax_data = $this->cart->fees[ $key ]->tax_data;
-
-			if ( ! isset( $tax_data[ SST_RATE_ID ] ) ) {
-				$tax_data[ SST_RATE_ID ] = 0;
-			}
-
-			$tax_data[ SST_RATE_ID ] += $amt;
-
-			// Set new tax_data 
-			$this->cart->fees[ $key ]->tax_data = $tax_data;
-		}
-	}
-	
-	/**
-	 * Generates an array of CartItems organized by location key. Stores the
-	 * array in the lookup_data property.
-	 *
-	 * @since 4.2
-	 */
-	private function generate_lookup_data() {
-		// Reset
-		$this->lookup_data = $this->mapping_array = array();
-
-		// Exit if we do not have any items
-		$order_items = $this->cart->get_cart();
-
-		if ( ! $order_items )
+		if ( ! $this->ready() ) {
 			return;
+		}
 
-		$customer_state = $this->destination_address[ 'State' ];
-		$counters_array = $lookup_data = $mapping_array = array();
-		
-		$tax_based_on = SST_Settings::get( 'tax_based_on' );
+		/* Reset */
+		$this->reset_taxes();
 
-		// Add cart items
-		foreach ( $order_items as $item_id => $item ) {
-			$final_item = array();
+		$totals = array(
+			'shipping' => 0,
+			'cart'     => 0,
+		);
 
-			// Get some information about the product being sold
-			$product_id   = $item[ 'product_id' ];
-			$variation_id = $item[ 'variation_id' ];
+		/* Perform tax lookup(s) */
+		$packages = WC()->session->get( 'sst_packages', array() );
 
-			// TIC
-			$tic = SST_Product::get_tic( $product_id, $variation_id );
+		foreach ( $this->get_packages() as $key => $package ) {
+			/* Get tax for each cart item, using cached result if possible */
+			$response = array();
 
-			// Quantity and price
-			$unit_price = $item[ 'line_total' ] / $item[ 'quantity' ];
-
-			if ( $tax_based_on == 'item-price' || !$tax_based_on ) {
-				$qty   = $item[ 'quantity' ];
-				$price = $unit_price; 
+			if ( array_key_exists( $key, $packages ) ) {
+				$package = $packages[ $key ];
 			} else {
-				$qty   = 1;
-				$price = $unit_price * $item[ 'quantity' ]; 
-			}
+				try {
+					$package['request']  = $this->get_lookup_for_package( $package );
+					$package['response'] = TaxCloud()->Lookup( $package['request'] );
+					$package['cart_id']  = key( $package['response'] );
 
-			// Attempt to find origin address to use for product; if possible, we use the origin address in the customer's state
-			// Developers can adjust the final address used with the wootax_origin_address filter (see below)
-			$origin_addresses = SST_Product::get_origin_addresses( $product_id );
-			$address_found    = WT_DEFAULT_ADDRESS;
-
-			if ( count( $origin_addresses ) == 1 ) {
-				$address_found = $origin_addresses[0];				
-			} else {
-				foreach ( $origin_addresses as $key ) {
-					if ( isset( $this->addresses[ $key ][ 'state' ] ) && $this->addresses[ $key ][ 'state' ] == $customer_state ) {
-						$address_found = $key;
-						break;
-					}
+					/* Add to cache */
+					$packages[ $key ] = $package;
+				} catch ( Exception $ex ) {
+					wc_add_notice( $ex->getMessage(), 'error' );
+					return;
 				}
 			}
 
-			$address_found = apply_filters( 'wootax_origin_address', $address_found, $customer_state, $this );
+			/* Set tax for each cart item */
+			$cart_items = current( $package['response'] );
 
-			// Avoid PHP notices by initializing arrays
-			if ( !isset( $lookup_data[ $address_found ] ) || !is_array( $lookup_data[ $address_found ] ) )
-				$lookup_data[ $address_found ] = array();
-			if ( !isset( $counters_array[ $address_found ] ) )
-				$counters_array[ $address_found ] = 0;
-
-			// Update mapping array and lookup data array
-			$index = $counters_array[ $address_found ];
-
-			$final_item = array(
-				'Index'  => $index,
-				'ItemID' => $item_id,
-				'Price'  => apply_filters( 'wootax_taxable_price', $price, true, $product_id ),
-				'Qty'    => $qty,
-			);
-
-			if ( $tic !== false )
-				$final_item[ 'TIC' ] = $tic; // Only add TIC if one other than default is being used
-
-			$lookup_data[ $address_found ][] = $final_item;
-
-			$mapping_array[ $address_found ][] = array(
-				'id'    => $item_id,
-				'index' => $index,
-				'type'  => 'cart',
-				'key'   => $item_id,
-			);
-
-			$counters_array[ $address_found ]++;
-		}
-
-		// The ID of the first found location for this order; all shipping charges and fees will be grouped under this location
-		$temp_lookup = array_keys( $lookup_data );
-		$first_location = array_shift( $temp_lookup );
-
-		if ( $first_location !== false ) {
-
-			// Add shipping item (we assume one per order)
-			$shipping_total = $this->cart->shipping_total;
-
-			// Set shipping tax to zero if we are calculating the initial total for a subscription and shipping should not be charged up front
-			if ( $this->is_subscription && WC_Subscriptions_Cart::get_calculation_type() != 'recurring_total' && !WC_Subscriptions_Cart::charge_shipping_up_front() ) {
-				$shipping_total = 0;
-			}
-
-			if ( $shipping_total > 0 ) {
-				$index   = $counters_array[ $first_location ];
-				$item_id = SST_SHIPPING_ITEM;
-
-				$lookup_data[ $first_location ][] = array(
-					'Index'  => $index,
-					'ItemID' => $item_id, 
-					'TIC'    => apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC ), 
-					'Qty'    => 1, 
-					'Price'  => apply_filters( 'wootax_taxable_price', $shipping_total, true, $item_id ),
-				);
-
-				$mapping_array[ $first_location ][] = array(
-					'id'    => $item_id, 
-					'index' => $index,
-					'type'  => 'shipping',
-				);
-
-				$counters_array[ $first_location ]++;
-			}
-
-			// Add fees, as long as we aren't calculating tax for cart where all subs have free trial and there is no sign up fee
-			$fee_index = 0;
-			$add_fees = true;
-
-			if ( $this->is_subscription ) {
-				if ( WC_Subscriptions_Cart::get_calculation_type() != 'recurring_total' && 0 == WC_Subscriptions_Cart::get_cart_subscription_sign_up_fee() && WC_WooTax_Subscriptions::all_cart_items_have_free_trial() ) {
-					$add_fees = false;
-				}
-			}
-
-			if ( $add_fees ) {
-				foreach ( $this->cart->get_fees() as $ind => $fee ) {
-					// TODO: Phase this out?
-					if ( isset( $fee->taxable ) && !$fee->taxable )
-						continue;
-
-					$item_id = $fee->id;
-					$index   = $counters_array[ $first_location ];
-
-					$lookup_data[ $first_location ][] = array(
-						'Index'  => $index,
-						'ItemID' => $item_id, 
-						'TIC'    => apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC ),
-						'Qty'    => 1, 
-						'Price'  => apply_filters( 'wootax_taxable_price', $fee->amount, true, $item_id ),
-					);
-
-					// Update mapping array
-					$mapping_array[ $first_location ][ $index ] = array(
-						'id'    => $item_id, 
-						'index' => $fee_index, 
-						'type'  => 'fee',
-					);
-
-					$counters_array[ $first_location ]++;
-					$fee_index++;
+			foreach ( $cart_items as $index => $tax_total ) {
+				$info = $package['map'][ $index ];
+				
+				if ( 'shipping' == $info['type'] ) {
+					$totals['shipping'] += $tax_total;
+				} else {
+					if ( 'cart' == $info['type'] )
+						$this->set_item_tax( $info['cart_id'], $tax_total );
+					else
+						$this->set_fee_tax( $info['cart_id'], $tax_total );
+					
+					$totals['cart'] += $tax_total;
 				}
 			}
 		}
 
-		// Store data and save
-		$this->lookup_data   = $lookup_data;
-		$this->mapping_array = $mapping_array;
-		$this->first_found   = $first_location;
+		WC()->session->set( 'sst_packages', $packages );
+
+		/* Set tax totals */
+		$this->set_tax_totals( $totals['cart'], $totals['shipping'] );
 	}
 	
 	/**
-	 * Update the customer address in the session.
+	 * Reset sales tax totals.
 	 *
-	 * WooCommerce does not update the address when totals are recomputed through
-	 * an AJAX request.
-	 *
-	 * @since 4.8
+	 * @since 5.0
 	 */
-	private function update_customer_address() {
-		if ( isset( $_POST[ 'billing_country' ] ) ) {
-			WC()->customer->set_country( $_POST[ 'billing_country' ] );
+	protected function reset_taxes() {
+		foreach ( WC()->cart->get_cart() as $cart_key => $item ) {
+			$this->set_item_tax( $cart_key, 0 );
 		}
 
-		if ( isset( $_POST[ 'billing_state' ] ) ) {
-			WC()->customer->set_state( $_POST[ 'billing_state' ] );
+		foreach ( WC()->cart->get_fees() as $key => $fee ) {
+			$this->set_fee_tax( $key, 0 );
 		}
 
-		if ( isset( $_POST[ 'billing_postcode' ] ) ) {
-			WC()->customer->set_postcode( $_POST[ 'billing_postcode' ] );
-		}
-
-		if ( isset( $_POST[ 'billing_city' ] ) ) {
-			WC()->customer->set_city( $_POST[ 'billing_city' ] );
-		}
-
-		if ( isset( $_POST[ 'billing_address_1' ] ) ) {
-			WC()->customer->set_address( $_POST[ 'billing_address_1' ] );
-		}
-
-		if ( isset( $_POST[ 'billing_address_2' ] ) ) {
-			WC()->customer->set_address_2( $_POST[ 'billing_address_2' ] );
-		}
-
-		if ( wc_ship_to_billing_address_only() || ! isset( $_POST[ 'ship_to_different_address' ] ) ) {
-
-			if ( isset( $_POST[ 'billing_country' ] ) ) {
-				WC()->customer->set_shipping_country( $_POST[ 'billing_country' ] );
-				WC()->customer->calculated_shipping( true );
-			}
-
-			if ( isset( $_POST[ 'billing_state' ] ) ) {
-				WC()->customer->set_shipping_state( $_POST[ 'billing_state' ] );
-			}
-
-			if ( isset( $_POST[ 'billing_postcode' ] ) ) {
-				WC()->customer->set_shipping_postcode( $_POST[ 'billing_postcode' ] );
-			}
-
-			if ( isset( $_POST[ 'billing_city' ] ) ) {
-				WC()->customer->set_shipping_city( $_POST[ 'billing_city' ] );
-			}
-
-			if ( isset( $_POST[ 'billing_address_1' ] ) ) {
-				WC()->customer->set_shipping_address( $_POST[ 'billing_address_1' ] );
-			}
-
-			if ( isset( $_POST[ 'billing_address_2' ] ) ) {
-				WC()->customer->set_shipping_address_2( $_POST[ 'billing_address_2' ] );
-			}
-		} else {
-
-			if ( isset( $_POST[ 'shipping_country' ] ) ) {
-				WC()->customer->set_shipping_country( $_POST[ 'shipping_country' ] );
-				WC()->customer->calculated_shipping( true );
-			}
-
-			if ( isset( $_POST[ 'shipping_state' ] ) ) {
-				WC()->customer->set_shipping_state( $_POST[ 'shipping_state' ] );
-			}
-
-			if ( isset( $_POST[ 'shipping_postcode' ] ) ) {
-				WC()->customer->set_shipping_postcode( $_POST[ 'shipping_postcode' ] );
-			}
-
-			if ( isset( $_POST[ 'shipping_city' ] ) ) {
-				WC()->customer->set_shipping_city( $_POST[ 'shipping_city' ] );
-			}
-
-			if ( isset( $_POST[ 'shipping_address_1' ] ) ) {
-				WC()->customer->set_shipping_address( $_POST[ 'shipping_address_1' ] );
-			}
-
-			if ( isset( $_POST[ 'shipping_address_2' ] ) ) {
-				WC()->customer->set_shipping_address_2( $_POST[ 'shipping_address_2' ] );
-			}
-		}
-	}
-	
-	/**
-	 * Return the customer ID to be used for the current order. If the customer
-	 * is logged in, return their username. Otherwise, return the customer ID
-	 * generated by WooCommerce.
-	 *
-	 * @since 4.2
-	 *
-	 * @return mixed
-	 */
-	private function get_customer_id() {
-		global $current_user;
-
-		if ( is_user_logged_in() ) {
-			$customer_id = $current_user->user_login;
-		} else {
-			$customer_id = WC()->session->get_customer_id();
-		}
-
-		return $customer_id;
+		$this->set_tax_totals();
 	}
 
 	/**
-	 * Update the cart or shipping tax total.
-	 *
-	 * @since 4.4
-	 *
-	 * @param string $total_type "shipping" or "cart"
-	 * @param float $new_tax New tax total.
-	 */
-	private function update_tax_total( $total_type, $new_tax ) {
-		$total_type = $total_type == 'cart' ? '' : $total_type .'_';
-		
-		$tax_key    = $total_type . 'taxes';
-		$total_key  = $total_type . 'tax_total';
-
-		$this->cart->{$tax_key}[ SST_RATE_ID ] = $new_tax;
-
-		// Use get_tax_total to set new tax total so we don't override other rates
-		$this->cart->$total_key = version_compare( WC_VERSION, '2.2', '>=' ) ? WC_Tax::get_tax_total( $this->cart->$tax_key ) : $this->cart->tax->get_tax_total( $this->cart->$tax_key );
-		
-		$this->$total_key = $new_tax;
-	}
-
-	/**
-	 * Update the cart/shipping tax totals for the order.
-	 *
-	 * @since 4.2
-	 *
-	 * @param float $cart_tax Total cart tax.
-	 * @param float $shipping_tax Total shipping tax.
-	 */
-	private function update_tax_totals( $cart_tax = 0, $shipping_tax = 0 ) {	
-		$this->update_tax_total( 'cart', $cart_tax );
-		$this->update_tax_total( 'shipping', $shipping_tax );
-	}
-	
-	/**
-	 * Get the shipping method for the current order.
-	 *
-	 * If WC 2.1+ is installed, get the method from the chosen_shipping_methods
-	 * session variable. Otherwise, use chosen_shipping_method.
-	 *
-	 * If no method is selected, return false.
-	 *
-	 * @since 4.2
-     *
-	 * @return string|bool
-	 */
-	private function get_shipping_method() {
-		if ( WC()->session->get( 'chosen_shipping_method', false ) ) {
-			return WC()->session->chosen_shipping_method;
-		} else if ( WC()->session->get( 'chosen_shipping_methods', array() ) ) {
-			return WC()->session->chosen_shipping_methods[0];
-		} else {
-			return false;
-		}
-	}
-
-	/**
-	 * Return a hash of the current order.
-	 *
-	 * @since 4.4
-	 *
-	 * @return string
-	 */
-	private function get_order_hash() {
-		return md5( json_encode( $this->get_customer_id() ) . json_encode( $this->destination_address ) . json_encode( $this->lookup_data ) . json_encode( $this->get_exemption_certificate() ) );
-	}
-
-	/**
-	 * If the "Show Zero Tax" option is set to "No" and the tax total is
-	 * $0.00, hide the Sales Tax line item.
+	 * Filter items not needing shipping callback.
 	 *
 	 * @since 5.0
 	 *
-	 * @param  array $tax_totals Array of tax totals (@see WC_Cart->calculate_totals()).
+	 * @param  array $item
+	 * @return bool
+	 */
+	protected function filter_items_not_needing_shipping( $item ) {
+		$product = $item['data'];
+		return $product && ! $product->needs_shipping();
+	}
+
+	/**
+	 * Get only items that don't need shipping.
+	 *
+	 * @since 5.0
+	 *
 	 * @return array
 	 */
-	public function maybe_hide_tax_total( $tax_totals ) {
-		$hide_zero_taxes = SST_Settings::get( 'show_zero_tax' ) != 'true';
+	protected function get_items_not_needing_shipping() {
+		return array_filter( WC()->cart->get_cart(), array( $this, 'filter_items_not_needing_shipping' ) );
+	}
 
-		if ( $hide_zero_taxes ) {
-			$amounts    = array_filter( wp_list_pluck( $tax_totals, 'amount' ) );
-			$tax_totals = array_intersect_key( $tax_totals, $amounts );
+	/**
+	 * Get the hash of a shipping package.
+	 *
+	 * @since 5.0
+	 *
+	 * @param  array $package
+	 * @return string
+	 */
+	protected function get_package_hash( $package ) {
+		$package_to_hash = $package;
+
+		// Remove data objects so hashes are consistent
+		foreach ( $package_to_hash['contents'] as $item_id => $item ) {
+			unset( $package_to_hash['contents'][ $item_id ]['data'] );
 		}
 
-		return $tax_totals;
+		return 'wc_ship_' . md5( json_encode( $package_to_hash ) . WC_Cache_Helper::get_transient_version( 'shipping' ) );
+	}
+
+	/**
+	 * Get the shipping packages for this order. One Lookup will be issued for
+	 * each package.
+	 *
+	 * We set a default origin address for each package by examining its contents.
+	 * Developers can use the provided filter to change the origin address.
+	 *
+	 * @since 5.0
+	 *
+	 * @return array
+	 */
+	protected function get_packages() {
+		$raw_packages = WC()->shipping->get_packages();
+
+		if ( ! is_array( $raw_packages ) ) {
+			return array();
+		}
+
+		$chosen_methods = WC()->session->get( 'chosen_shipping_methods' );
+		$fees_added     = false;
+		$packages       = array();
+
+		foreach ( $raw_packages as $key => $package ) {
+			/* Skip packages shipping outside of the US */
+			if ( $package['destination']['country'] !== 'US' )
+				continue;
+
+			/* Convert destination address to Address object */
+			try {
+				$destination = SST_Addresses::verify_address( new TaxCloud\Address(
+					$package['destination']['address'],
+					$package['destination']['address_2'],
+					$package['destination']['city'],
+					$package['destination']['state'],
+					substr( $package['destination']['postcode'], 0, 5)
+				) );
+
+				$package['destination'] = $destination;
+			} catch ( Exception $ex ) {
+				wc_add_notice( sprintf( __( "Can't calculate tax for order: %s", 'simplesalestax' ), $ex->getMessage() ), 'error' );
+				return array();
+			}
+
+			/* Get default origin address. We use the most frequently occurring address
+			 * by default. */
+			$origins = array();
+
+			foreach ( $package['contents'] as $cart_key => $item ) {
+				$item_origins = SST_Product::get_origin_addresses( $item['product_id'] );
+
+				foreach ( $item_origins as $origin ) {
+					if ( ! isset( $origins[ $origin->getID() ] ) )
+						$origins[ $origin->getID() ] = 1;
+					else
+						$origins[ $origin->getID() ]++;
+				}
+			}
+
+			arsort( $origins );
+
+			$origins = array_keys( $origins );
+			
+			/* Let devs change origin address */
+			$origin = apply_filters( 'wootax_origin_address', SST_Addresses::get_address( array_pop( $origins ) ), $package );
+
+			// Ew... should use proxy pattern to avoid this
+			$package['origin'] = new TaxCloud\Address(
+				$origin->getAddress1(),
+				$origin->getAddress2(),
+				$origin->getCity(),
+				$origin->getState(),
+				$origin->getZip5(),
+				$origin->getZip4()
+			);
+
+			/* Add all fees to first package (devs can change with wootax_packages) */
+			if ( apply_filters( 'wootax_add_fees', true ) && ! $fees_added ) {
+				$package['fees'] = WC()->cart->get_fees();
+				$fees_added      = true;
+			} else {
+				$package['fees'] = array();
+			}
+
+			/* Set shipping method */
+			if ( isset( $chosen_methods[ $key ], $package['rates'][ $chosen_methods[ $key ] ] ) ) {
+				$package['shipping'] = $package['rates'][ $chosen_methods[ $key ] ];
+				unset( $package['rates'] );
+			}
+
+			$packages[ $this->get_package_hash( $package ) ] = $package;
+		}
+
+		/**
+		 * Create a special package for all of the items that don't need shipping.
+		 * These items will be excluded from the packages above.
+		 */
+		$digital_items = $this->get_items_not_needing_shipping();
+
+		if ( ! empty( $digital_items ) ) {
+			$package = array(
+				'contents'      => $digital_items,
+				'fees'          => array(),
+				'contents_cost' => array_sum( wp_list_pluck( $digital_items, 'line_total' ) ),
+				'origin'        => null,
+				'destination'   => null,
+				'user'          => array(
+					'ID' => get_current_user_id(),
+				),
+			);
+
+			$origin = apply_filters( 'wootax_origin_address', SST_Addresses::get_default_address(), $package );
+			
+			$package['origin'] = new TaxCloud\Address(
+				$origin->getAddress1(),
+				$origin->getAddress2(),
+				$origin->getCity(),
+				$origin->getState(),
+				$origin->getZip5(),
+				$origin->getZip4()
+			);
+
+			try {
+				/* Use billing address as destination for digital items */
+				$package['destination'] = SST_Addresses::verify_address( new TaxCloud\Address(
+					WC()->customer->get_billing_address(),
+					WC()->customer->get_billing_address_2(),
+					WC()->customer->get_billing_city(),
+					WC()->customer->get_billing_state(),
+					substr( WC()->customer->get_billing_postcode(), 0, 5)
+				) );
+
+				$packages[ $this->get_package_hash( $package ) ] = $package;
+			} catch ( Exception $ex ) {
+				wc_add_notice( sprintf( __( "Can't calculate tax for order: %s", 'simplesalestax' ), $ex->getMessage() ), 'error' );
+				return array();
+			}
+		}
+
+		/* Give developers a final opportunity to change the packages */
+		$packages = apply_filters( 'wootax_packages', $packages );
+
+		return $packages;
+	}
+	
+	/**
+	 * Generate a Lookup request for a given package.
+	 *
+	 * @since 5.0
+	 *
+	 * @param  array $package Package returned by get_packages().
+	 * @return Lookup
+	 */
+	protected function get_lookup_for_package( &$package ) {
+		// Info about items indexed by CartItem Index
+		$package['map'] = array();
+
+		$items = array();
+
+		$tax_based_on = SST_Settings::get( 'tax_based_on' );
+
+		// Add cart items
+		foreach ( $package['contents'] as $cart_key => $item ) {
+			$index   = sizeof( $items );
+			$item_id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
+			$price   = apply_filters( 'wootax_taxable_price', $item['data']->get_price(), true, $item_id );
+			$qty     = $item['quantity'];
+
+			if ( 'line-subtotal' == $tax_based_on ) {
+				$price = $price * $qty;
+				$qty   = 1;
+			}
+
+			$items[] = new TaxCloud\CartItem(
+				$index,
+				$item_id,
+				SST_Product::get_tic( $item['product_id'], $item['variation_id'] ),
+				$price,
+				$qty
+			);
+
+			$package['map'][ $index ] = array(
+				'type'    => 'cart',
+				'id'      => $item_id,
+				'cart_id' => $cart_key
+			);
+		}
+
+		// Add fees
+		foreach ( $package['fees'] as $fee_index => $fee ) {
+			$index   = sizeof( $items );
+			$item_id = $fee->id;
+
+			$items[] = new TaxCloud\CartItem(
+				$index,
+				$item_id,
+				apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC ),
+				apply_filters( 'wootax_taxable_price', $fee->amount, true, $item_id ),
+				1
+			);
+
+			$package['map'][ $index ] = array(
+				'type'    => 'fee',
+				'id'      => $item_id,
+				'cart_id' => $fee_index
+			);
+		}
+
+		// Add shipping
+		$shipping_rate = isset( $package['shipping'] ) ? $package['shipping'] : null;
+		$shipping_id   = '';
+
+		if ( ! is_null( $shipping_rate ) ) {
+			$shipping_id     = $shipping_rate->method_id;
+			$shipping_total  = apply_filters( 'wootax_taxable_price', $shipping_rate->cost, true, SST_SHIPPING_ITEM );
+
+			if ( $shipping_total > 0 ) {
+				$index = sizeof( $items );
+				
+				$items[] = new TaxCloud\CartItem(
+					$index,
+					SST_SHIPPING_ITEM,
+					apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC ),
+					$shipping_total,
+					1
+				);
+
+				$package['map'][ $index ] = array(
+					'type'    => 'shipping',
+					'id'      => SST_SHIPPING_ITEM,
+					'cart_id' => SST_SHIPPING_ITEM
+				);
+			}
+		}
+
+		// Construct Lookup
+		$request = new TaxCloud\Request\Lookup(
+			$this->taxcloud_id,
+			$this->taxcloud_key,
+			$package['user']['ID'],
+			NULL,
+			$items,
+			$package['origin'],
+			$package['destination'],
+			SST_Shipping::is_local_delivery( $shipping_id )
+		); // TODO: ADD EXEMPT CERTIFICATE SUPPORT
+
+		return $request;
+	}
+	
+	/**
+	 * Set the cart and shipping tax totals.
+	 *
+	 * @since 5.0
+	 *
+	 * @param float $cart_tax (default: 0.0)
+	 * @param float $shipping_tax (default: 0.0)
+	 */
+	protected function set_tax_totals( $cart_tax = 0.0, $shipping_tax = 0.0 ) {
+		WC()->cart->taxes[ SST_RATE_ID ] = $cart_tax;
+		WC()->cart->tax_total = WC_Tax::get_tax_total( WC()->cart->taxes );
+		WC()->cart->shipping_taxes[ SST_RATE_ID ] = $shipping_tax;
+		WC()->cart->shipping_tax_total = WC_Tax::get_tax_total( WC()->cart->shipping_taxes );
 	}
 
 	/**
@@ -583,7 +529,7 @@ class SST_Checkout {
 	 * @param int $order_id ID of new order.
 	 */
 	public function add_order_meta( $order_id ) {
-
+		// TODO: REVISIT AFTER REQUIRED META DECIDED; DELETE SESS DATA?
 		WT_Orders::update_meta( $order_id, 'wt_customer_id', $this->customer_id );
 		WT_Orders::update_meta( $order_id, 'wt_order_parts', $this->order_parts );
 
@@ -598,57 +544,6 @@ class SST_Checkout {
 			$logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : WC()->logger();
 			$logger->add( 'wootax', "New order with ID $order_id created." );
 		}
-		
-		// TODO: maybe delete session data
-	}
-
-	/**
-	 * Output Tax Details section of checkout form.
-	 *
-	 * @since 5.0
-	 */
-	public function output_tax_details_form() {
-		// Exit if exemptions are disabled...
-		$show_exempt = SST_Settings::get( 'show_exempt' ) == 'true';
-
-		if ( ! $show_exempt )
-			return;
-
-		// ... or if the form should only be shown to exempt users and the current
-		// user is not exempt
-		$current_user = wp_get_current_user();
-
-		$restricted = SST_Settings::get( 'restrict_exempt' ) == 'yes';
-		$exempt_roles = SST_Settings::get( 'exempt_roles', array() );
-		$user_roles = is_user_logged_in() ? $current_user->roles : array();
-		$user_exempt = count( array_intersect( $exempt_roles, $user_roles ) ) > 0;
-
-		if ( $restricted && ( ! is_user_logged_in() || ! $user_exempt ) )
-			return;
-
-		// Check the "Tax exempt" checkbox by default if:
-		// - Checkout is being loaded for the first time (GET) and the customer
-		// has a tax exempt user role, OR
-		// - Checkout form has been submitted (POST) and the tax exempt box is
-		// still checked
-		$checked = $_GET && $user_exempt || $_POST && isset( $_POST[ 'tax_exempt' ] );
-
-		echo '<h3>Tax exempt? <input type="checkbox" name="tax_exempt" id="tax_exempt_checkbox" class="input-checkbox" value="1"'. checked( $checked, true, false ) .'></h3>';
-
-		echo '<div id="tax_details">';
-
-		$template_path = SST()->plugin_path() . '/templates';
-
-		if ( is_user_logged_in() ) {
-			wc_get_template( 'form-tax-exempt.php', array(
-				'certificates'  => SST_Certificates::get_certificates( false ),
-				'template_path' => $template_path,
-			), 'sst/checkout/', $template_path .'/checkout/' );
-		} else {
-			wc_get_template( 'form-tax-exempt-logged-out.php', array(), 'sst/checkout/', $template_path .'/checkout/' );
-		}
-
-		echo '</div>';
 	}
 
 	/**
@@ -657,23 +552,76 @@ class SST_Checkout {
 	 * @since 5.0
 	 */
 	public function enqueue_scripts() {
-		// Magnific Popup
-		wp_enqueue_style( 'mpop', SST()->plugin_url() . '/assets/css/magnific-popup.css' );
-		wp_enqueue_script( 'mpop', SST()->plugin_url() . '/assets/js/magnific-popup.js', array( 'jquery' ), '1.0', true );
+		// CSS
+		wp_enqueue_style( 'sst-modal', SST()->plugin_url() . '/assets/css/modal.css' );
 
-		// Certificate table JS
-		wp_enqueue_script( 'certificate-table', SST()->plugin_url() . '/assets/js/certificate-table.js', array( 'mpop' ) );
-
-		// Checkout CSS
-		wp_enqueue_style( 'sst-checkout', SST()->plugin_url() . "/assets/css/checkout.css" );
-
-		// Checkout JS
-		wp_enqueue_script( 'sst-checkout', SST()->plugin_url() . "/assets/js/checkout.js", array( 'jquery', 'mpop' ), '1.0', true );
-		wp_localize_script( 'sst-checkout', 'WT', array(
-			'ajaxURL' => admin_url( 'admin-ajax.php' ) 
-		) );
+		// JS
+		wp_register_script( 'sst-backbone-modal', SST()->plugin_url() . '/assets/js/backbone-modal.js', array( 'underscore', 'backbone', 'wp-util' ), SST()->version );
+		wp_register_script( 'sst-checkout', SST()->plugin_url() . '/assets/js/checkout.js', array( 'jquery', 'wp-util', 'underscore', 'backbone', 'sst-backbone-modal', 'jquery-blockui' ), SST()->version );
 	}
 
+	/**
+	 * Does the customer have an exempt user role?
+	 *
+	 * @since 5.0
+	 *
+	 * @return bool
+	 */
+	protected function is_user_exempt() {
+		$current_user = wp_get_current_user();
+		$restricted   = SST_Settings::get( 'restrict_exempt' ) == 'yes';
+		$exempt_roles = SST_Settings::get( 'exempt_roles', array() );
+		$user_roles   = is_user_logged_in() ? $current_user->roles : array();
+		$user_exempt  = count( array_intersect( $exempt_roles, $user_roles ) ) > 0;
+		return ! $restricted || $user_exempt;
+	}
+
+	/**
+	 * Should the exemption form be displayed?
+	 *
+	 * @since 5.0
+	 */
+	protected function show_exemption_form() {
+		if ( SST_Settings::get( 'show_exempt' ) != 'true' ) {
+			return false;
+		}
+		return $this->is_user_exempt();
+	}
+
+	/**
+	 * Output Tax Details section of checkout form.
+	 *
+	 * @since 5.0
+	 */
+	public function output_exemption_form() {
+		if ( ! $this->show_exemption_form() ) {
+			return;
+		}
+
+		wp_localize_script( 'sst-checkout', 'SSTCertData', array(
+			'certificates'             => SST_Certificates::get_certificates_formatted( false ),
+			'add_certificate_nonce'    => wp_create_nonce( 'sst_add_certificate' ),
+			'delete_certificate_nonce' => wp_create_nonce( 'sst_delete_certificate' ),
+			'ajaxurl'                  => admin_url( 'admin-ajax.php' ),
+			'seller_name'              => SST_Settings::get( 'company_name' ),
+			'images'                   => array(
+				'single_cert'  => SST()->plugin_url() . '/assets/img/sp_exemption_certificate750x600.png',
+				'blanket_cert' => SST()->plugin_url() . '/assets/img/exemption_certificate750x600.png',
+			),
+			'strings'                  => array(
+				'delete_failed'      => __( 'Failed to delete certificate', 'simplesalestax' ),
+				'add_failed'         => __( 'Failed to add certificate', 'simplesalestax' ),
+				'delete_certificate' => __( 'Are you sure you want to delete this certificate? This action is irreversible.', 'simplesalestax' ), 
+			),
+		) );
+
+		wp_enqueue_script( 'sst-checkout' );
+
+		wc_get_template( 'html-certificate-table.php', array(
+			'checked'  => $_GET && $this->is_user_exempt() || $_POST && isset( $_POST[ 'tax_exempt' ] ),
+			'selected' => isset( $_POST['certificate_id'] ) ? $_POST['certificate_id'] : '',
+		), 'sst/checkout/', SST()->plugin_path() . '/includes/frontend/views/' );
+	}
 }
 
 new SST_Checkout();

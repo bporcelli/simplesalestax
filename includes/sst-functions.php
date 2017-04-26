@@ -126,6 +126,17 @@ function sst_prettify( $ugly ) {
 }
 
 /**
+ * Is subscriptions active?
+ *
+ * @since 5.0
+ *
+ * @return bool
+ */
+function sst_subs_active() {
+	return class_exists( 'WC_Subscriptions' );
+}
+
+/**
  * Return an API client instance.
  *
  * @since 5.0

@@ -31,7 +31,10 @@ class SST_Install {
 			'sst_update_42_migrate_order_data',
 		),
 		'4.5' => array(
-			'sst_update_45_remove_license_option'
+			'sst_update_45_remove_license_option',
+		),
+		'5.0' => array(
+			'sst_update_50_origin_addresses',
 		),
 	);
 
@@ -52,6 +55,8 @@ class SST_Install {
 		add_action( 'admin_init', array( __CLASS__, 'trigger_update' ) );
 		add_action( 'admin_init', array( __CLASS__, 'trigger_rate_removal' ) );
 		add_filter( 'plugin_action_links_' . SST_PLUGIN_BASENAME, array( __CLASS__, 'add_action_links' ) );
+		add_filter( 'woocommerce_rate_code', array( __CLASS__, 'get_rate_code' ), 10, 2 );
+		add_filter( 'woocommerce_rate_label', array( __CLASS__, 'get_rate_label' ), 10, 2 );
 	}
 
 	/**
@@ -303,6 +308,40 @@ class SST_Install {
 			SST_RATE_ID
 		) );
 		return $rate_count > 0;
+	}
+
+	/**
+	 * Return correct rate code for our tax rate (SALES-TAX).
+	 *
+	 * @since 5.0
+	 *
+	 * @param  string $code Rate code.
+	 * @param  int $key Tax rate ID.
+	 * @return string
+	 */
+	public static function get_rate_code( $code, $key ) {
+		if ( $key == SST_RATE_ID ) {
+			return apply_filters( 'wootax_rate_code', 'SALES-TAX' );
+		} else {
+			return $code;
+		}
+	}
+
+	/**
+	 * Return correct label for our tax rate ("Sales Tax").
+	 *
+	 * @since 5.0
+	 *
+	 * @param  string $label Original label.
+	 * @param  int $key Tax rate id.
+	 * @return string
+	 */
+	public static function get_rate_label( $label, $key ) {
+		if ( $key == SST_RATE_ID ) {
+			return apply_filters( 'wootax_rate_label', 'Sales Tax' );
+		} else {
+			return $name;
+		}
 	}
 
 }

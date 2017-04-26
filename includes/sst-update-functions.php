@@ -31,8 +31,17 @@ function sst_update_26_remove_shipping_taxable_option() {
  * @since 5.0
  */
 function sst_update_38_update_addresses() {
-	// Set new address array 
-	SST()->set_option( 'wootax_addresses', SST_Addresses::get_origin_addresses() );
+	// Set new address array
+	$address = new TaxCloud\Address(
+		get_option( 'wootax_address1' ),
+		get_option( 'wootax_address2' ),
+		get_option( 'wootax_city' ),
+		get_option( 'wootax_state' ),
+		get_option( 'wootax_zip5' ),
+		get_option( 'wootax_zip4' )
+	);
+
+	SST_Settings::set( 'addresses', array( json_encode( $address ) ) );
 
 	// Delete old options
 	delete_option( 'wootax_address1' );
@@ -255,4 +264,38 @@ function sst_update_42_get_item_type( $item_id ) {
  */
 function sst_update_45_remove_license_option() {
 	delete_option( 'wootax_license_key' );
+}
+
+/**
+ * In 5.0, we added support for multiple default origin addresses. This function
+ * migrates existing address data to work with the new system.
+ *
+ * @since 5.0
+ */
+function sst_update_50_origin_addresses() {
+	$default_address = SST_Settings::get( 'default_address' );
+	$addresses       = SST_Settings::get( 'addresses' );
+
+	foreach ( $addresses as $key => $address ) {
+		try {
+			$new_address = new SST_Origin_Address(
+				$key,
+				$key === $default_address,
+				isset( $address['address_1'] ) ? $address['address_1'] : '',
+				isset( $address['address_2'] ) ? $address['address_2'] : '',
+				isset( $address['city'] ) ? $address['city'] : '',
+				isset( $address['state'] ) ? $address['state'] : '',
+				isset( $address['zip5'] ) ? $address['zip5'] : '',
+				isset( $address['zip4'] ) ? $address['zip4'] : ''
+			);
+
+			$addresses[ $key ] = json_encode( $new_address );
+		} catch ( Exception $ex ) {
+			// Address was invalid -- not much we can do
+			unset( $addresses[ $key ] );
+		}
+	}
+
+	SST_Settings::set( 'addresses', $addresses );
+	SST_Settings::set( 'default_address', null );
 }

@@ -103,13 +103,6 @@ class SST_Settings {
 				'description' 		=> __( 'Enter your company name as it should be displayed on exemption certificates.', 'woocommerce-wootax' ),
 				'desc_tip'			=> true
 			),
-			'exemption_text' => array(
-				'title'				=> 'Exemption Link Text',
-				'type'				=> 'text',
-				'default'			=> 'Click here to add or apply an exemption certificate',
-				'description' 		=> __( 'This text is displayed on the link that opens the exemption management interface. Defaults to "Click here to add or apply an exemption certificate."', 'woocommerce-wootax' ),
-				'desc_tip'			=> true
-			),
 			'exempt_roles' => array(
 				'title'             => 'Exempt User Roles',
 				'type'              => 'multiselect',
