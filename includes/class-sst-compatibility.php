@@ -30,8 +30,8 @@ class SST_Compatibility {
 		if ( ! class_exists( 'SoapClient' ) )
 			$missing[] = 'PHP SOAP Extension';
 
-		if ( version_compare( self::woocommerce_version(), '2.2', '<' ) )
-			$missing[] = 'WooCommerce 2.2+';
+		if ( version_compare( self::woocommerce_version(), '2.6', '<' ) )
+			$missing[] = 'WooCommerce 2.6+';
 
 		return $missing;
 	}

@@ -193,23 +193,14 @@ class SST_Ajax {
 				ob_start();
 
 				foreach ( array_keys( $taxes + $shipping_taxes ) as $key ) {
-					$item            = array();
-					$item[ 'rate_id' ] = $key;
-					$item[ 'name' ]    = $tax_codes[ $key ];
-
-					if ( version_compare( WC_VERSION, '2.2', '>=' ) ) {
-						$item[ 'label' ]    = WC_Tax::get_rate_label( $key );
-						$item[ 'compound' ] = WC_Tax::is_compound( $key );
-					} else {
-						// get_rate_label() and is_compound() were instance methods in WooCommerce < 2.3
-						$tax = new WC_Tax();
-
-						$item[ 'label' ]    = $tax->get_rate_label( $key );
-						$item[ 'compound' ] = $tax->is_compound( $key ) ? 1 : 0;
-					}
-
-					$item[ 'tax_amount' ]          = wc_round_tax_total( isset( $taxes[ $key ] ) ? $taxes[ $key ] : 0 );
-					$item[ 'shipping_tax_amount' ] = wc_round_tax_total( isset( $shipping_taxes[ $key ] ) ? $shipping_taxes[ $key ] : 0 );
+					$item = array(
+						'rate_id'             => $key,
+						'name'                => $tax_codes[ $key ],
+						'label'               => WC_Tax::get_rate_label( $key ),
+						'compound'            => WC_Tax::is_compound( $key ),
+						'tax_amount'          => wc_round_tax_total( isset( $taxes[ $key ] ) ? $taxes[ $key ] : 0 ),
+						'shipping_tax_amount' => wc_round_tax_total( isset( $shipping_taxes[ $key ] ) ? $shipping_taxes[ $key ] : 0 ),
+					);
 
 					if ( ! $item[ 'label' ] )
 						$item[ 'label' ] = WC()->countries->tax_or_vat();

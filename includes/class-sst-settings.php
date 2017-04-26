@@ -106,7 +106,7 @@ class SST_Settings {
 			'exempt_roles' => array(
 				'title'             => 'Exempt User Roles',
 				'type'              => 'multiselect',
-				'class'             => version_compare( WC_VERSION, '2.3', '<' ) ? 'chosen_select' : 'wc-enhanced-select',
+				'class'             => 'wc-enhanced-select',
 				'options'           => self::get_user_roles(),
 				'default'           => array( 'exempt-customer' ),
 				'description'       => 'When a user with one of these roles shops on your site, WooTax will automatically find and apply the first exemption certificate associated with their account. Convenient if you have repeat exempt customers.',

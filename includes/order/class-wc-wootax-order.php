@@ -76,11 +76,7 @@ class WC_WooTax_Order {
 	 * @since 4.2
 	 */
 	public function remove_tax() {		
-		if ( version_compare( WC_VERSION, '2.2', '<' ) ) {
-			$items = $this->order->get_items() + $this->order->get_fees();
-		} else {
-			$items = $this->order->get_items() + $this->order->get_fees() + $this->order->get_shipping_methods();
-		}
+		$items = $this->order->get_items() + $this->order->get_fees() + $this->order->get_shipping_methods();
 
 		// Remove all taxes
 		foreach ( $items as $item_id => $data ) {
@@ -125,43 +121,37 @@ class WC_WooTax_Order {
 	 * @param float $amt Sales tax for item.
 	 */
 	private function apply_item_tax( $item_id, $amt ) {
-		if ( $item_id == SST_SHIPPING_ITEM ) { // WooCommerce 2.1.x shipping 
-			WT_Orders::update_meta( $this->order_id, 'shipping_tax_total', WT_Orders::get_meta( $this->order_id, 'shipping_tax_total' ) + $amt );
-		} else {
-			// Calculate new tax values
-			$line_subtotal_tax = $this->get_item_meta( $item_id, '_line_subtotal_tax' ) + $amt;
-			$line_tax 		   = $this->get_item_meta( $item_id, '_line_tax' ) + $amt;
+		// Calculate new tax values
+		$line_subtotal_tax = $this->get_item_meta( $item_id, '_line_subtotal_tax' ) + $amt;
+		$line_tax 		   = $this->get_item_meta( $item_id, '_line_tax' ) + $amt;
 
-			// Save new tax values
-			wc_update_order_item_meta( $item_id, '_line_tax', $line_tax );
-			wc_update_order_item_meta( $item_id, '_line_subtotal_tax', $line_subtotal_tax );
-			wc_update_order_item_meta( $item_id, '_wootax_tax_amount', $amt ); 
+		// Save new tax values
+		wc_update_order_item_meta( $item_id, '_line_tax', $line_tax );
+		wc_update_order_item_meta( $item_id, '_line_subtotal_tax', $line_subtotal_tax );
+		wc_update_order_item_meta( $item_id, '_wootax_tax_amount', $amt ); 
 
-			// Update the "tax_data" array if we are dealing with WooCommerce 2.2+
-			if ( version_compare( WC_VERSION, '2.2', '>=' ) ) {
-				$tax_data = $this->get_item_meta( $item_id, '_line_tax_data' );
-				$taxes    = $this->get_item_meta( $item_id, 'taxes' );
+		// Update the tax_data array
+		$tax_data = $this->get_item_meta( $item_id, '_line_tax_data' );
+		$taxes    = $this->get_item_meta( $item_id, 'taxes' );
 
-				if ( $taxes ) {
-					// Shipping item
-					if ( isset( $taxes[ SST_RATE_ID ] ) ) {
-						$taxes[ SST_RATE_ID ] = $amt;
-					}
-
-					wc_update_order_item_meta( $item_id, 'taxes', $taxes );
-				} else {
-					if ( isset( $tax_data['total'] ) ) {
-						// Cart items
-						$tax_data['subtotal'][ SST_RATE_ID ] = $amt;
-						$tax_data['total'][ SST_RATE_ID ]    = $amt;
-					} else {
-						// Fee
-						$tax_data[ SST_RATE_ID ] = $amt;
-					}
-
-					wc_update_order_item_meta( $item_id, '_line_tax_data', $tax_data );
-				}
+		if ( $taxes ) {
+			// Shipping item
+			if ( isset( $taxes[ SST_RATE_ID ] ) ) {
+				$taxes[ SST_RATE_ID ] = $amt;
 			}
+
+			wc_update_order_item_meta( $item_id, 'taxes', $taxes );
+		} else {
+			if ( isset( $tax_data['total'] ) ) {
+				// Cart items
+				$tax_data['subtotal'][ SST_RATE_ID ] = $amt;
+				$tax_data['total'][ SST_RATE_ID ]    = $amt;
+			} else {
+				// Fee
+				$tax_data[ SST_RATE_ID ] = $amt;
+			}
+
+			wc_update_order_item_meta( $item_id, '_line_tax_data', $tax_data );
 		}
 	}
 	
@@ -194,50 +184,46 @@ class WC_WooTax_Order {
 		// Fetch applied tax
 		$applied_tax = $this->get_item_tax( $item_id );
 
-		if ( $applied_tax != 0 ) {
-			if ( $item_id == SST_SHIPPING_ITEM ) { // WooCommerce 2.1.x shipping charges
-				WT_Orders::update_meta( $this->order_id, 'shipping_tax_total', 0 );
-			} else {
-				// Calculate new tax values
-				$line_subtotal_tax = $this->get_item_meta( $item_id, '_line_subtotal_tax' ) - $applied_tax;
-				$line_tax          = $this->get_item_meta( $item_id, '_line_tax' ) - $applied_tax;
-
-				// Zero out tax if the calculated value is negative
-				$line_subtotal_tax = $line_subtotal_tax < 0 ? 0 : $line_subtotal_tax;
-				$line_tax          = $line_tax < 0 ? 0 : $line_tax;
-
-				// Save new tax values
-				wc_update_order_item_meta( $item_id, '_line_tax', $line_tax );
-				wc_update_order_item_meta( $item_id, '_line_subtotal_tax', $line_subtotal_tax );
-				wc_update_order_item_meta( $item_id, '_wootax_tax_amount', 0 );
-
-				// Update the "tax_data" array if we are dealing with WooCommerce 2.2+
-				if ( version_compare( WC_VERSION, '2.2', '>=' ) ) {
-					$tax_data = $this->get_item_meta( $item_id, '_line_tax_data' );
-					$taxes    = $this->get_item_meta( $item_id, 'taxes' );
-
-					if ( $taxes ) {
-						// Shipping item
-						if ( isset( $taxes[ SST_RATE_ID ] ) ) {
-							$taxes[ SST_RATE_ID ] = 0;
-						}
-
-						wc_update_order_item_meta( $item_id, 'taxes', $taxes );
-					} else {
-						if ( isset( $tax_data['total'] ) ) {
-							// Cart items
-							$tax_data['subtotal'][ SST_RATE_ID ] = 0;
-							$tax_data['total'][ SST_RATE_ID ]    = 0;
-						} else {
-							// Fee
-							$tax_data[ SST_RATE_ID ] = 0;
-						}
-
-						wc_update_order_item_meta( $item_id, '_line_tax_data', $tax_data );
-					}					
-				}
-			}
+		if ( ! $applied_tax ) {
+			return;
 		}
+
+		// Calculate new tax values
+		$line_subtotal_tax = $this->get_item_meta( $item_id, '_line_subtotal_tax' ) - $applied_tax;
+		$line_tax          = $this->get_item_meta( $item_id, '_line_tax' ) - $applied_tax;
+
+		// Zero out tax if the calculated value is negative
+		$line_subtotal_tax = $line_subtotal_tax < 0 ? 0 : $line_subtotal_tax;
+		$line_tax          = $line_tax < 0 ? 0 : $line_tax;
+
+		// Save new tax values
+		wc_update_order_item_meta( $item_id, '_line_tax', $line_tax );
+		wc_update_order_item_meta( $item_id, '_line_subtotal_tax', $line_subtotal_tax );
+		wc_update_order_item_meta( $item_id, '_wootax_tax_amount', 0 );
+
+		// Update the tax_data array
+		$tax_data = $this->get_item_meta( $item_id, '_line_tax_data' );
+		$taxes    = $this->get_item_meta( $item_id, 'taxes' );
+
+		if ( $taxes ) {
+			// Shipping item
+			if ( isset( $taxes[ SST_RATE_ID ] ) ) {
+				$taxes[ SST_RATE_ID ] = 0;
+			}
+
+			wc_update_order_item_meta( $item_id, 'taxes', $taxes );
+		} else {
+			if ( isset( $tax_data['total'] ) ) {
+				// Cart items
+				$tax_data['subtotal'][ SST_RATE_ID ] = 0;
+				$tax_data['total'][ SST_RATE_ID ]    = 0;
+			} else {
+				// Fee
+				$tax_data[ SST_RATE_ID ] = 0;
+			}
+
+			wc_update_order_item_meta( $item_id, '_line_tax_data', $tax_data );
+		}					
 	}
 
 	/**

@@ -128,27 +128,6 @@ class WT_Orders {
 	}
 
 	/**
-	 * If WC < 2.2 is being used, store the index of the shipping item when the
-	 * order is created. (TODO: WHY?)
-	 *
-	 * @since 4.4
-	 *
-     * @param int $order_id ID of new order.
-	 */
-	public static function maybe_store_shipping_index( $order_id ) {
-		if ( version_compare( WC_VERSION, '2.2', '<' ) ) {
-			$location_mapping = self::get_meta( $order_id, 'location_mapping_array' );
-			$mapping          = self::get_meta( $order_id, 'mapping_array' );
-
-			$location_id = isset( $location_mapping[ SST_SHIPPING_ITEM ] ) ? $location_mapping[ SST_SHIPPING_ITEM ] : 0;
-
-			if ( isset( $mapping[ $location_id ][ SST_SHIPPING_ITEM ] ) ) {
-				self::update_meta( $order_id, 'shipping_index', $mapping[ $location_id ][ SST_SHIPPING_ITEM ] );
-			}
-		}
-	}
-
-	/**
 	 * Updates the "taxes" meta for shipping items to include tax added by us. Note
 	 * that this method assumes only one shipping method per order.
 	 *
@@ -207,34 +186,7 @@ class WT_Orders {
 			return; // Returning here allows WC_AJAX::calc_line_taxes to take over for non-US orders
 		} else {
 			// Build items array
-			if ( version_compare( WC_VERSION, '2.2', '>=' ) ) {
-			    parse_str( $_POST[ 'items' ], $items );
-			} else if ( version_compare( WC_VERSION, '2.1.0', '>=' ) ) {
-				$items = array(
-					'order_item_id'      => array(),
-					'order_item_qty'     => array(),
-					'line_total'         => array(),
-					'shipping_method_id' => array(),
-					'shipping_cost'      => array(),
-				);
-
-				// Add cart items/fees
-				foreach ( $_POST[ 'items' ] as $item_id => $item ) {
-					$items[ 'order_item_id' ][] = $item_id;
-
-					if ( get_post_type( $order->get_item_meta( $item_id, '_product_id' ) ) == 'product' ) {
-						$items[ 'order_item_qty' ][$item_id] = isset( $item[ 'quantity' ] ) ? $item[ 'quantity' ] : 1;
-					}
-
-					$items['line_total'][$item_id] = $item['line_total'];
-				}
-
-				// Add item for shipping cost
-				if ( isset( $_POST[ 'shipping' ] ) && $_POST[ 'shipping' ] != 0 ) {
-					$items[ 'shipping_cost' ][ SST_SHIPPING_ITEM ] = $_POST[ 'shipping' ];
-					$items[ 'shipping_method_id' ][]              = SST_SHIPPING_ITEM;
-				}
-			}
+			parse_str( $_POST[ 'items' ], $items );
 
 			$order_items = array();
 			$final_items = array();
@@ -305,111 +257,47 @@ class WT_Orders {
 			// Convert response array to be sent back to client
 			// @see WC_AJAX::calc_line_taxes()
 			if ( is_array( $res ) ) {
-				if ( version_compare( WC_VERSION, '2.2', '>=' ) ) {
 					
-					if ( ! isset( $items[ 'line_tax' ] ) )
-						$items[ 'line_tax' ] = array();
-					if ( ! isset( $items[ 'line_subtotal_tax' ] ) )
-						$items[ 'line_subtotal_tax' ] = array();
+				if ( ! isset( $items[ 'line_tax' ] ) )
+					$items[ 'line_tax' ] = array();
+				if ( ! isset( $items[ 'line_subtotal_tax' ] ) )
+					$items[ 'line_subtotal_tax' ] = array();
 
-					$items[ 'order_taxes' ] = array();
+				$items[ 'order_taxes' ] = array();
 
-					foreach ( $res as $item )  {
-						$id  = $item->ItemID;
-						$tax = $item->TaxAmount; 
+				foreach ( $res as $item )  {
+					$id  = $item->ItemID;
+					$tax = $item->TaxAmount; 
 
-						if ( is_array( $items[ 'shipping_method_id' ] ) && in_array( $id, $items[ 'shipping_method_id' ] ) ) {
-							$items[ 'shipping_taxes' ][ $id ][ SST_RATE_ID ] = $tax;
-						} else {
-							$items[ 'line_tax' ][ $id ][ SST_RATE_ID ] = $tax;
-							$items[ 'line_subtotal_tax' ][ $id ][ SST_RATE_ID ] = $tax;
-						}
+					if ( is_array( $items[ 'shipping_method_id' ] ) && in_array( $id, $items[ 'shipping_method_id' ] ) ) {
+						$items[ 'shipping_taxes' ][ $id ][ SST_RATE_ID ] = $tax;
+					} else {
+						$items[ 'line_tax' ][ $id ][ SST_RATE_ID ] = $tax;
+						$items[ 'line_subtotal_tax' ][ $id ][ SST_RATE_ID ] = $tax;
 					}
+				}
 
-					// Added in 4.6: add new tax item if old item has been removed
-					$order = $order->order;
-					$taxes = $order->get_taxes();
-					$tax_item_id = self::get_meta( $order_id, 'tax_item_id' );
+				// Added in 4.6: add new tax item if old item has been removed
+				$order = $order->order;
+				$taxes = $order->get_taxes();
+				$tax_item_id = self::get_meta( $order_id, 'tax_item_id' );
 
-					if ( empty( $tax_item_id ) || ! in_array( $tax_item_id, array_keys( $taxes ) ) ) {
-						$tax_item_id = $order->add_tax( SST_RATE_ID, $tax_total, $shipping_tax_total );
-						self::update_meta( $order_id, 'tax_item_id', $tax_item_id );
-					}
+				if ( empty( $tax_item_id ) || ! in_array( $tax_item_id, array_keys( $taxes ) ) ) {
+					$tax_item_id = $order->add_tax( SST_RATE_ID, $tax_total, $shipping_tax_total );
+					self::update_meta( $order_id, 'tax_item_id', $tax_item_id );
+				}
 
-					$items[ 'order_taxes' ][ $tax_item_id ] = absint( SST_RATE_ID );
+				$items[ 'order_taxes' ][ $tax_item_id ] = absint( SST_RATE_ID );
 
-					// Save order items
-					wc_save_order_items( $order_id, $items );
+				// Save order items
+				wc_save_order_items( $order_id, $items );
 
-					// Return HTML items
-					$data  = get_post_meta( $order_id );
+				// Return HTML items
+				$data  = get_post_meta( $order_id );
 
-					include( ABSPATH . '/'. PLUGINDIR . '/woocommerce/includes/admin/meta-boxes/views/html-order-items.php' );
+				include( WC()->plugin_path() . '/includes/admin/meta-boxes/views/html-order-items.php' );
 
-					die();
-				} else if ( version_compare( WC_VERSION, '2.1', '>=' ) ) {
-					// We are going to send back a JSON response
-					header( 'Content-Type: application/json; charset=utf-8' );
-
-					$item_tax = $shipping_tax = 0;
-					$tax_row_html = '';
-					$item_taxes = array();
-
-					// Update item taxes
-					foreach ( $res as $item ) {
-						$id  = $item->ItemID;
-						$tax = $item->TaxAmount; 
-
-						if ( $id == SST_SHIPPING_ITEM ) {
-							$shipping_tax += $tax;
-						} else {
-							$item_taxes[ $id ] = array(
-								'line_subtotal_tax' => wc_format_localized_price( $tax ),
-								'line_tax'          => wc_format_localized_price( $tax ),
-							);
-
-							$item_tax += $tax;
-						}	
-					}
-
-					// Fetch array mapping tax rate ids to tax codes
-					$tax_codes = array();
-					$taxes     = $order->order->get_taxes();
-
-					foreach ( $taxes as $item_id => $data ) {
-						$code = array();
-
-						$rate_id   = $data[ 'rate_id' ];
-						$rate_data = $wpdb->get_row( "SELECT * FROM {$wpdb->prefix}woocommerce_tax_rates WHERE tax_rate_id = '$rate_id'" );
-
-						$code[] = $rate_data->tax_rate_country;
-						$code[] = $rate_data->tax_rate_state;
-						$code[] = $rate_data->tax_rate_name ? sanitize_title( $rate_data->tax_rate_name ) : 'TAX';
-						$code[] = absint( $rate_data->tax_rate_priority );
-
-						$tax_codes[ $rate_id ] = strtoupper( implode( '-', array_filter( $code ) ) );
-					}
-
-					// Loop through tax items to build tax row HTML
-					ob_start();
-
-					foreach ( $taxes as $item_id => $item ) {
-						include( ABSPATH . '/'. PLUGINDIR . '/woocommerce/includes/admin/post-types/meta-boxes/views/html-order-tax.php' );
-					}
-
-					$tax_row_html = ob_get_clean();
-
-					// Return
-					echo json_encode( array(
-						'item_tax' 		=> $item_tax,
-						'item_taxes' 	=> $item_taxes,
-						'shipping_tax' 	=> $shipping_tax,
-						'tax_row_html' 	=> $tax_row_html,
-					) );
-
-					// Quit out
-					die();
-				} 
+				die();
 			} else {
 				die( 'Could not update order taxes. It is possible that the order has already been "completed," or that the customer\'s shipping address is unavailable. Please refresh the page and try again.' ); 
 			}
