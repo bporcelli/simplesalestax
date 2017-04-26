@@ -143,7 +143,7 @@ final class SST_Admin {
 	 */
 	public static function output_bulk_edit_fields() {
 		$GLOBALS[ 'tic_list' ] = self::get_tic_list();
-		require_once SST()->plugin_path() . '/templates/admin/tic-select-bulk.php';
+		require_once SST()->plugin_path() . '/includes/admin/views/html-tic-select-bulk.php';
 	}
 	
 	/**
@@ -277,7 +277,7 @@ final class SST_Admin {
 		$addresses = SST_Addresses::get_origin_addresses();
 
 		// Do not display if there is less than 2 origin addresses to select from
-		if ( !is_array( $addresses ) || count( $addresses ) <= 1 ) {
+		if ( ! is_array( $addresses ) || count( $addresses ) <= 1 ) {
 			return;
 		}
 
@@ -290,12 +290,13 @@ final class SST_Admin {
 
 		// Output select box
 		$origin_addresses = SST_Product::get_origin_addresses( $post->ID );
+		$selected_ids     = array_keys( $origin_addresses );
 
-		echo '<select class="'. ( version_compare( WC_VERSION, '2.3', '<' ) ? 'chosen_select' : 'wc-enhanced-select' ) .'" name="_wootax_origin_addresses[]" multiple>';
+		echo '<select class="wc-enhanced-select" name="_wootax_origin_addresses[]" multiple>';
 
 		if ( is_array( $addresses ) && count( $addresses ) > 0 ) {
-			foreach ( $addresses as $key => $address ) {
-				echo '<option value="'. $key .'"'. ( in_array( $key, $origin_addresses ) ? " selected" : "") .'>'. SST_Addresses::format( $address ) .'</option>';
+			foreach ( $addresses as $id => $address ) {
+				echo '<option value="'. $id .'" '. selected( in_array( $id, $selected_ids ) ) .'>'. SST_Addresses::format( $address ) .'</option>';
 			}
 		} else {
 			echo '<option value="">There are no addresses to select.</option>';
@@ -304,7 +305,7 @@ final class SST_Admin {
 		echo '</select>';
 
 		// Output help tooltip
-		wootax_tip(__('Used by Simple Sales Tax for tax calculations. These are the addresses from which this product will be shipped.'));
+		sst_tip( __( 'Used by Simple Sales Tax for tax calculations. These are the addresses from which this product will be shipped.', 'simplesalestax' ) );
 	}
 
 	/**
@@ -355,7 +356,7 @@ final class SST_Admin {
 		$is_edit = false;
 		$tic_list = self::get_tic_list();
 		
-		require SST()->plugin_path() . '/templates/admin/tic-select-cat.php';
+		require SST()->plugin_path() . '/includes/admin/views/html-tic-select-cat.php';
 	}
 
 	/**
@@ -374,7 +375,7 @@ final class SST_Admin {
 		$tic_list = self::get_tic_list();
 		$is_edit = true;
 
-		require SST()->plugin_path() . '/templates/admin/tic-select-cat.php';
+		require SST()->plugin_path() . '/includes/admin/views/html-tic-select-cat.php';
 	}
 
 	/**
@@ -574,7 +575,7 @@ final class SST_Admin {
 		$tic_list = self::get_tic_list();
 		$current_tic = get_post_meta( $product_id, 'wootax_tic', true );
 
-		require SST()->plugin_path() . '/templates/admin/tic-select.php';
+		require SST()->plugin_path() . '/includes/admin/views/html-tic-select.php';
 	}
 
 	/**

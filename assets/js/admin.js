@@ -30,72 +30,6 @@
         } );
 
         /**
-         * Add row to address table
-         */
-        jQuery( 'button.add-address-row' ).click( function( e ) {
-            e.preventDefault();
-
-            var tbody = jQuery( this ).closest( 'table' ).find( 'tbody' );
-            var rows = tbody.find( 'tr' );
-            var old_row = rows.last();
-            var old_is_default = old_row.find( 'input[type=radio]' ).is( ':checked' );
-            var new_row = old_row.clone();
-
-            // Reset field values
-            new_row.find( 'input, select' ).each( function() {
-                jQuery( this ).val( '' );
-            } );
-
-            // Update row index
-            var old_index = old_row.find( 'input[type=radio]' ).val();
-            new_row.find( 'input[type=radio]' ).val( parseInt( old_index ) + 1 ); 
-
-            // Enable "remove" button
-            new_row.find( '.remove_address' ).removeClass( 'disabled' );
-
-            // Insert row
-            new_row.appendTo( tbody );
-
-            // Fix default radio button
-            if ( old_is_default ) {
-                old_row.find( 'input[type=radio]' ).attr( 'checked', 'checked' );
-            }
-        } );
-
-        /**
-         * Remove row from address table
-         */
-        jQuery( document ).on( 'click', '.remove_address', function( e ) {
-            e.preventDefault();
-
-            if ( jQuery( this ).is( '.disabled' ) ) {
-                alert( data.strings.cant_remove_address );
-            } else {
-                // All rows
-                var rows = jQuery( this ).closest( 'tbody' ).find( 'tr' );
-
-                // The row to remove
-                var row = jQuery( this ).closest( 'tr' );
-
-                // If the address to be deleted is the current default, reset the default address
-                if ( row.find( 'input[type=radio]' ).is( ':checked' ) ) {
-                    jQuery( rows[ 0 ] ).find( 'input[type=radio]' ).attr( 'checked', 'checked' );
-                }
-
-                // Decrement indices for all addresses that come after this one
-                var index = rows.index( row );
-
-                for ( var i = index + 1; i < rows.length; i++ ) {
-                    var $radio = jQuery( rows[ i ] ).find( 'input[type=radio]' );
-                    $radio.val( parseInt( $radio.val() ) - 1 );
-                }
-
-                // Remove the address
-                row.hide().remove();
-            }
-        } );
-
-        /**
          * Warn user to "complete" order before processing a partial refund
         jQuery('#woocommerce-order-items').on('click', 'button.refund-items', function(e) {
             e.preventDefault();
@@ -105,11 +39,11 @@
 
         /**
          * Replace 'WOOTAX-RATE-DO-NOT-REMOVE' with custom rate code in recurring tax select box
-         */
+         
         jQuery( '.tax_rows_group select' ).each( function() {
             jQuery( this ).find( 'option' ).each( function() {
                 jQuery( this ).text( jQuery( this ).text().replace( 'WOOTAX-RATE-DO-NOT-REMOVE', WT.rateCode ) );
             } );
-        } );
+        } );*/
     } );
 })(SST);
