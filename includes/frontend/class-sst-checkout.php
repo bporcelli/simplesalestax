@@ -13,31 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @package SST
  * @since 	5.0
  */
-class SST_Checkout {
-
-	/**
-	 * @var Address Destination address.
-	 * @since 5.0
-	 */
-	protected $destination_address;
-	
-	/**
-	 * @var int Customer ID.
-	 * @since 5.0
-	 */
-	protected $customer_id;
-
-	/**
-	 * @var string TaxCloud API Login ID.
-	 * @since 5.0
-	 */
-	protected $taxcloud_id;
-
-	/**
-	 * @var string TaxCloud API key.
-	 * @since 5.0
-	 */
-	protected $taxcloud_key;
+class SST_Checkout extends SST_Abstract_Cart {
 
 	/**
 	 * Constructor: Initialize hooks.
@@ -47,11 +23,10 @@ class SST_Checkout {
 	public function __construct() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'woocommerce_checkout_after_customer_details', array( $this, 'output_exemption_form' ) );
-		add_action( 'woocommerce_calculate_totals', array( $this, 'calculate_tax_totals' ) );
+		add_action( 'woocommerce_calculate_totals', array( $this, 'calculate_taxes' ) );
 		add_filter( 'woocommerce_cart_hide_zero_taxes', array( $this, 'hide_zero_taxes' ) );
 		add_action( 'woocommerce_new_order', array( $this, 'add_order_meta' ) );
 		add_action( 'woocommerce_resume_order', array( $this, 'add_order_meta' ) );
-		// add_action( 'woocommerce_checkout_update_order_meta', array( __CLASS__, 'maybe_capture_order' ), 15, 1 );
 	}
 
 	/**
@@ -66,155 +41,28 @@ class SST_Checkout {
 	}
 
 	/**
-	 * Initialize class properties.
-	 *
-	 * @since 5.0
-	 */
-	protected function init() {
-		$this->destination_address = SST_Addresses::get_destination_address();
-		$this->customer_id         = WC()->session->get_customer_id();
-		$this->taxcloud_id         = SST_Settings::get( 'tc_id' );
-		$this->taxcloud_key        = SST_Settings::get( 'tc_key' );
-	}
-
-	/**
-	 * Ready for a lookup?
+	 * Get saved packages for this cart.
 	 *
 	 * @since 5.0
 	 *
-	 * @return bool
+	 * @return array
 	 */
-	protected function ready() {
-		// TODO: MODIFY TO ACCOUNT FOR MULTIPLE DESTINATIONS
-		// IDEA: SKIP PACKAGE IF DEST ADDRESS IS INVALID.
-		if ( is_null( $this->destination_address ) || ! SST_Addresses::is_valid( $this->destination_address ) )
-			return false;
-		if ( empty( $this->taxcloud_id ) || empty( $this->taxcloud_key ) )
-			return false;
-		return true;
+	protected function get_packages() {
+		return json_decode( WC()->session->get( 'sst_packages', '[]' ), true );
 	}
 
 	/**
-	 * Set the tax total for a cart item.
+	 * Set saved packages for this cart.
 	 *
 	 * @since 5.0
 	 *
-	 * @param string $key Cart item key.
-	 * @param float $amt Sales tax for item.
+	 * @param $packages array (default: array())
 	 */
-	protected function set_item_tax( $key, $amt ) {
-		// Update tax data
-		$tax_data = WC()->cart->cart_contents[ $key ][ 'line_tax_data' ];
+ 	protected function set_packages( $packages = array() ) {
+ 		WC()->session->set( 'sst_packages', json_encode( $packages ) );
+ 	}
 
-		$tax_data['subtotal'][ SST_RATE_ID ] = $amt;
-		$tax_data['total'][ SST_RATE_ID ]    = $amt;
-
-		WC()->cart->cart_contents[ $key ][ 'line_tax_data' ] = $tax_data;
-
-		// Update totals
-		WC()->cart->cart_contents[ $key ]['line_subtotal_tax'] = array_sum( $tax_data['subtotal'] );
-		WC()->cart->cart_contents[ $key ]['line_tax']          = array_sum( $tax_data['total'] );
-	}
-	
-	/**
-	 * Set the sales tax total for a fee.
-	 *
-	 * @since 5.0
-	 *
-	 * @param int $key Fee key.
-	 * @param float $amt Sales tax for fee.
-	 */
-	protected function set_fee_tax( $key, $amt ) {
-		WC()->cart->fees[ $key ]->tax_data[ SST_RATE_ID ] = $amt;
-		WC()->cart->fees[ $key ]->tax = array_sum( WC()->cart->fees[ $key ]->tax_data );
-	}
-
-	/**
-	 * Calculate sales tax totals for the current cart.
-	 *
-	 * @since 5.0
-	 */
-	public function calculate_tax_totals() {
-		$this->init();
-
-		if ( ! $this->ready() ) {
-			return;
-		}
-
-		/* Reset */
-		$this->reset_taxes();
-
-		$totals = array(
-			'shipping' => 0,
-			'cart'     => 0,
-		);
-
-		/* Perform tax lookup(s) */
-		$packages = WC()->session->get( 'sst_packages', array() );
-
-		foreach ( $this->get_packages() as $key => $package ) {
-			/* Get tax for each cart item, using cached result if possible */
-			$response = array();
-
-			if ( array_key_exists( $key, $packages ) ) {
-				$package = $packages[ $key ];
-			} else {
-				try {
-					$package['request']  = $this->get_lookup_for_package( $package );
-					$package['response'] = TaxCloud()->Lookup( $package['request'] );
-					$package['cart_id']  = key( $package['response'] );
-
-					/* Add to cache */
-					$packages[ $key ] = $package;
-				} catch ( Exception $ex ) {
-					wc_add_notice( $ex->getMessage(), 'error' );
-					return;
-				}
-			}
-
-			/* Set tax for each cart item */
-			$cart_items = current( $package['response'] );
-
-			foreach ( $cart_items as $index => $tax_total ) {
-				$info = $package['map'][ $index ];
-				
-				if ( 'shipping' == $info['type'] ) {
-					$totals['shipping'] += $tax_total;
-				} else {
-					if ( 'cart' == $info['type'] )
-						$this->set_item_tax( $info['cart_id'], $tax_total );
-					else
-						$this->set_fee_tax( $info['cart_id'], $tax_total );
-					
-					$totals['cart'] += $tax_total;
-				}
-			}
-		}
-
-		WC()->session->set( 'sst_packages', $packages );
-
-		/* Set tax totals */
-		$this->set_tax_totals( $totals['cart'], $totals['shipping'] );
-	}
-	
-	/**
-	 * Reset sales tax totals.
-	 *
-	 * @since 5.0
-	 */
-	protected function reset_taxes() {
-		foreach ( WC()->cart->get_cart() as $cart_key => $item ) {
-			$this->set_item_tax( $cart_key, 0 );
-		}
-
-		foreach ( WC()->cart->get_fees() as $key => $fee ) {
-			$this->set_fee_tax( $key, 0 );
-		}
-
-		$this->set_tax_totals();
-	}
-
-	/**
+ 	/**
 	 * Filter items not needing shipping callback.
 	 *
 	 * @since 5.0
@@ -239,36 +87,33 @@ class SST_Checkout {
 	}
 
 	/**
-	 * Get the hash of a shipping package.
+	 * Add fees to the given package.
 	 *
 	 * @since 5.0
 	 *
-	 * @param  array $package
-	 * @return string
+	 * @param array $package
+	 * @param array $fees
 	 */
-	protected function get_package_hash( $package ) {
-		$package_to_hash = $package;
-
-		// Remove data objects so hashes are consistent
-		foreach ( $package_to_hash['contents'] as $item_id => $item ) {
-			unset( $package_to_hash['contents'][ $item_id ]['data'] );
+	protected function add_fees_to_package( &$package, $fees ) {
+		foreach ( $fees as $index => $fee ) {
+			$package['fees'][] = $fee;
+			$package['map'][]  = array(
+				'type'    => 'fee',
+				'id'      => $fee->id,
+				'cart_id' => $index,
+			);
 		}
-
-		return 'wc_ship_' . md5( json_encode( $package_to_hash ) . WC_Cache_Helper::get_transient_version( 'shipping' ) );
 	}
 
-	/**
-	 * Get the shipping packages for this order. One Lookup will be issued for
-	 * each package.
-	 *
-	 * We set a default origin address for each package by examining its contents.
-	 * Developers can use the provided filter to change the origin address.
+ 	/**
+	 * Create shipping packages for this cart.
 	 *
 	 * @since 5.0
 	 *
 	 * @return array
 	 */
-	protected function get_packages() {
+	protected function create_packages() {
+		// TODO: HANDLE LOCAL PICKUPS
 		$raw_packages = WC()->shipping->get_packages();
 
 		if ( ! is_array( $raw_packages ) ) {
@@ -276,126 +121,76 @@ class SST_Checkout {
 		}
 
 		$chosen_methods = WC()->session->get( 'chosen_shipping_methods' );
-		$fees_added     = false;
 		$packages       = array();
+		$fees_added     = false;
 
 		foreach ( $raw_packages as $key => $package ) {
 			/* Skip packages shipping outside of the US */
 			if ( $package['destination']['country'] !== 'US' )
 				continue;
-
-			/* Convert destination address to Address object */
-			try {
-				$destination = SST_Addresses::verify_address( new TaxCloud\Address(
-					$package['destination']['address'],
-					$package['destination']['address_2'],
-					$package['destination']['city'],
-					$package['destination']['state'],
-					substr( $package['destination']['postcode'], 0, 5)
-				) );
-
-				$package['destination'] = $destination;
-			} catch ( Exception $ex ) {
-				wc_add_notice( sprintf( __( "Can't calculate tax for order: %s", 'simplesalestax' ), $ex->getMessage() ), 'error' );
-				return array();
-			}
-
-			/* Get default origin address. We use the most frequently occurring address
-			 * by default. */
-			$origins = array();
-
-			foreach ( $package['contents'] as $cart_key => $item ) {
-				$item_origins = SST_Product::get_origin_addresses( $item['product_id'] );
-
-				foreach ( $item_origins as $origin ) {
-					if ( ! isset( $origins[ $origin->getID() ] ) )
-						$origins[ $origin->getID() ] = 1;
-					else
-						$origins[ $origin->getID() ]++;
-				}
-			}
-
-			arsort( $origins );
-
-			$origins = array_keys( $origins );
 			
-			/* Let devs change origin address */
-			$origin = apply_filters( 'wootax_origin_address', SST_Addresses::get_address( array_pop( $origins ) ), $package );
+			/* Split package by origin address */
+			$subpackages = $this->split_package( $package );
 
-			// Ew... should use proxy pattern to avoid this
-			$package['origin'] = new TaxCloud\Address(
-				$origin->getAddress1(),
-				$origin->getAddress2(),
-				$origin->getCity(),
-				$origin->getState(),
-				$origin->getZip5(),
-				$origin->getZip4()
-			);
+			if ( empty( $subpackages ) )
+				return array();
 
-			/* Add all fees to first package (devs can change with wootax_packages) */
-			if ( apply_filters( 'wootax_add_fees', true ) && ! $fees_added ) {
-				$package['fees'] = WC()->cart->get_fees();
-				$fees_added      = true;
-			} else {
-				$package['fees'] = array();
+			/* Add fees and taxes to first subpackage */
+			$first_key = key( $subpackages );
+
+			if ( ! $fees_added && apply_filters( 'wootax_add_fees', true ) ) {
+				$this->add_fees_to_package( $subpackages[ $first_key ], WC()->cart->get_fees() );
+				$fees_added = true;
 			}
 
-			/* Set shipping method */
 			if ( isset( $chosen_methods[ $key ], $package['rates'][ $chosen_methods[ $key ] ] ) ) {
-				$package['shipping'] = $package['rates'][ $chosen_methods[ $key ] ];
-				unset( $package['rates'] );
+				$subpackages[ $first_key ]['shipping'] = $package['rates'][ $chosen_methods[ $key ] ];
+				$subpackages[ $first_key ]['map'][]    = array(
+					'type'    => 'shipping',
+					'id'      => SST_SHIPPING_ITEM,
+					'cart_id' => SST_SHIPPING_ITEM,
+				);
 			}
 
-			/* Set certificate */
-			$package['certificate'] = $this->get_certificate();
-
-			$packages[ $this->get_package_hash( $package ) ] = $package;
+			foreach ( $subpackages as $new_package ) {
+				$packages[ $this->get_package_hash( $new_package ) ] = $new_package;
+			}	
 		}
 
-		/**
-		 * Create a special package for all of the items that don't need shipping.
-		 * These items will be excluded from the packages above.
-		 */
+		/* Digital items won't be included in the packages we generate above.
+		 * Therefore, we add a special package for these items here. */
 		$digital_items = $this->get_items_not_needing_shipping();
 
 		if ( ! empty( $digital_items ) ) {
 			$package = array(
-				'contents'      => $digital_items,
-				'fees'          => array(),
-				'contents_cost' => array_sum( wp_list_pluck( $digital_items, 'line_total' ) ),
-				'certificate'   => $this->get_certificate(),
-				'origin'        => null,
-				'destination'   => null,
-				'user'          => array(
+				'contents'    => $digital_items,
+				'user'        => array(
 					'ID' => get_current_user_id(),
 				),
-			);
+				'destination' => array(
+					'address'   => WC()->customer->get_billing_address(),
+					'address_2' => WC()->customer->get_billing_address_2(),
+					'city'      => WC()->customer->get_billing_city(),
+					'state'     => WC()->customer->get_billing_state(),
+					'postcode'  => WC()->customer->get_billing_postcode(),
+				),
+			) + $this->new_package();
 
-			$origin = apply_filters( 'wootax_origin_address', SST_Addresses::get_default_address(), $package );
-			
-			$package['origin'] = new TaxCloud\Address(
-				$origin->getAddress1(),
-				$origin->getAddress2(),
-				$origin->getCity(),
-				$origin->getState(),
-				$origin->getZip5(),
-				$origin->getZip4()
-			);
+			/* Split package by origin address */
+			$subpackages = $this->split_package( $package );
 
-			try {
-				/* Use billing address as destination for digital items */
-				$package['destination'] = SST_Addresses::verify_address( new TaxCloud\Address(
-					WC()->customer->get_billing_address(),
-					WC()->customer->get_billing_address_2(),
-					WC()->customer->get_billing_city(),
-					WC()->customer->get_billing_state(),
-					substr( WC()->customer->get_billing_postcode(), 0, 5)
-				) );
-
-				$packages[ $this->get_package_hash( $package ) ] = $package;
-			} catch ( Exception $ex ) {
-				wc_add_notice( sprintf( __( "Can't calculate tax for order: %s", 'simplesalestax' ), $ex->getMessage() ), 'error' );
+			if ( empty( $subpackages ) )
 				return array();
+
+			/* If fees weren't added already, add to first subpackage */
+			$first_key = key( $subpackages );
+
+			if ( ! $fees_added && apply_filters( 'wootax_add_fees', true ) ) {
+				$this->add_fees_to_package( $subpackages[ $first_key ], WC()->cart->get_fees() );
+			}
+
+			foreach ( $subpackages as $new_package ) {
+				$packages[ $this->get_package_hash( $new_package ) ] = $new_package;
 			}
 		}
 
@@ -404,111 +199,57 @@ class SST_Checkout {
 
 		return $packages;
 	}
-	
+
 	/**
-	 * Generate a Lookup request for a given package.
+	 * Reset sales tax totals.
+	 *
+	 * @since 5.0
+	 */
+	protected function reset_taxes() {
+		foreach ( WC()->cart->get_cart() as $cart_key => $item ) {
+			$this->set_product_tax( $cart_key, 0 );
+		}
+
+		foreach ( WC()->cart->get_fees() as $key => $fee ) {
+			$this->set_fee_tax( $key, 0 );
+		}
+
+		$this->set_tax_totals();
+	}
+
+	/**
+	 * Set the tax for a product.
 	 *
 	 * @since 5.0
 	 *
-	 * @param  array $package Package returned by get_packages().
-	 * @return Lookup
+	 * @param mixed $id Product ID.
+	 * @param float $tax Sales tax for product.
 	 */
-	protected function get_lookup_for_package( &$package ) {
-		// Info about items indexed by CartItem Index
-		$package['map'] = array();
+	protected function set_product_tax( $id, $tax ) {
+		// Update tax data
+		$tax_data = WC()->cart->cart_contents[ $id ][ 'line_tax_data' ];
 
-		$items = array();
+		$tax_data['subtotal'][ SST_RATE_ID ] = $tax;
+		$tax_data['total'][ SST_RATE_ID ]    = $tax;
 
-		$tax_based_on = SST_Settings::get( 'tax_based_on' );
+		WC()->cart->cart_contents[ $id ][ 'line_tax_data' ] = $tax_data;
 
-		// Add cart items
-		foreach ( $package['contents'] as $cart_key => $item ) {
-			$index   = sizeof( $items );
-			$item_id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
-			$price   = apply_filters( 'wootax_taxable_price', $item['data']->get_price(), true, $item_id );
-			$qty     = $item['quantity'];
-
-			if ( 'line-subtotal' == $tax_based_on ) {
-				$price = $price * $qty;
-				$qty   = 1;
-			}
-
-			$items[] = new TaxCloud\CartItem(
-				$index,
-				$item_id,
-				SST_Product::get_tic( $item['product_id'], $item['variation_id'] ),
-				$price,
-				$qty
-			);
-
-			$package['map'][ $index ] = array(
-				'type'    => 'cart',
-				'id'      => $item_id,
-				'cart_id' => $cart_key
-			);
-		}
-
-		// Add fees
-		foreach ( $package['fees'] as $fee_index => $fee ) {
-			$index   = sizeof( $items );
-			$item_id = $fee->id;
-
-			$items[] = new TaxCloud\CartItem(
-				$index,
-				$item_id,
-				apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC ),
-				apply_filters( 'wootax_taxable_price', $fee->amount, true, $item_id ),
-				1
-			);
-
-			$package['map'][ $index ] = array(
-				'type'    => 'fee',
-				'id'      => $item_id,
-				'cart_id' => $fee_index
-			);
-		}
-
-		// Add shipping
-		$shipping_rate = isset( $package['shipping'] ) ? $package['shipping'] : null;
-		$shipping_id   = '';
-
-		if ( ! is_null( $shipping_rate ) ) {
-			$shipping_id     = $shipping_rate->method_id;
-			$shipping_total  = apply_filters( 'wootax_taxable_price', $shipping_rate->cost, true, SST_SHIPPING_ITEM );
-
-			if ( $shipping_total > 0 ) {
-				$index = sizeof( $items );
-				
-				$items[] = new TaxCloud\CartItem(
-					$index,
-					SST_SHIPPING_ITEM,
-					apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC ),
-					$shipping_total,
-					1
-				);
-
-				$package['map'][ $index ] = array(
-					'type'    => 'shipping',
-					'id'      => SST_SHIPPING_ITEM,
-					'cart_id' => SST_SHIPPING_ITEM
-				);
-			}
-		}
-
-		// Construct Lookup
-		$request = new TaxCloud\Request\Lookup(
-			$this->taxcloud_id,
-			$this->taxcloud_key,
-			$package['user']['ID'],
-			NULL,
-			$items,
-			$package['origin'],
-			$package['destination'],
-			SST_Shipping::is_local_delivery( $shipping_id ),
-			$package['certificate']
-		);
-
-		return $request;
+		// Update totals
+		WC()->cart->cart_contents[ $id ]['line_subtotal_tax'] = array_sum( $tax_data['subtotal'] );
+		WC()->cart->cart_contents[ $id ]['line_tax']          = array_sum( $tax_data['total'] );
+	}
+	
+	/**
+	 * Set the tax for a fee.
+	 *
+	 * @since 5.0
+	 *
+	 * @param mixed $id Fee ID.
+	 * @param float $tax Sales tax for fee.
+	 */
+	protected function set_fee_tax( $id, $tax ) {
+		WC()->cart->fees[ $id ]->tax_data[ SST_RATE_ID ] = $tax;
+		WC()->cart->fees[ $id ]->tax = array_sum( WC()->cart->fees[ $id ]->tax_data );
 	}
 	
 	/**
@@ -550,6 +291,17 @@ class SST_Checkout {
 	}
 
 	/**
+	 * Display an error message to the user.
+	 *
+	 * @since 5.0
+	 * 
+     * @param string $message Message describing the error.
+     */
+	protected function handle_error( $message ) {
+		wc_add_notice( $message, 'error' );
+	}
+
+	/**
 	 * Reset session.
 	 *
 	 * @since 5.0
@@ -569,13 +321,12 @@ class SST_Checkout {
 	public function add_order_meta( $order_id ) { // TODO: TEST
 		$order = new SST_Order( $order_id );
 
-		$order->update_meta_data( 'tax_total', WC()->cart->get_tax_amount( SST_RATE_ID ) );
-		$order->update_meta_data( 'shipping_tax_total', WC()->cart->get_shipping_tax_amount( SST_RATE_ID ) );
-		$order->update_meta_data( 'customer_id', $this->customer_id );
-		$order->update_meta_data( 'packages', json_encode( WC()->session->get( 'sst_packages' ) ) );
+		$order->update_meta( 'tax_total', WC()->cart->get_tax_amount( SST_RATE_ID ) );
+		$order->update_meta( 'shipping_tax_total', WC()->cart->get_shipping_tax_amount( SST_RATE_ID ) );
+		$order->update_meta( 'packages', json_encode( WC()->session->get( 'sst_packages' ) ) );
 
 		if ( ( $exempt_cert = $this->get_certificate() ) ) {
-			$order->update_meta_data( 'exempt_cert', json_encode( $exempt_cert ) );
+			$order->update_meta( 'exempt_cert', json_encode( $exempt_cert ) );
 		}
 
 		$order->save();
@@ -658,25 +409,6 @@ class SST_Checkout {
 			'checked'  => $_GET && $this->is_user_exempt() || $_POST && isset( $_POST[ 'tax_exempt' ] ),
 			'selected' => isset( $_POST['certificate_id'] ) ? $_POST['certificate_id'] : '',
 		), 'sst/checkout/', SST()->plugin_path() . '/includes/frontend/views/' );
-	}
-
-	/**
-	 * If "Capture Orders Immediately" is enabled, capture newly created orders
-	 * immediately after checkout.
-	 *
-	 * @since 5.0
-	 *
-	 * @param int $order_id ID of new order.
-	 */
-	public static function maybe_capture_order( $order_id ) {
-		if ( SST_Settings::get( 'capture_immediately' ) == 'yes' ) {
-			// TODO: ENSURE ORDERS ARE CAPTURED ONLY AFTER PAYMENT IS RECEIVED
-			$order = new SST_Order( $order_id );
-
-			if ( ! $order->capture() ) {
-				// TODO: LOG FAILED REQUEST
-			}
-		}
 	}
 }
 

@@ -415,10 +415,7 @@ class SST_Ajax {
 				if ( $unit_price != 0 ) {
 					// Map item_id to item type 
 					$type_array[ $item_id ] = $type == 'shipping' ? 'shipping' : 'cart';
-				
-					// Add tax amount to tax array
-					$old_taxes[ $item_id ] = $order->get_item_tax( $item_id );
-					
+									
 					// Add to items array 
 					$item_data = array(
 						'Index'  => '', // Leave index blank. It is assigned later.

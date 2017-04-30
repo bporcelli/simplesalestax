@@ -157,6 +157,11 @@ final class SST {
 		include_once 'includes/vendor/autoload.php';
 
 		/**
+		 * Abstract classes.
+		 */
+		include_once 'includes/abstracts/class-sst-abstract-cart.php';
+		
+		/**
 		 * Core classes.
 		 */
 		include_once 'includes/sst-functions.php';

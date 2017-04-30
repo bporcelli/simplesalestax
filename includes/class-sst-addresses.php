@@ -159,6 +159,7 @@ class SST_Addresses {
 		$tax_based_on = get_option( 'woocommerce_tax_based_on' );
 
 		// Handle local pickups
+		// TODO: HANDLE FOR ORDERS AS WELL (use first shipping method ID)
 		if ( SST_Shipping::is_local_pickup() ) {
 			return apply_filters( 'wootax_pickup_address', self::get_default_address(), $order );
 		}
@@ -228,5 +229,28 @@ class SST_Addresses {
 		}
 
 		return $addresses;
+	}
+
+	/**
+	 * Convert an SST_Origin_Address object to an Address object.
+	 *
+	 * @since 5.0
+	 *
+	 * @param  SST_Origin_Address $address
+	 * @return Address
+	 */
+	public static function to_address( $address ) {
+		if ( is_null( $address ) || ! is_a( $address, 'SST_Origin_Address' ) ) {
+			return null;
+		} else {
+			return new TaxCloud\Address(
+				$address->getAddress1(),
+				$address->getAddress2(),
+				$address->getCity(),
+				$address->getState(),
+				$address->getZip5(),
+				$address->getZip4()
+			);
+		}
 	}
 }
