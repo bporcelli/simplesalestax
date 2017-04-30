@@ -26,13 +26,10 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 4.4
 	 */
 	protected static $defaults = array(
-		'customer_id'        => 0,
-		'tax_item_id'        => 0,
-		'packages'           => array(),
-		'tax_total'          => 0,
-		'shipping_tax_total' => 0,
-		'exempt_cert'        => '',
-		'status'             => 'pending'
+		'tax_item_id' => 0,
+		'packages'    => array(),
+		'exempt_cert' => '',
+		'status'      => 'pending'
 	);
 
 	/**
