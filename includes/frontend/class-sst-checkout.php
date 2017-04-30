@@ -292,12 +292,18 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @return ExemptionCertificateBase|NULL
 	 */
 	protected function get_certificate() {
-		if ( ! $_POST || ! isset( $_POST['post_data'] ) ) {
+		if ( ! $_POST ) {
+			return NULL;
+		} else if ( ! isset( $_POST['post_data'] ) && ! isset( $_POST['certificate_id'] ) ) {
 			return NULL;
 		}
 
-		$post_data = array();
-		parse_str( $_POST['post_data'], $post_data );
+		if ( ! isset( $_POST['post_data'] ) ) {
+			$post_data = $_POST;
+		} else {
+			$post_data = array();
+			parse_str( $_POST['post_data'], $post_data );
+		}
 		
 		if ( isset( $post_data['tax_exempt'] ) && isset( $post_data['certificate_id'] ) ) {
 			$certificate_id = sanitize_text_field( $post_data['certificate_id'] );
@@ -335,11 +341,9 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 *
 	 * @param int $order_id ID of new order.
 	 */
-	public function add_order_meta( $order_id ) { // TODO: TEST
+	public function add_order_meta( $order_id ) {
 		$order = new SST_Order( $order_id );
 
-		$order->update_meta( 'tax_total', WC()->cart->get_tax_amount( SST_RATE_ID ) );
-		$order->update_meta( 'shipping_tax_total', WC()->cart->get_shipping_tax_amount( SST_RATE_ID ) );
 		$order->update_meta( 'packages', json_encode( WC()->session->get( 'sst_packages' ) ) );
 
 		if ( ( $exempt_cert = $this->get_certificate() ) ) {
@@ -374,11 +378,9 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 */
 	protected function is_user_exempt() {
 		$current_user = wp_get_current_user();
-		$restricted   = SST_Settings::get( 'restrict_exempt' ) == 'yes';
 		$exempt_roles = SST_Settings::get( 'exempt_roles', array() );
 		$user_roles   = is_user_logged_in() ? $current_user->roles : array();
-		$user_exempt  = count( array_intersect( $exempt_roles, $user_roles ) ) > 0;
-		return ! $restricted || $user_exempt;
+		return count( array_intersect( $exempt_roles, $user_roles ) ) > 0;
 	}
 
 	/**
@@ -387,10 +389,9 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	protected function show_exemption_form() {
-		if ( SST_Settings::get( 'show_exempt' ) != 'true' ) {
-			return false;
-		}
-		return $this->is_user_exempt();
+		$restricted = SST_Settings::get( 'restrict_exempt' ) == 'yes';
+		$enabled    = SST_Settings::get( 'show_exempt' ) == 'true';
+		return $enabled && ( ! $restricted || $this->is_user_exempt() );
 	}
 
 	/**
@@ -423,7 +424,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 		wp_enqueue_script( 'sst-checkout' );
 
 		wc_get_template( 'html-certificate-table.php', array(
-			'checked'  => $_GET && $this->is_user_exempt() || $_POST && isset( $_POST[ 'tax_exempt' ] ),
+			'checked'  => ! $_POST && $this->is_user_exempt() || $_POST && isset( $_POST[ 'tax_exempt' ] ),
 			'selected' => isset( $_POST['certificate_id'] ) ? $_POST['certificate_id'] : '',
 		), 'sst/checkout/', SST()->plugin_path() . '/includes/frontend/views/' );
 	}

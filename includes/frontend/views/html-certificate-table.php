@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 } ?>
 
-<h3><?php esc_html_e( 'Tax exempt?', 'simplesalestax' ); ?> <input type="checkbox" name="tax_exempt" id="tax_exempt_checkbox" class="input-checkbox" value="1"<?php checked( $checked, true, false ); ?>></h3>
+<h3><?php esc_html_e( 'Tax exempt?', 'simplesalestax' ); ?> <input type="checkbox" name="tax_exempt" id="tax_exempt_checkbox" class="input-checkbox" value="1"<?php checked( $checked ); ?>></h3>
 
 <div id="tax_details">
 
