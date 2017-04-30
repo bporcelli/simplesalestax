@@ -159,8 +159,13 @@ class SST_Addresses {
 		$tax_based_on = get_option( 'woocommerce_tax_based_on' );
 
 		// Handle local pickups
-		// TODO: HANDLE FOR ORDERS AS WELL (use first shipping method ID)
-		if ( SST_Shipping::is_local_pickup() ) {
+		if ( $order != NULL ) {
+			$method_ids = wp_list_pluck( $order->get_shipping_methods(), 'method_id' );
+		} else {
+			$method_ids = wp_list_pluck( WC()->session->get( 'chosen_shipping_methods' ), 'method_id' );
+		}
+
+		if ( SST_Shipping::is_local_pickup( $method_ids ) ) {
 			return apply_filters( 'wootax_pickup_address', self::get_default_address(), $order );
 		}
 

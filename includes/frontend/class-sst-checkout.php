@@ -113,7 +113,6 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @return array
 	 */
 	protected function create_packages() {
-		// TODO: HANDLE LOCAL PICKUPS
 		$raw_packages = WC()->shipping->get_packages();
 
 		if ( ! is_array( $raw_packages ) ) {
@@ -129,6 +128,24 @@ class SST_Checkout extends SST_Abstract_Cart {
 			if ( $package['destination']['country'] !== 'US' )
 				continue;
 			
+			/* If package will be picked up, substitute destination addr. */
+			$method = null;
+
+			if ( isset( $chosen_methods[ $key ], $package['rates'][ $chosen_methods[ $key ] ] ) ) {
+				$method = $package['rates'][ $chosen_methods[ $key ] ];
+				
+				if ( SST_Shipping::is_local_pickup( array( $method->method_id ) ) ) {
+					$pickup_address         = apply_filters( 'wootax_pickup_address', SST_Addresses::get_default_address(), null );
+					$package['destination'] = array(
+						'address'   => $pickup_address->getAddress1(),
+						'address_2' => $pickup_address->getAddress2(),
+						'city'      => $pickup_address->getCity(),
+						'state'     => $pickup_address->getState(),
+						'postcode'  => $pickup_address->getZip5(),
+					);
+				}
+			}
+
 			/* Split package by origin address */
 			$subpackages = $this->split_package( $package );
 
@@ -143,8 +160,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 				$fees_added = true;
 			}
 
-			if ( isset( $chosen_methods[ $key ], $package['rates'][ $chosen_methods[ $key ] ] ) ) {
-				$subpackages[ $first_key ]['shipping'] = $package['rates'][ $chosen_methods[ $key ] ];
+			if ( ! is_null( $method ) ) {
+				$subpackages[ $first_key ]['shipping'] = $method;
 				$subpackages[ $first_key ]['map'][]    = array(
 					'type'    => 'shipping',
 					'id'      => SST_SHIPPING_ITEM,
