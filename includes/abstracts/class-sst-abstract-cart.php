@@ -443,7 +443,7 @@ abstract class SST_Abstract_Cart {
 	 *
 	 * @return TaxCloud\ExemptionCertificateBase
 	 */
-	abstract protected function get_certificate();
+	abstract public function get_certificate();
 
 	/**
 	 * Handle an error by logging it or displaying it to the user.

@@ -31,16 +31,9 @@ final class SST_Admin {
 	 * @since 4.7
 	 */
 	private function hooks() {
-		add_filter( 'woocommerce_hidden_order_itemmeta', array( __CLASS__, 'hide_order_item_meta' ), 10, 1 );
-
-		// Register WooTax integration to build settings page
 		add_filter( 'woocommerce_integrations', array( __CLASS__, 'add_integration' ) );
-
-		// Enqueue admin scripts/styles
-		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_scripts_and_styles' ), 20 );
-
-		// Register WooTax meta boxes
-		add_action( 'add_meta_boxes', array( __CLASS__, 'register_admin_metaboxes' ) );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_scripts_and_styles' ) );
+		add_action( 'add_meta_boxes', array( __CLASS__, 'add_metaboxes' ) );
 		
 		// Display Shipping Origin Addresses select box under "Shipping" tab in Product Data metabox
 		add_action( 'woocommerce_product_options_shipping', array( __CLASS__, 'display_shipping_origin_field' ) );
@@ -106,36 +99,24 @@ final class SST_Admin {
 	 * @since 4.2
 	 */	
 	public static function enqueue_scripts_and_styles() {
-		// WooTax admin JS
-		wp_enqueue_script( 'wootax-admin', SST()->plugin_url() . '/assets/js/admin.js', array( 'jquery', 'jquery-tiptip' ), '1.1' );
+		// Admin JS
+		wp_register_script( 'sst-backbone-modal', SST()->plugin_url() . '/assets/js/backbone-modal.js', array( 'underscore', 'backbone', 'wp-util' ), SST()->version );
+
+		wp_register_script( 'sst-view-certificate', SST()->plugin_url() . '/assets/js/view-certificate.js', array( 'jquery', 'sst-backbone-modal' ), SST()->version );
+
+		wp_enqueue_script( 'sst-admin', SST()->plugin_url() . '/assets/js/admin.js', array( 'jquery' ), SST()->version );
 		
-		wp_localize_script( 'wootax-admin', 'SST', array(
-			'rateCode' => apply_filters( 'wootax_rate_code', 'WOOTAX-RATE-DO-NOT-REMOVE' ),
-			'strings'  => array(
-				'enter_id_and_key'     => __( 'Please enter your API Login ID and API Key.', 'simplesalestax' ),
-				'settings_valid'       => __( 'Success! Your TaxCloud settings are valid.', 'simplesalestax' ),
-				'verify_failed'        => __( 'Connection to TaxCloud failed.', 'simplesalestax' ),
-				'select_classes'       => __( 'Please select the tax rate classes you would like to remove.', 'simplesalestax' ),
-				'confirm_rate_removal' => __( 'This action is irreversible. Are you sure you want to proceed?', 'simplesalestax' ),
-				'rates_removed'        => __( 'The selected tax rates were removed successfully. Click "Save Changes" to complete the installation process.', 'simplesalestax' ),
-				'cant_remove_address'  => __( 'This action is not permitted. You must have at least one business address entered for Simple Sales Tax to work properly.', 'simplesalestax' ),
+		wp_localize_script( 'sst-admin', 'SST', array(
+			'strings' => array(
+				'enter_id_and_key' => __( 'Please enter your API Login ID and API Key.', 'simplesalestax' ),
+				'settings_valid'   => __( 'Success! Your TaxCloud settings are valid.', 'simplesalestax' ),
+				'verify_failed'    => __( 'Connection to TaxCloud failed.', 'simplesalestax' ),
 			),
 		) );
 
-		// WooTax admin CSS
-		wp_enqueue_style( 'wootax-admin-style', SST()->plugin_url() . '/assets/css/admin.css' );
-
-		// WooCommerce scripts and styles we need
-		$assets_path = str_replace( array( 'http:', 'https:' ), '', WC()->plugin_url() ) . '/assets/';
-
-		// Select2 on Edit Product / Settings pages
-		if ( ! wp_script_is( 'select2', 'registered' ) ) {
-			wp_enqueue_style( 'select2-css', '//cdnjs.cloudflare.com/ajax/libs/select2/3.5.2/select2.min.css' );
-			wp_enqueue_script( 'select2-js', '//cdnjs.cloudflare.com/ajax/libs/select2/3.5.2/select2.min.js', array( 'jquery' ) );
-		} else if ( ! wp_script_is( 'wc-enhanced-select', 'enqueued' ) ) {
-			wp_enqueue_style( 'wc-enhanced-css', $assets_path . 'css/select2.css' );
-			wp_enqueue_script( 'wc-enhanced-select' );
-		}
+		// Admin CSS
+		wp_enqueue_style( 'sst-admin-style', SST()->plugin_url() . '/assets/css/admin.css' );
+		wp_enqueue_style( 'sst-certificate-modal', SST()->plugin_url() . '/assets/css/certificate-modal.css' );
 	}
 	
 	/**
@@ -172,8 +153,7 @@ final class SST_Admin {
 	 *
 	 * @since 4.2
 	 */
-	public static function register_admin_metaboxes() {
-		// Sales Tax metabox on "Edit Order" screen
+	public static function add_metaboxes() {
 		add_meta_box( 'sales_tax_meta', 'Simple Sales Tax', array( __CLASS__, 'output_tax_metabox' ), 'shop_order', 'side', 'high' );
 	}
 	
@@ -256,16 +236,31 @@ final class SST_Admin {
 	 * @param WP_Post $post WP_Post object for product being edited.
 	 */
 	public static function output_tax_metabox( $post ) {
-		// Load order
-		$order = wc_get_order( $post->ID );
+		$order           = new SST_Order( $post->ID );
+		$status          = $order->get_taxcloud_status( 'view' );
+		$raw_certificate = $order->get_certificate();
+		$certificate     = '';
 
-		// Display tax totals
-		?>
-		<p>The status of this order in TaxCloud is displayed below. There are three possible values for the order status: "Pending Capture," "Captured," and "Refunded."</p>
-		<p>Eventually, all of your orders should have a status of "Captured." To mark an order as captured, set its status to "Completed" and save it.</p>
-		<p><strong>Please note that tax can only be calculated using the "Calculate Taxes" button if the status below is "Pending Capture."</strong></p>
-		<p><strong>TaxCloud Status:</strong> <?php echo $order->get_status(); ?><br /></p>
-        <?php
+		if ( ! is_null( $raw_certificate ) ) {
+			$certificate = SST_Certificates::get_certificate_formatted( 
+				$raw_certificate->getCertificateID(),
+				$order->get_customer_id()
+			);
+		}
+
+		wp_localize_script( 'sst-view-certificate', 'SSTCertData', array(
+			'certificate' => $certificate,
+			'seller_name' => SST_Settings::get( 'company_name' ),
+			'images'      => array(
+				'single_cert'  => SST()->plugin_url() . '/assets/img/sp_exemption_certificate750x600.png',
+				'blanket_cert' => SST()->plugin_url() . '/assets/img/exemption_certificate750x600.png',
+			),
+		) );
+
+		wp_enqueue_script( 'sst-view-certificate' );
+
+		include SST()->plugin_path() . '/includes/admin/views/html-meta-box.php';
+		include SST()->plugin_path() . '/includes/frontend/views/html-view-certificate.php';
 	}
 
 	/**
@@ -636,22 +631,6 @@ final class SST_Admin {
 
 		    exit;
 		}
-	}
-
-	/**
-	 * Hide WooTax item meta.
-	 *
-	 * @since 4.2
-	 *
-	 * @param  array $to_hide Array of keys of hidden meta fields.
-	 * @return array
-	 */
-	public static function hide_order_item_meta( $to_hide ) {
-		$to_hide[] = '_wootax_tax_amount';
-		$to_hide[] = '_wootax_location_id';
-		$to_hide[] = '_wootax_index';
-
-		return $to_hide;
 	}
 
 }
