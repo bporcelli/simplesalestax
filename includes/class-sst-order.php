@@ -322,7 +322,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 *
 	 * @return TaxCloud\ExemptionCertificateBase
 	 */
-	protected function get_certificate() {
+	public function get_certificate() {
 		$exempt_cert = $this->get_meta( 'exempt_cert' );
 		
 		if ( ! empty( $exempt_cert ) ) {

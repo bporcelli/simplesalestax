@@ -48,7 +48,10 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @return array
 	 */
 	protected function get_packages() {
-		return json_decode( WC()->session->get( 'sst_packages', '[]' ), true );
+		$packages = WC()->session->get( 'sst_packages', '' );
+		if ( ! empty( $packages ) )
+			return json_decode( $packages, true );
+		return array();
 	}
 
 	/**
@@ -291,7 +294,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 *
 	 * @return ExemptionCertificateBase|NULL
 	 */
-	protected function get_certificate() {
+	public function get_certificate() {
 		if ( ! $_POST ) {
 			return NULL;
 		} else if ( ! isset( $_POST['post_data'] ) && ! isset( $_POST['certificate_id'] ) ) {
@@ -330,7 +333,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	protected function reset_session() {
-		WC()->session->set( 'sst_packages', array() );
+		WC()->session->set( 'sst_packages', '' );
 	}
 
 	/**
@@ -363,6 +366,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	public function enqueue_scripts() {
 		// CSS
 		wp_enqueue_style( 'sst-modal', SST()->plugin_url() . '/assets/css/modal.css' );
+		wp_enqueue_style( 'sst-certificate-modal', SST()->plugin_url() . '/assets/css/certificate-modal.css' );
 
 		// JS
 		wp_register_script( 'sst-backbone-modal', SST()->plugin_url() . '/assets/js/backbone-modal.js', array( 'underscore', 'backbone', 'wp-util' ), SST()->version );
