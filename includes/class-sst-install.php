@@ -265,17 +265,17 @@ class SST_Install {
 	private static function add_tax_rate() {
 		global $wpdb;
 
-		$tax_rates_table = "{$wpdb->prefix}woocommerce_tax_rates";
+		$tax_rates_table = $wpdb->prefix . 'woocommerce_tax_rates';
 
 		// Get existing rate, if any
 		$rate_id  = get_option( 'wootax_rate_id', 0 );
 		$existing = $wpdb->get_row( $wpdb->prepare( "
-			SELECT * FROM {$tax_rates_table} WHERE tax_rate_id = %d;
+			SELECT * FROM $tax_rates_table WHERE tax_rate_id = %d;
 		", $rate_id ) );
 
 		// Add or update tax rate
 		$_tax_rate = array(
-			'tax_rate_country'  => 'WOOTAX',
+			'tax_rate_country'  => 'WT',
 			'tax_rate_state'    => 'RATE',
 			'tax_rate'          => 0,
 			'tax_rate_name'     => 'DO-NOT-REMOVE',
