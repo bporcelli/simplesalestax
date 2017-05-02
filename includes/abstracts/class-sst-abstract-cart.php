@@ -54,7 +54,7 @@ abstract class SST_Abstract_Cart {
 					}
 				}
 			} else {
-				$this->handle_error( sprintf( __( "Can't calculate sales tax: %s", 'simplesalestax' ), $response->get_error_message() ) );
+				$this->handle_error( sprintf( __( "Failed to calculate sales tax: %s", 'simplesalestax' ), $response->get_error_message() ) );
 				return;
 			}
 		}
@@ -235,7 +235,7 @@ abstract class SST_Abstract_Cart {
 			$origin = $this->get_origin_for_product( $item, $package['destination'] );
 
 			if ( ! $origin ) {
-				$this->handle_error( sprintf( __( "Can't calculate sales tax: no origin address for product %d." ), $item['product_id'] ), 'simplesalestax' );
+				$this->handle_error( sprintf( __( "Failed to calculate sales tax: no origin address for product %d." ), $item['product_id'] ), 'simplesalestax' );
 				return array();
 			}
 

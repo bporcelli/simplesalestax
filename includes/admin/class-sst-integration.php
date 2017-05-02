@@ -268,7 +268,7 @@ class SST_Integration extends WC_Integration {
 			return;
 
 		// If file doesn't exist, create it
-		$log_path = wc_get_log_file_path( 'wootax' );
+		$log_path = SST_Logger::get_log_path();
 
 		if ( ! file_exists( $log_path ) ) {
 			$fh = @fopen( $log_path, 'a' );

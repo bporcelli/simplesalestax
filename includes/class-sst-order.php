@@ -263,7 +263,7 @@ class SST_Order extends SST_Abstract_Cart {
 			wc_update_order_item_meta( $tax_item_id, 'cart_tax', $cart_tax );
 			wc_update_order_item_meta( $tax_item_id, 'shipping_tax', $shipping_tax );
 		} else {
-			$this->handle_error( __( "Failed to calculate sales tax: couldn't update tax totals.", 'simplesalestax' ) );
+			$this->handle_error( sprintf( __( "Warning: couldn't update tax totals for item %d.", 'simplesalestax' ), $tax_item_id ) );
 		}
 	}
 
@@ -341,11 +341,11 @@ class SST_Order extends SST_Abstract_Cart {
      * @param string $message Message describing the error.
      */
 	protected function handle_error( $message ) {
+		SST_Logger::add( $message );
+
 		if ( defined( 'DOING_AJAX' ) ) {
 			wp_send_json_error( $message );
-		} else if ( defined( 'DOING_CRON' ) ) {
-			// TODO: LOG ERROR
-		} else {
+		} else if ( ! defined( 'DOING_CRON' ) ) {
 			SST_Admin_Notices::add( 'tax_error', $message, false, 'error' );
 		}
 	}
