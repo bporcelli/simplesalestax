@@ -141,30 +141,26 @@ abstract class SST_Abstract_Cart {
 		foreach ( $package['contents'] as $item ) {
 			$price = apply_filters( 'wootax_product_price', $item['data']->get_price(), $item['data'] );
 
-			if ( $price > 0 ) {
-				$cart_items[] = new TaxCloud\CartItem(
-					sizeof( $cart_items ),
-					$item['variation_id'] ? $item['variation_id'] : $item['product_id'],
-					SST_Product::get_tic( $item['product_id'], $item['variation_id'] ),
-					$based_on_sub ? $price * $item['quantity'] : $price,
-					$based_on_sub ? 1 : $item['quantity']
-				);
-			}
+			$cart_items[] = new TaxCloud\CartItem(
+				sizeof( $cart_items ),
+				$item['variation_id'] ? $item['variation_id'] : $item['product_id'],
+				SST_Product::get_tic( $item['product_id'], $item['variation_id'] ),
+				$based_on_sub ? $price * $item['quantity'] : $price,
+				$based_on_sub ? 1 : $item['quantity']
+			);
 		}
 
 		/* Add fees */
 		foreach ( $package['fees'] as $fee ) {
 			$price = apply_filters( 'wootax_fee_price', $fee->amount, $fee );
 
-			if ( $price > 0 ) {
-				$cart_items[] = new TaxCloud\CartItem(
-					sizeof( $cart_items ),
-					$fee->id,
-					apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC ),
-					$price,
-					1
-				);
-			}
+			$cart_items[] = new TaxCloud\CartItem(
+				sizeof( $cart_items ),
+				$fee->id,
+				apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC ),
+				$price,
+				1
+			);
 		}
 
 		/* Add shipping */
@@ -174,17 +170,15 @@ abstract class SST_Abstract_Cart {
 		if ( ! is_null( $shipping_rate ) ) {
 			$shipping_total = apply_filters( 'wootax_shipping_price', $shipping_rate->cost, $shipping_rate );
 
-			if ( $shipping_total > 0 ) {
-				$cart_items[] = new TaxCloud\CartItem(
-					sizeof( $cart_items ),
-					SST_SHIPPING_ITEM,
-					apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC ),
-					$shipping_total,
-					1
-				);
+			$cart_items[] = new TaxCloud\CartItem(
+				sizeof( $cart_items ),
+				SST_SHIPPING_ITEM,
+				apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC ),
+				$shipping_total,
+				1
+			);
 
-				$local_delivery = SST_Shipping::is_local_delivery( $shipping_rate->method_id );
-			}
+			$local_delivery = SST_Shipping::is_local_delivery( $shipping_rate->method_id );
 		}
 
 		/* Build Lookup */
