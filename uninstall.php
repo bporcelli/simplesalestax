@@ -43,4 +43,7 @@ if ( $remove_data ) {
 		AND meta_key LIKE 'wootax_\%'
 		OR meta_key LIKE '\_wootax\_%';
 	" );
+
+	// Database tables
+	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}sst_tics" );
 }

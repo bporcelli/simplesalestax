@@ -299,3 +299,29 @@ function sst_update_50_origin_addresses() {
 	SST_Settings::set( 'addresses', $addresses );
 	SST_Settings::set( 'default_address', null );
 }
+
+/**
+ * Prior to 5.0, default category TICs were stored as WordPress options. After 5.0,
+ * category TICs are stored as term metadata.
+ *
+ * @since 5.0
+ */
+function sst_update_50_category_tics() {
+	$terms = get_terms( array(
+		'taxonomy'   => 'product_cat',
+		'hide_empty' => false,
+	) );
+
+	foreach ( $terms as $term ) {
+		$tic = get_option( 'tic_' . $term->term_id );
+		if ( ! empty( $tic ) ) {
+			if ( is_array( $tic ) ) {
+				$tic = $tic['tic'];
+			}
+			
+			update_term_meta( $term->term_id, 'tic', $tic );
+			
+			delete_option( 'tic_' . $term->term_id );
+		}
+	}
+}

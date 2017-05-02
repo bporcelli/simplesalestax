@@ -105,6 +105,7 @@ class SST_Install {
 		self::add_tax_rate();
 		self::configure_woocommerce();
 		self::schedule_events();
+		self::create_tables();
 
 		// Remove existing notices, if any
 		WC_Admin_Notices::remove_notice( 'sst_update' );
@@ -292,6 +293,32 @@ class SST_Install {
 			$where = array( 'tax_rate_id' => $rate_id );
 			$wpdb->update( $tax_rates_table, $_tax_rate, $where );
 		}
+	}
+
+	/**
+	 * Create database tables.
+	 *
+	 * @since 5.0
+	 *
+	 * @return bool
+	 */
+	private static function create_tables() {
+		global $wpdb;
+
+		$table_name      = $wpdb->prefix . 'sst_tics';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		$sql = "CREATE TABLE $table_name (
+			id int(5),
+			ssuta int(1) NOT NULL DEFAULT '1',
+			parent int(5) NULL,
+			title varchar(255) NOT NULL,
+			label varchar(255) NOT NULL,
+			PRIMARY KEY  (id)
+		) $charset_collate;";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
 	}
 
 	/**
