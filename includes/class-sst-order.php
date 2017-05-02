@@ -344,7 +344,7 @@ class SST_Order extends SST_Abstract_Cart {
 		SST_Logger::add( $message );
 
 		if ( defined( 'DOING_AJAX' ) ) {
-			wp_send_json_error( $message );
+			throw new Exception( $message );
 		} else if ( ! defined( 'DOING_CRON' ) ) {
 			SST_Admin_Notices::add( 'tax_error', $message, false, 'error' );
 		}
@@ -392,7 +392,7 @@ class SST_Order extends SST_Abstract_Cart {
 
 		// Can't capture if already refunded/captured
 		if ( 'pending' !== $this->get_taxcloud_status() || empty( $packages ) ) {
-			$this->handle_error( sprintf( __( "Failed to capture order %d: empty or already captured or refunded.", 'simplesalestax' ), $this_>get_id() ) );
+			$this->handle_error( sprintf( __( "Failed to capture order %d: empty or already captured or refunded.", 'simplesalestax' ), $this->get_id() ) );
 			return false;
 		}
 
@@ -448,33 +448,54 @@ class SST_Order extends SST_Abstract_Cart {
 
 		if ( ! empty( $items ) ) {
 			foreach ( $this->get_packages() as $hash => $package ) {
-				$refund_items = array();
+				$refund_items = $package['request']['cartItems'];
 
-				// Find matching items in package
-				foreach ( $package['map'] as $key => $item ) {
-					foreach ( $items as $akey => $aitem ) {
-						$match = false;
+				// Remove all items that shouldn't be refunded
+				foreach ( $refund_items as $key => $pitem ) {
+					$refund    = false;
+					$item_id   = $package['map'][ $key ]['id'];
+					$item_type = $package['map'][ $key ]['type'];
 
-					 	switch ( $aitem['type'] ) {
-					 		case 'product':
-					 			$id    = $aitem['variation_id'] ? $aitem['variation_id'] : $aitem['product_id'];
-					 		 	$match = $id == $item['id'];
-					 		break;
-					 		case 'shipping': // TODO: improve matching logic
-					 			$match = 'shipping' == $item['type'];
-					 		break;
-					 		case 'fee':
-					 			$fee_id = sanitize_title( $aitem['name'] );
-					 			$match  = $fee_id == $item['id'];
-					 		break;
-					 	}
-
-					 	if ( $match ) {
-					 		$refund_items[] = $package['request']['cartItems'][ $key ];
-		 		 			unset( $items[ $akey ] );
-		 		 			break;
-					 	}
+					if ( 'cart' == $item_type ) {
+						$item_type = 'line_item';
 					}
+
+					foreach ( $items as $ikey => $item ) {
+						if ( $item['type'] !== $item_type ) {
+							continue;
+						}
+
+						switch ( $item['type'] ) {
+							case 'line_item':
+								$refund = $item['product_id'] == $item_id || $item['variation_id'] == $item_id;
+							break;
+							case 'shipping';
+								// TODO: What if two packages have the same shipping method?
+								$refund = $package['shipping'] && $item['method_id'] == $package['shipping']['method_id'];
+							break;
+							case 'fee':
+								$refund = sanitize_title( $item['name'] ) == $item_id;
+						}
+
+						if ( $refund ) {
+							unset( $items[ $ikey ] );
+
+							if ( ! $full_refund ) {
+								/* For partial refunds, WooCommerce allows users to enter an arbitrary refund amount.
+								 * Update the unit price and quantity for the CartItem accordingly. */
+								$line_total = 'shipping' == $item['type'] ? $item['cost'] : $item['line_total'];
+								$quantity   = 'line_item' == $item['type'] ? $item['qty'] : 1; 
+								$unit_price = wc_format_decimal( $line_total / $quantity );
+
+								$refund_items[ $key ]['Qty']   = $quantity;
+								$refund_items[ $key ]['Price'] = $unit_price;
+							}
+							break;
+						}
+					}
+
+					if ( ! $refund )
+						unset( $refund_items[ $key ] );
 				}
 
 				if ( empty( $refund_items ) )
