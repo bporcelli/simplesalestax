@@ -31,6 +31,7 @@ class SST_Integration extends WC_Integration {
 		// Register action hooks.
 		add_action( 'woocommerce_update_options_integration_' .  $this->id, array( $this, 'process_admin_options' ) );
  		add_filter( 'woocommerce_settings_api_sanitized_fields_' . $this->id, array( $this, 'sanitize_settings' ) );
+ 		add_action( 'admin_init', array( $this, 'maybe_download_log_file' ) );
  		add_action( 'admin_enqueue_scripts', array( $this, 'register_scripts' ) );
 	}
 
@@ -256,4 +257,34 @@ class SST_Integration extends WC_Integration {
 
 		return $settings;
  	}
+
+ 	/**
+ 	 * Force download log file if "Download Log" was clicked.
+ 	 *
+ 	 * @since 5.0
+ 	 */
+	public function maybe_download_log_file() {
+		if ( ! isset( $_GET['download_log'] ) )
+			return;
+
+		// If file doesn't exist, create it
+		$log_path = wc_get_log_file_path( 'wootax' );
+
+		if ( ! file_exists( $log_path ) ) {
+			$fh = @fopen( $log_path, 'a' );
+			fclose( $fh );
+		}
+
+		// Force download
+		header( 'Content-Description: File Transfer' );
+	    header( 'Content-Type: application/octet-stream' );
+	    header( 'Content-Disposition: attachment; filename=' . basename( $log_path ) );
+	    header( 'Expires: 0' );
+	    header( 'Cache-Control: must-revalidate' );
+	    header( 'Pragma: public' );
+	    header( 'Content-Length: ' . filesize( $log_path ) );
+	    
+	    readfile( $log_path );
+	    exit;
+	}
 }
