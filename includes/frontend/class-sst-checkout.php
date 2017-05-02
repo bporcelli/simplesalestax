@@ -338,6 +338,18 @@ class SST_Checkout extends SST_Abstract_Cart {
 	}
 
 	/**
+	 * Get the subset of packages to save post-checkout. Only "current" packages,
+	 * i.e. those that correspond with the current cart state, should be saved.
+	 *
+	 * @since 5.0
+	 *
+	 * @return array
+	 */
+	protected function get_packages_to_save() {
+		return array_intersect_key( $this->get_packages(), $this->create_packages() );
+	}
+
+	/**
 	 * Save metadata when a new order is created. Create a new log entry if
 	 * logging is enabled.
 	 *
@@ -348,7 +360,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	public function add_order_meta( $order_id ) {
 		$order = new SST_Order( $order_id );
 
-		$order->update_meta( 'packages', json_encode( WC()->session->get( 'sst_packages' ) ) );
+		$order->update_meta( 'packages', json_encode( $this->get_packages_to_save() ) );
 
 		if ( ( $exempt_cert = $this->get_certificate() ) ) {
 			$order->update_meta( 'exempt_cert', json_encode( $exempt_cert ) );
