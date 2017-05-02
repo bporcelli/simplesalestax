@@ -13,8 +13,6 @@
                     certificate.backgroundImage = data.images.blanket_cert;
                 }
 
-                console.log("opening with data:", certificate);
-
                 jQuery( this ).SSTBackboneModal({
                     template: 'sst-modal-view-certificate',
                     variable: certificate,

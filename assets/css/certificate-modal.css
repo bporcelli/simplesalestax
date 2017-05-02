@@ -5,7 +5,7 @@
 	width: 800px;
 }
 
-.sst-view-certificate-modal-content .wc-backbone-modal-main {
+.sst-view-certificate-modal-content .wc-backbone-modal-main, .sst-select-tic-modal-content .wc-backbone-modal-main {
     padding-bottom: 0;
 }
 
