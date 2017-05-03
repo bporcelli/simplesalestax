@@ -27,6 +27,11 @@ class SST_Checkout extends SST_Abstract_Cart {
 		add_filter( 'woocommerce_cart_hide_zero_taxes', array( $this, 'hide_zero_taxes' ) );
 		add_action( 'woocommerce_new_order', array( $this, 'add_order_meta' ) );
 		add_action( 'woocommerce_resume_order', array( $this, 'add_order_meta' ) );
+
+		if ( version_compare( WC_VERSION, '3.0', '<' ) )
+			add_action( 'woocommerce_add_shipping_order_item', array( $this, 'add_shipping_tax_old' ), 10, 3 );
+		else
+			add_action( 'woocommerce_checkout_create_order_shipping_item', array( $this, 'add_shipping_tax' ), 10, 4 );
 	}
 
 	/**
@@ -48,10 +53,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @return array
 	 */
 	protected function get_packages() {
-		$packages = WC()->session->get( 'sst_packages', '' );
-		if ( ! empty( $packages ) )
-			return json_decode( $packages, true );
-		return array();
+		return WC()->session->get( 'sst_packages', array() );
 	}
 
 	/**
@@ -62,7 +64,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @param $packages array (default: array())
 	 */
  	protected function set_packages( $packages = array() ) {
- 		WC()->session->set( 'sst_packages', json_encode( $packages ) );
+ 		WC()->session->set( 'sst_packages', $packages );
  	}
 
  	/**
@@ -168,7 +170,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 				$subpackages[ $first_key ]['map'][]    = array(
 					'type'    => 'shipping',
 					'id'      => SST_SHIPPING_ITEM,
-					'cart_id' => SST_SHIPPING_ITEM,
+					'cart_id' => $key,
 				);
 			}
 
@@ -234,8 +236,47 @@ class SST_Checkout extends SST_Abstract_Cart {
 			$this->set_fee_tax( $key, 0 );
 		}
 
-		$this->set_tax_totals();
+		WC()->session->set( 'sst_shipping_taxes', array() );
+
+		$this->update_taxes();
 	}
+
+	/**
+	 * Update sales tax totals.
+	 *
+	 * @since 5.0
+	 */
+ 	protected function update_taxes() {
+ 		$totals = array(
+ 			'cart'     => 0,
+ 			'shipping' => 0,
+ 		);
+
+ 		/* Add tax for cart items */
+ 		foreach ( WC()->cart->get_cart() as $item ) {
+ 			$tax_data = $item['line_tax_data'];
+
+ 			if ( isset( $tax_data['total'], $tax_data['total'][ SST_RATE_ID ] ) ) {
+ 				$totals['cart'] += $tax_data['total'][ SST_RATE_ID ];
+ 			}
+ 		}
+
+ 		/* Add tax for fees */
+ 		foreach ( WC()->cart->get_fees() as $fee ) {
+ 			if ( isset( $fee->tax_data[ SST_RATE_ID ] ) ) {
+ 				$totals['cart'] += $fee->tax_data[ SST_RATE_ID ];
+ 			}
+ 		}
+
+ 		/* Add shipping tax */
+ 		$totals['shipping'] = WC_Tax::get_tax_total( WC()->session->get( 'sst_shipping_taxes' ) );
+
+ 		/* Set totals */
+ 		WC()->cart->taxes[ SST_RATE_ID ] = $totals['cart'];
+		WC()->cart->tax_total = WC_Tax::get_tax_total( WC()->cart->taxes );
+		WC()->cart->shipping_taxes[ SST_RATE_ID ] = $totals['shipping'];
+		WC()->cart->shipping_tax_total = WC_Tax::get_tax_total( WC()->cart->shipping_taxes );
+ 	}
 
 	/**
 	 * Set the tax for a product.
@@ -260,6 +301,21 @@ class SST_Checkout extends SST_Abstract_Cart {
 	}
 	
 	/**
+	 * Set the tax for a shipping package.
+	 *
+	 * @since 5.0
+	 *
+	 * @param mixed $id Package key.
+	 * @param float $tax Sales tax for package.
+	 */
+	protected function set_shipping_tax( $id, $tax ) {
+		$shipping_taxes        = WC()->session->get( 'sst_shipping_taxes', array() );
+		$shipping_taxes[ $id ] = $tax;
+
+		WC()->session->set( 'sst_shipping_taxes', $shipping_taxes );
+	}
+
+	/**
 	 * Set the tax for a fee.
 	 *
 	 * @since 5.0
@@ -271,21 +327,6 @@ class SST_Checkout extends SST_Abstract_Cart {
 		WC()->cart->fees[ $id ]->tax_data[ SST_RATE_ID ] = $tax;
 		WC()->cart->fees[ $id ]->tax = array_sum( WC()->cart->fees[ $id ]->tax_data );
 	}
-	
-	/**
-	 * Set the cart and shipping tax totals.
-	 *
-	 * @since 5.0
-	 *
-	 * @param float $cart_tax (default: 0.0)
-	 * @param float $shipping_tax (default: 0.0)
-	 */
-	protected function set_tax_totals( $cart_tax = 0.0, $shipping_tax = 0.0 ) {
-		WC()->cart->taxes[ SST_RATE_ID ] = $cart_tax;
-		WC()->cart->tax_total = WC_Tax::get_tax_total( WC()->cart->taxes );
-		WC()->cart->shipping_taxes[ SST_RATE_ID ] = $shipping_tax;
-		WC()->cart->shipping_tax_total = WC_Tax::get_tax_total( WC()->cart->shipping_taxes );
-	}
 
 	/**
 	 * Get the customer exemption certificate.
@@ -295,12 +336,6 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @return ExemptionCertificateBase|NULL
 	 */
 	public function get_certificate() {
-		if ( ! $_POST ) {
-			return NULL;
-		} else if ( ! isset( $_POST['post_data'] ) && ! isset( $_POST['certificate_id'] ) ) {
-			return NULL;
-		}
-
 		if ( ! isset( $_POST['post_data'] ) ) {
 			$post_data = $_POST;
 		} else {
@@ -324,8 +359,8 @@ class SST_Checkout extends SST_Abstract_Cart {
      * @param string $message Message describing the error.
      */
 	protected function handle_error( $message ) {
-		SST_Logger::add( $message );
 		wc_add_notice( $message, 'error' );
+		SST_Logger::add( $message );
 	}
 
 	/**
@@ -334,7 +369,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	protected function reset_session() {
-		WC()->session->set( 'sst_packages', '' );
+		WC()->session->set( 'sst_packages', array() );
+		WC()->session->set( 'sst_shipping_taxes', array() );
 	}
 
 	/**
@@ -348,10 +384,9 @@ class SST_Checkout extends SST_Abstract_Cart {
 	protected function get_packages_to_save() {
 		return array_intersect_key( $this->get_packages(), $this->create_packages() );
 	}
-
+	
 	/**
-	 * Save metadata when a new order is created. Create a new log entry if
-	 * logging is enabled.
+	 * Save metadata when a new order is created.
 	 *
 	 * @since 4.2
 	 *
@@ -360,15 +395,50 @@ class SST_Checkout extends SST_Abstract_Cart {
 	public function add_order_meta( $order_id ) {
 		$order = new SST_Order( $order_id );
 
-		$order->update_meta( 'packages', json_encode( $this->get_packages_to_save() ) );
-
-		if ( ( $exempt_cert = $this->get_certificate() ) ) {
-			$order->update_meta( 'exempt_cert', json_encode( $exempt_cert ) );
-		}
-
+		$order->update_meta( 'packages', $this->get_packages_to_save() );
+		$order->update_meta( 'exempt_cert', $this->get_certificate() );
 		$order->save();
 
 		$this->reset_session();
+	}
+
+	/**
+	 * Set the shipping tax for newly created shipping items.
+	 *
+	 * @since 5.0
+	 *
+	 * @param int $order_id
+	 * @param int $item_id
+	 * @param int $package_key
+	 */
+	public function add_shipping_tax_old( $order_id, $item_id, $package_key ) {
+		$shipping_taxes = WC()->session->get( 'sst_shipping_taxes', array() );
+
+		if ( isset( $shipping_taxes[ $package_key ] ) ) {
+			$taxes = wc_get_order_item_meta( $item_id, 'taxes', true );
+			$taxes['total'][ SST_RATE_ID ] = $shipping_taxes[ $package_key ];
+			wc_update_order_item_meta( $item_id, 'taxes', $taxes );
+		}
+	}
+
+	/**
+	 * Set the shipping tax for newly created shipping items (Woo 3.x).
+	 *
+	 * @since 5.0
+	 *
+	 * @param WC_Order_Item_Shipping $item
+	 * @param int $package_key
+	 * @param array $package
+	 * @param WC_Order $order
+	 */
+	public function add_shipping_tax( $item, $package_key, $package, $order ) {
+		$shipping_taxes = WC()->session->get( 'sst_shipping_taxes', array() );
+
+		if ( isset( $shipping_taxes[ $package_key ] ) ) {
+			$taxes = $item->get_taxes();
+			$taxes['total'][ SST_RATE_ID ] = $shipping_taxes[ $package_key ];
+			$item->set_taxes( $taxes );
+		}
 	}
 
 	/**

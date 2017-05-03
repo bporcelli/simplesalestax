@@ -24,6 +24,7 @@ class SST_Ajax {
 		'sst_delete_certificate'                         => false,
 		'sst_add_certificate'                            => false,
 		'woocommerce_subscriptions_calculate_line_taxes' => false,
+		'woocommerce_calc_line_taxes'                    => false,
 	);
 
 	/**
@@ -34,9 +35,17 @@ class SST_Ajax {
 	public static function init() {
 		foreach ( self::$hooks as $hook => $nopriv ) {
 			$function = str_replace( array( 'woocommerce_', 'sst_' ), '', $hook );
-			add_action( "wp_ajax_$hook", array( __CLASS__, $function ) );
+
+			/* If we are overriding a woo hook, give ours higher priority */
+			if ( 0 === strpos( $hook, 'woocommerce_' ) )
+				$priority = 1;
+			else
+				$priority = 10;
+
+			add_action( "wp_ajax_$hook", array( __CLASS__, $function ), $priority );
+
 			if ( $nopriv ) {
-				add_action( "wp_ajax_nopriv_$hook", array( __CLASS__, $function ) );
+				add_action( "wp_ajax_nopriv_$hook", array( __CLASS__, $function ), $priority );
 			}
 		}
 	}
@@ -344,6 +353,70 @@ class SST_Ajax {
 		);
 
 		wp_send_json_success( $data );
+	}
+
+	/**
+	 * Recalculate sales tax via AJAX.
+	 *
+	 * @since 4.2
+	 */
+	public static function calc_line_taxes() {
+		check_ajax_referer( 'calc-totals', 'security' );
+
+		if ( ! current_user_can( 'edit_shop_orders' ) ) {
+			wp_die( -1 );
+		}
+
+		$items        = array();
+		$order_id     = absint( $_POST['order_id'] );
+		$tax_based_on = get_option( 'woocommerce_tax_based_on' );
+		$country      = strtoupper( esc_attr( $_POST['country'] ) );
+		$state        = strtoupper( esc_attr( $_POST['state'] ) );
+		$postcode     = strtoupper( esc_attr( $_POST['postcode'] ) );
+		$city         = wc_clean( esc_attr( $_POST['city'] ) );
+		$woo_3_0      = version_compare( WC_VERSION, '3.0', '>=' );
+
+		/* Let Woo take the reins if the customer is international */
+		if ( 'US' != $country )
+			return;
+
+		/* Parse jQuery serialized items */
+		parse_str( $_POST['items'], $items );
+
+		/* Set customer billing/shipping address if necessary */
+		$order = new SST_Order( $order_id );
+
+		if ( SST_Addresses::get_destination_address( $order ) == NULL ) {
+			$address = array(
+				'address_1' => '',
+				'address_2' => '',
+				'city'      => $city,
+				'state'     => $state,
+				'postcode'  => $postcode
+			);
+
+			if ( 'billing' === $tax_based_on )
+				$order->set_address( $address, 'billing' );
+			else
+				$order->set_address( $address, 'shipping' );
+		}
+
+		/* Save items and recalc taxes */
+		wc_save_order_items( $order_id, $items );
+
+		try {
+			$order->calculate_taxes();
+			$order->calculate_totals( false );
+		} catch ( Exception $ex ) {
+			wp_die( $ex->getMessage() );
+		}
+
+		/* Send back response */
+		if ( ! $woo_3_0 )
+			$data = get_post_meta( $order_id );
+
+		include WC()->plugin_path() . '/includes/admin/meta-boxes/views/html-order-items.php';
+		wp_die();
 	}
 
 }

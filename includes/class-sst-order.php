@@ -26,9 +26,8 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 4.4
 	 */
 	protected static $defaults = array(
-		'tax_item_id' => 0,
 		'packages'    => array(),
-		'exempt_cert' => '',
+		'exempt_cert' => null,
 		'status'      => 'pending'
 	);
 
@@ -79,7 +78,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @return bool
 	 */
 	protected function ready_for_lookup( $package ) {
-		return parent::ready_for_lookup( $package ) && 'pending' == $this->get_taxcloud_status() && 0 === $this->get_total_refunded();
+		return parent::ready_for_lookup( $package ) && 'pending' == $this->get_taxcloud_status() && ! $this->get_total_refunded();
 	}
 
 	/**
@@ -90,7 +89,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @return array
 	 */
 	protected function get_packages() {
-		return json_decode( $this->get_meta( 'packages' ), true );
+		return $this->get_meta( 'packages' );
 	}
 
 	/**
@@ -101,7 +100,33 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @param $packages array (default: array())
 	 */
 	protected function set_packages( $packages = array() ) {
-		$this->update_meta( 'packages', json_encode( $packages ) );
+		$this->update_meta( 'packages', array_intersect_key( $packages, $this->create_packages() ) );
+	}
+
+	/**
+	 * Transform an array of cart items to match the format expected during
+	 * checkout.
+	 *
+	 * @since 5.0
+	 *
+	 * @param  array $cart_items
+	 * @return array
+	 */
+	protected function transform_items( $cart_items ) {
+		$new_items = array();
+
+		foreach ( $cart_items as $item_id => $item ) {
+			$product_id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
+
+			$new_items[ $item_id ] = array(
+				'product_id'   => $item['product_id'],
+				'variation_id' => $item['variation_id'],
+				'quantity'     => $item['qty'],
+				'data'         => wc_get_product( $product_id ),
+			);
+		}
+		
+		return $new_items;
 	}
 
 	/**
@@ -123,7 +148,7 @@ class SST_Order extends SST_Abstract_Cart {
 
 		/* Create one package with all order items */
 		$package = array(
-			'contents'    => $this->get_items(),
+			'contents'    => $this->transform_items( $this->get_items() ),
 			'destination' => array(
 				'address'   => $destination->getAddress1(),
 				'address_2' => $destination->getAddress2(),
@@ -154,7 +179,6 @@ class SST_Order extends SST_Abstract_Cart {
 					'id'     => $fee_id,
 					'amount' => $fee['total']
 				);
-
 				$packages[ $first ]['map'][] = array(
 					'type'    => 'fee',
 					'id'      => $fee_id,
@@ -163,36 +187,30 @@ class SST_Order extends SST_Abstract_Cart {
 			}
 		}
 
-		/* If number of shipping methods equals number of packages, add one
-		 * method to each package. Otherwise, add all shipping to first
-		 * package. */
-		$shipping_cost = $this->get_total_shipping();
-		
-		if ( $shipping_cost > 0 ) {
-			$shipping_methods = $this->get_shipping_methods();
+		/* Try to add one shipping method to each package. */
+		$total_remaining = $this->get_total_shipping();
 
-			if ( count( $shipping_methods ) == count( $packages ) ) {
-				foreach ( $shipping_methods as $method ) {
-					$packages[ key( $packages ) ]['shipping'] = array(
-						'cost'      => $method['total'],
-						'method_id' => $method['method_id']
-					);
-					next( $packages );
-				}
-			} else {
-				/* Use first method as only method */
-				$chosen_method = current( $shipping_methods );
+		foreach ( $this->get_shipping_methods() as $item_id => $method ) {
+			if ( current( $packages ) === false )
+				break;
 
-				$packages[ $first ]['shipping'] = array(
-					'cost'      => $shipping_cost,
-					'method_id' => $chosen_method['method_id'],
-				);
-			}
+			$total_remaining -= $method['total'];
+
+			$packages[ key( $packages ) ]['shipping'] = new WC_Shipping_Rate( '', '', $method['total'], array(), $method['method_id'] );
+			$packages[ key( $packages ) ]['map'][]    = array(
+				'type'    => 'shipping',
+				'id'      => SST_SHIPPING_ITEM,
+				'cart_id' => $item_id,
+			);
+			next( $packages );
+		}
+
+		/* If any shipping remains, add it to the first package */
+		if ( $total_remaining > 0 ) {
+			$packages[ $first ]['shipping']->cost += $total_remaining;
 		}
 
 		/* Re-index packages by package hash */
-		$packages = array();
-
 		foreach ( $packages as $key => $package ) {
 			$packages[ $this->get_package_hash( $package ) ] = $package;
 			unset( $packages[ $key ] );
@@ -243,28 +261,16 @@ class SST_Order extends SST_Abstract_Cart {
 		}
 
 		/* Reset totals */
-		$this->set_tax_totals( 0, 0 );
+		$this->update_taxes();
 	}
 
 	/**
-	 * Set the cart and shipping tax totals.
+	 * Update sales tax totals.
 	 *
 	 * @since 5.0
-	 *
-	 * @param float $cart_tax (default: 0.0)
-	 * @param float $shipping_tax (default: 0.0)
 	 */
-	protected function set_tax_totals( $cart_tax = 0.0, $shipping_tax = 0.0 ) {
-		$tax_item_id = $this->find_tax_item();
-
-		if ( $tax_item_id ) {
-			wc_update_order_item_meta( $tax_item_id, 'tax_amount', $cart_tax );
-			wc_update_order_item_meta( $tax_item_id, 'shipping_tax_amount', $shipping_tax );
-			wc_update_order_item_meta( $tax_item_id, 'cart_tax', $cart_tax );
-			wc_update_order_item_meta( $tax_item_id, 'shipping_tax', $shipping_tax );
-		} else {
-			$this->handle_error( sprintf( __( "Warning: couldn't update tax totals for item %d.", 'simplesalestax' ), $tax_item_id ) );
-		}
+	protected function update_taxes() {
+		$this->order->update_taxes();
 	}
 
 	/**
@@ -286,7 +292,7 @@ class SST_Order extends SST_Abstract_Cart {
 		}
 
 		if ( ! is_array( $tax_data ) ) {
-			$tax_data = array( 'total' => 0, 'subtotal' => 0);
+			$tax_data = array( 'total' => array(), 'subtotal' => array() );
 		}
 
 		$tax_data['total'][ SST_RATE_ID ]    = $tax;
@@ -295,11 +301,26 @@ class SST_Order extends SST_Abstract_Cart {
 		if ( version_compare( WC_VERSION, '3.0', '>=' ) ) {
 			$item->set_taxes( $tax_data );
 			$item->save();
+
+			/* Must re-add item for changes to take effect */
+			$this->add_item( $item );
 		} else {
 			wc_update_order_item_meta( $id, '_line_tax_data', $tax_data );
 			wc_update_order_item_meta( $id, '_line_tax', array_sum( $tax_data['total'] ) );
 			wc_update_order_item_meta( $id, '_line_subtotal_tax', array_sum( $tax_data['subtotal'] ) );
 		}
+	}
+
+	/**
+	 * Set the tax for a shipping item.
+	 *
+	 * @since 5.0
+	 *
+	 * @param mixed $id Item ID.
+	 * @param float $tax Sales tax for item.
+	 */
+	protected function set_shipping_tax( $id, $tax ) {
+		$this->set_product_tax( $id, $tax );
 	}
 
 	/**
@@ -311,7 +332,6 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @param float $tax Sales tax for fee.
 	 */
 	protected function set_fee_tax( $id, $tax ) {
-		/* On the backend, fees and products are both just 'items' */
 		$this->set_product_tax( $id, $tax );
 	}
 
@@ -323,14 +343,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @return TaxCloud\ExemptionCertificateBase
 	 */
 	public function get_certificate() {
-		$exempt_cert = $this->get_meta( 'exempt_cert' );
-		
-		if ( ! empty( $exempt_cert ) ) {
-			$certificate = json_decode( $exempt_cert, true );
-			return new TaxCloud\ExemptionCertificateBase( $certificate['CertificateID'] );
-		}
-
-		return null;
+		return $this->get_meta( 'exempt_cert' );
 	}
 
 	/**
@@ -403,7 +416,7 @@ class SST_Order extends SST_Abstract_Cart {
 			$request = new TaxCloud\Request\AuthorizedWithCapture(
 				SST_Settings::get( 'tc_id' ),
 				SST_Settings::get( 'tc_key' ),
-				$this->get_customer_id(),
+				$package['request']->getCustomerID(),
 				$package['cart_id'],
 				$this->get_package_order_id( $hash ),
 				$now,
@@ -413,7 +426,7 @@ class SST_Order extends SST_Abstract_Cart {
 			try {
 				TaxCloud()->AuthorizedWithCapture( $request );
 			} catch ( Exception $ex ) {
-				$this->handle_error( sprintf( __( "Failed to capture order %d: %s.", 'simplesalestax' ), $this_>get_id(), $ex->getMessage() ) );
+				$this->handle_error( sprintf( __( "Failed to capture order %d: %s.", 'simplesalestax' ), $this->get_id(), $ex->getMessage() ) );
 				return false;
 			}
 		}
@@ -446,83 +459,67 @@ class SST_Order extends SST_Abstract_Cart {
 			$items = $this->get_items( array( 'fee', 'shipping', 'line_item' ) );
 		}
 
-		if ( ! empty( $items ) ) {
-			foreach ( $this->get_packages() as $hash => $package ) {
-				$refund_items = $package['request']['cartItems'];
+		foreach ( $this->get_packages() as $hash => $package ) {
+			$refund_items = array();
+			$all_items    = $package['request']->getCartItems();
 
-				// Remove all items that shouldn't be refunded
-				foreach ( $refund_items as $key => $pitem ) {
-					$refund    = false;
-					$item_id   = $package['map'][ $key ]['id'];
-					$item_type = $package['map'][ $key ]['type'];
+			// Find all items that should be refunded
+			foreach ( $all_items as $key => $pitem ) {
+				$match    = null;
+				$to_match = $package['map'][ $key ];
 
-					if ( 'cart' == $item_type ) {
-						$item_type = 'line_item';
-					}
-
-					foreach ( $items as $ikey => $item ) {
-						if ( $item['type'] !== $item_type ) {
-							continue;
-						}
-
-						switch ( $item['type'] ) {
-							case 'line_item':
-								$refund = $item['product_id'] == $item_id || $item['variation_id'] == $item_id;
-							break;
-							case 'shipping';
-								// TODO: What if two packages have the same shipping method?
-								$refund = $package['shipping'] && $item['method_id'] == $package['shipping']['method_id'];
-							break;
-							case 'fee':
-								$refund = sanitize_title( $item['name'] ) == $item_id;
-						}
-
-						if ( $refund ) {
-							unset( $items[ $ikey ] );
-
-							if ( ! $full_refund ) {
-								/* For partial refunds, WooCommerce allows users to enter an arbitrary refund amount.
-								 * Update the unit price and quantity for the CartItem accordingly. */
-								$line_total = 'shipping' == $item['type'] ? $item['cost'] : $item['line_total'];
-								$quantity   = 'line_item' == $item['type'] ? $item['qty'] : 1; 
-								$unit_price = wc_format_decimal( $line_total / $quantity );
-
-								$refund_items[ $key ]['Qty']   = $quantity;
-								$refund_items[ $key ]['Price'] = $unit_price;
-							}
-							break;
-						}
-					}
-
-					if ( ! $refund )
-						unset( $refund_items[ $key ] );
+				if ( 'shipping' == $to_match['type'] ) { // Use method id to improve matching
+					$to_match['id'] = $package['shipping']->method_id;
 				}
 
-				if ( empty( $refund_items ) )
-					continue;
-
-				// Found items to refund -- send Returned request
-				$cart_items = array();
-
-				foreach ( $refund_items as $item ) {
-					$cart_items[] = new TaxCloud\CartItem( $item['Index'], $item['ItemID'], $item['TIC'], $item['Price'], $item['Qty'] );
+				foreach ( $items as $ikey => $item ) {
+					if ( $this->cart_item_matches( $to_match, $item ) ) {
+						$match = $item;
+						unset( $items[ $ikey ] );
+						break;
+					}
 				}
 
-				$request = new TaxCloud\Request\Returned(
-					SST_Settings::get( 'tc_id' ),
-					SST_Settings::get( 'tc_key' ),
-					$this->get_package_order_id( $hash ),
-					$cart_items,
-					date( 'c' )
-				);
+				if ( ! is_null( $match ) ) {
+					$new_qty   = $pitem->getQty();
+					$new_price = $pitem->getPrice();
 
-				try {
-					TaxCloud()->Returned( $request );
-				} catch ( Exception $ex ) {
-					$this->handle_error( sprintf( __( "Failed to refund order %d: %s.", 'simplesalestax' ), $this->get_id(), $ex->getMessage() ) );
-					return false;
+					if ( ! $full_refund ) { // Match user-provided qty/price
+						$total     = isset( $match['line_total'] ) ? $match['line_total'] : $match['cost'];
+						$new_qty   = 'line_item' == $match['type'] ? $match['qty'] : 1;
+						$new_price = wc_format_decimal( $total / $new_qty );
+					}
+
+					$refund_items[] = new TaxCloud\CartItem(
+						sizeof( $refund_items ),
+						$pitem->getItemID(),
+						$pitem->getTIC(),
+						$new_price,
+						$new_qty
+					);
 				}
 			}
+
+			if ( empty( $refund_items ) )
+				continue;
+
+			$request = new TaxCloud\Request\Returned(
+				SST_Settings::get( 'tc_id' ),
+				SST_Settings::get( 'tc_key' ),
+				$this->get_package_order_id( $hash ),
+				$refund_items,
+				date( 'c' )
+			);
+
+			try {
+				TaxCloud()->Returned( $request );
+			} catch ( Exception $ex ) {
+				$this->handle_error( sprintf( __( "Failed to refund order %d: %s.", 'simplesalestax' ), $this->get_id(), $ex->getMessage() ) );
+				return false;
+			}
+
+			if ( empty( $items ) )
+				break; // All items refunded -- no need to search other packages
 		}
 
 		if ( $full_refund ) {
@@ -535,50 +532,28 @@ class SST_Order extends SST_Abstract_Cart {
 	}
 
 	/**
-	 * Return the ID of our tax item.
+	 * Does the cart item match the given WooCommerce line item?
 	 *
-	 * @since 4.6
+	 * @since 5.0
 	 *
-	 * @return int|null
+	 * @param  array $cart_item
+	 * @param  array $line_item
+	 * @return bool
 	 */
-	protected function find_tax_item() {
-		global $wpdb;
-
-		$tax_item_id = $this->get_meta( 'tax_item_id' );
-
-		if ( $tax_item_id )
-			return $tax_item_id;
-		else {
-			foreach ( $this->get_taxes() as $item_id => $tax ) {
-				if ( $tax[ 'rate_id' ] == SST_RATE_ID ) {
-					$tax_item_id = $item_id;
-					break;
-				}
-			}
+	protected function cart_item_matches( $cart_item, $line_item ) {
+		if ( $cart_item['type'] !== $line_item['type'] ) {
+			return false;
 		}
 
-		/* No tax item found? Add a new one. */
-		if ( ! $tax_item_id ) {
-			$wpdb->insert( "{$wpdb->prefix}woocommerce_order_items", array(
-				'order_item_type' => 'tax', 
-				'order_item_name' => apply_filters( 'wootax_rate_code', 'SALES-TAX' ), 
-				'order_id'        => $this->get_id(),
-			) );
-
-			$tax_item_id = $wpdb->insert_id;
-
-			if ( $tax_item_id ) {
-				wc_update_order_item_meta( $tax_item_id, 'rate_id', SST_RATE_ID );
-				wc_update_order_item_meta( $tax_item_id, 'label', apply_filters( 'wootax_rate_label', 'Sales Tax' ) );
-				wc_update_order_item_meta( $tax_item_id, 'name', apply_filters( 'wootax_rate_code', 'SALES-TAX' ) );
-				wc_update_order_item_meta( $tax_item_id, 'compound', true );
-			}
-
-			$this->update_meta( 'tax_item_id', $tax_item_id );
-			$this->save();
+		switch ( $cart_item['type'] ) {
+			case 'line_item':
+				return $line_item['product_id'] == $cart_item['id'] || $line_item['variation_id'] == $cart_item['id'];
+			case 'shipping'; // TODO: What if two packages have the same shipping method?
+				return $line_item['method_id'] == $cart_item['id'];
+			break;
+			case 'fee':
+				return sanitize_title( $line_item['name'] ) == $cart_item['id'];
 		}
-
-		return $tax_item_id;
 	}
 
 	/**

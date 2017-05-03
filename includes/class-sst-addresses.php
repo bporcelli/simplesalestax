@@ -159,13 +159,16 @@ class SST_Addresses {
 		$tax_based_on = get_option( 'woocommerce_tax_based_on' );
 
 		// Handle local pickups
+		$method_ids = array();
+		
 		if ( $order != NULL ) {
-			$method_ids = wp_list_pluck( $order->get_shipping_methods(), 'method_id' );
-		} else {
-			$method_ids = wp_list_pluck( WC()->session->get( 'chosen_shipping_methods' ), 'method_id' );
+			foreach ( $order->get_shipping_methods() as $method ) {
+				$method_id    = current( explode( ':', $method['method_id'] ) );
+				$method_ids[] = $method_id;
+			}
 		}
 
-		if ( SST_Shipping::is_local_pickup( $method_ids ) ) {
+		if ( 'base' === $tax_based_on || SST_Shipping::is_local_pickup( $method_ids ) ) {
 			return apply_filters( 'wootax_pickup_address', self::get_default_address(), $order );
 		}
 
