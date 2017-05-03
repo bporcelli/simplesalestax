@@ -27,11 +27,6 @@ abstract class SST_Abstract_Cart {
 		/* Reset */
 		$this->reset_taxes();
 
-		$totals = array(
-			'shipping' => 0,
-			'cart'     => 0,
-		);
-
 		/* Perform tax lookup(s) */
 		foreach ( $this->do_lookup() as $package ) {
 			$response = $package['response'];
@@ -42,15 +37,15 @@ abstract class SST_Abstract_Cart {
 				foreach ( $cart_items as $index => $tax_total ) {
 					$info = $package['map'][ $index ];
 					
-					if ( 'shipping' == $info['type'] ) {
-						$totals['shipping'] += $tax_total;
-					} else {
-						if ( 'cart' == $info['type'] )
+					switch ( $info['type'] ) {
+						case 'shipping':
+							$this->set_shipping_tax( $info['cart_id'], $tax_total );
+						break;
+						case 'line_item':
 							$this->set_product_tax( $info['cart_id'], $tax_total );
-						else
+						break;
+						case 'fee':
 							$this->set_fee_tax( $info['cart_id'], $tax_total );
-						
-						$totals['cart'] += $tax_total;
 					}
 				}
 			} else {
@@ -59,8 +54,8 @@ abstract class SST_Abstract_Cart {
 			}
 		}
 
-		/* Set tax totals */
-		$this->set_tax_totals( $totals['cart'], $totals['shipping'] );
+		/* Update tax totals */
+		$this->update_taxes();
 	}
 
 	/**
@@ -248,7 +243,7 @@ abstract class SST_Abstract_Cart {
 			/* Update package contents */
 			$packages[ $origin_id ]['contents'][] = $item;
 			$packages[ $origin_id ]['map'][]      = array(
-				'type'    => 'cart',
+				'type'    => 'line_item',
 				'id'      => $item['data']->get_id(),
 				'cart_id' => $cart_key,
 			);
@@ -401,14 +396,11 @@ abstract class SST_Abstract_Cart {
 	abstract protected function reset_taxes();
 
 	/**
-	 * Set the cart and shipping tax totals.
+	 * Update sales tax totals.
 	 *
 	 * @since 5.0
-	 *
-	 * @param float $cart_tax (default: 0.0)
-	 * @param float $shipping_tax (default: 0.0)
 	 */
-	abstract protected function set_tax_totals( $cart_tax = 0.0, $shipping_tax = 0.0 );
+	abstract protected function update_taxes();
 
 	/**
 	 * Set the tax for a product.
@@ -419,6 +411,16 @@ abstract class SST_Abstract_Cart {
 	 * @param float $tax Sales tax for product.
 	 */
 	abstract protected function set_product_tax( $id, $tax );
+
+	/**
+	 * Set the tax for a shipping item.
+	 *
+	 * @since 5.0
+	 *
+	 * @param mixed $id Item ID.
+	 * @param float $tax Sales tax for item.
+	 */
+	abstract protected function set_shipping_tax( $id, $tax );
 
 	/**
 	 * Set the tax for a fee.
