@@ -72,51 +72,28 @@ abstract class SST_Abstract_Cart {
 		$saved_pkgs = $this->get_packages();
 
 		/* Perform Lookup for each package */
-		foreach ( $this->create_packages() as $hash => $package ) {
+		foreach ( $this->create_packages() as $key => $package ) {
+			$hash = $this->get_package_hash( $package );
+
 			if ( array_key_exists( $hash, $saved_pkgs ) ) {
-				$packages[ $hash ] = $saved_pkgs[ $hash ]; /* Use cached result */
+				$packages[ $key ] = $saved_pkgs[ $hash ]; /* Use cached result */
 			} else if ( $this->ready_for_lookup( $package ) ) {
 				try {
 					$package['request']  = $this->get_lookup_for_package( $package );
 					$package['response'] = TaxCloud()->Lookup( $package['request'] );
 					$package['cart_id']  = key( $package['response'] );
-
-					/* Add to saved packages */
-					$saved_pkgs[ $hash ] = $package;
 				} catch ( Exception $ex ) {
 					$package['response'] = new WP_Error( 'lookup_error', $ex->getMessage() );
 				}
 
-				$packages[ $hash ] = $package;
+				$packages[ $key ] = $package;
 			}
 		}
 
 		/* Updated saved packages */
-		$this->set_packages( $saved_pkgs );
+		$this->set_packages( $packages );
 
 		return $packages;
-	}
-
-	/**
-	 * Create a new package.
-	 *
-	 * @since 5.0
-	 *
-	 * @return array
-	 */
-	protected static function new_package() {
-		return array(
-			'contents'    => array(),
-			'fees'        => array(),
-			'shipping'    => null,
-			'map'         => array(),
-			'user'        => array(),
-			'request'     => null,
-			'response'    => null,
-			'origin'      => null,
-			'destination' => null,
-			'certificate' => null,
-		);
 	}
 
 	/**
@@ -232,12 +209,12 @@ abstract class SST_Abstract_Cart {
 
 			/* Create subpackage for origin if need be */
 			if ( ! array_key_exists( $origin_id, $packages ) ) {
-				$packages[ $origin_id ] = array(
+				$packages[ $origin_id ] = sst_create_package( array(
 					'origin'      => SST_Addresses::to_address( $origin ),
 					'destination' => $package['destination'],
 					'certificate' => $this->get_certificate(),
 					'user'        => $package['user']
-				) + $this->new_package();
+				) );
 			}
 
 			/* Update package contents */
@@ -260,7 +237,7 @@ abstract class SST_Abstract_Cart {
 	 * @param  array $package
 	 * @return string
 	 */
-	protected function get_package_hash( $package ) {
+	private function get_package_hash( $package ) {
 		$package_to_hash = $package;
 
 		// Remove data objects so hashes are consistent
@@ -268,7 +245,7 @@ abstract class SST_Abstract_Cart {
 			unset( $package_to_hash['contents'][ $item_id ]['data'] );
 		}
 
-		return 'wc_ship_' . md5( json_encode( $package_to_hash ) . WC_Cache_Helper::get_transient_version( 'shipping' ) );
+		return 'sst_pack_' . md5( json_encode( $package_to_hash ) . WC_Cache_Helper::get_transient_version( 'shipping' ) );
 	}
 
 	/**

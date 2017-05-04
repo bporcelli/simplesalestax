@@ -47,7 +47,7 @@ class SST_Order extends SST_Abstract_Cart {
 	public function __construct( $order ) {
 		if ( is_numeric( $order ) ) {
 			$this->order = wc_get_order( $order );
-		} else if ( is_object( $order ) ) {
+		} else if ( is_a( $order, 'WC_Order' ) ) {
 			$this->order = $order;
 		}
 	}
@@ -100,7 +100,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @param $packages array (default: array())
 	 */
 	protected function set_packages( $packages = array() ) {
-		$this->update_meta( 'packages', array_intersect_key( $packages, $this->create_packages() ) );
+		$this->update_meta( 'packages', $packages );
 	}
 
 	/**
@@ -146,8 +146,11 @@ class SST_Order extends SST_Abstract_Cart {
 			return array();
 		}
 
-		/* Create one package with all order items */
-		$package = array(
+		/* Start with no packages */
+		$packages = array();
+
+		/* Add a single package with all order items */
+		$packages[] = sst_create_package( array(
 			'contents'    => $this->transform_items( $this->get_items() ),
 			'destination' => array(
 				'address'   => $destination->getAddress1(),
@@ -157,20 +160,52 @@ class SST_Order extends SST_Abstract_Cart {
 				'postcode'  => $destination->getZip5(),
 			),
 			'user'        => array(
-				'ID' => $this->get_customer_id(),
+				'ID' => $this->get_user_id(),
 			),
-		);
+		) );
 
-		/* Split package by origin address */
-		$packages = $this->split_package( $package );
+		/* Let devs change the packages before we split them */
+		$packages = apply_filters( 'wootax_order_packages_before_split', $packages, $this->order );
 
-		if ( empty( $packages ) ) {
-			return array();
+		/* Split packages by origin address + add shipping */
+		$split_packages = array();
+		$ship_methods   = $this->get_shipping_methods();
+		$ship_remaining = $this->get_total_shipping();
+
+		foreach ( $packages as $package ) {
+			$subpackages = $this->split_package( $package );
+
+			/* Add shipping to first subpackage */
+			$method = current( $ship_methods );
+
+			if ( $method ) {
+				$first_key = key( $subpackages );
+				
+				$subpackages[ $first_key ]['shipping'] = new WC_Shipping_Rate( '', '', $method['total'], array(), $method['method_id'] );
+				$subpackages[ $first_key ]['map'][]    = array(
+					'type'    => 'shipping',
+					'id'      => SST_SHIPPING_ITEM,
+					'cart_id' => key( $ship_methods ),
+				);
+
+				$ship_remaining -= $method['total'];
+				
+				next( $ship_methods );
+			}
+
+			$split_packages = array_merge( $split_packages, $subpackages );
+		}
+
+		$packages = $split_packages;
+
+		/* If any shipping remains, add it to the first package */
+		$first = key( $packages );
+
+		if ( $ship_remaining > 0 ) {
+			$packages[ $first ]['shipping']->cost += $ship_remaining;
 		}
 
 		/* Add fees to first subpackage */
-		$first = key( $packages );
-
 		if ( apply_filters( 'wootax_add_fees', true ) ) {
 			foreach ( $this->get_fees() as $item_id => $fee ) {
 				$fee_id = sanitize_title( $fee['name'] );
@@ -187,39 +222,7 @@ class SST_Order extends SST_Abstract_Cart {
 			}
 		}
 
-		/* Try to add one shipping method to each package. */
-		$total_remaining = $this->get_total_shipping();
-
-		foreach ( $this->get_shipping_methods() as $item_id => $method ) {
-			if ( current( $packages ) === false )
-				break;
-
-			$total_remaining -= $method['total'];
-
-			$packages[ key( $packages ) ]['shipping'] = new WC_Shipping_Rate( '', '', $method['total'], array(), $method['method_id'] );
-			$packages[ key( $packages ) ]['map'][]    = array(
-				'type'    => 'shipping',
-				'id'      => SST_SHIPPING_ITEM,
-				'cart_id' => $item_id,
-			);
-			next( $packages );
-		}
-
-		/* If any shipping remains, add it to the first package */
-		if ( $total_remaining > 0 ) {
-			$packages[ $first ]['shipping']->cost += $total_remaining;
-		}
-
-		/* Re-index packages by package hash */
-		foreach ( $packages as $key => $package ) {
-			$packages[ $this->get_package_hash( $package ) ] = $package;
-			unset( $packages[ $key ] );
-		}
-
-		/* Give developers a final opportunity to change the packages */
-		$packages = apply_filters( 'wootax_order_packages', $packages, $this->order );
-
-		return $packages;
+		return apply_filters( 'wootax_order_packages', $packages, $this->order );
 	}
 
 	/**
@@ -356,9 +359,9 @@ class SST_Order extends SST_Abstract_Cart {
 	protected function handle_error( $message ) {
 		SST_Logger::add( $message );
 
-		if ( defined( 'DOING_AJAX' ) ) {
+		if ( defined( 'DOING_AJAX' ) || defined( 'DOING_CRON' ) ) {
 			throw new Exception( $message );
-		} else if ( ! defined( 'DOING_CRON' ) ) {
+		} else {
 			SST_Admin_Notices::add( 'tax_error', $message, false, 'error' );
 		}
 	}
@@ -390,7 +393,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @return string
 	 */
 	protected function get_package_order_id( $package_key ) {
-		return $this->get_id() . str_replace( 'wc_ship_', '_', $package_key );
+		return $this->get_id() . '_' . $package_key;
 	}
 
 	/**
@@ -410,7 +413,7 @@ class SST_Order extends SST_Abstract_Cart {
 		}
 
 		// Send AuthorizedWithCapture for all packages
-		foreach ( $packages as $hash => $package ) {
+		foreach ( $packages as $key => $package ) {
 			$now = date( 'c' );
 
 			$request = new TaxCloud\Request\AuthorizedWithCapture(
@@ -418,7 +421,7 @@ class SST_Order extends SST_Abstract_Cart {
 				SST_Settings::get( 'tc_key' ),
 				$package['request']->getCustomerID(),
 				$package['cart_id'],
-				$this->get_package_order_id( $hash ),
+				$this->get_package_order_id( $key ),
 				$now,
 				$now
 			);
@@ -459,23 +462,23 @@ class SST_Order extends SST_Abstract_Cart {
 			$items = $this->get_items( array( 'fee', 'shipping', 'line_item' ) );
 		}
 
-		foreach ( $this->get_packages() as $hash => $package ) {
+		foreach ( $this->get_packages() as $package_key => $package ) {
 			$refund_items = array();
 			$all_items    = $package['request']->getCartItems();
 
 			// Find all items that should be refunded
-			foreach ( $all_items as $key => $pitem ) {
+			foreach ( $all_items as $cart_item_key => $pitem ) {
 				$match    = null;
-				$to_match = $package['map'][ $key ];
+				$to_match = $package['map'][ $cart_item_key ];
 
 				if ( 'shipping' == $to_match['type'] ) { // Use method id to improve matching
 					$to_match['id'] = $package['shipping']->method_id;
 				}
 
-				foreach ( $items as $ikey => $item ) {
+				foreach ( $items as $item_key => $item ) {
 					if ( $this->cart_item_matches( $to_match, $item ) ) {
 						$match = $item;
-						unset( $items[ $ikey ] );
+						unset( $items[ $item_key ] );
 						break;
 					}
 				}
@@ -500,13 +503,14 @@ class SST_Order extends SST_Abstract_Cart {
 				}
 			}
 
-			if ( empty( $refund_items ) )
+			if ( empty( $refund_items ) ) {
 				continue;
+			}
 
 			$request = new TaxCloud\Request\Returned(
 				SST_Settings::get( 'tc_id' ),
 				SST_Settings::get( 'tc_key' ),
-				$this->get_package_order_id( $hash ),
+				$this->get_package_order_id( $package_key ),
 				$refund_items,
 				date( 'c' )
 			);
@@ -557,6 +561,22 @@ class SST_Order extends SST_Abstract_Cart {
 	}
 
 	/**
+	 * Get the order ID.
+	 *
+	 * Note: This function was implemented for compatibility with 2.6.x and should
+	 * eventually be removed.
+	 *
+	 * @since 5.0
+	 *
+	 * @return int
+	 */
+	public function get_id() {
+		if ( version_compare( WC_VERSION, '3.0', '<' ) )
+			return $this->order->id;
+		return $this->order->get_id();
+	}
+
+	/**
 	 * Update order meta.
 	 *
 	 * @since 5.0
@@ -596,16 +616,5 @@ class SST_Order extends SST_Abstract_Cart {
 		}
 
 		return $value;
-	}
-
-	/**
-	 * Reset meta data.
-	 *
-	 * @since 5.0
-	 */
-	public function reset_meta_data() {
-		foreach ( self::$defaults as $key => $value ) {
-			$this->update_meta( $key, $value );
-		}
 	}
 }

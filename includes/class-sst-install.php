@@ -104,7 +104,6 @@ class SST_Install {
 		self::add_roles();
 		self::add_tax_rate();
 		self::configure_woocommerce();
-		self::schedule_events();
 		self::create_tables();
 
 		// Remove existing notices, if any
@@ -175,7 +174,7 @@ class SST_Install {
 		$logger             = new WC_Logger();
 		$update_queued      = false;
 
-		foreach ( self::$db_updates as $version => $update_callbacks ) {
+		foreach ( self::$update_hooks as $version => $update_callbacks ) {
 			if ( version_compare( $current_db_version, $version, '<' ) ) {
 				foreach ( $update_callbacks as $update_callback ) {
 					$logger->add( 'sst_db_updates', sprintf( 'Queuing %s - %s', $version, $update_callback ) );
@@ -224,20 +223,6 @@ class SST_Install {
 	 	$settings_link = '<a href="admin.php?page=wc-settings&tab=integration&section=wootax">Settings</a>'; 
 	  	array_unshift( $links, $settings_link );
 	  	return $links; 
-	}
-
-	/**
-	 * Schedule cronjobs (clear them first).
-	 *
-	 * @since 4.4
-	 */
-	private static function schedule_events() {
-		wp_clear_scheduled_hook( 'wootax_update_recurring_tax' );
-
-		// Ripped from WooCommerce: allows us to schedule an event starting at 00:00 tomorrow local time
-		$ve = get_option( 'gmt_offset' ) > 0 ? '+' : '-';
-
-		wp_schedule_event( strtotime( '00:00 tomorrow ' . $ve . get_option( 'gmt_offset' ) . ' HOURS' ), 'twicedaily', 'wootax_update_recurring_tax' );
 	}
 
 	/**

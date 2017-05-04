@@ -21,31 +21,30 @@ class SST_Subscriptions {
 	 * @since 5.0
 	 */
 	public function __construct() {
-		add_filter( 'wootax_taxable_price', array( $this, 'change_shipping_price' ), 10, 2 );
+		add_filter( 'wootax_shipping_price', array( $this, 'change_shipping_price' ), 10, 2 );
 		add_filter( 'wootax_add_fees', array( $this, 'exclude_fees' ) );
-		add_filter( 'woocommerce_calculated_total', array( $this, 'store_shipping_taxes' ), 10, 2 );
+		add_filter( 'wootax_cart_packages_before_split', array( $this, 'add_package_for_no_ship_subs' ), 10, 2 );
+		add_filter( 'wootax_product_tic', array( $this, 'set_signup_fee_tic' ), 10, 3 );
+		add_filter( 'woocommerce_calculated_total', array( $this, 'save_shipping_taxes' ), 10, 2 );
 		add_action( 'woocommerce_cart_updated', array( $this, 'restore_shipping_taxes' ) );
 		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'destroy_session' ) );
-		add_action( 'woocommerce_new_order_item', array( $this, 'save_taxes' ), 10, 3 );
-		add_action( 'woocommerce_order_add_tax', array( $this, 'save_taxes_2_6' ), 12, 2 );
-		add_action( 'wootax_update_recurring_tax', array( $this, 'cron_update_recurring_tax' ) );
-		// TODO: TEST/REFACTOR THE BELOW HOOKS
-		// add_filter( 'woocommerce_get_order_item_totals', array( $this, 'get_order_item_totals' ), 5, 2 );
-		// add_filter( 'wcs_renewal_order_created', array( $this, 'issue_renewal_lookup' ), 10, 2 ); // 2.0.x
-		// add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'fix_recurring_taxes' ), 15, 2 );
-		// add_action( 'woocommerce_subscriptions_renewal_order_created', array( $this, 'remove_duplicate_renewal_taxes' ), 10, 2 );
+		add_filter( 'wcs_renewal_order_created', array( $this, 'recalc_taxes_for_renewal' ), 1, 2 );
 	}
 
 	/**
-	 * Set taxable shipping price to zero when charge_shipping_up_front is false.
+	 * If we are calculating tax for an initial subscription order, we must
+	 * set the taxable shipping price to zero if WC_Subscriptions_Cart::charge_shipping_up_front()
+	 * is true. This function hooks wootax_shipping_price to take care of this.
 	 *
 	 * @since 5.0
 	 *
-	 * @param  float $price Taxable price.
-	 * @param  string $item_id Product ID.
+	 * @param float $price Taxable price.
+	 * @param string $shipping_rate Product ID.
 	 */
-	public function change_shipping_price( $price, $item_id ) {
-		if ( SST_SHIPPING_ITEM == $item_id && WC_Subscriptions_Cart::get_calculation_type() != 'recurring_total' && ! WC_Subscriptions_Cart::charge_shipping_up_front() ) {
+	public function change_shipping_price( $price, $shipping_rate ) {
+		if ( ! did_action( 'woocommerce_calculate_totals' ) ) {
+			return $price; /* In backend; no concept of charging up-front */
+		} else if ( WC_Subscriptions_Cart::get_calculation_type() != 'recurring_total' && ! WC_Subscriptions_Cart::charge_shipping_up_front() ) {
 			return 0;
 		}
 
@@ -61,7 +60,9 @@ class SST_Subscriptions {
 	 * @param bool $add_fees Should fees be included in the lookup?
 	 */
 	public function exclude_fees( $add_fees ) {
-		if ( WC_Subscriptions_Cart::get_calculation_type() != 'recurring_total' && 0 == WC_Subscriptions_Cart::get_cart_subscription_sign_up_fee() && WC_Subscriptions_Cart::all_cart_items_have_free_trial() ) {
+		if ( ! did_action( 'woocommerce_calculate_totals' ) ) {
+			return $add_fees; /* In backend; TODO: better way to handle? */
+		} else if ( WC_Subscriptions_Cart::get_calculation_type() != 'recurring_total' && 0 == WC_Subscriptions_Cart::get_cart_subscription_sign_up_fee() && WC_Subscriptions_Cart::all_cart_items_have_free_trial() ) {
 			return false;
 		}
 
@@ -69,199 +70,41 @@ class SST_Subscriptions {
 	}
 
 	/**
-	 * Set key of WooTax item in order totals to 'sales-tax.'
+	 * This function is executed when a new renewal order is created. It 
+	 * recalculates the sales tax for the order to account for the fact
+	 * that the customer address (and tax rates) may have changed.
 	 *
-	 * @since 4.2
-	 *
-	 * @param  array $total_rows
-	 * @param  WC_Order $order
-	 * @return array
-	 */
-	public function get_order_item_totals( $total_rows, $order ) {
-		$contains_sub = wcs_order_contains_subscription( $order );
-
-		if ( $contains_sub && 'incl' !== $order->tax_display_cart ) {				
-			$new_total_rows = array();
-
-			foreach ( $total_rows as $row_key => $data ) {
-				if ( $row_key == strtolower( apply_filters( 'wootax_rate_code', 'WOOTAX-RATE-DO-NOT-REMOVE' ) ) ) {
-					$row_key = 'sales-tax';
-				}
-
-				$new_total_rows[ $row_key ] = $data;
-			}
-			return $new_total_rows;
-		}
-
-		return $total_rows;
-	}
-	
-	/**
-	 * Issue a Lookup when a new renewal order is created.
-	 *
-	 * @since 1.0
+	 * @since 5.0
 	 *
 	 * @param WC_Order $renewal_order
-	 * @param mixed $order_or_subscription WC_Order or WC_Subscription for
-	 * original order.
+	 * @param WC_Subscription $subscription
 	 */
-	public function issue_renewal_lookup( $renewal_order, $order_or_subscription ) {
-		$renewal_order_id = $renewal_order->id;
+	public function recalc_taxes_for_renewal( $renewal_order, $subscription ) {
+		$order = new SST_Order( $renewal_order );
 
-		$order = new SST_Order( $renewal_order_id );
+		/* Reset packages to force recalc */
+		$order->update_meta( 'packages', array() );
+		
+		/* Reset status to ensure Lookup isn't blocked */
+		$order->update_meta( 'status', 'pending' );
 
-		// Find parent order object
-		$parent_order = $order_or_subscription;
-			
-		if ( class_exists( 'WC_Subscription' ) && $parent_order instanceof WC_Subscription ) {
-			if ( $parent_order->is_manual() ) {
-				return $renewal_order; // If subscription requires manual renewal, a lookup will occur when the renewal is processed
-			} else {
-				$parent_order = $order_or_subscription->order;
-			}
-		}
-
-		// Get customer address from original order/subscription if necessary
-		if ( ! SST_Addresses::is_valid( $order->destination_address ) ) {
-			$order->destination_address = $this->get_destination_address( $parent_order );
-		}
-
-		// Reset WooTax meta values
-		$order->reset_meta_data();
-
-		// Build and format items array
-		$order_items = $order->order->get_items() + $order->order->get_fees() + $order->order->get_shipping_methods();
-
-		$final_items = $type_array = array();
-		$tax_based_on = SST_Settings::get( 'tax_based_on' );
-
-		foreach ( $order_items as $item_id => $item ) {
-			$type = $item[ 'type' ];
-			$qty  = isset( $item[ 'qty' ] ) ? $item[ 'qty' ] : 1;
-			$cost = isset( $item[ 'cost' ] ) ? $item[ 'cost' ] : $item[ 'line_total' ]; // 'cost' key used by shipping methods in 2.2
-
-			switch ( $type ) {
-				case 'shipping':
-					$tic = apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC );
-					break;
-				case 'fee':
-					$tic = apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC );
-					break;
-				case 'line_item':
-					$tic  = SST_Product::get_tic( $item[ 'product_id' ], $item[ 'variation_id' ] );
-					$type = 'cart';
-					break;
-			}
-
-			// Only add an item if its cost is nonzero
-			if ( $cost != 0 ) {
-				$unit_price = $cost / $qty;
-
-				if ( $tax_based_on == 'item-price' || !$tax_based_on ) {
-					$price = $unit_price; 
-				} else {
-					$qty   = 1;
-					$price = $cost; 
-				}
-
-				$item_data = array(
-					'Index'  => '',
-					'ItemID' => $item_id,
-					'Qty'    => $qty,
-					'Price'  => $price,
-					'Type'   => $type,
-				);	
-
-				if ( $tic )
-					$item_data[ 'TIC' ] = $tic;
-
-				$final_items[] = $item_data;
-
-				$type_array[ $item_id ] = $type;
-			}
-		}
-
-		// Perform lookup
-		$result = $order->do_lookup( $final_items, $type_array );
-
-		if ( ! is_array( $result ) ) {
-			$parent_order->add_order_note( sprintf( __( 'Tax lookup for renewal order %s failed. Reason: '. $result, 'woocommerce-subscriptions' ), $renewal_order_id ) );
-		} else {
-			$parent_order->add_order_note( sprintf( __( 'Tax lookup for renewal order %s successful.', 'woocommerce-subscriptions' ), $renewal_order_id ) );
+		/* Recalc taxes */
+		try {
+			$order->calculate_taxes();
+			$order->calculate_totals( false );
+		} catch ( Exception $ex ) {
+			$order->add_order_note( sprintf( __( 'Failed to calculate sales tax for renewal order %d: %s.' ), $order->get_id(), $ex->getMessage() ) );
 		}
 
 		return $renewal_order;
 	}
 
 	/**
-	 * Update cart/shipping tax totals for recurring tax items.
-	 *
-	 * @since 4.2
-	 *
-	 * @param int $order_id Order for which taxes should be updated.
-	 * @param array $posted
-	 */
-	public function fix_recurring_taxes( $order_id, $posted ) {
-		$order = new WC_Order( $order_id );
-
-		$contains_sub = wcs_order_contains_subscription( $order );
-
-		if ( $contains_sub && 'incl' !== $order->tax_display_cart ) {			
-			if ( count( $order->get_items( 'recurring_tax' ) ) > 0 ) {
-				foreach ( $order->get_items( 'recurring_tax' ) as $item_id => $item ) {
-					wc_update_order_item_meta( $item_id, 'cart_tax', $item[ 'tax_amount' ] );
-					wc_update_order_item_meta( $item_id, 'shipping_tax', $item[ 'shipping_tax_amount' ] );
-					wc_update_order_item_meta( $item_id, 'compound', true );
-				}
-			}
-		}
-	}
-
-	/**
-	 * Get destination address from original order.
-	 *
-	 * @since 4.2
-	 *
-	 * @return array
-	 */
-	public function get_destination_address( $order ) {
-		return SST_Addresses::get_destination_address( $order );
-	}
-
-	/**
-	 * Remove duplicate tax column from renewal orders.
-	 *
-	 * @since 4.2
-	 *
-	 * @param WC_Order $renewal_order
-	 * @param WC_Order $original_order First order in series.
-	 */
-	public function remove_duplicate_renewal_taxes( $renewal_order, $original_order ) {
-		global $wpdb;
-
-		$original_taxes = $original_order->get_items( 'recurring_tax' );
-		$new_taxes      = $renewal_order->get_taxes();
-		$to_remove      = array();
-
-		foreach ( $original_taxes as $tax_item_id => $data ) {
-			if ( $data[ 'rate_id' ] != SST_RATE_ID ) {
-				continue;
-			}
-
-			foreach ( $new_taxes as $tax_id => $tax_data ) {
-				if ( $tax_data[ 'tax_amount' ] == $data[ 'tax_amount' ] && $tax_data[ 'rate_id' ] == $data[ 'rate_id' ] ) {
-					$to_remove[] = $tax_id;
-				}
-			}
-		}	
-
-		foreach ( $to_remove as $tax_item_id ) {
-			wc_delete_order_item( $tax_item_id );
-		}
-	}
-
-	/**
-	 * Save calculated shipping taxes before recurring tax totals are updated.
+	 * Subscriptions will recalculate the shipping totals for the main cart
+	 * after calculating the recurring totals. When this is done, the shipping
+	 * taxes for the main cart will be reset. This function saves the
+	 * computed shipping taxes before the recurring totals are calculated so
+	 * they can be restored later.
 	 *
 	 * @since 5.0
 	 *
@@ -269,16 +112,13 @@ class SST_Subscriptions {
 	 * @param  WC_Cart $cart Cart object.
 	 * @return double
 	 */
-	public function store_shipping_taxes( $total, $cart ) {
+	public function save_shipping_taxes( $total, $cart ) {
 		$calc_type = WC_Subscriptions_Cart::get_calculation_type();
 
 		if ( in_array( $calc_type, array( 'none', 'recurring_total' ) ) ) {
-			$shipping_taxes_back = WC()->session->get( 'shipping_taxes_back' );
-			if ( ! is_array( $shipping_taxes_back ) ) {
-				$shipping_taxes_back = array();
-			}
-			$shipping_taxes_back[ $calc_type ] = $cart->shipping_taxes;		
-			WC()->session->set( 'shipping_taxes_back', $shipping_taxes_back );
+			$saved_taxes = WC()->session->get( 'sst_saved_shipping_taxes', array() );
+			$saved_taxes[ $calc_type ] = $cart->shipping_taxes;		
+			WC()->session->set( 'sst_saved_shipping_taxes', $saved_taxes );
 		}
 
 		return $total;
@@ -293,9 +133,9 @@ class SST_Subscriptions {
 		$calc_type = WC_Subscriptions_Cart::get_calculation_type();
 
 		if ( in_array( $calc_type, array( 'none', 'recurring_total' ) ) ) {
-			$shipping_taxes_back = WC()->session->get( 'shipping_taxes_back' );
-			if ( is_array( $shipping_taxes_back ) && array_key_exists( $calc_type, $shipping_taxes_back ) ) {
-				WC()->cart->shipping_taxes = $shipping_taxes_back[ $calc_type ];
+			$saved_taxes = WC()->session->get( 'sst_saved_shipping_taxes', array() );
+			if ( array_key_exists( $calc_type, $saved_taxes ) ) {
+				WC()->cart->shipping_taxes = $saved_taxes[ $calc_type ];
 			}
 		}
 	}
@@ -306,250 +146,84 @@ class SST_Subscriptions {
 	 * @since 5.0
 	 */
 	public function destroy_session() {
-		WC()->session->set( 'shipping_taxes_back', array() );
+		WC()->session->set( 'sst_saved_shipping_taxes', array() );
 	}
 
 	/**
-	 * Set cart_tax/shipping_tax meta for our tax item (WooCommerce 2.6.x).
+	 * When the cart calculation type is 'none,' Subscriptions removes all
+	 * subscriptions with free trials from the cart packages. Similarly, when
+	 * the calculation type is 'recurring_total,' it removes all subscriptions
+	 * that have one time shipping. As a consequence, the fees for these subs
+	 * (if any) will not be included in lookups. To avoid this, we hook 
+	 * wootax_cart_packages_before_split and add a special package containing
+	 * all removed subs. Since all subs in this package do not ship, we use the
+	 * customer billing address as the destination address.
 	 *
 	 * @since 5.0
 	 *
-	 * @param int $order_id
-	 * @param int $item_id
+	 * @param  array $packages
+	 * @param  WC_Cart $cart
+	 * @return array
 	 */
-	public function save_taxes_2_6( $order_id, $item_id ) { // TODO: 3.0 COMPAT?
-		$order = new SST_Order( $order_id );
-		wc_add_order_item_meta( $item_id, 'cart_tax', wc_format_decimal( $order->get_meta( 'tax_total' ) ) );
-		wc_add_order_item_meta( $item_id, 'shipping_tax', wc_format_decimal( $order->get_meta( 'shipping_tax_total' ) ) );
-	}
-
-	/**
-	 * Set cart_tax/shipping_tax meta for our tax item (WooCommerce 3.0+).
-	 *
-	 * @since 5.0
-	 *
-	 * @param int $item_id
-     * @param WC_Order_Item $item
-	 * @param int $order_id
-	 */
-	public function save_taxes( $item_id, $item, $order_id ) {
-		if ( 'tax' === $item->get_type() ) {
-			$this->save_taxes_2_6( $order_id, $item_id );
-		}
-	}
-
-	/**
-	 * TODO: NEEDED?
-	 *
-	 * Update recurring tax for subscriptions.
-	 *
-	 * This method is executed ~2 times per day and recomputes the sales tax
-	 * for all subscription orders with a payment due in 12 hours or less. It
-	 * is intended to ensure that the sales tax total is updated accordingly
-	 * if a customer's address changes during the duration of their subscription.
-	 *
-	 * @since 5.0
-	 */
-	public function cron_update_recurring_tax() {
-		global $wpdb;
-
-		// Find date/time 12 hours from now
-		$twelve_hours = mktime( date('H') + 12 );
-
-		$date = new DateTime( date( 'c', $twelve_hours ) ); 
-		$date = $date->format( 'Y-m-d H:i:s' );
-
-		// Set up logger
-		$logger = false;
-
-		if ( SST_LOG_REQUESTS ) {
-			$logger = class_exists( 'WC_Logger' ) ? new WC_Logger() : WC()->logger();
-			$logger->add( 'wootax', 'Starting recurring tax update. Subscriptions with payments due before '. $date .' are being considered.' );
-		}
-
-		// Get all scheduled "woocommerce_scheduled_subscription_payment" actions with post_date <= $twelve_hours
-		$scheduled = $wpdb->get_results( $wpdb->prepare( "SELECT ID, post_content FROM $wpdb->posts WHERE post_status = %s AND post_title = %s AND post_date <= %s", "pending", "woocommerce_scheduled_subscription_payment", $date ) );
-
-		// Update recurring totals if necessary
-		if ( count( $scheduled ) > 0 ) {
-			$warnings = array();
-
-			foreach ( $scheduled as $action ) {
-				$temp_warnings = array();
-				$show_warnings = false;
-				$args = json_decode( $action->post_content );
-				
-				// Build order object 
-				$order_id = $args->subscription_id;
-				
-				if ( false === get_post_type( $order_id ) ) {
-					continue;
-				}
-
-				$order = new SST_Order( $order_id );
-
-				// Determine whether or not selected payment gateway supports changes to recurring totals
-				$changes_supported = $order->is_manual() || $order->payment_method_supports( 'subscription_amount_changes' );
-
-				// Build and format order items array
-				$order_items = $type_array = array();
-
-				foreach ( $order->get_items() as $item_id => $item ) {
-					$tic = SST_Product::get_tic( $item[ 'product_id' ], $item[ 'variation_id' ] );
-					$qty = isset( $item[ 'qty' ] ) ? $item[ 'qty' ] : 1;
-
-					$recurring_subtotal = isset( $item[ 'item_meta' ][ '_recurring_line_subtotal' ] ) ? $item[ 'item_meta' ][ '_recurring_line_subtotal' ][0] : 0;
-					$regular_subtotal   = isset( $item[ 'item_meta' ][ '_line_total' ] ) ? $item[ 'item_meta' ][ '_line_total' ][0] : 0;
-
-					$cost = $recurring_subtotal === '0' || ! empty( $recurring_subtotal ) ? $recurring_subtotal : $regular_subtotal;
-
-					// Special case: If _subscription_sign_up_fee is set and $cost is equal to its value, fall back to product price
-					$sign_up_fee = $order->get_items_sign_up_fee( $item );
-
-					if ( $sign_up_fee == $cost ) {
-						$cost = $item[ 'data' ]->get_price();
-					}
-
-					if ( $cost != 0 ) {
-						$unit_price = $cost / $qty;
-
-						if ( SST_Settings::get( 'tax_based_on' ) != 'line-subtotal' ) {
-							$price = $unit_price; 
-						} else {
-							$qty   = 1;
-							$price = $cost; 
-						}
-					}
-
-					$item = array(
-						'Index'  => '',
-						'ItemID' => $item_id,
-						'Qty'    => $qty,
-						'Price'  => $price,
-						'Type'   => 'cart',
-					);
-
-					if ( $tic ) {
-						$item[ 'TIC' ] = $tic;
-					}
-
-					$type_array[ $item_id ] = 'cart';
-					$order_items[] = $item;
-				}
-
-				foreach ( $order->get_fees() as $fee_id => $fee ) {
-					$item = array(
-						'Index'  => '',
-						'ItemID' => $fee_id,
-						'Qty'    => 1,
-						'Price'  => $fee[ 'recurring_line_total' ],
-						'Type'   => 'cart',
-						'TIC'    => apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC ),
-					);
-
-					$type_array[ $fee_id ] = 'fee';
-					$order_items[] = $item;
-				}
-
-				$shipping_methods = $order->get_shipping_methods();
-
-				foreach ( $shipping_methods as $method_id => $method ) {
-					$item = array(
-						'Index'  => '',
-						'ItemID' => $method_id,
-						'Qty'    => 1,
-						'Price'  => isset( $method[ 'cost' ] ) ? $method[ 'cost' ] : $method[ 'line_total' ], // 'cost' key used by shipping methods in 2.2
-						'Type'   => 'shipping',
-						'TIC'    => apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC ),
-					);
-
-					$type_array[ $method_id ] = 'shipping';
-					$order_items[] = $item;
-				}
-
-				// Set status to pending so a lookup is always sent
-				$status = $order->get_meta( 'status' );
-				$order->update_meta_data( 'status', 'pending' );
-
-				// Store old tax totals, then issue lookup request
-				$old_tax = $old_shipping_tax = $wootax_item_id = 0;
-				$taxes = $order->get_items( 'tax' );
-
-				foreach ( $taxes as $item_id => $item ) {
-					if ( $item['rate_id'] == SST_RATE_ID ) {
-						$wootax_item_id   = $item_id;
-						$old_tax          = $item[ 'tax_amount' ];
-						$old_shipping_tax = $item[ 'shipping_tax_amount' ];
-					}
-				}
-
-				$res = $order->do_lookup( $order_items, $type_array, ! $changes_supported );
-
-				// Reset status
-				$order->update_meta_data( 'status', $status );
-
-				// Update recurring tax totals as described here: http://docs.woothemes.com/document/subscriptions/add-or-modify-a-subscription/#change-recurring-total
-				if ( is_array ( $res ) ) {
-					$tax = $shipping_tax = 0;
-
-					foreach ( $res as $item ) {
-						$item_id  = $item->ItemID;
-						$item_tax = $item->TaxAmount;
-
-						if ( $type_array[ $item_id ] == 'shipping' ) {
-							$shipping_tax += $item_tax;
-						} else {
-							$tax += $item_tax;
-						}
-
-						if ( ! $changes_supported ) {
-							$temp_warnings[] = 'Recurring tax for item #'. $item_id .' changed to '. wc_round_tax_total( $item_tax );
-						}
-					}
-
-					// Only update if old and new tax totals do not correspond
-					if ( $old_tax != $tax || $old_shipping_tax != $shipping_tax ) {
-						if ( $changes_supported ) {
-							if ( ! empty( $wootax_item_id ) ) {
-								wc_update_order_item_meta( $wootax_item_id, 'tax_amount', $tax );
-								wc_update_order_item_meta( $wootax_item_id, 'cart_tax', $tax );
-
-								wc_update_order_item_meta( $wootax_item_id, 'shipping_tax_amount', $shipping_tax );
-								wc_update_order_item_meta( $wootax_item_id, 'shipping_tax', $shipping_tax );
-							}
-
-							// Determine rounded difference in old/new tax totals
-							$tax_diff         = ( $tax + $shipping_tax ) - ( $old_tax + $old_shipping_tax );
-							$rounded_tax_diff = wc_round_tax_total( $tax_diff );
-
-							// Set new recurring total by adding difference between old and new tax to existing total
-							$new_recurring_total = $order->get_total() + $rounded_tax_diff;
-							$order->set_total( $new_recurring_total );
-
-							if ( $logger ) {
-								$logger->add( 'wootax', 'Set recurring total for order '. $order_id .' to '. $new_recurring_total .'. Change: '. $tax_diff );
-							}
-						} else {
-							$temp_warnings[] = 'Total recurring tax changed from '. wc_round_tax_total( $old_tax ) .' to '. wc_round_tax_total( $tax );
-							$temp_warnings[] = 'Total recurring shipping tax changed from '. wc_round_tax_total( $old_shipping_tax ) .' to '. wc_round_tax_total( $shipping_tax );
-							
-							$show_warnings = true;
-						}
-					}
-
-					// Add to warnings array if necessary
-					if ( $show_warnings ) {
-						$warnings[ $order_id ] = $temp_warnings;
-					}
+	public function add_package_for_no_ship_subs( $packages, $cart ) {
+		$contents  = array();
+		$calc_type = WC_Subscriptions_Cart::get_calculation_type();
+		
+		if ( 'none' == $calc_type && WC_Subscriptions_Cart::cart_contains_free_trial() ) {
+			foreach ( $cart->get_cart() as $key => $cart_item ) {
+				if ( WC_Subscriptions_Product::get_trial_length( $cart_item['data'] ) > 0 ) {
+					$contents[ $key ] = $cart_item;
 				}
 			}
-
-			if ( $logger ) {
-				$logger->add( 'wootax', 'Ending recurring tax update.' );
+		} else if ( 'recurring_total' == $calc_type ) {
+			foreach ( $cart->get_cart() as $key => $cart_item ) {
+				if ( WC_Subscriptions_Product::needs_one_time_shipping( $cart_item['data'] ) ) {
+					$contents[ $key ] = $cart_item;
+				}
 			}
-		} else if ( $logger ) {
-			$logger->add( 'wootax', 'Ending recurring tax update. No subscriptions due before '. $date .'.' );
 		}
+
+		if ( ! empty( $contents ) ) {	/* Add package */
+			$packages[] = sst_create_package( array(
+				'contents'    => $contents,
+				'user'        => array(
+					'ID' => get_current_user_id(),
+				),
+				'destination' => array(
+					'address'   => WC()->customer->get_billing_address(),
+					'address_2' => WC()->customer->get_billing_address_2(),
+					'city'      => WC()->customer->get_billing_city(),
+					'state'     => WC()->customer->get_billing_state(),
+					'postcode'  => WC()->customer->get_billing_postcode(),
+				),
+			) );
+		}
+
+		return $packages;
+	}
+
+	/**
+	 * If we are calculating tax for the initial order (i.e. the calculation
+	 * type is 'none'), set the TIC for all subscription products with a free
+	 * trial period and sign up fee to "Membership fees" (91070). If this isn't
+	 * done, sign-up fees will be taxed as if they are subscriptions.
+	 *
+	 * @since 5.0
+	 *
+	 * @param  int $tic
+	 * @param  int $product_id
+	 * @param  int $variation_id (default: 0)
+	 * @return int
+	 */
+	public function set_signup_fee_tic( $tic, $product_id, $variation_id = 0 ) {
+		$has_free_trial  = WC_Subscriptions_Product::get_trial_length( $product_id ) > 0;
+		$has_fee         = WC_Subscriptions_Product::get_sign_up_fee( $product_id );
+
+		if ( 'none' == WC_Subscriptions_Cart::get_calculation_type() && $has_free_trial && $has_fee ) {
+			return apply_filters( 'wootax_sign_up_fee_tic', 91070 ); // Default is "Membership fees" (91070)
+		}
+
+		return $tic;
 	}
 }
 

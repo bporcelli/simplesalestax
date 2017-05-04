@@ -115,7 +115,7 @@ class SST_Admin {
 		if ( ! is_null( $raw_certificate ) ) {
 			$certificate = SST_Certificates::get_certificate_formatted( 
 				$raw_certificate->getCertificateID(),
-				$order->get_customer_id()
+				$order->get_user_id()
 			);
 		}
 

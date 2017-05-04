@@ -79,7 +79,6 @@ class SST_Product {
 			if ( ! is_wp_error( $categories ) && $categories ) {
 				foreach ( $categories as $category ) {
 					$cat_tic = get_term_meta( $category->term_id, 'tic', true );
-					
 					if ( ! empty( $cat_tic ) ) {
 						$tic = $cat_tic;
 						break;
@@ -88,7 +87,10 @@ class SST_Product {
 			}
 		}
 		
-		return empty( $tic ) ? null : $tic;
+		/* Let devs adjust TIC */
+		$final_tic = apply_filters( 'wootax_product_tic', $tic, $product_id, $variation_id );
+		
+		return empty( $final_tic ) ? null : $final_tic;
 	}
 
 	/**
@@ -212,7 +214,7 @@ class SST_Product {
 		update_post_meta( $product_id, '_wootax_origin_addresses', $origins );
 
 		// Save product and variation TICs
-		$selected_tics = $_REQUEST['wootax_tic'];
+		$selected_tics = isset( $_REQUEST['wootax_tic'] ) ? $_REQUEST['wootax_tic'] : array();
 
 		foreach ( $selected_tics as $product_id => $tic ) {
 			update_post_meta( $product_id, 'wootax_tic', $tic );

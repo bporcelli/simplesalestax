@@ -137,6 +137,32 @@ function sst_subs_active() {
 }
 
 /**
+ * Create a new shipping package from the given array, using default values
+ * for all keys that are omitted.
+ *
+ * @since 5.0
+ *
+ * @param  array $package
+ * @return array
+ */
+function sst_create_package( $package = array() ) {
+	$defaults = array(
+		'contents'    => array(),
+		'fees'        => array(),
+		'shipping'    => null,
+		'map'         => array(),
+		'user'        => array(),
+		'request'     => null,
+		'response'    => null,
+		'origin'      => null,
+		'destination' => null,
+		'certificate' => null,
+	);
+
+	return wp_parse_args( $package, $defaults );
+}
+
+/**
  * Return an API client instance.
  *
  * @since 5.0
