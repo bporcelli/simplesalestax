@@ -63,7 +63,7 @@
 					if ( '' == tic_id ) {
 						this.readout.text( data.strings.default );
 					} else {
-						var tic = data.tic_list[ tic_id ];
+						var tic = data.tic_list[ parseInt( tic_id ) ];
 						this.readout.text( tic['label'] + ' (' + tic['id'] + ')' );
 						this.input.val( tic_id ).trigger( 'change' );
 					}
