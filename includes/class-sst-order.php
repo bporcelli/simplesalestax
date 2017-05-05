@@ -406,9 +406,19 @@ class SST_Order extends SST_Abstract_Cart {
 	public function do_capture() {
 		$packages = $this->get_packages();
 
-		// Can't capture if already refunded/captured
-		if ( 'pending' !== $this->get_taxcloud_status() || empty( $packages ) ) {
-			$this->handle_error( sprintf( __( "Failed to capture order %d: empty or already captured or refunded.", 'simplesalestax' ), $this->get_id() ) );
+		// Handle error cases
+		$taxcloud_status = $this->get_taxcloud_status();
+
+		if ( 'captured' == $taxcloud_status ) {
+			if ( 'no' == SST_Settings::get( 'capture_immediately' ) ) {
+				$this->handle_error( sprintf( __( "Failed to capture order %d: already captured.", 'simplesalestax' ), $this->get_id() ) );
+			}
+			return false;
+		} else if ( 'refunded' == $taxcloud_status ) {
+			$this->handle_error( sprintf( __( "Failed to capture order %d: order was refunded.", 'simplesalestax' ), $this->get_id() ) );
+			return false;
+		} else if ( empty( $packages ) ) {
+			$this->handle_error( sprintf( __( "Failed to capture order %d: order is empty.", 'simplesalestax' ), $this->get_id() ) );
 			return false;
 		}
 
