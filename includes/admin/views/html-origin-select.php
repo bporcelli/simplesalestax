@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <div class="options_group">
 	<p class="form-field" id="shipping_origin_field">
-		<label for="_wootax_origin_addresses[]">Origin addresses</label>
+		<label for="_wootax_origin_addresses[]"><?php _e( 'Origin addresses', 'simplesalestax' ); ?></label>
 		<select class="wc-enhanced-select" name="_wootax_origin_addresses[]" multiple="multiple">
 		<?php
 			// Output select box

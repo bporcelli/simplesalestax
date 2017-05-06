@@ -206,8 +206,9 @@ class SST_Install {
 	 * @param  array $links Existing action links for plugin.
 	 * @return array
 	 */
-	public static function add_action_links( $links ) { 
-	 	$settings_link = '<a href="admin.php?page=wc-settings&tab=integration&section=wootax">Settings</a>'; 
+	public static function add_action_links( $links ) {
+		$link_text     = __( 'Settings', 'simplesalestax' );
+	 	$settings_link = '<a href="admin.php?page=wc-settings&tab=integration&section=wootax">'. $link_text .'</a>'; 
 	  	array_unshift( $links, $settings_link );
 	  	return $links; 
 	}
@@ -337,7 +338,7 @@ class SST_Install {
 	 */
 	public static function get_rate_label( $label, $key ) {
 		if ( $key == SST_RATE_ID ) {
-			return apply_filters( 'wootax_rate_label', 'Sales Tax' );
+			return apply_filters( 'wootax_rate_label', __( 'Sales Tax', 'simplesalestax' ) );
 		} else {
 			return $name;
 		}

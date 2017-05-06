@@ -96,7 +96,7 @@ class SST_Admin {
 	 * @since 4.2
 	 */
 	public static function add_metaboxes() {
-		add_meta_box( 'sales_tax_meta', 'Simple Sales Tax', array( __CLASS__, 'output_tax_metabox' ), 'shop_order', 'side', 'high' );
+		add_meta_box( 'sales_tax_meta', __( 'Simple Sales Tax', 'simplesalestax' ), array( __CLASS__, 'output_tax_metabox' ), 'shop_order', 'side', 'high' );
 	}
 	
 	/**
@@ -142,7 +142,7 @@ class SST_Admin {
 	public static function output_tax_report_button() {
 		?>
 		<div id="poststuff" class="wootax-reports-page">
-			<a target="_blank" href="https://simplesalestax.com/taxcloud/reports/" class="wp-core-ui button button-primary">Go to TaxCloud Reports Page</a>
+			<a target="_blank" href="https://simplesalestax.com/taxcloud/reports/" class="wp-core-ui button button-primary"><?php _e( 'Go to TaxCloud Reports Page', 'simplesalestax' ); ?></a>
 		</div>
 		<?php
 	}
