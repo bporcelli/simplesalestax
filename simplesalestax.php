@@ -145,6 +145,7 @@ final class SST {
 		include_once 'includes/class-sst-settings.php';
 		include_once 'includes/class-sst-logger.php';
 		include_once 'includes/class-sst-plugin-updater.php';
+		include_once 'includes/class-sst-customer.php';
 		include_once 'includes/class-sst-ajax.php';
 		include_once 'includes/class-sst-tic.php';
 		include_once 'includes/class-sst-tics.php';

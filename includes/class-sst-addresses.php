@@ -148,64 +148,6 @@ class SST_Addresses {
 	}
 
 	/**
-	 * Get destination address.
-	 *
-	 * @since 5.0
-	 *
-	 * @param  WC_Order $order Order object (default: null).
-	 * @return Address|NULL
-	 */
-	public static function get_destination_address( $order = NULL ) {
-		$tax_based_on = get_option( 'woocommerce_tax_based_on' );
-
-		// Handle local pickups
-		$method_ids = array();
-		
-		if ( $order != NULL ) {
-			foreach ( $order->get_shipping_methods() as $method ) {
-				$method_id    = current( explode( ':', $method['method_id'] ) );
-				$method_ids[] = $method_id;
-			}
-		}
-
-		if ( 'base' === $tax_based_on || SST_Shipping::is_local_pickup( $method_ids ) ) {
-			return apply_filters( 'wootax_pickup_address', self::get_default_address(), $order );
-		}
-
-		$billing = 'billing' === $tax_based_on;
-
-		if ( $order ) {
-			$address_1 = $billing ? $order->get_billing_address_1() : $order->get_shipping_address_1();
-			$address_2 = $billing ? $order->get_billing_address_2() : $order->get_shipping_address_2();
-			$city      = $billing ? $order->get_billing_city() : $order->get_shipping_city();
-			$state     = $billing ? $order->get_billing_state() : $order->get_shipping_state();
-			$zip       = $billing ? $order->get_billing_postcode() : $order->get_shipping_postcode();
-		} else {
-			// country, state, postcode, city
-			$raw_addr  = WC()->customer->get_taxable_address();	
-			$address_1 = $billing ? WC()->customer->get_billing_address() : WC()->customer->get_shipping_address();
-			$address_2 = $billing ? WC()->customer->get_billing_address_2() : WC()->customer->get_shipping_address_2();
-			$city      = $raw_addr[3];
-			$state     = $raw_addr[1];
-			$zip       = $raw_addr[2];
-		}
-
-		try {
-			$address = new TaxCloud\Address(
-				$address_1,
-				$address_2,
-				$city,
-				$state,
-				substr( $zip , 0, 5 )
-			);
-
-			return self::verify_address( $address );
-		} catch ( Exception $ex ) {
-			return NULL;
-		}
-	}
-
-	/**
 	 * Get all business addresses configured by the admin.
 	 *
 	 * @since 5.0

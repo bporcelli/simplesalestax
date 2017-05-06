@@ -64,6 +64,10 @@ class SST_Order extends SST_Abstract_Cart {
 	public function __call( $name, $args = array() ) {
 		if ( is_callable( array( $this->order, $name ) ) ) {
 			return call_user_func_array( array( $this->order, $name ), $args );
+		} else if ( 0 === strpos( $name, 'get_' ) ) {
+			/* For backward compatibility with Woo 2.6.x */
+			$prop_name = substr( $name, 4 );
+			return $this->order->$prop_name;
 		}
 
 		return NULL;
@@ -125,7 +129,7 @@ class SST_Order extends SST_Abstract_Cart {
 				'data'         => wc_get_product( $product_id ),
 			);
 		}
-		
+
 		return $new_items;
 	}
 
@@ -140,7 +144,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @return array
 	 */
 	protected function create_packages() {
-		$destination = SST_Addresses::get_destination_address( $this->order );
+		$destination = $this->get_destination_address();
 
 		if ( is_null( $destination ) ) {
 			return array();
@@ -181,14 +185,15 @@ class SST_Order extends SST_Abstract_Cart {
 			if ( $method ) {
 				$first_key = key( $subpackages );
 				
-				$subpackages[ $first_key ]['shipping'] = new WC_Shipping_Rate( '', '', $method['total'], array(), $method['method_id'] );
-				$subpackages[ $first_key ]['map'][]    = array(
-					'type'    => 'shipping',
-					'id'      => SST_SHIPPING_ITEM,
-					'cart_id' => key( $ship_methods ),
+				$subpackages[ $first_key ]['shipping'] = new WC_Shipping_Rate(
+					key( $ship_methods ),	// id
+					'',						// name
+					$method['cost'],		// cost
+					array(),				// taxes
+					$method['method_id']	// method id
 				);
 
-				$ship_remaining -= $method['total'];
+				$ship_remaining -= $method['cost'];
 				
 				next( $ship_methods );
 			}
@@ -208,16 +213,12 @@ class SST_Order extends SST_Abstract_Cart {
 		/* Add fees to first subpackage */
 		if ( apply_filters( 'wootax_add_fees', true ) ) {
 			foreach ( $this->get_fees() as $item_id => $fee ) {
-				$fee_id = sanitize_title( $fee['name'] );
+				$name   = empty( $fee['name'] ) ? __( 'Fee', 'simplesalestax' ) : $fee['name'];
+				$fee_id = sanitize_title( $name );
 
-				$packages[ $first ]['fees'][] = (object) array(
+				$packages[ $first ]['fees'][ $item_id ] = (object) array(
 					'id'     => $fee_id,
-					'amount' => $fee['total']
-				);
-				$packages[ $first ]['map'][] = array(
-					'type'    => 'fee',
-					'id'      => $fee_id,
-					'cart_id' => $item_id,
+					'amount' => $fee['line_total']
 				);
 			}
 		}
@@ -323,7 +324,19 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @param float $tax Sales tax for item.
 	 */
 	protected function set_shipping_tax( $id, $tax ) {
-		$this->set_product_tax( $id, $tax );
+		if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
+			/* Taxes stored under key 'taxes' instead of '_line_tax_data' */
+			$taxes = wc_get_order_item_meta( $id, 'taxes' );
+			
+			if ( ! is_array( $taxes ) )
+				$taxes = array();
+			
+			$taxes[ SST_RATE_ID ] = $tax;
+
+			wc_update_order_item_meta( $id, 'taxes', $taxes );
+		} else {
+			$this->set_product_tax( $id, $tax );
+		}
 	}
 
 	/**
@@ -382,6 +395,51 @@ class SST_Order extends SST_Abstract_Cart {
 		}
 
 		return $status;
+	}
+
+	/**
+	 * Get destination address.
+	 *
+	 * @since 5.0
+	 *
+	 * @return Address|NULL
+	 */
+	public function get_destination_address() {
+		$tax_based_on = get_option( 'woocommerce_tax_based_on' );
+		$billing      = 'billing' === $tax_based_on;
+		
+		// Handle local pickups
+		$method_ids = array();
+
+		foreach ( $this->get_shipping_methods() as $method ) {
+			$method_id    = current( explode( ':', $method['method_id'] ) );
+			$method_ids[] = $method_id;
+		}
+
+		if ( 'base' === $tax_based_on || SST_Shipping::is_local_pickup( $method_ids ) ) {
+			return apply_filters( 'wootax_pickup_address', SST_Addresses::get_default_address(), $this->order );
+		}
+
+		// Handle all other shipping methods
+		$address_1 = $billing ? $this->get_billing_address_1() : $this->get_shipping_address_1();
+		$address_2 = $billing ? $this->get_billing_address_2() : $this->get_shipping_address_2();
+		$city      = $billing ? $this->get_billing_city() : $this->get_shipping_city();
+		$state     = $billing ? $this->get_billing_state() : $this->get_shipping_state();
+		$zip       = $billing ? $this->get_billing_postcode() : $this->get_shipping_postcode();
+
+		try {
+			$address = new TaxCloud\Address(
+				$address_1,
+				$address_2,
+				$city,
+				$state,
+				substr( $zip , 0, 5 )
+			);
+
+			return SST_Addresses::verify_address( $address );
+		} catch ( Exception $ex ) {
+			return NULL;
+		}
 	}
 
 	/**
@@ -569,7 +627,8 @@ class SST_Order extends SST_Abstract_Cart {
 				return $line_item['method_id'] == $cart_item['id'];
 			break;
 			case 'fee':
-				return sanitize_title( $line_item['name'] ) == $cart_item['id'];
+				$name = empty( $line_item['name'] ) ? __( 'Fee', 'simplesalestax' ) : $line_item['name'];
+				return sanitize_title( $name ) == $cart_item['id'];
 		}
 	}
 

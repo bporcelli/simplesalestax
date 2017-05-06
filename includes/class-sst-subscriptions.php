@@ -190,11 +190,11 @@ class SST_Subscriptions {
 					'ID' => get_current_user_id(),
 				),
 				'destination' => array(
-					'address'   => WC()->customer->get_billing_address(),
-					'address_2' => WC()->customer->get_billing_address_2(),
-					'city'      => WC()->customer->get_billing_city(),
-					'state'     => WC()->customer->get_billing_state(),
-					'postcode'  => WC()->customer->get_billing_postcode(),
+					'address'   => SST_Customer::get_billing_address(),
+					'address_2' => SST_Customer::get_billing_address_2(),
+					'city'      => SST_Customer::get_billing_city(),
+					'state'     => SST_Customer::get_billing_state(),
+					'postcode'  => SST_Customer::get_billing_postcode(),
 				),
 			) );
 		}
@@ -216,10 +216,18 @@ class SST_Subscriptions {
 	 * @return int
 	 */
 	public function set_signup_fee_tic( $tic, $product_id, $variation_id = 0 ) {
+		$initial_order = 'none' == WC_Subscriptions_Cart::get_calculation_type();
+
+		/* On backend, can't use WC_Subscriptions_Cart to determine whether this
+		 * is the initial order. */
+		if ( isset( $_POST['order_id'] ) ) {
+			$initial_order = 'shop_order' == get_post_type( $_POST['order_id'] );
+		}
+
 		$has_free_trial  = WC_Subscriptions_Product::get_trial_length( $product_id ) > 0;
 		$has_fee         = WC_Subscriptions_Product::get_sign_up_fee( $product_id );
 
-		if ( 'none' == WC_Subscriptions_Cart::get_calculation_type() && $has_free_trial && $has_fee ) {
+		if ( $initial_order && $has_free_trial && $has_fee ) {
 			return apply_filters( 'wootax_sign_up_fee_tic', 91070 ); // Default is "Membership fees" (91070)
 		}
 

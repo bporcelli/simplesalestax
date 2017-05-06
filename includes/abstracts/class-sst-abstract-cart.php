@@ -104,13 +104,13 @@ abstract class SST_Abstract_Cart {
 	 * @param  $package array
 	 * @return TaxCloud\Request\Lookup
 	 */
-	protected function get_lookup_for_package( $package ) {
+	protected function get_lookup_for_package( &$package ) {
 		$cart_items   = array();
 		$based_on     = SST_Settings::get( 'tax_based_on' );
 		$based_on_sub = 'line-subtotal' == $based_on;
 
 		/* Add products */
-		foreach ( $package['contents'] as $item ) {
+		foreach ( $package['contents'] as $cart_id => $item ) {
 			$price = apply_filters( 'wootax_product_price', $item['data']->get_price(), $item['data'] );
 
 			$cart_items[] = new TaxCloud\CartItem(
@@ -120,18 +120,26 @@ abstract class SST_Abstract_Cart {
 				$based_on_sub ? $price * $item['quantity'] : $price,
 				$based_on_sub ? 1 : $item['quantity']
 			);
+			$package['map'][] = array(
+				'type'    => 'line_item',
+				'id'      => $item['data']->get_id(),
+				'cart_id' => $cart_id,
+			);
 		}
 
 		/* Add fees */
-		foreach ( $package['fees'] as $fee ) {
-			$price = apply_filters( 'wootax_fee_price', $fee->amount, $fee );
-
+		foreach ( $package['fees'] as $cart_id => $fee ) {
 			$cart_items[] = new TaxCloud\CartItem(
 				sizeof( $cart_items ),
 				$fee->id,
 				apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC ),
-				$price,
+				apply_filters( 'wootax_fee_price', $fee->amount, $fee ),
 				1
+			);
+			$package['map'][] = array(
+				'type'    => 'fee',
+				'id'      => $fee->id,
+				'cart_id' => $cart_id,
 			);
 		}
 
@@ -140,17 +148,20 @@ abstract class SST_Abstract_Cart {
 		$local_delivery = false;
 
 		if ( ! is_null( $shipping_rate ) ) {
-			$shipping_total = apply_filters( 'wootax_shipping_price', $shipping_rate->cost, $shipping_rate );
+			$local_delivery = SST_Shipping::is_local_delivery( $shipping_rate->method_id );
 
 			$cart_items[] = new TaxCloud\CartItem(
 				sizeof( $cart_items ),
 				SST_SHIPPING_ITEM,
 				apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC ),
-				$shipping_total,
+				apply_filters( 'wootax_shipping_price', $shipping_rate->cost, $shipping_rate ),
 				1
 			);
-
-			$local_delivery = SST_Shipping::is_local_delivery( $shipping_rate->method_id );
+			$package['map'][] = array(
+				'type'    => 'shipping',
+				'id'      => SST_SHIPPING_ITEM,
+				'cart_id' => $shipping_rate->id,
+			);
 		}
 
 		/* Build Lookup */
@@ -218,12 +229,7 @@ abstract class SST_Abstract_Cart {
 			}
 
 			/* Update package contents */
-			$packages[ $origin_id ]['contents'][] = $item;
-			$packages[ $origin_id ]['map'][]      = array(
-				'type'    => 'line_item',
-				'id'      => $item['data']->get_id(),
-				'cart_id' => $cart_key,
-			);
+			$packages[ $origin_id ]['contents'][ $cart_key ] = $item;
 		}
 
 		return $packages;

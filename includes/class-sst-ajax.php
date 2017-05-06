@@ -215,9 +215,10 @@ class SST_Ajax {
 		parse_str( $_POST['items'], $items );
 
 		/* Set customer billing/shipping address if necessary */
-		$order = new SST_Order( $order_id );
+		$order  = wc_get_order( $order_id );
+		$_order = new SST_Order( $order );
 
-		if ( SST_Addresses::get_destination_address( $order ) == NULL ) {
+		if ( is_null( $_order->get_destination_address() ) ) {
 			$address = array(
 				'address_1' => '',
 				'address_2' => '',
@@ -227,17 +228,17 @@ class SST_Ajax {
 			);
 
 			if ( 'billing' === $tax_based_on )
-				$order->set_address( $address, 'billing' );
+				$_order->set_address( $address, 'billing' );
 			else
-				$order->set_address( $address, 'shipping' );
+				$_order->set_address( $address, 'shipping' );
 		}
 
 		/* Save items and recalc taxes */
 		wc_save_order_items( $order_id, $items );
 
 		try {
-			$order->calculate_taxes();
-			$order->calculate_totals( false );
+			$_order->calculate_taxes();
+			$_order->calculate_totals( false );
 		} catch ( Exception $ex ) {
 			wp_die( $ex->getMessage() );
 		}

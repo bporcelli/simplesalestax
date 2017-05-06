@@ -120,23 +120,27 @@ class SST_Checkout extends SST_Abstract_Cart {
 		/* Start with the packages returned by Woo */
 		$packages = WC()->shipping->get_packages();
 
-		/* Add a special package for all items that don't need shipping */
-		$digital_items = $this->get_items_not_needing_shipping();
+		/* After WooCommerce 3.0, items that do not need shipping are excluded 
+		 * from shipping packages. To ensure that these products are taxed, we
+		 * create a special package for them. */
+		if ( version_compare( WC_VERSION, '3.0', '>=' ) ) {
+			$digital_items = $this->get_items_not_needing_shipping();
 
-		if ( ! empty( $digital_items ) ) {
-			$packages[] = sst_create_package( array(
-				'contents'    => $digital_items,
-				'user'        => array(
-					'ID' => get_current_user_id(),
-				),
-				'destination' => array(
-					'address'   => WC()->customer->get_billing_address(),
-					'address_2' => WC()->customer->get_billing_address_2(),
-					'city'      => WC()->customer->get_billing_city(),
-					'state'     => WC()->customer->get_billing_state(),
-					'postcode'  => WC()->customer->get_billing_postcode(),
-				),
-			) );
+			if ( ! empty( $digital_items ) ) {
+				$packages[] = sst_create_package( array(
+					'contents'    => $digital_items,
+					'user'        => array(
+						'ID' => get_current_user_id(),
+					),
+					'destination' => array(
+						'address'   => SST_Customer::get_billing_address(),
+						'address_2' => SST_Customer::get_billing_address_2(),
+						'city'      => SST_Customer::get_billing_city(),
+						'state'     => SST_Customer::get_billing_state(),
+						'postcode'  => SST_Customer::get_billing_postcode(),
+					),
+				) );
+			}
 		}
 
 		/* Let devs change the packages before we split them. */
@@ -170,14 +174,12 @@ class SST_Checkout extends SST_Abstract_Cart {
 
 			/* Add shipping to first subpackage */
 			if ( ! empty( $subpackages ) && ! is_null( $method ) ) {
-				$first_key = key( $subpackages );
-				
-				$subpackages[ $first_key ]['shipping'] = $method;
-				$subpackages[ $first_key ]['map'][]    = array(
-					'type'    => 'shipping',
-					'id'      => SST_SHIPPING_ITEM,
-					'cart_id' => $key,
-				);
+
+				/* Set id so we can distinguish tax amount for each shipping
+				 * method. */
+				$method->id = $key;
+
+				$subpackages[ key( $subpackages ) ]['shipping'] = $method;
 			}
 
 			$split_packages = array_merge( $split_packages, $subpackages );
@@ -187,16 +189,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 
 		/* Add fees to first package */
 		if ( ! empty( $packages ) && apply_filters( 'wootax_add_fees', true ) ) {
-			$first_key = key( $packages );
-			
-			foreach ( $this->cart->get_fees() as $index => $fee ) {
-				$packages[ $key ]['fees'][] = $fee;
-				$packages[ $key ]['map'][]  = array(
-					'type'    => 'fee',
-					'id'      => $fee->id,
-					'cart_id' => $index,
-				);
-			}
+			$packages[ key( $packages ) ]['fees'] = $this->cart->get_fees();
 		}
 
 		return apply_filters( 'wootax_cart_packages', $packages, $this->cart );
@@ -369,7 +362,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 
 		if ( isset( $shipping_taxes[ $package_key ] ) ) {
 			$taxes = wc_get_order_item_meta( $item_id, 'taxes', true );
-			$taxes['total'][ SST_RATE_ID ] = $shipping_taxes[ $package_key ];
+			$taxes[ SST_RATE_ID ] = $shipping_taxes[ $package_key ];
 			wc_update_order_item_meta( $item_id, 'taxes', $taxes );
 		}
 	}
