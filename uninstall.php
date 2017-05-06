@@ -3,7 +3,7 @@
 /**
  * Uninstalls Simple Sales Tax.
  *
- * Uninstalling removes all user roles, scheduled events, and options.
+ * Uninstalling removes all user roles, product data, and options.
  *
  * @author 	Simple Sales Tax
  * @package SST
