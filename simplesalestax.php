@@ -29,6 +29,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Required functions.
+ */
+require_once 'includes/sst-compatibility-functions.php';
+
+/**
+ * Check that WooCommerce is active and at the minimum required version. If not,
+ * display a notice and bail.
+ */
+if ( ! sst_woocommerce_active() || version_compare( get_option( 'woocommerce_db_version' ), '2.6', '<' ) ) {
+	add_action( 'admin_notices', array( 'SST', 'plugin_inactive_notice' ) );
+	return;
+}
+
+/**
  * Simple Sales Tax.
  *
  * @author 	Simple Sales Tax
@@ -67,7 +81,7 @@ final class SST {
 	 * @since 4.7
 	 */
 	public function __clone() {
-		_doing_it_wrong( __FUNCTION__, __( 'Cheatin&#8217; huh?', 'wootax' ), '4.7' );
+		_doing_it_wrong( __FUNCTION__, __( 'Cheatin&#8217; huh?', 'simplesalestax' ), '4.7' );
 	}
 
 	/**
@@ -76,7 +90,7 @@ final class SST {
 	 * @since 4.7
 	 */
 	public function __wakeup() {
-		_doing_it_wrong( __FUNCTION__, __( 'Cheatin&#8217; huh?', 'wootax' ), '4.7' );
+		_doing_it_wrong( __FUNCTION__, __( 'Cheatin&#8217; huh?', 'simplesalestax' ), '4.7' );
 	}
 
 	/**
@@ -85,64 +99,26 @@ final class SST {
 	 * @since 4.7
 	 */
 	public function __construct() {
-		$this->define_constants();
-		$this->critical_includes();
-		$this->hooks();
+		// Define constants
+		define( 'SST_DEFAULT_SHIPPING_TIC', 11010 );
+		define( 'SST_SHIPPING_ITEM', 'SHIPPING' );
+		define( 'SST_DEFAULT_FEE_TIC', 10010 );
+		define( 'SST_RATE_ID', get_option( 'wootax_rate_id' ) );
+		define( 'SST_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
+		
+		// Hook woocommerce_loaded to bootstrap plugin
+		add_action( 'woocommerce_loaded', array( $this, 'initialize' ) );
 	}
 
 	/**
-	 * Define constants.
-	 *
-	 * @since 4.4
-	 */
-	private function define_constants() {
-		$this->define( 'SST_DEFAULT_SHIPPING_TIC', 11010 );
-		$this->define( 'SST_SHIPPING_ITEM', 'SHIPPING' );
-		$this->define( 'SST_DEFAULT_FEE_TIC', 10010 );
-		$this->define( 'SST_RATE_ID', get_option( 'wootax_rate_id' ) );
-		$this->define( 'SST_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
-	}
-
-	/**
-	 * Define a constant if it hasn't been defined already.
-	 *
-	 * @since 4.4
-	 */
-	private function define( $name, $value ) {
-		if ( ! defined( $name ) ){
-			define( $name, $value );
-		}
-	}
-	
-	/**
-	 * What type of request is this?
-	 *
-	 * @since 4.4
-     *
-	 * @param  string $type ajax, frontend or admin
-	 * @return bool
-	 */
-	private function is_request( $type ) {
-		switch ( $type ) {
-			case 'admin' :
-				return is_admin();
-			case 'ajax' :
-				return defined( 'DOING_AJAX' );
-			case 'cron' :
-				return defined( 'DOING_CRON' );
-			case 'frontend' :
-				return ( ! is_admin() || defined( 'DOING_AJAX' ) ) && ! defined( 'DOING_CRON' );
-		}
-	}
-
-	/**
-	 * Critical includes (required before Woo loads).
+	 * Initialize.
 	 *
 	 * @since 5.0
 	 */
-	private function critical_includes() {
-		include_once 'includes/class-sst-compatibility.php';
-		include_once 'includes/class-sst-install.php';
+	public function initialize() {
+		$this->includes();
+		$this->load_textdomain();
+		$this->check_updates();
 	}
 
 	/**
@@ -165,6 +141,7 @@ final class SST {
 		 * Core classes.
 		 */
 		include_once 'includes/sst-functions.php';
+		include_once 'includes/class-sst-install.php';
 		include_once 'includes/class-sst-settings.php';
 		include_once 'includes/class-sst-logger.php';
 		include_once 'includes/class-sst-plugin-updater.php';
@@ -197,38 +174,8 @@ final class SST {
 		 * Frontend only.
 		 */
 		if ( $this->is_request( 'frontend' ) ) {
-			$this->frontend_includes();
+			include_once 'includes/frontend/class-sst-checkout.php';
 		}
-	}
-
-	/**
-	 * Frontend includes.
-	 *
-	 * @since 5.0
-	 */
-	private function frontend_includes() {
-		include_once 'includes/frontend/class-sst-checkout.php';
-	}
-
-	/**
-	 * Register action hooks.
-	 *
-	 * @since 5.0
-	 */
-	private function hooks() {
-		register_activation_hook( __FILE__, array( 'SST_Install', 'install' ) );
-		add_action( 'plugins_loaded', array( $this, 'initialize' ) );
-	}
-
-	/**
-	 * Initialize.
-	 *
-	 * @since 5.0
-	 */
-	public function initialize() {
-		$this->includes();
-		$this->load_textdomain();
-		$this->check_updates();
 	}
 
 	/**
@@ -246,10 +193,45 @@ final class SST {
 	 * @since 5.0
 	 */
 	private function check_updates() {
-		// Instantiate updater to trigger update check
 		new SST_Plugin_Updater( 'https://simplesalestax.com', $this->plugin_file(), array( 
 			'version' => $this->version, // current version number
 		) );
+	}
+
+	/**
+	 * What type of request is this?
+	 *
+	 * @since 4.4
+     *
+	 * @param  string $type ajax, frontend or admin
+	 * @return bool
+	 */
+	private function is_request( $type ) {
+		switch ( $type ) {
+			case 'admin' :
+				return is_admin();
+			case 'ajax' :
+				return defined( 'DOING_AJAX' );
+			case 'cron' :
+				return defined( 'DOING_CRON' );
+			case 'frontend' :
+				return ( ! is_admin() || defined( 'DOING_AJAX' ) ) && ! defined( 'DOING_CRON' );
+		}
+	}
+
+	/**
+	 * Display a notice when WooCommerce is inactive or out-of-date.
+	 *
+	 * @since 5.0
+	 */
+	public static function plugin_inactive_notice() {
+		if ( ! current_user_can( 'activate_plugins' ) ) {
+			return;
+		}
+		
+		$notice = '<strong>' . __( 'Simple Sales Tax is inactive.', 'simplesalestax' ) . '</strong> ' . __( 'WooCommerce 2.6 or greater is required for Simple Sales Tax to work.', 'simplesalestax' );
+
+		printf( "<div class='error'><p>%s</p></div>", $notice );
 	}
 
 	/**

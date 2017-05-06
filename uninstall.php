@@ -22,8 +22,7 @@ if ( $remove_data ) {
 	global $wpdb;
 
 	// Roles
-	require_once 'includes/class-sst-install.php';
-	SST_Install::remove_roles();
+	remove_role( 'exempt-customer' );
 
 	// Options
 	$wpdb->query( "
@@ -35,11 +34,14 @@ if ( $remove_data ) {
 
 	// Product settings
 	$wpdb->query( "
-		DELETE FROM {$wpdb->postmeta} pm, {$wpdb->posts} p
-		WHERE p.post_type IN ( 'product', 'product_variation' )
-		AND p.ID = pm.post_id
-		AND meta_key LIKE 'wootax_\%'
-		OR meta_key LIKE '\_wootax\_%';
+		DELETE FROM {$wpdb->postmeta}
+		WHERE meta_key LIKE '%wootax%';
+	" );
+
+	// Category TICs
+	$wpdb->query( "
+		DELETE FROM {$wpdb->termmeta}
+		WHERE meta_key = 'tic';
 	" );
 
 	// Database tables

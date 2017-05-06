@@ -126,17 +126,6 @@ function sst_prettify( $ugly ) {
 }
 
 /**
- * Is subscriptions active?
- *
- * @since 5.0
- *
- * @return bool
- */
-function sst_subs_active() {
-	return class_exists( 'WC_Subscriptions' );
-}
-
-/**
  * Create a new shipping package from the given array, using default values
  * for all keys that are omitted.
  *

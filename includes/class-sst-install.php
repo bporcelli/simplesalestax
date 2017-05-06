@@ -35,6 +35,8 @@ class SST_Install {
 		),
 		'5.0' => array(
 			'sst_update_50_origin_addresses',
+			'sst_update_50_category_tics',
+			'sst_update_50_order_data'
 		),
 	);
 
@@ -76,7 +78,7 @@ class SST_Install {
 	 * @since 4.4
 	 */
 	public static function check_version() {
-		if ( get_option( 'wootax_version' ) !== SST()->version ) {
+		if ( ! defined( 'IFRAME_REQUEST' ) && get_option( 'wootax_version' ) !== SST()->version ) {
 			self::install();
 		}
 	}
@@ -87,14 +89,6 @@ class SST_Install {
 	 * @since 5.0
 	 */
 	public static function install() {
-		// If any dependencies are missing, display a message and die.
-		if ( ( $missing = SST_Compatibility::get_missing_dependencies() ) ) {
-			deactivate_plugins( SST_PLUGIN_BASENAME );
-			$missing_list = implode( ', ', $missing );
-			$message = sprintf( __( 'Simple Sales Tax needs the following to run: %s. Please ensure that all requirements are met and try again.', 'simplesalestax' ), $missing_list );
-			wp_die( $message );
-		}
-
 		// Include required classes
 		if ( ! class_exists( 'WC_Admin_Notices' ) ) {
 			require WC()->plugin_path() . '/admin/class-wc-admin-notices.php';
@@ -121,7 +115,7 @@ class SST_Install {
 		}
 
 		// Prompt user to remove rates if any are present
-		if ( self::has_other_rates() ) {
+		if ( 'yes' !== get_option( 'wootax_keep_rates' ) && self::has_other_rates() ) {
 			$keep_url   = esc_url( add_query_arg( 'sst_keep_rates', 'yes' ) );
 			$delete_url = esc_url( add_query_arg( 'sst_keep_rates', 'no' ) );
 			$notice     = sprintf( __( 'Simple Sales Tax found extra rates in your tax tables. Please choose to <a href="%s">keep the rates</a> or <a href="%s">delete them</a>.', 'simplesalestax' ), $keep_url, $delete_url );
@@ -158,6 +152,8 @@ class SST_Install {
 		if ( ! empty( $_GET[ 'sst_keep_rates'] ) ) {
 			if ( 'no' === $_GET[ 'sst_keep_rates' ] ) {
 				$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}woocommerce_tax_rates WHERE tax_rate_id != %d", SST_RATE_ID ) );
+			} else {
+				update_option( 'wootax_keep_rates', 'yes' );
 			}
 			WC_Admin_Notices::remove_notice( 'sst_rates' );
 		}
@@ -200,15 +196,6 @@ class SST_Install {
 			'edit_posts' 	=> false,
 			'delete_posts' 	=> false,
 		) );
-	}
-
-	/**
-	 * Remove custom user roles.
-	 *
-	 * @since 5.0
-	 */
-	public static function remove_roles() {
-		remove_role( 'exempt-customer' );
 	}
 
 	/**

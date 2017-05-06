@@ -549,6 +549,4 @@ function sst_update_50_order_data() {
 
 		$_order->save();
 	}
-
-	// TODO: TEST!
 }
