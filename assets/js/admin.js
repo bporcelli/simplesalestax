@@ -28,22 +28,5 @@
                 );
             }
         } );
-
-        /**
-         * Warn user to "complete" order before processing a partial refund
-        jQuery('#woocommerce-order-items').on('click', 'button.refund-items', function(e) {
-            e.preventDefault();
-
-            alert( 'IMPORTANT: Before issuing a refund, you must set this order\'s status to "completed" and save it. If you have already done so, you may ignore this message.' );
-        });*/
-
-        /**
-         * Replace 'WOOTAX-RATE-DO-NOT-REMOVE' with custom rate code in recurring tax select box
-         
-        jQuery( '.tax_rows_group select' ).each( function() {
-            jQuery( this ).find( 'option' ).each( function() {
-                jQuery( this ).text( jQuery( this ).text().replace( 'WOOTAX-RATE-DO-NOT-REMOVE', WT.rateCode ) );
-            } );
-        } );*/
     } );
 })(SST);
