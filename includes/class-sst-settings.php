@@ -44,8 +44,8 @@ class SST_Settings {
 	public static function get_form_fields() {
 		return array(
 			'taxcloud_settings' => array(
-				'title'             => 'TaxCloud Settings',
-				'type'              => 'section',
+				'title'             => __( 'TaxCloud Settings', 'simplesalestax' ),
+				'type'              => 'title',
 				'description' 		=> __( 'You must enter a valid TaxCloud API ID and API Key for Simple Sales Tax to work properly. Use the "Verify Settings" button to test your settings.', 'simplesalestax' )
 			),
 			'tc_id' => array(
@@ -68,83 +68,83 @@ class SST_Settings {
 				'type'              => 'button',
 				'description'       => __( 'Use this button to verify that your site can communicate with TaxCloud.', 'woocommerce-integration-demo' ),
 				'desc_tip' 			=> true,
-				'default'			=> '',
 				'id' 				=> 'verifySettings'
 			),
 			'business_addresses_settings' => array(
-				'title' 			=> 'Business Addresses',
-				'type'              => 'section',
+				'title' 			=> __( 'Business Addresses', 'simplesalestax' ),
+				'type'              => 'title',
 				'description'       => __( 'You must enter at least one business address for Simple Sales Tax to work properly. <strong>Important:</strong> Any addresses you enter here should also be registered as <a href="https://simplesalestax.com/taxcloud/locations/" target="_blank">locations</a> in TaxCloud.', 'simplesalestax' )
 			),
 			'addresses' => array(
-				'type' => 'address_table'
+				'type'    => 'address_table',
+				'default' => array(),
 			),
 			'exemption_settings' => array(
-				'title' 			=> 'Exemption Settings',
-				'type'              => 'section',
+				'title' 			=> __( 'Exemption Settings', 'simplesalestax' ),
+				'type'              => 'title',
 				'description'       => __( 'If you have tax exempt customers, be sure to enable tax exemptions and enter your company name.', 'simplesalestax' ),
 			),
 			'show_exempt' => array(
-				'title' 			=> 'Enable Tax Exemptions?',
+				'title' 			=> __( 'Enable Tax Exemptions?', 'simplesalestax' ),
 				'type' 				=> 'select',
 				'options'			=> array(
-					'true'  => 'Yes',
-					'false' => 'No',
+					'true'  => __( 'Yes', 'simplesalestax' ),
+					'false' => __( 'No', 'simplesalestax' ),
 				),
 				'default' 			=> 'false',
 				'description' 		=> __( 'Set this to "Yes" if you have tax exempt customers.', 'simplesalestax' ),
 				'desc_tip'			=> true
 			),
 			'company_name' => array(
-				'title'				=> 'Company Name',
+				'title'				=> __( 'Company Name', 'simplesalestax' ),
 				'type'				=> 'text',
 				'default'			=> '',
 				'description' 		=> __( 'Enter your company name as it should be displayed on exemption certificates.', 'simplesalestax' ),
 				'desc_tip'			=> true
 			),
 			'exempt_roles' => array(
-				'title'             => 'Exempt User Roles',
+				'title'             => __( 'Exempt User Roles', 'simplesalestax' ),
 				'type'              => 'multiselect',
 				'class'             => 'wc-enhanced-select',
 				'options'           => self::get_user_roles(),
 				'default'           => array( 'exempt-customer' ),
-				'description'       => 'When a user with one of these roles shops on your site, WooTax will automatically find and apply the first exemption certificate associated with their account. Convenient if you have repeat exempt customers.',
+				'description'       => __( 'When a user with one of these roles shops on your site, WooTax will automatically find and apply the first exemption certificate associated with their account. Convenient if you have repeat exempt customers.', 'simplesalestax' ),
 				'desc_tip'          => true,
 			),
 			'restrict_exempt' => array(
-				'title'             => 'Restrict to Exempt Roles',
+				'title'             => __( 'Restrict to Exempt Roles', 'simplesalestax' ),
 				'type'              => 'select',
 				'default'           => 'no',
-				'description'       => 'Set this to "Yes" to restrict users aside from those specified above from seeing the exemption form during checkout.',
+				'description'       => __( 'Set this to "Yes" to restrict users aside from those specified above from seeing the exemption form during checkout.', 'simplesalestax' ),
 				'desc_tip'          => true,
 				'options'           => array(
-					'yes' => 'Yes',
-					'no'  => 'No',
+					'yes' => __( 'Yes', 'simplesalestax' ),
+					'no'  => __( 'No', 'simplesalestax' ),
 				),
 			),
 			'display_settings' => array(
-				'title' 			=> 'Display Settings',
-				'type'              => 'section',
+				'title' 			=> __( 'Display Settings', 'simplesalestax' ),
+				'type'              => 'title',
 				'description'       => __( 'Control how taxes are displayed during checkout.', 'simplesalestax' )
 			),
 			'show_zero_tax' => array(
-				'title' 			=> 'Show Zero Tax?',
+				'title' 			=> __( 'Show Zero Tax?', 'simplesalestax' ),
 				'type' 				=> 'select',
 				'options'			=> array(
-					'true'  => 'Yes',
-					'false' => 'No',
+					'true'  => __( 'Yes', 'simplesalestax' ),
+					'false' => __( 'No', 'simplesalestax' ),
 				),
 				'default' 			=> 'false',
 				'description' 		=> __( 'When the sales tax due is zero, should the "Sales Tax" line be shown?', 'simplesalestax' ),
 				'desc_tip'			=> true
 			),
 			'advanced_settings' => array(
-				'title' 			=> 'Advanced Settings',
-				'type'              => 'section',
+				'title' 			=> __( 'Advanced Settings', 'simplesalestax' ),
+				'type'              => 'title',
 				'description'       => __( 'For advanced users only. Leave these settings untouched if you are not sure how to use them.', 'simplesalestax' )
 			),
 			'log_requests' => array(
-				'title' 	  => 'Log Requests',
+				'title' 	  => __( 'Log Requests', 'simplesalestax' ),
 				'type' 		  => 'checkbox',
 				'label'       => ' ',
 				'default'     => 'yes',
@@ -152,7 +152,7 @@ class SST_Settings {
 				'desc_tip'    => true
 			),
 			'capture_immediately' => array(
-				'title' 	  => 'Capture Orders Immediately',
+				'title' 	  => __( 'Capture Orders Immediately', 'simplesalestax' ),
 				'label'       => ' ',
 				'type' 		  => 'checkbox',
 				'default'     => 'no',
@@ -160,18 +160,18 @@ class SST_Settings {
 				'desc_tip'    => true,
 			),
 			'tax_based_on' => array(
-				'title' 			=> 'Tax Based On',
+				'title' 			=> __( 'Tax Based On', 'simplesalestax' ),
 				'type' 				=> 'select',
 				'options'			=> array(
-					'item-price'    => 'Item Price',
-					'line-subtotal' => 'Line Subtotal',
+					'item-price'    => __( 'Item Price', 'simplesalestax' ),
+					'line-subtotal' => __( 'Line Subtotal', 'simplesalestax' ),
 				),
 				'default' 			=> 'item-price',
 				'description' 		=> __( '"Item Price": TaxCloud determines the taxable amount for a line item by multiplying the item price by its quantity. "Line Subtotal": the taxable amount is determined by the line subtotal. Useful in instances where rounding becomes an issue.', 'simplesalestax' ),
 				'desc_tip'			=> true
 			),
 			'remove_all_data' => array(
-				'title' 	  => 'Remove All Data',
+				'title' 	  => __( 'Remove All Data', 'simplesalestax' ),
 				'label'       => ' ',
 				'type' 		  => 'checkbox',
 				'default'     => 'no',
@@ -179,8 +179,8 @@ class SST_Settings {
 				'desc_tip'    => true,
 			),
 			'download_log_button' => array(
-				'title'				=> 'Download Log File',
-				'label'				=> 'Download Log',
+				'title'				=> __( 'Download Log File', 'simplesalestax' ),
+				'label'				=> __( 'Download Log', 'simplesalestax' ),
 				'type'				=> 'anchor',
 				'url'               => add_query_arg( 'download_log', true ),
 				'id'				=> 'download_log_button',

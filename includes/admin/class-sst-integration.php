@@ -22,15 +22,14 @@ class SST_Integration extends WC_Integration {
 	 */
 	public function __construct() {
 		$this->id                 = 'wootax';
-		$this->method_title       = __( 'Simple Sales Tax', 'woocommerce-wootax' );
-		$this->method_description = __( '<p>Simple Sales Tax makes sales tax easy by connecting your store with <a href="https://taxcloud.net" target="_blank">TaxCloud</a>. If you have trouble with Simple Sales Tax, please consult the <a href="https://simplesalestax.com/#faq" target="_blank">FAQ</a> and the <a href="https://simplesalestax.com/installation-guide/" target="_blank">Installation Guide</a> before contacting support.</p><p>Need help? <a href="https://simplesalestax.com/contact-us/" target="_blank">Contact us</a>.</p>', 'woocommerce-wootax' );
+		$this->method_title       = __( 'Simple Sales Tax', 'simplesalestax' );
+		$this->method_description = __( '<p>Simple Sales Tax makes sales tax easy by connecting your store with <a href="https://taxcloud.net" target="_blank">TaxCloud</a>. If you have trouble with Simple Sales Tax, please consult the <a href="https://simplesalestax.com/#faq" target="_blank">FAQ</a> and the <a href="https://simplesalestax.com/installation-guide/" target="_blank">Installation Guide</a> before contacting support.</p><p>Need help? <a href="https://simplesalestax.com/contact-us/" target="_blank">Contact us</a>.</p>', 'simplesalestax' );
  
 		// Load the settings.
 		$this->init_form_fields();
 
 		// Register action hooks.
 		add_action( 'woocommerce_update_options_integration_' .  $this->id, array( $this, 'process_admin_options' ) );
- 		add_filter( 'woocommerce_settings_api_sanitized_fields_' . $this->id, array( $this, 'sanitize_settings' ) );
  		add_action( 'admin_init', array( $this, 'maybe_download_log_file' ) );
  		add_action( 'admin_enqueue_scripts', array( $this, 'register_scripts' ) );
 	}
@@ -62,24 +61,6 @@ class SST_Integration extends WC_Integration {
 		$this->display_errors();
 		parent::admin_options();
 	}
- 	
- 	/**
- 	 * Output HTML for field of type 'section.'
- 	 *
- 	 * @since 4.5
-	 */
- 	public function generate_section_html( $key, $data ) {
- 		ob_start();
- 		?>
- 		<tr valign="top">
- 			<td colspan="2" style="padding-left: 0;">
- 				<h4 style="margin-top: 0;"><?php echo $data[ 'title' ]; ?></h4>
- 				<p><?php echo $data[ 'description' ]; ?></p>
- 			</td>
- 		</tr>
- 		<?php
- 		return ob_get_clean();
- 	}
 
  	/**
  	 * Output HTML for field of type 'button.'
@@ -136,26 +117,6 @@ class SST_Integration extends WC_Integration {
  	}
 
  	/**
- 	 * Get addresses formatted for output.
- 	 *
- 	 * @since 5.0
- 	 */
- 	private function get_addresses() {
- 		$raw_addresses = SST_Settings::get( 'addresses' );
-
- 		if ( ! is_array( $raw_addresses ) ) {
- 			return array();
- 		}
-
- 		$addresses = array();
-
- 		foreach ( $raw_addresses as $raw_address ) {
- 			$addresses[] = json_decode( $raw_address, true );
- 		}
-
- 		return $addresses;
- 	}
- 	/**
  	 * Output HTML for 'address_table' field.
  	 *
  	 * @since 4.5
@@ -185,19 +146,36 @@ class SST_Integration extends WC_Integration {
  	}
 
  	/**
- 	 * Sanitize submitted settings.
- 	 * 
- 	 * Validate addresses before they are saved.
+ 	 * Get addresses formatted for output.
  	 *
- 	 * @since 4.5
- 	 *
- 	 * @param  array $settings Array of submitted settings.
- 	 * @return array
+ 	 * @since 5.0
  	 */
- 	public function sanitize_settings( $settings ) {
- 		if ( ! isset( $_POST['addresses'] ) || ! is_array( $_POST['addresses'] ) ) {
- 			return $settings;
+ 	private function get_addresses() {
+ 		$addresses     = array();
+ 		$raw_addresses = $this->get_option( 'addresses', array() );
+
+ 		foreach ( $raw_addresses as $raw_address ) {
+ 			$addresses[] = json_decode( $raw_address, true );
  		}
+
+ 		return $addresses;
+ 	}
+
+ 	/**
+ 	 * Validate addresses when options are saved.
+ 	 *
+ 	 * @since 5.0
+ 	 *
+ 	 * @param string $key
+ 	 * @param string $value
+ 	 */
+ 	public function validate_addresses_field( $key, $value ) {
+ 		if ( ! isset( $_POST['addresses'] ) || ! is_array( $_POST['addresses'] ) ) {
+ 			return array();
+ 		}
+
+ 		$taxcloud_id  = esc_attr( $_POST['woocommerce_wootax_tc_id'] );
+ 		$taxcloud_key = esc_attr( $_POST['woocommerce_wootax_tc_key'] );
 
  		$default_address = array(
  			'Address1' => '',
@@ -231,11 +209,12 @@ class SST_Integration extends WC_Integration {
  				continue;
  			}
  			
-			$verify = new TaxCloud\Request\VerifyAddress( $settings['tc_id'], $settings['tc_key'], $address );
 			try {
-				$address = TaxCloud()->VerifyAddress( $verify );
+				$request = new TaxCloud\Request\VerifyAddress( $taxcloud_id, $taxcloud_key, $address );
+				$address = TaxCloud()->VerifyAddress( $request );
 			} catch ( Exception $ex ) {
 				// Use original address
+				SST_Logger::add( sprintf( __( 'Failed to validate address: %s.', 'simplesalestax' ), $ex->getMessage() ) );
 			}
 			
 			// Convert verified address to SST_Origin_Address
@@ -253,9 +232,7 @@ class SST_Integration extends WC_Integration {
 			$addresses[] = json_encode( $address );
  		}
 
- 		$settings['addresses'] = $addresses;
-
-		return $settings;
+ 		return $addresses;
  	}
 
  	/**
