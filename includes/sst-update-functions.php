@@ -325,3 +325,230 @@ function sst_update_50_category_tics() {
 		}
 	}
 }
+
+/**
+ * Before 5.0, we used a "lookup_data" data structure to store information about
+ * the tax lookups for an order. The structure consisted of a two-dimensional array
+ * of CartItems indexed by origin address key. One lookup was sent for each of
+ * the entries in "lookup_data," and the CartID/OrderID sent to TaxCloud were stored
+ * in a separate "taxcloud_ids" array, also indexed by origin address key. 
+ *
+ * In addition to the above, each order had two other data structures: an "identifiers"
+ * array and a "mapping" array. The identifiers array was used to deal with the fact
+ * that different item identifiers were sent to TaxCloud during checkout and after. It
+ * mapped universally available item IDs (product/variation IDs for line items, 
+ * sanitized name for fees, SHIPPING for shipping methods) to the IDs sent to TaxCloud
+ * during checkout, and was meant to ensure that orders could be captured immediately
+ * after checkout without an additional lookup.
+ *
+ * The mapping array was generated for each entry in lookup_data before a lookup and
+ * mapped tuples (origin address key, CartItem index) to an internal item ID (or, during
+ * checkout, an array with keys 'type', 'index', 'id' and 'key').
+ *
+ * Each order also had two boolean flags 'captured' and 'refunded' associated with
+ * it. The 'captured' flag was set after the order was captured in TaxCloud, and the
+ * 'refunded' flag was set when a partial or full refund was issued.
+ *
+ * In 5.0, the "lookup_data" and "mapping_array" data structures were merged into a
+ * simplified "packages" data structure. In addition, the "identifiers" data structure
+ * was eliminated. The boolean flags 'captured' and 'refunded' have also been merged
+ * into a single 'status' field. This function updates all existing orders to use the
+ * new data structures.
+ */
+function sst_update_50_order_data() {
+	global $wpdb;
+
+	/* Get orders */
+	$orders = wc_get_orders( array(
+		'status' => 'any',
+		'type'   => 'shop_order',
+		'limit'  => -1,
+	) );
+
+	foreach ( $orders as $order ) {
+		$_order = new SST_Order( $order );
+
+		/* Exemption certificates previously stored under key 'exemption_applied'.
+		 * In 5.0, we move them to key 'exempt_cert' and store them in a different
+		 * format. */
+		$old_certificate = $_order->get_meta( 'exemption_applied' );
+		
+		if ( is_array( $old_certificate ) && isset( $old_certificate['CertificateID'] ) ) {
+			$_order->update_meta( 'exempt_cert', new TaxCloud\ExemptionCertificateBase(
+				$old_certificate['CertificateID']
+			) );
+		}
+
+		/* Actions we take from here will depend on the order status (pending,
+		 * captured, refunded). */
+		$captured = $_order->get_meta( 'captured' );
+		$refunded = $_order->get_meta( 'refunded' );
+
+		if ( ! $captured && ! $refunded ) {			/* Pending */
+
+			/* Recalc taxes to regenerate data structures */
+			$_order->calculate_taxes();
+			$_order->calculate_totals( false );
+
+			$_order->update_meta( 'status', 'pending' );
+		} else if ( $captured && ! $refunded ) {	/* Captured */
+
+			$lookup_data   = $_order->get_meta( 'lookup_data' );
+			$taxcloud_ids  = $_order->get_meta( 'taxcloud_ids' );
+			$mapping_array = $_order->get_meta( 'mapping_array' );
+			$identifiers   = $_order->get_meta( 'identifiers' );
+
+			/* Create a package for each entry in lookup_data */
+			if ( is_array( $lookup_data ) ) {
+				$packages = array();
+
+				foreach ( $lookup_data as $address_key => $cart_items ) {
+
+					/* Create package */
+					$package = sst_create_package();
+
+					/* Set cart ID and order ID */
+					$package['cart_id']  = $taxcloud_ids[ $address_key ]['cart_id'];
+					$package['order_id'] = $taxcloud_ids[ $address_key ]['order_id'];
+
+					/* Update map */
+					$old_map = $mapping_array[ $address_key ];
+
+					foreach ( $old_map as $item_key => $item ) {
+
+						if ( is_array( $item ) ) {	/* Map generated during checkout */
+							
+							$type    = 'cart' == $item['type'] ? 'line_item' : $item['type'];
+							$id      = $item['id'];
+							$cart_id = $id;
+							
+							/* Original ID for line items is a cart key. Map to product id
+							 * using identifiers array */
+							if ( 'line_item' == $type ) {
+								$id = array_search( $item['id'], $identifiers );
+							}
+						} else {					/* Map generated post-checkout */
+							
+							$cart_id = $item;
+							$_item   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}woocommerce_order_items WHERE order_item_id = %d", $item ) );
+							$type    = $_item->order_item_type;
+							
+							switch ( $type ) {
+								case 'line_item':
+									$product_id   = wc_get_order_item_meta( $item, '_product_id' );
+									$variation_id = wc_get_order_item_meta( $item, '_variation_id' );
+									$id           = $variation_id ? $variation_id : $product_id;
+								break;
+								case 'shipping':
+									$id = SST_SHIPPING_ITEM;
+								break;
+								case 'fee':
+									$id = sanitize_title( $_item->order_item_name );
+							}
+						}
+
+						$package['map'][ $item_key ] = array(
+							'type'    => $type,
+							'id'      => $id,
+							'cart_id' => $cart_id,
+						);
+					}
+
+					/* Convert cart items to CartItem objects. Set the package 
+					 * shipping method and find any extra shipping methods. */
+					$shipping_item_ids = array();
+					$extra_methods     = array();
+
+					foreach ( $cart_items as $item_key => $item ) {
+						$cart_items[ $item_key ] = new TaxCloud\CartItem(
+							$item['Index'],
+							$item['ItemID'],
+							isset( $item['TIC'] ) ? $item['TIC'] : null,
+							$item['Price'],
+							$item['Qty']
+						);
+
+						if ( 'shipping' == $package['map'][ $item_key ]['type'] ) {
+							/* There's no perfect way to determine the shipping method this
+							 * item corresponds to -- we'll use the item price and order id
+							 * to make an educated guess */
+							$method = $wpdb->get_row( $wpdb->prepare( "
+								SELECT i.order_item_id AS item_id, m.meta_value AS method_id
+								FROM {$wpdb->prefix}woocommerce_order_itemmeta m, {$wpdb->prefix}woocommerce_order_items i
+								WHERE i.order_id = %d
+								AND m.meta_key = 'method_id'
+								AND i.order_item_id = m.order_item_id
+								AND i.order_item_type = 'shipping' 
+								AND EXISTS (
+									SELECT * FROM {$wpdb->prefix}woocommerce_order_itemmeta
+									WHERE order_item_id = i.order_item_id
+									AND meta_key = 'cost'
+									AND meta_value = %d
+								)
+								AND i.order_item_id NOT IN ( " . implode( ',', $shipping_item_ids ) . " )
+							", $_order->get_id(), $item['Price'] ) );
+
+							if ( $method ) {
+								$shipping_item_ids[] = $method->item_id;
+								$shipping_method     = new WC_Shipping_Rate( '', '', $item['Price'], array(), $method->method_id );
+								
+								if ( is_null( $package['shipping'] ) )
+									$package['shipping'] = $shipping_method;
+								else
+									$extra_methods[ $item_key ] = $shipping_method;
+							}  /* How to handle failure? */
+						}
+					}
+
+					$package['contents'] = $cart_items;
+
+					/* Create additional shipping package for each extra shipping
+					 * method. This is necessary because 5.0 only allows one method
+					 * per package. */
+					foreach ( $extra_methods as $item_key => $method ) {
+						$new_package = $package;
+
+						$package['contents'][ $item_key ]['Index'] = 0;
+
+						$new_package['contents'] = array( $package['contents'][ $item_key ] );
+						$new_package['shipping'] = $method;
+						$new_package['map']      = array( $package['map'][ $item_key ] );
+						
+						unset( $package['contents'][ $item_key ] );
+						unset( $package['map'][ $item_key ] );
+
+						$packages[] = $new_package;
+					}
+
+					$packages[] = $package;
+
+					/* For each package, generate a lookup request. We ignore all
+					* parameters other than cartItems because they aren't used
+					* when performing refunds. */
+					foreach ( $packages as &$package ) {
+						$package['request'] = new TaxCloud\Request\Lookup(
+							'',						// apiLoginID
+							'',						// apiKey
+							'',						// customerID
+							'',						// cartID
+							$package['contents'],	// cartItems
+							null, 					// origin
+							null  					// destination
+						);
+					}
+				}
+			
+				$_order->update_meta( 'packages', $packages );
+			}
+		
+			$_order->update_meta( 'status', 'captured' );
+		} else if ( $refunded ) {					/* Refunded */
+			
+			$_order->update_meta( 'status', 'refunded' );
+		}
+
+		$_order->save();
+	}
+
+	// TODO: TEST!
+}

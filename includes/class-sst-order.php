@@ -362,7 +362,7 @@ class SST_Order extends SST_Abstract_Cart {
 		if ( defined( 'DOING_AJAX' ) || defined( 'DOING_CRON' ) ) {
 			throw new Exception( $message );
 		} else {
-			SST_Admin_Notices::add( 'tax_error', $message, false, 'error' );
+			sst_add_message( $message, 'error' );
 		}
 	}
 
@@ -390,9 +390,13 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 5.0
 	 *
 	 * @param  string $package_key
+	 * @param  array $package (default: array())
 	 * @return string
 	 */
-	protected function get_package_order_id( $package_key ) {
+	protected function get_package_order_id( $package_key, $package = array() ) {
+		if ( isset( $package['order_id'] ) ) { /* Legacy (pre 5.0) order */
+			return $package['order_id'];
+		}
 		return $this->get_id() . '_' . $package_key;
 	}
 
@@ -404,11 +408,10 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @return bool true on success, false on failure.
 	 */
 	public function do_capture() {
-		$packages = $this->get_packages();
+		$taxcloud_status = $this->get_taxcloud_status();
+		$packages        = $this->get_packages();
 
 		// Handle error cases
-		$taxcloud_status = $this->get_taxcloud_status();
-
 		if ( 'captured' == $taxcloud_status ) {
 			if ( 'no' == SST_Settings::get( 'capture_immediately' ) ) {
 				$this->handle_error( sprintf( __( "Failed to capture order %d: already captured.", 'simplesalestax' ), $this->get_id() ) );
@@ -520,7 +523,7 @@ class SST_Order extends SST_Abstract_Cart {
 			$request = new TaxCloud\Request\Returned(
 				SST_Settings::get( 'tc_id' ),
 				SST_Settings::get( 'tc_key' ),
-				$this->get_package_order_id( $package_key ),
+				$this->get_package_order_id( $package_key, $package ),
 				$refund_items,
 				date( 'c' )
 			);
