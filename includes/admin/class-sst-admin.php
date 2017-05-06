@@ -49,8 +49,8 @@ class SST_Admin {
 	 * @since 5.0
 	 */
 	public function includes() {
-		include_once 'class-sst-admin-notices.php';
-		include_once 'class-sst-integration.php';
+		include_once SST()->plugin_path() . '/includes/sst-message-functions.php';
+		include_once SST()->plugin_path() . '/includes/admin/class-sst-integration.php';
 	}
 
 	/**
@@ -185,7 +185,7 @@ class SST_Admin {
 			$rate_transients = $wpdb->get_results( "SELECT option_name as name FROM $wpdb->options WHERE option_name LIKE '_transient_{$prefix}_%'" );
 
 			if ( ! $rate_transients ) {
-				SST_Admin_Notices::add( 'no_rates', __( 'There are no cached rates to remove.', 'simplesalestax' ), false );
+				sst_add_message( __( 'There are no cached rates to remove.', 'simplesalestax' ), 'updated' );
 				return;
 			}
 
@@ -194,7 +194,7 @@ class SST_Admin {
 				delete_transient( $trans_key );
 			}
 
-			SST_Admin_Notices::add( 'rates_removed', sprintf( __( '%d cached tax rates removed.', 'simplesalestax' ), count( $rate_transients ) ), false );
+			sst_add_message( sprintf( __( '%d cached tax rates removed.', 'simplesalestax' ), count( $rate_transients ) ), 'updated' );
 		}
 	}
 
