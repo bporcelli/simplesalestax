@@ -9,18 +9,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 <table id="address_table" class="wp-list-table striped widefat">
 	<thead>
 		<tr>
-			<th><span>Address 1</span> <?php sst_tip( "Line 1 of your business address." ) ?></th>
-			<th><span>Address 2</span> <?php sst_tip( "Line 2 of your business address." ) ?></th>
-			<th><span>City</span> <?php sst_tip( "The city in which your business operates." ) ?></th>
-			<th><span>State</span> <?php sst_tip( "The state where your business is located." ); ?></th>
-			<th><span>ZIP Code</span> <?php sst_tip( "5 or 9-digit ZIP code of your business address." ); ?></th>
-			<th><span>Default?</span> <?php sst_tip( "Check this if you want this address to be used as a default 'Shipment Origin Address' for your products. You must have at least one default address." ); ?></th>
+			<th><?php _e( 'Address 1', 'simplesalestax' ); ?> <?php sst_tip( __( "Line 1 of your business address.", 'simplesalestax' ) ); ?></th>
+			<th><?php _e( 'Address 2', 'simplesalestax' ); ?> <?php sst_tip( __( "Line 2 of your business address.", 'simplesalestax' ) ); ?></th>
+			<th><?php _e( 'City', 'simplesalestax' ); ?> <?php sst_tip( __( "The city in which your business operates.", 'simplesalestax' ) ); ?></th>
+			<th><?php _e( 'State', 'simplesalestax' ); ?> <?php sst_tip( __( "The state where your business is located.", 'simplesalestax' ) ); ?></th>
+			<th><?php _e( 'ZIP Code', 'simplesalestax' ); ?> <?php sst_tip( __( "5 or 9-digit ZIP code of your business address.", 'simplesalestax' ) ); ?></th>
+			<th><?php _e( 'Default?', 'simplesalestax' ); ?> <?php sst_tip( __( "Check this if you want this address to be used as a default 'Shipment Origin Address' for your products. You must have at least one default address.", 'simplesalestax' ) ); ?></th>
 		</tr>
 	</thead>
 	<tfoot>
 		<tr>
 			<th colspan="6">
-				<button class="wp-core-ui button-secondary sst-address-add">Add Address</button>
+				<button class="wp-core-ui button-secondary sst-address-add"><?php _e( 'Add Address', 'simplesalestax' ); ?></button>
 			</th>
 		</tr>
 	</tfoot>
