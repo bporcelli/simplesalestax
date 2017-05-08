@@ -55,7 +55,7 @@ final class SST {
 	 * @var string Plugin version.
 	 * @since 4.2
 	 */
-	public $version = 5.0;
+	public $version = '5.0';
 
 	/**
 	 * @var SST The single plugin instance.

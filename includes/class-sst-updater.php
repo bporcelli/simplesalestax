@@ -4,8 +4,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 
-include_once WC()->plugin_path() . '/includes/libraries/wp-async-request.php';
-include_once WC()->plugin_path() . '/includes/libraries/wp-background-process.php';
+if ( ! class_exists( 'WP_Async_Request', false ) ) {
+	include_once WC()->plugin_path() . '/includes/libraries/wp-async-request.php';
+}
+
+if ( ! class_exists( 'WP_Background_Process', false ) ) {
+	include_once WC()->plugin_path() . '/includes/libraries/wp-background-process.php';
+}
 
 /**
  * SST Updater.
@@ -120,11 +125,11 @@ class SST_Updater extends WP_Background_Process {
 		update_option( 'wootax_version', SST()->version );
 		
 		if ( ! class_exists( 'WC_Admin_Notices' ) ) {
-			include WC()->plugin_path() . '/includes/admin/class-wc-admin-notices.php';
+			require WC()->plugin_path() . '/admin/class-wc-admin-notices.php';
 		}
 
-		WC_Admin_Notices::remove_notice( 'sst_updating' );
-
+		WC_Admin_Notices::remove_notice( 'sst_update' );
+		
 		parent::complete();
 	}
 }

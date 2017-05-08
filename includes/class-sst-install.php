@@ -52,8 +52,8 @@ class SST_Install {
 	 * @since 4.4
 	 */
 	public static function init() {
-		add_action( 'init', array( __CLASS__, 'check_version' ), 5 );
 		add_action( 'init', array( __CLASS__, 'init_background_updater' ), 5 );
+		add_action( 'init', array( __CLASS__, 'check_version' ), 5 );
 		add_action( 'admin_init', array( __CLASS__, 'trigger_update' ) );
 		add_action( 'admin_init', array( __CLASS__, 'trigger_rate_removal' ) );
 		add_filter( 'plugin_action_links_' . SST_PLUGIN_BASENAME, array( __CLASS__, 'add_action_links' ) );
@@ -107,9 +107,7 @@ class SST_Install {
 		$db_version = get_option( 'wootax_version', '1.0' );
 
 		if ( version_compare( $db_version, max( array_keys( self::$update_hooks ) ), '<' ) ) {
-			$update_url    = esc_url( add_query_arg( 'do_sst_update', true ) );
-			$update_notice = sprintf( __( 'A Simple Sales Tax data update is required. <a href="%s">Click here</a> to start the update.', 'simplesalestax' ), $update_url );
-			WC_Admin_Notices::add_custom_notice( 'sst_update', $update_notice );
+			WC_Admin_Notices::add_custom_notice( 'sst_update', self::update_notice() );
 		} else {
 			update_option( 'wootax_version', SST()->version );
 		}
@@ -132,12 +130,9 @@ class SST_Install {
 		if ( ! empty( $_GET[ 'do_sst_update'] ) ) {
 			self::update();
 
-			// Remove "update required" notice
+			// Update notice content
 			WC_Admin_Notices::remove_notice( 'sst_update' );
-			
-			// Add "update in progress" notice
-			$notice = __( 'Simple Sales Tax is updating. This notice will disappear when the update is complete.', 'simplesalestax' );
-			WC_Admin_Notices::add_custom_notice( 'sst_updating', $notice );
+			WC_Admin_Notices::add_custom_notice( 'sst_update', self::update_notice() );
 		}
 	}
 
@@ -157,6 +152,29 @@ class SST_Install {
 			}
 			WC_Admin_Notices::remove_notice( 'sst_rates' );
 		}
+	}
+
+	/**
+	 * Get content for update notice.
+	 *
+	 * @since 5.0
+	 *
+	 * @return string
+	 */
+	private static function update_notice() {
+		$db_version = get_option( 'wootax_version', '1.0' );
+
+		ob_start();
+
+		if ( version_compare( $db_version, max( array_keys( self::$update_hooks ) ), '<' ) ) {
+			if ( self::$background_updater->is_updating() || ! empty( $_GET['do_sst_update'] ) ) {
+				include SST()->plugin_path() . '/includes/admin/views/html-notice-updating.php';
+			} else {
+				include SST()->plugin_path() . '/includes/admin/views/html-notice-update.php';
+			}
+		}
+
+		return ob_get_clean();
 	}
 
 	/**

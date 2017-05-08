@@ -280,7 +280,7 @@ function sst_update_50_origin_addresses() {
 		try {
 			$new_address = new SST_Origin_Address(
 				$key,
-				$key === $default_address,
+				$key == $default_address,
 				isset( $address['address_1'] ) ? $address['address_1'] : '',
 				isset( $address['address_2'] ) ? $address['address_2'] : '',
 				isset( $address['city'] ) ? $address['city'] : '',
@@ -314,6 +314,7 @@ function sst_update_50_category_tics() {
 
 	foreach ( $terms as $term ) {
 		$tic = get_option( 'tic_' . $term->term_id );
+		
 		if ( ! empty( $tic ) ) {
 			if ( is_array( $tic ) ) {
 				$tic = $tic['tic'];
@@ -357,13 +358,17 @@ function sst_update_50_category_tics() {
  */
 function sst_update_50_order_data() {
 	global $wpdb;
-
+	
 	/* Get orders */
 	$orders = wc_get_orders( array(
 		'status' => 'any',
 		'type'   => 'shop_order',
 		'limit'  => -1,
 	) );
+
+	/* Define variables used within the loop */
+	$woo_3_0  = version_compare( WC_VERSION, '3.0', '>=' );
+	$based_on = SST_Settings::get( 'tax_based_on' );
 
 	foreach ( $orders as $order ) {
 		$_order = new SST_Order( $order );
@@ -393,157 +398,131 @@ function sst_update_50_order_data() {
 			$_order->update_meta( 'status', 'pending' );
 		} else if ( $captured && ! $refunded ) {	/* Captured */
 
-			$lookup_data   = $_order->get_meta( 'lookup_data' );
-			$taxcloud_ids  = $_order->get_meta( 'taxcloud_ids' );
-			$mapping_array = $_order->get_meta( 'mapping_array' );
-			$identifiers   = $_order->get_meta( 'identifiers' );
+			$taxcloud_ids = $_order->get_meta( 'taxcloud_ids' );
+			$identifiers  = $_order->get_meta( 'identifiers' );
 
-			/* Create a package for each entry in lookup_data */
-			if ( is_array( $lookup_data ) ) {
-				$packages = array();
+			/* Build array mapping address keys to items */
+			$mappings = array();
 
-				foreach ( $lookup_data as $address_key => $cart_items ) {
+			foreach ( $_order->get_items( array( 'line_item', 'fee', 'shipping' ) ) as $item_id => $item ) {
+				$location_id = wc_get_order_item_meta( $item_id, '_wootax_location_id' );
 
-					/* Create package */
-					$package = sst_create_package();
+				if ( ! isset( $mappings[ $location_id ] ) )
+					$mappings[ $location_id ] = array();
 
-					/* Set cart ID and order ID */
-					$package['cart_id']  = $taxcloud_ids[ $address_key ]['cart_id'];
-					$package['order_id'] = $taxcloud_ids[ $address_key ]['order_id'];
+				$mappings[ $location_id ][ $item_id ] = $item;
+			}
 
-					/* Update map */
-					$old_map = $mapping_array[ $address_key ];
+			/* For each address key, create one or more new packages. */
+			$packages = array();
 
-					foreach ( $old_map as $item_key => $item ) {
+			foreach ( $mappings as $address_key => $items ) {
 
-						if ( is_array( $item ) ) {	/* Map generated during checkout */
-							
-							$type    = 'cart' == $item['type'] ? 'line_item' : $item['type'];
-							$id      = $item['id'];
-							$cart_id = $id;
-							
-							/* Original ID for line items is a cart key. Map to product id
-							 * using identifiers array */
-							if ( 'line_item' == $type ) {
-								$id = array_search( $item['id'], $identifiers );
-							}
-						} else {					/* Map generated post-checkout */
-							
-							$cart_id = $item;
-							$_item   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}woocommerce_order_items WHERE order_item_id = %d", $item ) );
-							$type    = $_item->order_item_type;
-							
-							switch ( $type ) {
-								case 'line_item':
-									$product_id   = wc_get_order_item_meta( $item, '_product_id' );
-									$variation_id = wc_get_order_item_meta( $item, '_variation_id' );
-									$id           = $variation_id ? $variation_id : $product_id;
-								break;
-								case 'shipping':
-									$id = SST_SHIPPING_ITEM;
-								break;
-								case 'fee':
-									$id = sanitize_title( $_item->order_item_name );
-							}
-						}
+				/* Create a base package with just the cart id, order id,
+				 * and addresses set. We will copy this package to create others. */
+				$base_package = sst_create_package();
 
-						$package['map'][ $item_key ] = array(
-							'type'    => $type,
-							'id'      => $id,
-							'cart_id' => $cart_id,
+				$base_package['cart_id']     = $taxcloud_ids[ $address_key ]['cart_id'];
+				$base_package['order_id']    = $taxcloud_ids[ $address_key ]['order_id'];
+				$base_package['origin']      = SST_Addresses::to_address( SST_Addresses::get_address( $address_key ) );
+				$base_package['destination'] = $_order->get_destination_address();
+
+				/* Create a package for every shipping method that falls under
+				 * this address key. */
+				$new_packages = array();
+
+				foreach ( $items as $item_id => $item ) {
+					if ( 'shipping' != $item['type'] ) {
+						continue;
+					}
+					
+					$new_package = $base_package;
+
+					/* Set shipping method */
+					$method_id = wc_get_order_item_meta( $item_id, 'method_id' );
+					$total     = wc_get_order_item_meta( $item_id, $woo_3_0 ? 'total' : 'cost' );
+					
+					$new_package['shipping'] = new WC_Shipping_Rate( $item_id, '', $total, array(), $method_id );
+
+					/* Add cart item and map entry for shipping */
+					$new_package['contents'][] = new TaxCloud\CartItem(
+						count( $new_package['contents'] ),
+						isset( $identifiers[ SST_SHIPPING_ITEM ] ) ? $identifiers[ SST_SHIPPING_ITEM ] : $item_id,
+						apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC ),
+						$total,
+						1
+					);
+					$new_package['map'][] = array(
+						'type'    => 'shipping',
+						'id'      => SST_SHIPPING_ITEM,
+						'cart_id' => $item_id,
+					);
+
+					$new_packages[] = $new_package;
+					unset( $items[ $item_id ] );
+				}
+
+				/* Add all fees and line items to the first package. If no
+				 * packages were created, create one. */
+				if ( empty( $new_packages ) ) {
+					$new_packages[] = $base_package;
+				}
+
+				foreach ( $items as $item_id => $item ) {
+					if ( 'fee' == $item['type'] ) {
+						$taxcloud_id = sanitize_title( empty( $item['name'] ) ? __( 'Fee', 'woocommerce' ) : $item['name'] );
+
+						$new_packages[0]['contents'][] = new TaxCloud\CartItem(
+							count( $new_packages[0]['contents'] ),
+							isset( $identifiers[ $taxcloud_id ] ) ? $identifiers[ $taxcloud_id ] : $item_id,
+							apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC ),
+							$item['line_total'],
+							1
 						);
-					}
-
-					/* Convert cart items to CartItem objects. Set the package 
-					 * shipping method and find any extra shipping methods. */
-					$shipping_item_ids = array();
-					$extra_methods     = array();
-
-					foreach ( $cart_items as $item_key => $item ) {
-						$cart_items[ $item_key ] = new TaxCloud\CartItem(
-							$item['Index'],
-							$item['ItemID'],
-							isset( $item['TIC'] ) ? $item['TIC'] : null,
-							$item['Price'],
-							$item['Qty']
+						$new_packages[0]['map'][] = array(
+							'type'    => 'fee',
+							'id'      => $taxcloud_id,
+							'cart_id' => $item_id,
 						);
+					} else {
+						$taxcloud_id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
 
-						if ( 'shipping' == $package['map'][ $item_key ]['type'] ) {
-							/* There's no perfect way to determine the shipping method this
-							 * item corresponds to -- we'll use the item price and order id
-							 * to make an educated guess */
-							$method = $wpdb->get_row( $wpdb->prepare( "
-								SELECT i.order_item_id AS item_id, m.meta_value AS method_id
-								FROM {$wpdb->prefix}woocommerce_order_itemmeta m, {$wpdb->prefix}woocommerce_order_items i
-								WHERE i.order_id = %d
-								AND m.meta_key = 'method_id'
-								AND i.order_item_id = m.order_item_id
-								AND i.order_item_type = 'shipping' 
-								AND EXISTS (
-									SELECT * FROM {$wpdb->prefix}woocommerce_order_itemmeta
-									WHERE order_item_id = i.order_item_id
-									AND meta_key = 'cost'
-									AND meta_value = %d
-								)
-								AND i.order_item_id NOT IN ( " . implode( ',', $shipping_item_ids ) . " )
-							", $_order->get_id(), $item['Price'] ) );
-
-							if ( $method ) {
-								$shipping_item_ids[] = $method->item_id;
-								$shipping_method     = new WC_Shipping_Rate( '', '', $item['Price'], array(), $method->method_id );
-								
-								if ( is_null( $package['shipping'] ) )
-									$package['shipping'] = $shipping_method;
-								else
-									$extra_methods[ $item_key ] = $shipping_method;
-							}  /* How to handle failure? */
-						}
-					}
-
-					$package['contents'] = $cart_items;
-
-					/* Create additional shipping package for each extra shipping
-					 * method. This is necessary because 5.0 only allows one method
-					 * per package. */
-					foreach ( $extra_methods as $item_key => $method ) {
-						$new_package = $package;
-
-						$package['contents'][ $item_key ]['Index'] = 0;
-
-						$new_package['contents'] = array( $package['contents'][ $item_key ] );
-						$new_package['shipping'] = $method;
-						$new_package['map']      = array( $package['map'][ $item_key ] );
-						
-						unset( $package['contents'][ $item_key ] );
-						unset( $package['map'][ $item_key ] );
-
-						$packages[] = $new_package;
-					}
-
-					$packages[] = $package;
-
-					/* For each package, generate a lookup request. We ignore all
-					* parameters other than cartItems because they aren't used
-					* when performing refunds. */
-					foreach ( $packages as &$package ) {
-						$package['request'] = new TaxCloud\Request\Lookup(
-							'',						// apiLoginID
-							'',						// apiKey
-							'',						// customerID
-							'',						// cartID
-							$package['contents'],	// cartItems
-							null, 					// origin
-							null  					// destination
+						$new_packages[0]['contents'][] = new TaxCloud\CartItem(
+							count( $new_packages[0]['contents'] ),
+							isset( $identifiers[ $taxcloud_id ] ) ? $identifiers[ $taxcloud_id ] : $item_id,
+							SST_Product::get_tic( $item['product_id'], $item['variation_id'] ),
+							'item-price' == $based_on ? $item['line_subtotal'] / $item['qty'] : $item['line_subtotal'],
+							'item-price' == $based_on ? $item['qty'] : 1
+						);
+						$new_packages[0]['map'][] = array(
+							'type'    => 'line_item',
+							'id'      => $taxcloud_id,
+							'cart_id' => $item_id,
 						);
 					}
 				}
-			
-				$_order->update_meta( 'packages', $packages );
+
+				$packages = array_merge( $packages, $new_packages );
 			}
-		
+
+			/* Generate lookup request for each package (cartItems is the only
+			 * required field). */
+			foreach ( $packages as &$package ) {
+				$package['request'] = new TaxCloud\Request\Lookup(
+					SST_Settings::get( 'tc_id' ),
+					SST_Settings::get( 'tc_key' ),
+					$_order->get_user_id(),
+					$package['cart_id'],
+					$package['contents'],
+					$package['origin'],
+					$package['destination']
+				);
+			}
+
+			$_order->update_meta( 'packages', $packages );
 			$_order->update_meta( 'status', 'captured' );
 		} else if ( $refunded ) {					/* Refunded */
-			
+
 			$_order->update_meta( 'status', 'refunded' );
 		}
 
