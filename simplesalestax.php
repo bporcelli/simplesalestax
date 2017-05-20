@@ -185,7 +185,7 @@ final class SST {
 	 * @since 5.0
 	 */
 	private function load_textdomain() {
-		load_plugin_textdomain( 'simplesalestax', false, plugin_basename( __FILE__ ) . '/languages' );
+		load_plugin_textdomain( 'simplesalestax', false, basename( dirname( __FILE__ ) ) . '/languages' );
 	}
 
 	/**
