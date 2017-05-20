@@ -101,15 +101,17 @@ class SST_Updater extends WP_Background_Process {
 
 		include_once 'sst-update-functions.php';
 
+		$return = false;
+
 		if ( is_callable( $callback ) ) {
 			$logger->add( 'sst_db_updates', sprintf( 'Running %s callback', $callback ) );
-			call_user_func( $callback );
+			$return = call_user_func( $callback );
 			$logger->add( 'sst_db_updates', sprintf( 'Finished %s callback', $callback ) );
 		} else {
 			$logger->add( 'sst_db_updates', sprintf( 'Could not find %s callback', $callback ) );
 		}
 
-		return false;
+		return $return;
 	}
 
 	/**
