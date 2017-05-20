@@ -373,8 +373,6 @@ function sst_update_50_category_tics() {
 function sst_update_50_order_data() {
 	global $wpdb;
 	
-	$page_offset = get_option( 'wootax_50_update_page', 0 );
-
 	/* Get next batch of orders to process */
 	$orders = $wpdb->get_results( "
 		SELECT p.ID AS ID
@@ -384,15 +382,16 @@ function sst_update_50_order_data() {
 			SELECT meta_id 
 			FROM {$wpdb->postmeta} pm
 			WHERE pm.post_id = p.ID
-			AND pm.meta_key = '_wootax_packages'
+			AND pm.meta_key = '_wootax_db_version'
+			AND pm.meta_value = '5.0'
 		)
 		ORDER BY p.ID DESC
-		LIMIT $page_offset, 50
+		LIMIT 50
 	" );
 
 	/* Define variables used within the loop */
-	$woo_3_0  = version_compare( WC_VERSION, '3.0', '>=' );
 	$logger   = new WC_Logger();
+	$woo_3_0  = version_compare( WC_VERSION, '3.0', '>=' );
 	$based_on = SST_Settings::get( 'tax_based_on' );
 
 	foreach ( $orders as $order ) {
@@ -569,16 +568,15 @@ function sst_update_50_order_data() {
 			$_order->update_meta( 'status', 'refunded' );
 		}
 
+		$_order->update_meta( 'db_version', '5.0' );
 		$_order->save();
 	}
 
-	/* If more orders are available for processing, queue another execution of
-	 * this function. Otherwise, bail. */
+	/* If more orders need processing, keep this function in the background
+	 * processing queue. */
 	if ( count( $orders ) == 50 ) {
-		update_option( 'wootax_50_update_page', $page_offset + 50 );
 		return 'sst_update_50_order_data';
-	} else {
-		delete_option( 'wootax_50_update_page' );
-		return false;
 	}
+
+	return false;
 }
