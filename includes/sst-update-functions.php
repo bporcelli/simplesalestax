@@ -395,16 +395,14 @@ function sst_update_50_order_data() {
 	$based_on = SST_Settings::get( 'tax_based_on' );
 
 	foreach ( $orders as $order ) {
-		$logger->add( 'sst_db_updates', 'Processing order ' . $order->ID );
-		
+
 		$_order = new SST_Order( $order->ID );
 
 		try {
-
 			$destination = $_order->get_destination_address();
 
 			if ( is_null( $destination ) ) {
-				throw new Exception( 'No destination address available. Skipping.' );
+				throw new Exception( 'No destination address is available for order ' . $order->ID . '. Skipping.' );
 			}
 
 			/* Exemption certificates previously stored under key 'exemption_applied'.
@@ -435,7 +433,7 @@ function sst_update_50_order_data() {
 				$identifiers  = $_order->get_meta( 'identifiers' );
 
 				if ( ! is_array( $taxcloud_ids ) || empty( $taxcloud_ids ) ) {
-					throw new Exception( 'TaxCloud IDs not available. Skipping.' );
+					throw new Exception( 'TaxCloud IDs not available for order ' . $order->ID . '. Skipping.' );
 				}
 
 				/* Build map from address keys to items */
