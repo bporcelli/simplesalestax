@@ -24,6 +24,7 @@ class SST_Order_Controller {
 		add_action( 'woocommerce_order_status_completed', array( $this, 'capture_order' ) );
 		add_action( 'woocommerce_refund_created', array( $this, 'refund_order' ), 10, 2 );
 		add_action( 'woocommerce_payment_complete', array( $this, 'maybe_capture_order' ) );
+		add_filter( 'woocommerce_hidden_order_itemmeta', array( $this, 'hide_order_item_meta' ) );
 	}
 
 	/**
@@ -105,6 +106,22 @@ class SST_Order_Controller {
 			$order = new SST_Order( $order_id );
 			$order->do_capture();
 		}
+	}
+
+	/**
+	 * Hides Simple Sales Tax order item meta.
+	 *
+	 * @since 5.0
+	 *
+	 * @param  array $to_hide Meta keys to hide.
+	 * @return array
+	 */
+	public function hide_order_item_meta( $to_hide ) {
+		$to_hide[] = '_wootax_tax_amount';
+		$to_hide[] = '_wootax_location_id';
+		$to_hide[] = '_wootax_index';
+
+		return $to_hide;
 	}
 }
 
