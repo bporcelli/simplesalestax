@@ -22,6 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function sst_update_26_remove_shipping_taxable_option() {
 	delete_option( 'wootax_shipping_taxable' );
+	return false;
 }
 
 /**
@@ -50,6 +51,8 @@ function sst_update_38_update_addresses() {
 	delete_option( 'wootax_city' );
 	delete_option( 'wootax_zip5' );
 	delete_option( 'wootax_zip4' );
+
+	return false;
 }
 
 /**
@@ -89,6 +92,8 @@ function sst_update_42_migrate_settings() {
 
 	// Delete old options
 	$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name IN ( ". implode( ',', $options ) ." );" );
+
+	return false;
 }
 
 /**
@@ -234,6 +239,8 @@ function sst_update_42_migrate_order_data() {
 		WHERE p.ID = pm.post_id
 		AND p.post_type = 'wootax_order'
 	" );
+
+	return false;
 }
 
 /**
@@ -254,6 +261,8 @@ function sst_update_42_get_item_type( $item_id ) {
 	} else {
 		return "fee";
 	}
+
+	return false;
 }
 
 /**
@@ -264,6 +273,7 @@ function sst_update_42_get_item_type( $item_id ) {
  */
 function sst_update_45_remove_license_option() {
 	delete_option( 'wootax_license_key' );
+	return false;
 }
 
 /**
@@ -298,6 +308,8 @@ function sst_update_50_origin_addresses() {
 
 	SST_Settings::set( 'addresses', $addresses );
 	SST_Settings::set( 'default_address', null );
+
+	return false;
 }
 
 /**
@@ -325,6 +337,8 @@ function sst_update_50_category_tics() {
 			delete_option( 'tic_' . $term->term_id );
 		}
 	}
+
+	return false;
 }
 
 /**
@@ -359,19 +373,40 @@ function sst_update_50_category_tics() {
 function sst_update_50_order_data() {
 	global $wpdb;
 	
-	/* Get orders */
-	$orders = wc_get_orders( array(
-		'status' => 'any',
-		'type'   => 'shop_order',
-		'limit'  => -1,
-	) );
+	$page_offset = get_option( 'wootax_50_update_page', 0 );
+
+	/* Get next batch of orders to process */
+	$orders = $wpdb->get_results( "
+		SELECT p.ID AS ID
+		FROM {$wpdb->posts} p
+		WHERE p.post_type = 'shop_order'
+		AND NOT EXISTS (
+			SELECT meta_id 
+			FROM {$wpdb->postmeta} pm
+			WHERE pm.post_id = p.ID
+			AND pm.meta_key = '_wootax_packages'
+		)
+		ORDER BY p.ID DESC
+		LIMIT $page_offset, 50
+	" );
 
 	/* Define variables used within the loop */
 	$woo_3_0  = version_compare( WC_VERSION, '3.0', '>=' );
+	$logger   = new WC_Logger();
 	$based_on = SST_Settings::get( 'tax_based_on' );
 
 	foreach ( $orders as $order ) {
-		$_order = new SST_Order( $order );
+		$logger->add( 'sst_db_updates', 'Processing order ' . $order->ID );
+		
+		$_order = new SST_Order( $order->ID );
+
+		/* Bail if no destination address is available. */
+		$destination = $_order->get_destination_address();
+
+		if ( is_null( $destination ) ) {
+			$logger->add( 'sst_db_updates', 'No destination address available. Skipping.' );
+			continue;
+		}
 
 		/* Exemption certificates previously stored under key 'exemption_applied'.
 		 * In 5.0, we move them to key 'exempt_cert' and store them in a different
@@ -392,14 +427,22 @@ function sst_update_50_order_data() {
 		if ( ! $captured && ! $refunded ) {			/* Pending */
 
 			/* Recalc taxes to regenerate data structures */
-			$_order->calculate_taxes();
-			$_order->calculate_totals( false );
-
-			$_order->update_meta( 'status', 'pending' );
+			try {
+				$_order->calculate_taxes();
+				$_order->calculate_totals( false );
+				$_order->update_meta( 'status', 'pending' );
+			} catch ( Exception $ex ) {
+				$logger->add( 'sst_db_updates', $ex->getMessage() );
+			}
 		} else if ( $captured && ! $refunded ) {	/* Captured */
 
 			$taxcloud_ids = $_order->get_meta( 'taxcloud_ids' );
 			$identifiers  = $_order->get_meta( 'identifiers' );
+
+			if ( ! is_array( $taxcloud_ids ) || empty( $taxcloud_ids ) ) {
+				$logger->add( 'sst_db_updates', 'TaxCloud IDs not available. Skipping.' );
+				continue;
+			}
 
 			/* Build array mapping address keys to items */
 			$mappings = array();
@@ -425,7 +468,7 @@ function sst_update_50_order_data() {
 				$base_package['cart_id']     = $taxcloud_ids[ $address_key ]['cart_id'];
 				$base_package['order_id']    = $taxcloud_ids[ $address_key ]['order_id'];
 				$base_package['origin']      = SST_Addresses::to_address( SST_Addresses::get_address( $address_key ) );
-				$base_package['destination'] = $_order->get_destination_address();
+				$base_package['destination'] = $destination;
 
 				/* Create a package for every shipping method that falls under
 				 * this address key. */
@@ -527,5 +570,15 @@ function sst_update_50_order_data() {
 		}
 
 		$_order->save();
+	}
+
+	/* If more orders are available for processing, queue another execution of
+	 * this function. Otherwise, bail. */
+	if ( count( $orders ) == 50 ) {
+		update_option( 'wootax_50_update_page', $page_offset + 50 );
+		return 'sst_update_50_order_data';
+	} else {
+		delete_option( 'wootax_50_update_page' );
+		return false;
 	}
 }
