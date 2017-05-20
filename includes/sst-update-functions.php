@@ -399,177 +399,175 @@ function sst_update_50_order_data() {
 		
 		$_order = new SST_Order( $order->ID );
 
-		/* Bail if no destination address is available. */
-		$destination = $_order->get_destination_address();
+		try {
 
-		if ( is_null( $destination ) ) {
-			$logger->add( 'sst_db_updates', 'No destination address available. Skipping.' );
-			continue;
-		}
+			$destination = $_order->get_destination_address();
 
-		/* Exemption certificates previously stored under key 'exemption_applied'.
-		 * In 5.0, we move them to key 'exempt_cert' and store them in a different
-		 * format. */
-		$old_certificate = $_order->get_meta( 'exemption_applied' );
-		
-		if ( is_array( $old_certificate ) && isset( $old_certificate['CertificateID'] ) ) {
-			$_order->update_meta( 'exempt_cert', new TaxCloud\ExemptionCertificateBase(
-				$old_certificate['CertificateID']
-			) );
-		}
+			if ( is_null( $destination ) ) {
+				throw new Exception( 'No destination address available. Skipping.' );
+			}
 
-		/* Actions we take from here will depend on the order status (pending,
-		 * captured, refunded). */
-		$captured = $_order->get_meta( 'captured' );
-		$refunded = $_order->get_meta( 'refunded' );
+			/* Exemption certificates previously stored under key 'exemption_applied'.
+			 * In 5.0, we move them to key 'exempt_cert' and store them in a different
+			 * format. */
+			$old_certificate = $_order->get_meta( 'exemption_applied' );
+			
+			if ( is_array( $old_certificate ) && isset( $old_certificate['CertificateID'] ) ) {
+				$_order->update_meta( 'exempt_cert', new TaxCloud\ExemptionCertificateBase(
+					$old_certificate['CertificateID']
+				) );
+			}
 
-		if ( ! $captured && ! $refunded ) {			/* Pending */
+			/* Actions we take from here will depend on the order status (pending,
+			 * captured, refunded). */
+			$captured = $_order->get_meta( 'captured' );
+			$refunded = $_order->get_meta( 'refunded' );
 
-			/* Recalc taxes to regenerate data structures */
-			try {
+			if ( ! $captured && ! $refunded ) {			/* Pending */
+
 				$_order->calculate_taxes();
 				$_order->calculate_totals( false );
+				
 				$_order->update_meta( 'status', 'pending' );
-			} catch ( Exception $ex ) {
-				$logger->add( 'sst_db_updates', $ex->getMessage() );
-			}
-		} else if ( $captured && ! $refunded ) {	/* Captured */
+			} else if ( $captured && ! $refunded ) {	/* Captured */
 
-			$taxcloud_ids = $_order->get_meta( 'taxcloud_ids' );
-			$identifiers  = $_order->get_meta( 'identifiers' );
+				$taxcloud_ids = $_order->get_meta( 'taxcloud_ids' );
+				$identifiers  = $_order->get_meta( 'identifiers' );
 
-			if ( ! is_array( $taxcloud_ids ) || empty( $taxcloud_ids ) ) {
-				$logger->add( 'sst_db_updates', 'TaxCloud IDs not available. Skipping.' );
-				continue;
-			}
-
-			/* Build array mapping address keys to items */
-			$mappings = array();
-
-			foreach ( $_order->get_items( array( 'line_item', 'fee', 'shipping' ) ) as $item_id => $item ) {
-				$location_id = wc_get_order_item_meta( $item_id, '_wootax_location_id' );
-
-				if ( ! isset( $mappings[ $location_id ] ) )
-					$mappings[ $location_id ] = array();
-
-				$mappings[ $location_id ][ $item_id ] = $item;
-			}
-
-			/* For each address key, create one or more new packages. */
-			$packages = array();
-
-			foreach ( $mappings as $address_key => $items ) {
-
-				/* Create a base package with just the cart id, order id,
-				 * and addresses set. We will copy this package to create others. */
-				$base_package = sst_create_package();
-
-				$base_package['cart_id']     = $taxcloud_ids[ $address_key ]['cart_id'];
-				$base_package['order_id']    = $taxcloud_ids[ $address_key ]['order_id'];
-				$base_package['origin']      = SST_Addresses::to_address( SST_Addresses::get_address( $address_key ) );
-				$base_package['destination'] = $destination;
-
-				/* Create a package for every shipping method that falls under
-				 * this address key. */
-				$new_packages = array();
-
-				foreach ( $items as $item_id => $item ) {
-					if ( 'shipping' != $item['type'] ) {
-						continue;
-					}
-					
-					$new_package = $base_package;
-
-					/* Set shipping method */
-					$method_id = wc_get_order_item_meta( $item_id, 'method_id' );
-					$total     = wc_get_order_item_meta( $item_id, $woo_3_0 ? 'total' : 'cost' );
-					
-					$new_package['shipping'] = new WC_Shipping_Rate( $item_id, '', $total, array(), $method_id );
-
-					/* Add cart item and map entry for shipping */
-					$new_package['contents'][] = new TaxCloud\CartItem(
-						count( $new_package['contents'] ),
-						isset( $identifiers[ SST_SHIPPING_ITEM ] ) ? $identifiers[ SST_SHIPPING_ITEM ] : $item_id,
-						apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC ),
-						$total,
-						1
-					);
-					$new_package['map'][] = array(
-						'type'    => 'shipping',
-						'id'      => SST_SHIPPING_ITEM,
-						'cart_id' => $item_id,
-					);
-
-					$new_packages[] = $new_package;
-					unset( $items[ $item_id ] );
+				if ( ! is_array( $taxcloud_ids ) || empty( $taxcloud_ids ) ) {
+					throw new Exception( 'TaxCloud IDs not available. Skipping.' );
 				}
 
-				/* Add all fees and line items to the first package. If no
-				 * packages were created, create one. */
-				if ( empty( $new_packages ) ) {
-					$new_packages[] = $base_package;
+				/* Build map from address keys to items */
+				$mappings = array();
+
+				foreach ( $_order->get_items( array( 'line_item', 'fee', 'shipping' ) ) as $item_id => $item ) {
+					$location_id = wc_get_order_item_meta( $item_id, '_wootax_location_id' );
+
+					if ( ! isset( $mappings[ $location_id ] ) )
+						$mappings[ $location_id ] = array();
+
+					$mappings[ $location_id ][ $item_id ] = $item;
 				}
 
-				foreach ( $items as $item_id => $item ) {
-					if ( 'fee' == $item['type'] ) {
-						$taxcloud_id = sanitize_title( empty( $item['name'] ) ? __( 'Fee', 'woocommerce' ) : $item['name'] );
+				/* For each address key, create one or more new packages. */
+				$packages = array();
 
-						$new_packages[0]['contents'][] = new TaxCloud\CartItem(
-							count( $new_packages[0]['contents'] ),
-							isset( $identifiers[ $taxcloud_id ] ) ? $identifiers[ $taxcloud_id ] : $item_id,
-							apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC ),
-							$item['line_total'],
+				foreach ( $mappings as $address_key => $items ) {
+
+					/* Create a base package with just the cart id, order id,
+					 * and addresses set. We will copy this package to create others. */
+					$base_package = sst_create_package();
+
+					$base_package['cart_id']     = $taxcloud_ids[ $address_key ]['cart_id'];
+					$base_package['order_id']    = $taxcloud_ids[ $address_key ]['order_id'];
+					$base_package['origin']      = SST_Addresses::to_address( SST_Addresses::get_address( $address_key ) );
+					$base_package['destination'] = $destination;
+
+					/* Create a package for every shipping method that falls under
+					 * this address key. */
+					$new_packages = array();
+
+					foreach ( $items as $item_id => $item ) {
+						if ( 'shipping' != $item['type'] ) {
+							continue;
+						}
+						
+						$new_package = $base_package;
+
+						/* Set shipping method */
+						$method_id = wc_get_order_item_meta( $item_id, 'method_id' );
+						$total     = wc_get_order_item_meta( $item_id, $woo_3_0 ? 'total' : 'cost' );
+						
+						$new_package['shipping'] = new WC_Shipping_Rate( $item_id, '', $total, array(), $method_id );
+
+						/* Add cart item and map entry for shipping */
+						$new_package['contents'][] = new TaxCloud\CartItem(
+							count( $new_package['contents'] ),
+							isset( $identifiers[ SST_SHIPPING_ITEM ] ) ? $identifiers[ SST_SHIPPING_ITEM ] : $item_id,
+							apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC ),
+							$total,
 							1
 						);
-						$new_packages[0]['map'][] = array(
-							'type'    => 'fee',
-							'id'      => $taxcloud_id,
+						$new_package['map'][] = array(
+							'type'    => 'shipping',
+							'id'      => SST_SHIPPING_ITEM,
 							'cart_id' => $item_id,
 						);
-					} else {
-						$taxcloud_id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
 
-						$new_packages[0]['contents'][] = new TaxCloud\CartItem(
-							count( $new_packages[0]['contents'] ),
-							isset( $identifiers[ $taxcloud_id ] ) ? $identifiers[ $taxcloud_id ] : $item_id,
-							SST_Product::get_tic( $item['product_id'], $item['variation_id'] ),
-							'item-price' == $based_on ? $item['line_subtotal'] / $item['qty'] : $item['line_subtotal'],
-							'item-price' == $based_on ? $item['qty'] : 1
-						);
-						$new_packages[0]['map'][] = array(
-							'type'    => 'line_item',
-							'id'      => $taxcloud_id,
-							'cart_id' => $item_id,
-						);
+						$new_packages[] = $new_package;
+						unset( $items[ $item_id ] );
 					}
+
+					/* Add all fees and line items to the first package. If no
+					 * packages were created, create one. */
+					if ( empty( $new_packages ) ) {
+						$new_packages[] = $base_package;
+					}
+
+					foreach ( $items as $item_id => $item ) {
+						if ( 'fee' == $item['type'] ) {
+							$taxcloud_id = sanitize_title( empty( $item['name'] ) ? __( 'Fee', 'woocommerce' ) : $item['name'] );
+
+							$new_packages[0]['contents'][] = new TaxCloud\CartItem(
+								count( $new_packages[0]['contents'] ),
+								isset( $identifiers[ $taxcloud_id ] ) ? $identifiers[ $taxcloud_id ] : $item_id,
+								apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC ),
+								$item['line_total'],
+								1
+							);
+							$new_packages[0]['map'][] = array(
+								'type'    => 'fee',
+								'id'      => $taxcloud_id,
+								'cart_id' => $item_id,
+							);
+						} else {
+							$taxcloud_id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
+
+							$new_packages[0]['contents'][] = new TaxCloud\CartItem(
+								count( $new_packages[0]['contents'] ),
+								isset( $identifiers[ $taxcloud_id ] ) ? $identifiers[ $taxcloud_id ] : $item_id,
+								SST_Product::get_tic( $item['product_id'], $item['variation_id'] ),
+								'item-price' == $based_on ? $item['line_subtotal'] / $item['qty'] : $item['line_subtotal'],
+								'item-price' == $based_on ? $item['qty'] : 1
+							);
+							$new_packages[0]['map'][] = array(
+								'type'    => 'line_item',
+								'id'      => $taxcloud_id,
+								'cart_id' => $item_id,
+							);
+						}
+					}
+
+					$packages = array_merge( $packages, $new_packages );
 				}
 
-				$packages = array_merge( $packages, $new_packages );
+				/* Generate lookup request for each package (cartItems is the only
+				 * required field). */
+				foreach ( $packages as &$package ) {
+					$package['request'] = new TaxCloud\Request\Lookup(
+						SST_Settings::get( 'tc_id' ),
+						SST_Settings::get( 'tc_key' ),
+						$_order->get_user_id(),
+						$package['cart_id'],
+						$package['contents'],
+						$package['origin'],
+						$package['destination']
+					);
+				}
+
+				$_order->update_meta( 'packages', $packages );
+				$_order->update_meta( 'status', 'captured' );
+			} else if ( $refunded ) {					/* Refunded */
+
+				$_order->update_meta( 'status', 'refunded' );
 			}
-
-			/* Generate lookup request for each package (cartItems is the only
-			 * required field). */
-			foreach ( $packages as &$package ) {
-				$package['request'] = new TaxCloud\Request\Lookup(
-					SST_Settings::get( 'tc_id' ),
-					SST_Settings::get( 'tc_key' ),
-					$_order->get_user_id(),
-					$package['cart_id'],
-					$package['contents'],
-					$package['origin'],
-					$package['destination']
-				);
-			}
-
-			$_order->update_meta( 'packages', $packages );
-			$_order->update_meta( 'status', 'captured' );
-		} else if ( $refunded ) {					/* Refunded */
-
-			$_order->update_meta( 'status', 'refunded' );
+		} catch ( Exception $ex ) {
+			$logger->add( 'sst_db_updates', $ex->getMessage() );
+		} finally {
+			$_order->update_meta( 'db_version', '5.0' );
+			$_order->save();
 		}
-
-		$_order->update_meta( 'db_version', '5.0' );
-		$_order->save();
 	}
 
 	/* If more orders need processing, keep this function in the background
