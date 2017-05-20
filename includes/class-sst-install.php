@@ -358,7 +358,7 @@ class SST_Install {
 		if ( $key == SST_RATE_ID ) {
 			return apply_filters( 'wootax_rate_label', __( 'Sales Tax', 'simplesalestax' ) );
 		} else {
-			return $name;
+			return $label;
 		}
 	}
 
