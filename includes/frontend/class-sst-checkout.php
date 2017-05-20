@@ -345,6 +345,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 
 		$order->update_meta( 'packages', $this->get_packages() );
 		$order->update_meta( 'exempt_cert', $this->get_certificate() );
+		$order->update_meta( 'db_version', SST()->version );
 		$order->save();
 	}
 
