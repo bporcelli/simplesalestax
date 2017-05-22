@@ -59,6 +59,7 @@ class SST_Install {
 		add_filter( 'plugin_action_links_' . SST_PLUGIN_BASENAME, array( __CLASS__, 'add_action_links' ) );
 		add_filter( 'woocommerce_rate_code', array( __CLASS__, 'get_rate_code' ), 10, 2 );
 		add_filter( 'woocommerce_rate_label', array( __CLASS__, 'get_rate_label' ), 10, 2 );
+		add_action( 'plugins_loaded', array( __CLASS__, 'disable_wcms_order_items_hook' ), 100 );
 	}
 
 	/**
@@ -362,6 +363,18 @@ class SST_Install {
 		}
 	}
 
+	/**
+	 * Disable the WC Multiple Shipping woocommerce_order_get_items hook. The
+	 * hook is not needed when SST is active and leads to corruption of line
+     * item taxes.
+	 *
+	 * @since 5.0
+	 */
+	public static function disable_wcms_order_items_hook() {
+		if ( sst_wcms_active() ) {
+			remove_filter( 'woocommerce_order_get_items', array( $GLOBALS['wcms']->order, 'order_item_taxes' ), 30, 2 );
+		}
+	}
 }
 
 SST_Install::init();

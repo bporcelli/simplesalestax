@@ -44,3 +44,14 @@ function sst_woocommerce_active() {
 function sst_subs_active() {
 	return class_exists( 'WC_Subscriptions' );
 }
+
+/**
+ * Is WooCommerce Ship To Multiple Addresses active?
+ *
+ * @since 5.0
+ *
+ * @return bool
+ */
+function sst_wcms_active() {
+	return class_exists( 'WC_Ship_Multiple' );
+}

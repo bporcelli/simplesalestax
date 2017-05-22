@@ -285,11 +285,15 @@ class SST_Checkout extends SST_Abstract_Cart {
 		// Update tax data
 		$tax_data = $this->cart->cart_contents[ $id ][ 'line_tax_data' ];
 
-		$subtotal_tax = isset( $tax_data['subtotal'][ SST_RATE_ID ] ) ? $tax_data['subtotal'][ SST_RATE_ID ] : 0;
-		$total_tax    = isset( $tax_data['total'][ SST_RATE_ID ] ) ? $tax_data['total'][ SST_RATE_ID ] : 0;
+		if ( ! isset( $tax_data['subtotal'][ SST_RATE_ID ] ) ) {
+			$tax_data['subtotal'][ SST_RATE_ID ] = 0;
+		}
+		if ( ! isset( $tax_data['total'][ SST_RATE_ID ] ) ) {
+			$tax_data['total'][ SST_RATE_ID ] = 0;
+		}
 
-		$tax_data['subtotal'][ SST_RATE_ID ] = $subtotal_tax + $tax;
-		$tax_data['total'][ SST_RATE_ID ]    = $total_tax + $tax;
+		$tax_data['subtotal'][ SST_RATE_ID ] += $tax;
+		$tax_data['total'][ SST_RATE_ID ]    += $tax;
 
 		$this->cart->cart_contents[ $id ][ 'line_tax_data' ] = $tax_data;
 
