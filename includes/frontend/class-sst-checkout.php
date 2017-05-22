@@ -37,7 +37,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 		if ( version_compare( WC_VERSION, '3.0', '<' ) )
 			add_action( 'woocommerce_add_shipping_order_item', array( $this, 'add_shipping_tax_old' ), 10, 3 );
 		else
-			add_action( 'woocommerce_checkout_create_order_shipping_item', array( $this, 'add_shipping_tax' ), 10, 4 );
+			add_action( 'woocommerce_checkout_create_order_shipping_item', array( $this, 'add_shipping_tax' ), 10, 3 );
 	}
 
 	/**
@@ -381,6 +381,39 @@ class SST_Checkout extends SST_Abstract_Cart {
 	}
 
 	/**
+	 * Given a package key, return the shipping tax for the package.
+	 *
+	 * @since 5.0
+	 *
+	 * @param  string $package_key
+	 * @return float -1 if no shipping tax, otherwise shipping tax.
+	 */
+	protected function shipping_tax_for_package( $package_key ) {
+		$cart          = WC()->cart;
+		$package_index = $package_key;
+		$cart_key      = '';
+
+		if ( sst_subs_active() ) {
+			$last_underscore_i = strrpos( $package_key, '_' );
+
+			if ( $last_underscore_i !== FALSE ) {
+				$cart_key      = substr( $package_key, 0, $last_underscore_i );
+				$package_index = substr( $package_key, $last_underscore_i + 1 );				
+			}
+		}
+
+		if ( ! empty( $cart_key ) ) {
+			$cart = WC()->cart->recurring_carts[ $cart_key ];
+		}
+
+		if ( isset( $cart->sst_shipping_taxes[ $package_index ] ) ) {
+			return $cart->sst_shipping_taxes[ $package_index ];
+		} else {
+			return -1;
+		}
+	}
+
+	/**
 	 * Set the shipping tax for newly created shipping items.
 	 *
 	 * @since 5.0
@@ -390,11 +423,11 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @param int $package_key
 	 */
 	public function add_shipping_tax_old( $order_id, $item_id, $package_key ) {
-		$shipping_taxes = WC()->cart->sst_shipping_taxes;
+		$shipping_tax = $this->shipping_tax_for_package( $package_key );
 
-		if ( isset( $shipping_taxes[ $package_key ] ) ) {
+		if ( $shipping_tax >= 0 ) {
 			$taxes = wc_get_order_item_meta( $item_id, 'taxes', true );
-			$taxes[ SST_RATE_ID ] = $shipping_taxes[ $package_key ];
+			$taxes[ SST_RATE_ID ] = $shipping_tax;
 			wc_update_order_item_meta( $item_id, 'taxes', $taxes );
 		}
 	}
@@ -407,14 +440,13 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @param WC_Order_Item_Shipping $item
 	 * @param int $package_key
 	 * @param array $package
-	 * @param WC_Order $order
 	 */
-	public function add_shipping_tax( $item, $package_key, $package, $order ) {
-		$shipping_taxes = WC()->cart->sst_shipping_taxes;
+	public function add_shipping_tax( $item, $package_key, $package ) {
+		$shipping_tax = $this->shipping_tax_for_package( $package_key );
 
-		if ( isset( $shipping_taxes[ $package_key ] ) ) {
+		if ( $shipping_tax >= 0 ) {
 			$taxes = $item->get_taxes();
-			$taxes['total'][ SST_RATE_ID ] = $shipping_taxes[ $package_key ];
+			$taxes['total'][ SST_RATE_ID ] = $shipping_tax;
 			$item->set_taxes( $taxes );
 		}
 	}
