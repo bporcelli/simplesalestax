@@ -195,7 +195,7 @@ abstract class SST_Abstract_Cart {
 		/* Convert destination address to Address object */
 		try {
 			$destination = new TaxCloud\Address(
-				$package['destination']['address'],
+				isset( $package['destination']['address_1'] ) ? $package['destination']['address_1'] : $package['destination']['address'],
 				$package['destination']['address_2'],
 				$package['destination']['city'],
 				$package['destination']['state'],
@@ -224,7 +224,7 @@ abstract class SST_Abstract_Cart {
 					'origin'      => SST_Addresses::to_address( $origin ),
 					'destination' => $package['destination'],
 					'certificate' => $this->get_certificate(),
-					'user'        => $package['user']
+					'user'        => isset( $package['user'] ) ? $package['user'] : array( 'ID' => get_current_user_id() )
 				) );
 			}
 

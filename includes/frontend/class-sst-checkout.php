@@ -29,7 +29,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	public function __construct() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'woocommerce_checkout_after_customer_details', array( $this, 'output_exemption_form' ) );
-		add_action( 'woocommerce_calculate_totals', array( $this, 'calculate_tax_totals' ), 1 );
+		add_action( 'woocommerce_calculate_totals', array( $this, 'calculate_tax_totals' ), 15 );
 		add_filter( 'woocommerce_cart_hide_zero_taxes', array( $this, 'hide_zero_taxes' ) );
 		add_action( 'woocommerce_new_order', array( $this, 'add_order_meta' ) );
 		add_action( 'woocommerce_resume_order', array( $this, 'add_order_meta' ) );
@@ -109,6 +109,34 @@ class SST_Checkout extends SST_Abstract_Cart {
 		return array_filter( $this->cart->get_cart(), array( $this, 'filter_items_not_needing_shipping' ) );
 	}
 
+	/**
+	 * Get the shipping rate for a package.
+	 *
+	 * @since 5.0
+	 *
+	 * @param  int $key
+	 * @param  array $package
+	 * @return WC_Shipping_Rate | NULL
+	 */
+	protected function get_package_shipping_rate( $key, $package ) {
+		$chosen_methods = WC()->session->get( 'chosen_shipping_methods' );
+
+		/* WC Multiple Shipping doesn't use chosen_shipping_methods -_- */
+		if ( function_exists( 'wcms_session_isset' ) && wcms_session_isset( 'shipping_methods' ) ) {
+			$chosen_methods = array();
+
+			foreach ( wcms_session_get( 'shipping_methods' ) as $package_key => $method ) {
+				$chosen_methods[ $package_key ] = $method['id'];
+			}
+		}
+
+		if ( isset( $chosen_methods[ $key ], $package['rates'][ $chosen_methods[ $key ] ] ) ) {
+			return $package['rates'][ $chosen_methods[ $key ] ];
+		}
+
+		return NULL;
+	}
+
  	/**
 	 * Create shipping packages for this cart.
 	 *
@@ -148,35 +176,31 @@ class SST_Checkout extends SST_Abstract_Cart {
 
 		/* Split packages by origin address */
 		$split_packages = array();
-		$chosen_methods = WC()->session->get( 'chosen_shipping_methods' );
 
 		foreach ( $packages as $key => $package ) {
-			/* For local pickups, substitute destination address with pickup
-			 * address. */
-			$method = null;
+			
+			/* Get shipping method for package. If its a local pickup method,
+			 * subtitute package destination address with pickup address. */
+			$method = $this->get_package_shipping_rate( $key, $package );
 
-			if ( isset( $chosen_methods[ $key ], $package['rates'][ $chosen_methods[ $key ] ] ) ) {
-				$method = $package['rates'][ $chosen_methods[ $key ] ];
-				
-				if ( SST_Shipping::is_local_pickup( array( $method->method_id ) ) ) {
-					$pickup_address         = apply_filters( 'wootax_pickup_address', SST_Addresses::get_default_address(), null );
-					$package['destination'] = array(
-						'address'   => $pickup_address->getAddress1(),
-						'address_2' => $pickup_address->getAddress2(),
-						'city'      => $pickup_address->getCity(),
-						'state'     => $pickup_address->getState(),
-						'postcode'  => $pickup_address->getZip5(),
-					);
-				}
+			if ( ! is_null( $method ) && SST_Shipping::is_local_pickup( array( $method->method_id ) ) ) {
+				$pickup_address         = apply_filters( 'wootax_pickup_address', SST_Addresses::get_default_address(), null );
+				$package['destination'] = array(
+					'address'   => $pickup_address->getAddress1(),
+					'address_2' => $pickup_address->getAddress2(),
+					'city'      => $pickup_address->getCity(),
+					'state'     => $pickup_address->getState(),
+					'postcode'  => $pickup_address->getZip5(),
+				);
 			}
 
 			$subpackages = $this->split_package( $package );
 
-			/* Add shipping to first subpackage */
+			/* Add shipping to first subpackage. Set rate ID to package key so
+			 * we can distinguish the shipping tax for each package. */
 			if ( ! empty( $subpackages ) && ! is_null( $method ) ) {
 
-				/* Set id so we can distinguish tax amount for each shipping
-				 * method. */
+				$method = clone $method; 	/* IMPORTANT: preserve original */
 				$method->id = $key;
 
 				$subpackages[ key( $subpackages ) ]['shipping'] = $method;
@@ -261,8 +285,11 @@ class SST_Checkout extends SST_Abstract_Cart {
 		// Update tax data
 		$tax_data = $this->cart->cart_contents[ $id ][ 'line_tax_data' ];
 
-		$tax_data['subtotal'][ SST_RATE_ID ] = $tax;
-		$tax_data['total'][ SST_RATE_ID ]    = $tax;
+		$subtotal_tax = isset( $tax_data['subtotal'][ SST_RATE_ID ] ) ? $tax_data['subtotal'][ SST_RATE_ID ] : 0;
+		$total_tax    = isset( $tax_data['total'][ SST_RATE_ID ] ) ? $tax_data['total'][ SST_RATE_ID ] : 0;
+
+		$tax_data['subtotal'][ SST_RATE_ID ] = $subtotal_tax + $tax;
+		$tax_data['total'][ SST_RATE_ID ]    = $total_tax + $tax;
 
 		$this->cart->cart_contents[ $id ][ 'line_tax_data' ] = $tax_data;
 

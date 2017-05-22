@@ -21,6 +21,7 @@ class SST_Subscriptions {
 	 * @since 5.0
 	 */
 	public function __construct() {
+		add_filter( 'wootax_product_price', array( $this, 'change_product_price' ), 100, 2 );
 		add_filter( 'wootax_shipping_price', array( $this, 'change_shipping_price' ), 10, 2 );
 		add_filter( 'wootax_add_fees', array( $this, 'exclude_fees' ) );
 		add_filter( 'wootax_cart_packages_before_split', array( $this, 'add_package_for_no_ship_subs' ), 10, 2 );
@@ -32,9 +33,30 @@ class SST_Subscriptions {
 	}
 
 	/**
-	 * If we are calculating tax for an initial subscription order, we must
-	 * set the taxable shipping price to zero if WC_Subscriptions_Cart::charge_shipping_up_front()
-	 * is true. This function hooks wootax_shipping_price to take care of this.
+	 * Set product prices based on the current calculation type. If the tax for
+	 * an order is being recalculated, leave prices unchanged. 
+	 *
+	 * Needed because Subscriptions removes its price filter before we calculate
+	 * the tax due.
+	 *
+	 * @since 5.0
+	 *
+	 * @param  float $price
+	 * @param  WC_Product $product
+	 * @return float
+	 */
+	public function change_product_price( $price, $product ) {
+		if ( ! did_action( 'woocommerce_calculate_totals' ) ) {
+			return $price; /* Recalculating taxes */
+		} else {
+			return WC_Subscriptions_Cart::set_subscription_prices_for_calculation( $price, $product );
+		}
+	}
+
+	/**
+	 * If we are calculating tax for an initial subscription order, we must set the taxable
+	 * shipping price to zero if WC_Subscriptions_Cart::charge_shipping_up_front() is true.
+	 * This function hooks wootax_shipping_price to take care of this.
 	 *
 	 * @since 5.0
 	 *
