@@ -25,6 +25,7 @@ class SST_Order_Controller {
 		add_action( 'woocommerce_refund_created', array( $this, 'refund_order' ), 10, 2 );
 		add_action( 'woocommerce_payment_complete', array( $this, 'maybe_capture_order' ) );
 		add_filter( 'woocommerce_hidden_order_itemmeta', array( $this, 'hide_order_item_meta' ) );
+		add_filter( 'woocommerce_order_item_get_taxes', array( $this, 'fix_shipping_tax_issue' ), 10, 2 );
 	}
 
 	/**
@@ -122,6 +123,24 @@ class SST_Order_Controller {
 		$to_hide[] = '_wootax_index';
 
 		return $to_hide;
+	}
+
+	/**
+	 * Temporary fix for #50. Ensures that tax data for shipping items is
+	 * correctly formatted.
+	 *
+	 * @since 5.0
+	 *
+	 * @param array $taxes
+	 * @param WC_Order_Item $item
+	 */
+	public function fix_shipping_tax_issue( $taxes, $item ) {
+		if ( version_compare( WC_VERSION, '3.0', '>=' ) && 'shipping' == $item->get_type() ) {
+			if ( isset( $taxes['total'], $taxes['total']['total'] ) ) {
+				unset( $taxes['total']['total'] );
+			}
+		}
+		return $taxes;
 	}
 }
 
