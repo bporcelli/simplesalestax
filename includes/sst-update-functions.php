@@ -422,9 +422,14 @@ function sst_update_50_order_data() {
 			$refunded = $_order->get_meta( 'refunded' );
 
 			if ( ! $captured && ! $refunded ) {			/* Pending */
-
-				$_order->calculate_taxes();
-				$_order->calculate_totals( false );
+				
+				/* If order is not actually pending, update the status, but don't
+				 * recalculate the taxes. Orders with a status other than pending
+				 * were very likely placed before SST was installed. */
+				if ( in_array( $_order->get_status(), array( 'pending', 'processing', 'on-hold' ) ) ) {
+					$_order->calculate_taxes();
+					$_order->calculate_totals( false );
+				}
 				
 				$_order->update_meta( 'status', 'pending' );
 			} else if ( $captured && ! $refunded ) {	/* Captured */
@@ -441,6 +446,9 @@ function sst_update_50_order_data() {
 
 				foreach ( $_order->get_items( array( 'line_item', 'fee', 'shipping' ) ) as $item_id => $item ) {
 					$location_id = wc_get_order_item_meta( $item_id, '_wootax_location_id' );
+
+					if ( empty( $location_id ) ) /* Very old order (pre 4.2) */
+						continue;
 
 					if ( ! isset( $mappings[ $location_id ] ) )
 						$mappings[ $location_id ] = array();
