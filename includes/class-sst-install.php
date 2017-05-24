@@ -115,8 +115,8 @@ class SST_Install {
 
 		// Prompt user to remove rates if any are present
 		if ( 'yes' !== get_option( 'wootax_keep_rates' ) && self::has_other_rates() ) {
-			$keep_url   = esc_url( add_query_arg( 'sst_keep_rates', 'yes' ) );
-			$delete_url = esc_url( add_query_arg( 'sst_keep_rates', 'no' ) );
+			$keep_url   = esc_url( admin_url( '?sst_keep_rates=yes' ) );
+			$delete_url = esc_url( admin_url( '?sst_keep_rates=no' ) );
 			$notice     = sprintf( __( 'Simple Sales Tax found extra rates in your tax tables. Please choose to <a href="%s">keep the rates</a> or <a href="%s">delete them</a>.', 'simplesalestax' ), $keep_url, $delete_url );
 			WC_Admin_Notices::add_custom_notice( 'sst_rates', $notice );
 		}
