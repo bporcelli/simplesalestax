@@ -188,7 +188,8 @@ class SST_Integration extends WC_Integration {
  			'Default'  => 'no',
  		);
 
- 		$addresses = array();
+ 		$has_default = false;
+ 		$addresses   = array();
 
  		foreach ( $_POST['addresses'] as $raw_address ) {
  			// Use defaults for missing fields
@@ -218,9 +219,11 @@ class SST_Integration extends WC_Integration {
 			}
 			
 			// Convert verified address to SST_Origin_Address
-			$address = new SST_Origin_Address(
-				count( $addresses ),				// ID
-				'yes' == $raw_address['Default'], 	// Default
+			$is_default = 'yes' == $raw_address['Default'];
+			
+			$addresses[] = new SST_Origin_Address(
+				count( $addresses ),		// ID
+				$is_default,				// Default
 				$address->getAddress1(),
 				$address->getAddress2(),
 				$address->getCity(),
@@ -229,7 +232,17 @@ class SST_Integration extends WC_Integration {
 				$address->getZip4()
 			);
 
-			$addresses[] = json_encode( $address );
+			$has_default = $has_default | $is_default;
+ 		}
+
+ 		// Ensure that a default address is configured
+ 		if ( ! $has_default && ! empty( $addresses ) ) {
+ 			$addresses[0]->setDefault( true );
+ 		}
+
+ 		// JSON serialize for storage in DB
+ 		foreach ( $addresses as $key => $address ) {
+ 			$addresses[ $key ] = json_encode( $address );
  		}
 
  		return $addresses;

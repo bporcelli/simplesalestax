@@ -124,10 +124,11 @@ class SST_Addresses {
 		$addresses = self::get_origin_addresses();
 		
 		foreach ( $addresses as $address ) {
-			if ( $address->getDefault() )
+			if ( $address->getDefault() ) {
 				$return[ $address->getID() ] = $address; 
+			}
 		}
-
+		
 		return $return;
 	}
 	/**

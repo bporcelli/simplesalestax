@@ -68,9 +68,7 @@
 						model.set( 'addresses', addresses );
 
 						// Manually update to prevent infinite recursion
-						tbody.find( 'input[type="checkbox"]' ).prop( 'checked', true ).prop( 'disabled', true );
-					} else {
-						tbody.find( 'input[type="checkbox"]:disabled' ).prop( 'disabled', false );
+						tbody.find( 'input[type="checkbox"]' ).prop( 'checked', true );
 					}
 				},
 				defaultsChanged: function( event ) {
