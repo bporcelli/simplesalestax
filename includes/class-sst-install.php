@@ -60,6 +60,22 @@ class SST_Install {
 		add_filter( 'woocommerce_rate_code', array( __CLASS__, 'get_rate_code' ), 10, 2 );
 		add_filter( 'woocommerce_rate_label', array( __CLASS__, 'get_rate_label' ), 10, 2 );
 		add_action( 'plugins_loaded', array( __CLASS__, 'disable_wcms_order_items_hook' ), 100 );
+		register_deactivation_hook( SST()->plugin_file(), array( __CLASS__, 'stop_update' ) );
+	}
+
+	/**
+	 * Runs on plugin deactivation. Cancels the update if it is in progress.
+	 *
+	 * @since 5.0
+	 */
+	public static function stop_update() {
+		// Remove update notice
+		self::remove_notices();
+
+		// If update was in progress, cancel it
+		if ( self::$background_updater->is_updating() ) {
+			self::$background_updater->cancel_process();
+		}
 	}
 
 	/**
@@ -85,6 +101,19 @@ class SST_Install {
 	}
 
 	/**
+	 * Remove all SST admin notices.
+	 *
+	 * @since 5.0
+	 */
+	private static function remove_notices() {
+		if ( ! class_exists( 'WC_Admin_Notices' ) ) {
+			require WC()->plugin_path() . '/admin/class-wc-admin-notices.php';
+		}
+
+		WC_Admin_Notices::remove_notice( 'sst_update' );
+	}
+
+	/**
 	 * Install Simple Sales Tax.
 	 *
 	 * @since 5.0
@@ -98,11 +127,10 @@ class SST_Install {
 		// Install
 		self::add_roles();
 		self::add_tax_rate();
-		self::configure_woocommerce();
 		self::create_tables();
 
 		// Remove existing notices, if any
-		WC_Admin_Notices::remove_notice( 'sst_update' );
+		self::remove_notices();
 
 		// Queue updates if needed (if db version not set, use default value of 1.0)
 		$db_version = get_option( 'wootax_version', '1.0' );
@@ -230,23 +258,6 @@ class SST_Install {
 	 	$settings_link = '<a href="admin.php?page=wc-settings&tab=integration&section=wootax">'. $link_text .'</a>'; 
 	  	array_unshift( $links, $settings_link );
 	  	return $links; 
-	}
-
-	/**
-	 * Set WooCommerce options for ideal plugin performance.
-	 *
-	 * @since 4.2
-	 */
- 	private static function configure_woocommerce() {
-		update_option( 'woocommerce_calc_taxes', 'yes' );
-		update_option( 'woocommerce_prices_include_tax', 'no' );
-		update_option( 'woocommerce_tax_based_on', 'shipping' );
-		update_option( 'woocommerce_default_customer_address', 'base' );
-		update_option( 'woocommerce_shipping_tax_class', '' );
-		update_option( 'woocommerce_tax_round_at_subtotal', false );
-		update_option( 'woocommerce_tax_display_shop', 'excl' );
-		update_option( 'woocommerce_tax_display_cart', 'excl' );
-		update_option( 'woocommerce_tax_total_display', 'itemized' );
 	}
 
 	/**

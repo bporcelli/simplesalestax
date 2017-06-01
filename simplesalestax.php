@@ -106,6 +106,9 @@ final class SST {
 		define( 'SST_RATE_ID', get_option( 'wootax_rate_id' ) );
 		define( 'SST_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 		
+		// Activation hook
+		register_activation_hook( __FILE__, array( $this, 'configure_woocommerce' ) );
+
 		// Hook woocommerce_loaded to bootstrap plugin
 		add_action( 'woocommerce_loaded', array( $this, 'initialize' ) );
 	}
@@ -119,6 +122,24 @@ final class SST {
 		$this->includes();
 		$this->load_textdomain();
 		$this->check_updates();
+	}
+
+	/**
+	 * Runs on plugin activation. Adjusts WooCommerce settings for optimal
+	 * plugin performance.
+	 *
+	 * @since 5.0
+	 */
+	public function configure_woocommerce() {
+		update_option( 'woocommerce_calc_taxes', 'yes' );
+		update_option( 'woocommerce_prices_include_tax', 'no' );
+		update_option( 'woocommerce_tax_based_on', 'shipping' );
+		update_option( 'woocommerce_default_customer_address', 'base' );
+		update_option( 'woocommerce_shipping_tax_class', '' );
+		update_option( 'woocommerce_tax_round_at_subtotal', false );
+		update_option( 'woocommerce_tax_display_shop', 'excl' );
+		update_option( 'woocommerce_tax_display_cart', 'excl' );
+		update_option( 'woocommerce_tax_total_display', 'itemized' );
 	}
 
 	/**
