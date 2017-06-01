@@ -60,22 +60,16 @@ class SST_Install {
 		add_filter( 'woocommerce_rate_code', array( __CLASS__, 'get_rate_code' ), 10, 2 );
 		add_filter( 'woocommerce_rate_label', array( __CLASS__, 'get_rate_label' ), 10, 2 );
 		add_action( 'plugins_loaded', array( __CLASS__, 'disable_wcms_order_items_hook' ), 100 );
-		register_deactivation_hook( SST()->plugin_file(), array( __CLASS__, 'stop_update' ) );
+		register_deactivation_hook( SST()->plugin_file(), array( __CLASS__, 'deactivate' ) );
 	}
 
 	/**
-	 * Runs on plugin deactivation. Cancels the update if it is in progress.
+	 * Runs on plugin deactivation. Removes all admin notices.
 	 *
 	 * @since 5.0
 	 */
-	public static function stop_update() {
-		// Remove update notice
+	public static function deactivate() {
 		self::remove_notices();
-
-		// If update was in progress, cancel it
-		if ( self::$background_updater->is_updating() ) {
-			self::$background_updater->cancel_process();
-		}
 	}
 
 	/**
