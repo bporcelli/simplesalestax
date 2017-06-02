@@ -47,7 +47,7 @@ class SST_Certificates {
 			}
 		} else {
 			$certificates = self::fetch_certificates( $user_id );
-			self::set_certificates( $certificates );
+			self::set_certificates( $user_id, $certificates );
 		}
 
 		return $certificates;
