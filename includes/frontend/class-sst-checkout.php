@@ -502,7 +502,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 		}
 
 		wp_localize_script( 'sst-checkout', 'SSTCertData', array(
-			'certificates'             => SST_Certificates::get_certificates_formatted( false ),
+			'certificates'             => SST_Certificates::get_certificates_formatted(),
 			'add_certificate_nonce'    => wp_create_nonce( 'sst_add_certificate' ),
 			'delete_certificate_nonce' => wp_create_nonce( 'sst_delete_certificate' ),
 			'ajaxurl'                  => admin_url( 'admin-ajax.php' ),

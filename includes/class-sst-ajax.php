@@ -97,7 +97,7 @@ class SST_Ajax {
 			SST_Certificates::delete_certificates();
 
 			wp_send_json_success( array(
-				'certificates' => SST_Certificates::get_certificates_formatted( false ), 
+				'certificates' => SST_Certificates::get_certificates_formatted(), 
 			) );
 		} catch ( Exception $ex ) { /* Failed to delete */
 			wp_send_json_error( $ex->getMessage() );
@@ -180,7 +180,7 @@ class SST_Ajax {
 
 		$data = array(
 			'certificate_id' => $certificate_id,
-			'certificates'   => SST_Certificates::get_certificates_formatted( false ),
+			'certificates'   => SST_Certificates::get_certificates_formatted(),
 		);
 
 		wp_send_json_success( $data );
