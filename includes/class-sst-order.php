@@ -478,9 +478,6 @@ class SST_Order extends SST_Abstract_Cart {
 		} else if ( 'refunded' == $taxcloud_status ) {
 			$this->handle_error( sprintf( __( "Failed to capture order %d: order was refunded.", 'simplesalestax' ), $this->get_id() ) );
 			return false;
-		} else if ( empty( $packages ) ) {
-			$this->handle_error( sprintf( __( "Failed to capture order %d: order is empty.", 'simplesalestax' ), $this->get_id() ) );
-			return false;
 		}
 
 		// Send AuthorizedWithCapture for all packages
