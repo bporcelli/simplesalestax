@@ -126,10 +126,10 @@ class SST_Install {
 		// Remove existing notices, if any
 		self::remove_notices();
 
-		// Queue updates if needed (if db version not set, use default value of 1.0)
-		$db_version = get_option( 'wootax_version', '1.0' );
+		// Queue updates if needed
+		$db_version = get_option( 'wootax_version' );
 
-		if ( version_compare( $db_version, max( array_keys( self::$update_hooks ) ), '<' ) ) {
+		if ( false !== $db_version && version_compare( $db_version, max( array_keys( self::$update_hooks ) ), '<' ) ) {
 			WC_Admin_Notices::add_custom_notice( 'sst_update', self::update_notice() );
 		} else {
 			update_option( 'wootax_version', SST()->version );
@@ -185,7 +185,7 @@ class SST_Install {
 	 * @return string
 	 */
 	private static function update_notice() {
-		$db_version = get_option( 'wootax_version', '1.0' );
+		$db_version = get_option( 'wootax_version' );
 
 		ob_start();
 
@@ -207,7 +207,7 @@ class SST_Install {
 	 * @since 5.0
 	 */
 	private static function update() {
-		$current_db_version = get_option( 'wootax_version', '1.0' );
+		$current_db_version = get_option( 'wootax_version' );
 		$logger             = new WC_Logger();
 		$update_queued      = false;
 
