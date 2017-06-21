@@ -123,7 +123,7 @@ abstract class SST_Abstract_Cart {
 			$package['map'][] = array(
 				'type'    => 'line_item',
 				'id'      => $item['data']->get_id(),
-				'cart_id' => $cart_id,
+				'cart_id' => isset( $item['shipping_item_key'] ) ? $item['shipping_item_key'] : $cart_id,
 			);
 		}
 
