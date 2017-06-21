@@ -105,20 +105,35 @@ abstract class SST_Abstract_Cart {
 	 * @return TaxCloud\Request\Lookup
 	 */
 	protected function get_lookup_for_package( &$package ) {
-		$cart_items   = array();
-		$based_on     = SST_Settings::get( 'tax_based_on' );
-		$based_on_sub = 'line-subtotal' == $based_on;
+		
+		$cart_items = array();
+		$based_on   = SST_Settings::get( 'tax_based_on' );
 
 		/* Add products */
 		foreach ( $package['contents'] as $cart_id => $item ) {
-			$price = apply_filters( 'wootax_product_price', $item['data']->get_price(), $item['data'] );
+			
+			$base_price       = $item['data']->get_price();
+			$line_total       = $item['line_total'];
+			$discounted_price = round( $line_total / $item['quantity'], wc_get_price_decimals() );
+
+			/* Set quantity and price according to 'Tax Based On' setting. */
+			if ( 'line-subtotal' == $based_on ) {
+				$quantity = 1;
+				$price    = $line_total;
+			} else {
+				$quantity = $item['quantity'];
+				$price    = $discounted_price;
+			}
+
+			/* Give devs a chance to change the taxable product price. */
+			$price = apply_filters( 'wootax_product_price', $price, $item['data'] );
 
 			$cart_items[] = new TaxCloud\CartItem(
 				sizeof( $cart_items ),
 				$item['variation_id'] ? $item['variation_id'] : $item['product_id'],
 				SST_Product::get_tic( $item['product_id'], $item['variation_id'] ),
-				$based_on_sub ? $price * $item['quantity'] : $price,
-				$based_on_sub ? 1 : $item['quantity']
+				$price,
+				$quantity
 			);
 			$package['map'][] = array(
 				'type'    => 'line_item',

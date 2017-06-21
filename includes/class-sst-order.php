@@ -123,10 +123,12 @@ class SST_Order extends SST_Abstract_Cart {
 			$product_id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
 
 			$new_items[ $item_id ] = array(
-				'product_id'   => $item['product_id'],
-				'variation_id' => $item['variation_id'],
-				'quantity'     => $item['qty'],
-				'data'         => wc_get_product( $product_id ),
+				'product_id'    => $item['product_id'],
+				'variation_id'  => $item['variation_id'],
+				'quantity'      => $item['qty'],
+				'line_total'    => $item['line_total'],
+				'line_subtotal' => $item['line_subtotal'],  
+				'data'          => wc_get_product( $product_id ),
 			);
 		}
 
