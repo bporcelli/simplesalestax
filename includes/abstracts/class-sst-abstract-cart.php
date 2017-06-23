@@ -105,14 +105,13 @@ abstract class SST_Abstract_Cart {
 	 * @return TaxCloud\Request\Lookup
 	 */
 	protected function get_lookup_for_package( &$package ) {
-		
+
 		$cart_items = array();
 		$based_on   = SST_Settings::get( 'tax_based_on' );
 
 		/* Add products */
 		foreach ( $package['contents'] as $cart_id => $item ) {
 			
-			$base_price       = $item['data']->get_price();
 			$line_total       = $item['line_total'];
 			$discounted_price = round( $line_total / $item['quantity'], wc_get_price_decimals() );
 
