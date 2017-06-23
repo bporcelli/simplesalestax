@@ -35,9 +35,9 @@ class SST_Checkout extends SST_Abstract_Cart {
 		add_action( 'woocommerce_resume_order', array( $this, 'add_order_meta' ) );
 
 		if ( version_compare( WC_VERSION, '3.0', '<' ) )
-			add_action( 'woocommerce_add_shipping_order_item', array( $this, 'add_shipping_tax_old' ), 10, 3 );
+			add_action( 'woocommerce_add_shipping_order_item', array( $this, 'add_shipping_meta_old' ), 10, 3 );
 		else
-			add_action( 'woocommerce_checkout_create_order_shipping_item', array( $this, 'add_shipping_tax' ), 10, 3 );
+			add_action( 'woocommerce_checkout_create_order_shipping_item', array( $this, 'add_shipping_meta' ), 10, 3 );
 	}
 
 	/**
@@ -388,7 +388,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @param  string $package_key
 	 * @return float -1 if no shipping tax, otherwise shipping tax.
 	 */
-	protected function shipping_tax_for_package( $package_key ) {
+	protected function get_package_shipping_tax( $package_key ) {
 		$cart          = WC()->cart;
 		$package_index = $package_key;
 		$cart_key      = '';
@@ -414,7 +414,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	}
 
 	/**
-	 * Set the shipping tax for newly created shipping items.
+	 * Add shipping meta for newly created shipping items (WooCommerce 2.6.x).
 	 *
 	 * @since 5.0
 	 *
@@ -422,8 +422,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @param int $item_id
 	 * @param int $package_key
 	 */
-	public function add_shipping_tax_old( $order_id, $item_id, $package_key ) {
-		$shipping_tax = $this->shipping_tax_for_package( $package_key );
+	public function add_shipping_meta_old( $order_id, $item_id, $package_key ) {
+		$shipping_tax = $this->get_package_shipping_tax( $package_key );
 
 		if ( $shipping_tax >= 0 ) {
 			$taxes = wc_get_order_item_meta( $item_id, 'taxes', true );
@@ -433,7 +433,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	}
 
 	/**
-	 * Set the shipping tax for newly created shipping items (Woo 3.x).
+	 * Add shipping meta for newly created shipping items (WooCommerce 3.0.x).
 	 *
 	 * @since 5.0
 	 *
@@ -441,8 +441,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @param int $package_key
 	 * @param array $package
 	 */
-	public function add_shipping_tax( $item, $package_key, $package ) {
-		$shipping_tax = $this->shipping_tax_for_package( $package_key );
+	public function add_shipping_meta( $item, $package_key, $package ) {
+		$shipping_tax = $this->get_package_shipping_tax( $package_key );
 
 		if ( $shipping_tax >= 0 ) {
 			$taxes = $item->get_taxes();
