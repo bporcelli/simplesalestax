@@ -553,7 +553,7 @@ class SST_Order extends SST_Abstract_Cart {
 				}
 
 				foreach ( $items as $item_key => $item ) {
-					if ( $item['id'] !== $to_match['id'] ) {
+					if ( $item['id'] != $to_match['id'] ) {
 						continue; // No match
 					}
 
@@ -605,6 +605,26 @@ class SST_Order extends SST_Abstract_Cart {
 	}
 
 	/**
+	 * Shipping methods like WooCommerce FedEx Drop Shipping Pro use nonstandard
+	 * method IDs. This method converts those nonstandard IDs into standard IDs
+	 * of the form METHOD_ID:INSTANCE_ID.
+	 *
+	 * @since 5.3
+	 *
+	 * @param  string $method_id
+	 * @return string
+	 */
+	protected function process_method_id( $method_id ) {
+		if ( class_exists( 'IgniteWoo_Shipping_Fedex_Drop_Shipping_Pro' ) ) {
+			$method_id = preg_replace( '/FedEx - (.*)/', 'fedex_wsdl:$1', $method_id );
+		}
+		if ( class_exists( 'ups_drop_shipping_rate' ) ) {
+			$method_id = preg_replace( '/ups_drop_shipping_rate_UPS (.*)/', 'ups_drop_shipping_rate:$1', $method_id );
+		}
+		return $method_id;
+	}
+
+	/**
 	 * Prepare items for refund.
 	 *
 	 * @since 5.0
@@ -621,8 +641,8 @@ class SST_Order extends SST_Abstract_Cart {
 				case 'line_item':
 					$id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
 				break;
-				case 'shipping':
-					$id = $item['method_id']; // TODO: handle packages w/ same method
+				case 'shipping':  // TODO: handle packages w/ same method
+					$id = current( explode( ':', $this->process_method_id( $item['method_id'] ) ) );
 				break;
 				case 'fee':
 					$name = empty( $item['name'] ) ? __( 'Fee', 'simplesalestax' ) : $item['name'];
