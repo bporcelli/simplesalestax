@@ -123,10 +123,12 @@ class SST_Order extends SST_Abstract_Cart {
 			$product_id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
 
 			$new_items[ $item_id ] = array(
-				'product_id'   => $item['product_id'],
-				'variation_id' => $item['variation_id'],
-				'quantity'     => $item['qty'],
-				'data'         => wc_get_product( $product_id ),
+				'product_id'    => $item['product_id'],
+				'variation_id'  => $item['variation_id'],
+				'quantity'      => $item['qty'],
+				'line_total'    => $item['line_total'],
+				'line_subtotal' => $item['line_subtotal'],  
+				'data'          => wc_get_product( $product_id ),
 			);
 		}
 
@@ -551,7 +553,7 @@ class SST_Order extends SST_Abstract_Cart {
 				}
 
 				foreach ( $items as $item_key => $item ) {
-					if ( $item['id'] !== $to_match['id'] ) {
+					if ( $item['id'] != $to_match['id'] ) {
 						continue; // No match
 					}
 
@@ -603,6 +605,26 @@ class SST_Order extends SST_Abstract_Cart {
 	}
 
 	/**
+	 * Shipping methods like WooCommerce FedEx Drop Shipping Pro use nonstandard
+	 * method IDs. This method converts those nonstandard IDs into standard IDs
+	 * of the form METHOD_ID:INSTANCE_ID.
+	 *
+	 * @since 5.3
+	 *
+	 * @param  string $method_id
+	 * @return string
+	 */
+	protected function process_method_id( $method_id ) {
+		if ( class_exists( 'IgniteWoo_Shipping_Fedex_Drop_Shipping_Pro' ) ) {
+			$method_id = preg_replace( '/FedEx - (.*)/', 'fedex_wsdl:$1', $method_id );
+		}
+		if ( class_exists( 'ups_drop_shipping_rate' ) ) {
+			$method_id = preg_replace( '/ups_drop_shipping_rate_UPS (.*)/', 'ups_drop_shipping_rate:$1', $method_id );
+		}
+		return $method_id;
+	}
+
+	/**
 	 * Prepare items for refund.
 	 *
 	 * @since 5.0
@@ -610,17 +632,30 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @param array $items Refund items.
 	 */
 	protected function prepare_refund_items( &$items ) {
-		foreach ( $items as $item_id => $item ) {
-			$quantity   = 'line_item' == $item['type'] ? $item['qty'] : 1;
-			$line_total = isset( $item['line_total'] ) ? $item['line_total'] : $item['cost'];
-			$unit_price = wc_format_decimal( $line_total / $quantity );
+		
+		$tax_based_on = SST_Settings::get( 'tax_based_on' );
 
+		foreach ( $items as $item_id => $item ) {
+
+			$quantity   = isset( $item['qty'] ) ? $item['qty'] : 1;
+			$line_total = isset( $item['line_total'] ) ? $item['line_total'] : $item['cost'];
+			$unit_price = round( $line_total / $quantity, wc_get_price_decimals() );
+
+			/* Set quantity and price according to 'Tax Based On' setting */
+			if ( 'line-subtotal' == $tax_based_on ) {
+				$quantity = 1;
+				$price    = $line_total;
+			} else {
+				$price = $unit_price;
+			}
+
+			/* Set item ID */
 			switch ( $item['type'] ) {
 				case 'line_item':
 					$id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
 				break;
-				case 'shipping':
-					$id = $item['method_id']; // TODO: handle packages w/ same method
+				case 'shipping':  // TODO: handle packages w/ same method
+					$id = current( explode( ':', $this->process_method_id( $item['method_id'] ) ) );
 				break;
 				case 'fee':
 					$name = empty( $item['name'] ) ? __( 'Fee', 'simplesalestax' ) : $item['name'];
@@ -629,7 +664,7 @@ class SST_Order extends SST_Abstract_Cart {
 
 			$items[ $item_id ] = array(
 				'qty'   => $quantity,
-				'price' => $unit_price,
+				'price' => $price,
 				'id'    => $id,
 			);
 		}
