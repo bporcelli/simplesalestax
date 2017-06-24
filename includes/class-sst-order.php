@@ -632,11 +632,24 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @param array $items Refund items.
 	 */
 	protected function prepare_refund_items( &$items ) {
-		foreach ( $items as $item_id => $item ) {
-			$quantity   = 'line_item' == $item['type'] ? $item['qty'] : 1;
-			$line_total = isset( $item['line_total'] ) ? $item['line_total'] : $item['cost'];
-			$unit_price = wc_format_decimal( $line_total / $quantity );
+		
+		$tax_based_on = SST_Settings::get( 'tax_based_on' );
 
+		foreach ( $items as $item_id => $item ) {
+
+			$quantity   = max( isset( $item['qty'] ) ? $item['qty'] : 1, 1 );
+			$line_total = isset( $item['line_total'] ) ? $item['line_total'] : $item['cost'];
+			$unit_price = round( $line_total / $quantity, wc_get_price_decimals() );
+
+			/* Set quantity and price according to 'Tax Based On' setting */
+			if ( 'line-subtotal' == $tax_based_on ) {
+				$quantity = 1;
+				$price    = $line_total;
+			} else {
+				$price = $unit_price;
+			}
+
+			/* Set item ID */
 			switch ( $item['type'] ) {
 				case 'line_item':
 					$id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
@@ -651,7 +664,7 @@ class SST_Order extends SST_Abstract_Cart {
 
 			$items[ $item_id ] = array(
 				'qty'   => $quantity,
-				'price' => $unit_price,
+				'price' => $price,
 				'id'    => $id,
 			);
 		}
