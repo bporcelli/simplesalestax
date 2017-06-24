@@ -70,7 +70,7 @@ class SST_Order_Controller {
 
 					/* Match quantity with value entered by user */
 					if ( 'line_item' == $item_type )
-						$all_items[ $item_id ]['qty'] = $data['qty'];
+						$all_items[ $item_id ]['qty'] = isset( $data['qty'] ) ? $data['qty'] : 1;
 
 					$items[ $item_id ] = $all_items[ $item_id ];
 				} else

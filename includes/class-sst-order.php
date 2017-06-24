@@ -637,7 +637,7 @@ class SST_Order extends SST_Abstract_Cart {
 
 		foreach ( $items as $item_id => $item ) {
 
-			$quantity   = max( isset( $item['qty'] ) ? $item['qty'] : 1, 1 );
+			$quantity   = isset( $item['qty'] ) ? $item['qty'] : 1;
 			$line_total = isset( $item['line_total'] ) ? $item['line_total'] : $item['cost'];
 			$unit_price = round( $line_total / $quantity, wc_get_price_decimals() );
 
