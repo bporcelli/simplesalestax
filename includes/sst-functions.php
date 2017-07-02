@@ -152,6 +152,21 @@ function sst_create_package( $package = array() ) {
 }
 
 /**
+ * Strip all slashes from a given value.
+ *
+ * @since 5.4
+ *
+ * @param  string $value
+ * @return string
+ */
+function sst_unslash( $value ) {
+	while ( strstr( $value, '\\\\' ) ) {
+		$value = stripslashes( $value );
+	}
+	return $value;
+}
+
+/**
  * Return an API client instance.
  *
  * @since 5.0

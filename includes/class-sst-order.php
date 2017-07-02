@@ -698,6 +698,13 @@ class SST_Order extends SST_Abstract_Cart {
 		$key = self::$prefix . $key;
 
 		if ( version_compare( WC_VERSION, '3.0', '>=' ) ) {
+			if ( ! is_string( $value ) ) {
+				$value = serialize( $value ); /* $value must be a string */
+
+				if ( version_compare( WC_VERSION, '3.1', '<' ) ) {
+					$value = wp_slash( $value );
+				}
+			}
 			$this->order->update_meta_data( $key, $value );
 		} else {
 			update_post_meta( $this->get_id(), $key, $value );
@@ -717,6 +724,10 @@ class SST_Order extends SST_Abstract_Cart {
 
 		if ( version_compare( WC_VERSION, '3.0', '>=' ) ) {
 			$value = $this->order->get_meta( self::$prefix . $key, $single, $context );
+
+			if ( is_string( $value ) ) {
+				$value = maybe_unserialize( sst_unslash( $value ) ); /* for WC 3.1.0+ */
+			}
 		} else {
 			$value = get_post_meta( $this->get_id(), self::$prefix . $key, $single );
 		}

@@ -55,3 +55,26 @@ function sst_subs_active() {
 function sst_wcms_active() {
 	return class_exists( 'WC_Ship_Multiple' );
 }
+
+/**
+ * Is the Storefront theme active?
+ *
+ * @since 5.4
+ *
+ * @return bool
+ */
+function sst_storefront_active() {
+	$theme = wp_get_theme();
+
+	if ( is_null( $theme ) ) {
+		return false;
+	}
+
+	if ( ! empty( $theme->template ) ) {
+		$theme_name = $theme->template; /* child */
+	} else {
+		$theme_name = $theme->name;
+	}
+
+	return 'storefront' == strtolower( $theme_name );
+}

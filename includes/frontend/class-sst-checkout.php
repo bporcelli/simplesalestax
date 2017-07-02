@@ -28,16 +28,22 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 */
 	public function __construct() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
-		add_action( 'woocommerce_checkout_after_customer_details', array( $this, 'output_exemption_form' ) );
 		add_action( 'woocommerce_calculate_totals', array( $this, 'calculate_tax_totals' ), 15 );
 		add_filter( 'woocommerce_cart_hide_zero_taxes', array( $this, 'hide_zero_taxes' ) );
 		add_action( 'woocommerce_new_order', array( $this, 'add_order_meta' ) );
 		add_action( 'woocommerce_resume_order', array( $this, 'add_order_meta' ) );
 
-		if ( version_compare( WC_VERSION, '3.0', '<' ) )
+		if ( sst_storefront_active() ) {
+			add_action( 'woocommerce_checkout_shipping', array( $this, 'output_exemption_form' ), 15 );
+		} else {
+			add_action( 'woocommerce_checkout_after_customer_details', array( $this, 'output_exemption_form' ) );
+		}
+
+		if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
 			add_action( 'woocommerce_add_shipping_order_item', array( $this, 'add_shipping_meta_old' ), 10, 3 );
-		else
+		} else {
 			add_action( 'woocommerce_checkout_create_order_shipping_item', array( $this, 'add_shipping_meta' ), 10, 3 );
+		}
 	}
 
 	/**
