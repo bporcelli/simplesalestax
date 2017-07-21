@@ -16,15 +16,14 @@ use TaxCloud\Address;
  * @since 	5.0
  */
 class SST_Origin_Address extends Address {
+
 	/**
 	 * @var int Address ID.
-	 * @since 5.0
 	 */
 	protected $ID;
 
 	/**
 	 * @var bool Is this a default address?
-	 * @since 5.0
 	 */
 	protected $Default;
 
@@ -36,6 +35,7 @@ class SST_Origin_Address extends Address {
 	public function __construct( $ID, $Default, $Address1, $Address2, $City, $State, $Zip5, $Zip4 = NULL ) {
 		$this->setID( $ID );
 		$this->setDefault( $Default );
+
 		parent::__construct( $Address1, $Address2, $City, $State, $Zip5, $Zip4 );
 	}
 
@@ -82,4 +82,5 @@ class SST_Origin_Address extends Address {
 	public function getDefault() {
 		return $this->Default;
 	}
+
 }
