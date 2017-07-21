@@ -143,14 +143,14 @@ class SST_Checkout extends SST_Abstract_Cart {
 		return NULL;
 	}
 
- 	/**
-	 * Create shipping packages for this cart.
+	/**
+	 * Get the base shipping packages for this cart.
 	 *
-	 * @since 5.0
+	 * @since 5.5
 	 *
 	 * @return array
 	 */
-	protected function create_packages() {
+	protected function get_base_packages() {
 		/* Start with the packages returned by Woo */
 		$packages = WC()->shipping->get_packages();
 
@@ -163,63 +163,73 @@ class SST_Checkout extends SST_Abstract_Cart {
 			if ( ! empty( $digital_items ) ) {
 				$packages[] = sst_create_package( array(
 					'contents'    => $digital_items,
-					'user'        => array(
-						'ID' => get_current_user_id(),
-					),
 					'destination' => array(
+						'country'   => SST_Customer::get_billing_country(),
 						'address'   => SST_Customer::get_billing_address(),
 						'address_2' => SST_Customer::get_billing_address_2(),
 						'city'      => SST_Customer::get_billing_city(),
 						'state'     => SST_Customer::get_billing_state(),
 						'postcode'  => SST_Customer::get_billing_postcode(),
 					),
+					'user'        => array(
+						'ID' => get_current_user_id(),
+					),
 				) );
 			}
 		}
 
-		/* Let devs change the packages before we split them. */
-		$packages = apply_filters( 'wootax_cart_packages_before_split', $packages, $this->cart );
-
-		/* Split packages by origin address */
-		$split_packages = array();
-
+		/* Set the shipping method for each package, replacing the destination
+		 * address with a local pickup address if appropriate. */
 		foreach ( $packages as $key => $package ) {
-			
-			/* Get shipping method for package. If its a local pickup method,
-			 * subtitute package destination address with pickup address. */
 			$method = $this->get_package_shipping_rate( $key, $package );
 
-			if ( ! is_null( $method ) && SST_Shipping::is_local_pickup( array( $method->method_id ) ) ) {
-				$pickup_address         = apply_filters( 'wootax_pickup_address', SST_Addresses::get_default_address(), null );
-				$package['destination'] = array(
+			if ( is_null( $method ) ) {
+				continue;
+			}
+
+			$method = clone $method; 	/* IMPORTANT: preserve original */
+			$method->id = $key;
+
+			$packages[ $key ]['shipping'] = $method;
+
+			if ( SST_Shipping::is_local_pickup( array( $method->method_id ) ) ) {
+				$pickup_address = apply_filters( 'wootax_pickup_address', SST_Addresses::get_default_address(), null );
+				
+				$packages[ $key ]['destination'] = array(
+					'country'   => 'US',
 					'address'   => $pickup_address->getAddress1(),
 					'address_2' => $pickup_address->getAddress2(),
 					'city'      => $pickup_address->getCity(),
 					'state'     => $pickup_address->getState(),
 					'postcode'  => $pickup_address->getZip5(),
 				);
-			}
-
-			$subpackages = $this->split_package( $package );
-
-			/* Add shipping to first subpackage. Set rate ID to package key so
-			 * we can distinguish the shipping tax for each package. */
-			if ( ! empty( $subpackages ) && ! is_null( $method ) ) {
-
-				$method = clone $method; 	/* IMPORTANT: preserve original */
-				$method->id = $key;
-
-				$subpackages[ key( $subpackages ) ]['shipping'] = $method;
-			}
-
-			$split_packages = array_merge( $split_packages, $subpackages );
+			} 
 		}
 
-		$packages = $split_packages;
+		return $packages;
+	}
 
-		/* Add fees to first package */
-		if ( ! empty( $packages ) && apply_filters( 'wootax_add_fees', true ) ) {
-			$packages[ key( $packages ) ]['fees'] = $this->cart->get_fees();
+ 	/**
+	 * Create shipping packages for this cart.
+	 *
+	 * @since 5.0
+	 *
+	 * @return array
+	 */
+	protected function create_packages() {
+		$packages = array();
+
+		/* Let devs change the packages before we split them. */
+		$raw_packages = apply_filters( 'wootax_cart_packages_before_split', $this->get_filtered_packages(), $this->cart );
+	
+		/* Add fees to first package. */
+		if ( ! empty( $raw_packages ) && apply_filters( 'wootax_add_fees', true ) ) {
+			$raw_packages[ key( $raw_packages ) ]['fees'] = $this->cart->get_fees();
+		}
+
+		/* Split packages by origin address. */
+		foreach ( $raw_packages as $raw_package ) {
+			$packages = array_merge( $packages, $this->split_package( $raw_package ) );
 		}
 
 		return apply_filters( 'wootax_cart_packages', $packages, $this->cart );

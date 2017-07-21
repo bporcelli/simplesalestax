@@ -81,6 +81,19 @@ class SST_Customer {
 	}
 
 	/**
+	 * Get billing_country.
+	 *
+	 * @param  string $context
+	 * @return string
+	 */
+	public static function get_billing_country( $context = 'view' ) {
+		if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
+			return WC()->customer->get_country();
+		}
+		return WC()->customer->get_billing_country();
+	}
+
+	/**
 	 * Gets the address from the current session.
 	 *
 	 * @return string
@@ -123,6 +136,16 @@ class SST_Customer {
 	 */
 	public static function get_shipping_postcode() {
 		return WC()->customer->get_shipping_postcode();
+	}
+
+	/**
+	 * Get shipping_country.
+	 *
+	 * @param  string $context
+	 * @return string
+	 */
+	public static function get_shipping_country( $context = 'view' ) {
+		return WC()->customer->get_shipping_country();
 	}
 
 	/**

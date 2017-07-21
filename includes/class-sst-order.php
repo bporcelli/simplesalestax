@@ -136,93 +136,122 @@ class SST_Order extends SST_Abstract_Cart {
 	}
 
 	/**
-	 * Create shipping packages for order.
+	 * Get base shipping packages for order.
 	 *
-	 * TODO: If we have existing packages, update them instead of
-     * creating new ones.
+	 * @since 5.5
+	 *
+	 * @return array
+	 */
+	protected function get_base_packages() {
+		
+		$packages = array();
+		$items    = $this->transform_items( $this->get_items() );
+
+		/* If WC 3.0 or later, create a package exclusively for digital items. */
+		if ( version_compare( WC_VERSION, '3.0', '>=' ) ) {
+			$digital_items = array();
+
+			foreach ( $items as $key => $item ) {
+				if ( isset( $item['data'] ) && ! $item['data']->needs_shipping() ) {
+					$digital_items[ $key ] = $item;
+					unset( $items[ $key ] );
+				}
+			}
+
+			if ( ! empty( $digital_items ) ) {
+				$packages[]	= sst_create_package( array(
+					'contents'    => $digital_items,
+					'destination' => $this->get_billing_address(),
+					'user'        => array(
+						'ID' => $this->get_user_id(),
+					),
+				) );
+			}
+		}
+		
+		/* Create an additional package for each shipping method. */
+		$ship_methods = $this->get_shipping_methods();
+
+		if ( $ship_methods && $items ) {
+			$items_per_package = ceil( count( $items ) / count( $ship_methods ) );
+			$package_items     = array_chunk( $items, $items_per_package, true );
+			
+			foreach ( $package_items as $contents ) {
+				$method = current( $ship_methods );
+
+				/* Assign shipping method to package. */
+				$package = sst_create_package( array(
+					'contents' => $contents,
+					'shipping' => new WC_Shipping_Rate(
+						key( $ship_methods ),	// id
+						'',						// name
+						$method['cost'],		// cost
+						array(),				// taxes
+						$method['method_id']	// method id
+					),
+					'user'     => array(
+						'ID' => $this->get_user_id(),
+					),
+				) );
+
+				/* Set destination based on shipping method. */
+				if ( SST_Shipping::is_local_pickup( array( $package['shipping']->method_id ) ) ) {
+					$pickup_address = apply_filters( 'wootax_pickup_address', SST_Addresses::get_default_address(), $this->order );
+			
+					$package['destination'] = array(
+						'country'   => 'US',
+						'address'   => $pickup_address->getAddress1(),
+						'address_2' => $pickup_address->getAddress2(),
+						'city'      => $pickup_address->getCity(),
+						'state'     => $pickup_address->getState(),
+						'postcode'  => $pickup_address->getZip5(),
+					);
+				} else {
+					$package['destination'] = $this->get_shipping_address();
+				}
+
+				$packages[] = $package;
+
+				next( $ship_methods );
+			}
+		}
+
+		return $packages;
+	}
+
+	/**
+	 * Create shipping packages for order.
      *
 	 * @since 5.0
 	 *
 	 * @return array
 	 */
 	protected function create_packages() {
-		$destination = $this->get_destination_address();
-
-		if ( is_null( $destination ) ) {
-			return array();
-		}
-
-		/* Start with no packages */
 		$packages = array();
 
-		/* Add a single package with all order items */
-		$packages[] = sst_create_package( array(
-			'contents'    => $this->transform_items( $this->get_items() ),
-			'destination' => array(
-				'address'   => $destination->getAddress1(),
-				'address_2' => $destination->getAddress2(),
-				'city'      => $destination->getCity(),
-				'state'     => $destination->getState(),
-				'postcode'  => $destination->getZip5(),
-			),
-			'user'        => array(
-				'ID' => $this->get_user_id(),
-			),
-		) );
+		/* Let devs change the packages before we split them. */
+		$raw_packages = apply_filters( 'wootax_order_packages_before_split', $this->get_filtered_packages(), $this->order );
 
-		/* Let devs change the packages before we split them */
-		$packages = apply_filters( 'wootax_order_packages_before_split', $packages, $this->order );
-
-		/* Split packages by origin address + add shipping */
-		$split_packages = array();
-		$ship_methods   = $this->get_shipping_methods();
-		$ship_remaining = $this->get_total_shipping();
-
-		foreach ( $packages as $package ) {
-			$subpackages = $this->split_package( $package );
-
-			/* Add shipping to first subpackage */
-			$method = current( $ship_methods );
-
-			if ( $method ) {
-				$first_key = key( $subpackages );
-				
-				$subpackages[ $first_key ]['shipping'] = new WC_Shipping_Rate(
-					key( $ship_methods ),	// id
-					'',						// name
-					$method['cost'],		// cost
-					array(),				// taxes
-					$method['method_id']	// method id
-				);
-
-				$ship_remaining -= $method['cost'];
-				
-				next( $ship_methods );
-			}
-
-			$split_packages = array_merge( $split_packages, $subpackages );
-		}
-
-		$packages = $split_packages;
-
-		/* If any shipping remains, add it to the first package */
-		$first = key( $packages );
-
-		if ( $ship_remaining > 0 ) {
-			$packages[ $first ]['shipping']->cost += $ship_remaining;
-		}
-
-		/* Add fees to first subpackage */
+		/* Add fees to first package. */
 		if ( apply_filters( 'wootax_add_fees', true ) ) {
+			$fees = array();
+			
 			foreach ( $this->get_fees() as $item_id => $fee ) {
 				$name   = empty( $fee['name'] ) ? __( 'Fee', 'simplesalestax' ) : $fee['name'];
 				$fee_id = sanitize_title( $name );
-
-				$packages[ $first ]['fees'][ $item_id ] = (object) array(
+				
+				$fees[ $item_id ] = (object) array(
 					'id'     => $fee_id,
-					'amount' => $fee['line_total']
+					'amount' => $fee['line_total'],
 				);
 			}
+
+			$raw_packages[ key( $raw_packages ) ]['fees'] = $fees;
+		}
+
+		/* Split packages by origin address. */
+		foreach ( $raw_packages as $raw_package ) {
+			$packages = array_merge( $packages, $this->split_package( $raw_package ) );
 		}
 
 		return apply_filters( 'wootax_order_packages', $packages, $this->order );
@@ -400,42 +429,66 @@ class SST_Order extends SST_Abstract_Cart {
 	}
 
 	/**
+	 * Get billing address.
+	 *
+	 * @since 5.5
+	 *
+	 * @return array
+	 */
+	protected function get_billing_address() {
+		return array(
+			'country'   => $this->get_billing_country(),
+			'address'   => $this->get_billing_address_1(),
+			'address_2' => $this->get_billing_address_2(),
+			'city'      => $this->get_billing_city(),
+			'state'     => $this->get_billing_state(),
+			'postcode'  => $this->get_billing_postcode(),
+		);
+	}
+
+	/**
+	 * Get shipping address.
+	 *
+	 * @since 5.5
+	 *
+	 * @return array
+	 */
+	protected function get_shipping_address() {
+		return array(
+			'country'   => $this->get_shipping_country(),
+			'address'   => $this->get_shipping_address_1(),
+			'address_2' => $this->get_shipping_address_2(),
+			'city'      => $this->get_shipping_city(),
+			'state'     => $this->get_shipping_state(),
+			'postcode'  => $this->get_shipping_postcode(),
+		);
+	}
+
+	/**
 	 * Get destination address.
+	 *
+	 * NOTE: This method is solely maintained for backward compatibility with
+	 * the sst_update_50_order_data update routine. It should generally not be
+	 * used elsewhere.
 	 *
 	 * @since 5.0
 	 *
-	 * @return Address|NULL
+	 * @return TaxCloud\Address|NULL
 	 */
 	public function get_destination_address() {
-		$tax_based_on = get_option( 'woocommerce_tax_based_on' );
-		$billing      = 'billing' === $tax_based_on;
-		
-		// Handle local pickups
-		$method_ids = array();
-
-		foreach ( $this->get_shipping_methods() as $method ) {
-			$method_id    = current( explode( ':', $method['method_id'] ) );
-			$method_ids[] = $method_id;
-		}
-
-		if ( 'base' === $tax_based_on || SST_Shipping::is_local_pickup( $method_ids ) ) {
-			return apply_filters( 'wootax_pickup_address', SST_Addresses::get_default_address(), $this->order );
-		}
-
-		// Handle all other shipping methods
-		$address_1 = $billing ? $this->get_billing_address_1() : $this->get_shipping_address_1();
-		$address_2 = $billing ? $this->get_billing_address_2() : $this->get_shipping_address_2();
-		$city      = $billing ? $this->get_billing_city() : $this->get_shipping_city();
-		$state     = $billing ? $this->get_billing_state() : $this->get_shipping_state();
-		$zip       = $billing ? $this->get_billing_postcode() : $this->get_shipping_postcode();
+		if ( 'billing' === get_option( 'woocommerce_tax_based_on' ) ) {
+			$raw_address = $this->get_billing_address();
+		} else {
+			$raw_address = $this->get_shipping_address();
+		}		
 
 		try {
 			$address = new TaxCloud\Address(
-				$address_1,
-				$address_2,
-				$city,
-				$state,
-				substr( $zip , 0, 5 )
+				$raw_address['address'],
+				$raw_address['address_2'],
+				$raw_address['city'],
+				$raw_address['state'],
+				substr( $raw_address['postcode'] , 0, 5 )
 			);
 
 			return SST_Addresses::verify_address( $address );

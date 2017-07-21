@@ -240,6 +240,12 @@ abstract class SST_Abstract_Cart {
 					'certificate' => $this->get_certificate(),
 					'user'        => isset( $package['user'] ) ? $package['user'] : array( 'ID' => get_current_user_id() )
 				) );
+
+				/* Associate shipping with first subpackage */
+				if ( isset( $package['shipping'] ) ) {
+					$packages[ $origin_id ]['shipping'] = $package['shipping'];
+					unset( $package['shipping'] );
+				}
 			}
 
 			/* Update package contents */
@@ -315,6 +321,28 @@ abstract class SST_Abstract_Cart {
 	}
 
 	/**
+	 * Get the base packages for the cart, filtering out all packages destined
+	 * for places abroad.
+	 *
+	 * @since 5.5
+	 *
+	 * @return array
+	 */
+	protected function get_filtered_packages() {
+		$packages = $this->get_base_packages();
+
+		foreach ( $packages as $key => $package ) {
+			if ( ! isset( $package['destination'], $package['destination']['country'] ) ) {
+				unset( $packages[ $key ] );
+			} else if ( 'US' !== $package['destination']['country'] ) {
+				unset( $packages[ $key ] );
+			}
+		}
+
+		return $packages;
+	}
+
+	/**
 	 * Get saved packages for this cart.
 	 *
 	 * @since 5.0
@@ -331,6 +359,24 @@ abstract class SST_Abstract_Cart {
 	 * @param $packages array (default: array())
 	 */
 	abstract protected function set_packages( $packages = array() );
+
+	/**
+	 * Get the base packages for the cart. The base packages are split by origin
+	 * and otherwise processed to generate the packages sent to TaxCloud.
+	 *
+	 * The packages returned by this method must satisfy the following criteria.
+	 *
+	 * Completeness: The keys 'contents', 'user', 'shipping', and 'destination'
+	 * must be defined.
+	 * 
+	 * Inclusiveness: Every item in the cart must be included in exactly one
+	 * package.
+	 *
+	 * @since 5.5
+	 *
+	 * @return array
+	 */
+	abstract protected function get_base_packages();
 
 	/**
 	 * Create shipping packages for this cart.
