@@ -232,6 +232,11 @@ class SST_Order extends SST_Abstract_Cart {
 		/* Let devs change the packages before we split them. */
 		$raw_packages = apply_filters( 'wootax_order_packages_before_split', $this->get_filtered_packages(), $this->order );
 
+		/* Split packages by origin address. */
+		foreach ( $raw_packages as $raw_package ) {
+			$packages = array_merge( $packages, $this->split_package( $raw_package ) );
+		}
+
 		/* Add fees to first package. */
 		if ( apply_filters( 'wootax_add_fees', true ) ) {
 			$fees = array();
@@ -246,12 +251,7 @@ class SST_Order extends SST_Abstract_Cart {
 				);
 			}
 
-			$raw_packages[ key( $raw_packages ) ]['fees'] = $fees;
-		}
-
-		/* Split packages by origin address. */
-		foreach ( $raw_packages as $raw_package ) {
-			$packages = array_merge( $packages, $this->split_package( $raw_package ) );
+			$packages[ key( $packages ) ]['fees'] = $fees;
 		}
 
 		return apply_filters( 'wootax_order_packages', $packages, $this->order );

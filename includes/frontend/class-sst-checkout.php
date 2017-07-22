@@ -221,15 +221,15 @@ class SST_Checkout extends SST_Abstract_Cart {
 
 		/* Let devs change the packages before we split them. */
 		$raw_packages = apply_filters( 'wootax_cart_packages_before_split', $this->get_filtered_packages(), $this->cart );
-	
-		/* Add fees to first package. */
-		if ( ! empty( $raw_packages ) && apply_filters( 'wootax_add_fees', true ) ) {
-			$raw_packages[ key( $raw_packages ) ]['fees'] = $this->cart->get_fees();
-		}
 
 		/* Split packages by origin address. */
 		foreach ( $raw_packages as $raw_package ) {
 			$packages = array_merge( $packages, $this->split_package( $raw_package ) );
+		}
+
+		/* Add fees to first package. */
+		if ( ! empty( $packages ) && apply_filters( 'wootax_add_fees', true ) ) {
+			$packages[ key( $packages ) ]['fees'] = $this->cart->get_fees();
 		}
 
 		return apply_filters( 'wootax_cart_packages', $packages, $this->cart );
