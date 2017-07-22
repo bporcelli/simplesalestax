@@ -208,29 +208,31 @@ class SST_Ajax {
 		$woo_3_0      = version_compare( WC_VERSION, '3.0', '>=' );
 
 		/* Let Woo take the reins if the customer is international */
-		if ( 'US' != $country )
+		if ( 'US' != $country ) {
 			return;
+		}
+
+		$order  = wc_get_order( $order_id );
+		$_order = new SST_Order( $order );
 
 		/* Parse jQuery serialized items */
 		parse_str( $_POST['items'], $items );
 
-		/* Set customer billing/shipping address if necessary */
-		$order  = wc_get_order( $order_id );
-		$_order = new SST_Order( $order );
+		/* Set customer billing/shipping address as needed */
+		$address = array(
+			'country'   => 'US',
+			'address_1' => '',
+			'address_2' => '',
+			'city'      => $city,
+			'state'     => $state,
+			'postcode'  => $postcode
+		);
 
-		if ( is_null( $_order->get_destination_address() ) ) {
-			$address = array(
-				'address_1' => '',
-				'address_2' => '',
-				'city'      => $city,
-				'state'     => $state,
-				'postcode'  => $postcode
-			);
-
-			if ( 'billing' === $tax_based_on )
-				$_order->set_address( $address, 'billing' );
-			else
-				$_order->set_address( $address, 'shipping' );
+		if ( 'shipping' === $tax_based_on || empty( $_order->get_shipping_country() ) ) {
+			$_order->set_address( $address, 'shipping' );
+		}
+		if ( 'billing' === $tax_based_on || empty( $_order->get_billing_country() )) {
+			$_order->set_address( $address, 'billing' );
 		}
 
 		/* Save items and recalc taxes */
@@ -244,10 +246,12 @@ class SST_Ajax {
 		}
 
 		/* Send back response */
-		if ( ! $woo_3_0 )
+		if ( ! $woo_3_0 ) {
 			$data = get_post_meta( $order_id );
+		}
 
 		include WC()->plugin_path() . '/includes/admin/meta-boxes/views/html-order-items.php';
+		
 		wp_die();
 	}
 

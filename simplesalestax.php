@@ -4,7 +4,7 @@
  * Plugin Name: Simple Sales Tax
  * Plugin URI: https://simplesalestax.com
  * Description: Harness the power of TaxCloud to accurately calculate sales tax for your WooCommerce store.
- * Version: 5.4
+ * Version: 5.5
  * Author: Simple Sales Tax
  * Author URI: https://simplesalestax.com
  *
@@ -55,7 +55,7 @@ final class SST {
 	 * @var string Plugin version.
 	 * @since 4.2
 	 */
-	public $version = '5.4';
+	public $version = '5.5';
 
 	/**
 	 * @var SST The single plugin instance.
