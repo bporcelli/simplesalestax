@@ -196,6 +196,7 @@ final class SST {
 		 * Frontend only.
 		 */
 		if ( $this->is_request( 'frontend' ) ) {
+			include_once 'includes/frontend/class-sst-cart-proxy.php';
 			include_once 'includes/frontend/class-sst-checkout.php';
 		}
 	}

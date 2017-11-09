@@ -35,6 +35,16 @@ function sst_woocommerce_active() {
 }
 
 /**
+ * Is WooCommerce 3.2 or later installed?
+ *
+ * @since  5.6
+ * @return bool
+ */
+function sst_woocommerce_gte_32() {
+	return version_compare( WC_VERSION, '3.2.0', '>=' );
+}
+
+/**
  * Is WooCommerce Subscriptions active?
  *
  * @since 5.0
