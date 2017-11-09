@@ -272,9 +272,10 @@ abstract class SST_Abstract_Cart {
 		// Convert WC_Shipping_Rate to array (shipping will be excluded from hash o.w.)
 		if ( is_a( $package['shipping'], 'WC_Shipping_Rate' ) ) {
 			$package['shipping'] = array(
-				'method_id'   => $package['shipping']->method_id,
-				'instance_id' => $package['shipping']->instance_id,
-				'cost'        => $package['shipping']->cost
+				'id'         => $package['shipping']->id,
+				'label'      => $package['shipping']->label,
+				'cost'       => $package['shipping']->cost,
+				'method_id'  => $package['shipping']->method_id
 			);			
 		}
 
