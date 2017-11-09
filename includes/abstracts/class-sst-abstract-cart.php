@@ -76,7 +76,7 @@ abstract class SST_Abstract_Cart {
 			$hash = $this->get_package_hash( $package );
 
 			if ( array_key_exists( $hash, $saved_pkgs ) ) {
-				$packages[ $key ] = $saved_pkgs[ $hash ]; /* Use cached result */
+				$packages[ $hash ] = $saved_pkgs[ $hash ]; /* Use cached result */
 			} else if ( $this->ready_for_lookup( $package ) ) {
 				try {
 					$package['request']  = $this->get_lookup_for_package( $package );
@@ -86,7 +86,7 @@ abstract class SST_Abstract_Cart {
 					$package['response'] = new WP_Error( 'lookup_error', $ex->getMessage() );
 				}
 
-				$packages[ $key ] = $package;
+				$packages[ $hash ] = $package;
 			}
 		}
 
@@ -264,14 +264,22 @@ abstract class SST_Abstract_Cart {
 	 * @return string
 	 */
 	private function get_package_hash( $package ) {
-		$package_to_hash = $package;
-
 		// Remove data objects so hashes are consistent
-		foreach ( $package_to_hash['contents'] as $item_id => $item ) {
-			unset( $package_to_hash['contents'][ $item_id ]['data'] );
+		foreach ( $package['contents'] as $item_id => $item ) {
+			unset( $package['contents'][ $item_id ]['data'] );
 		}
 
-		return 'sst_pack_' . md5( json_encode( $package_to_hash ) . WC_Cache_Helper::get_transient_version( 'shipping' ) );
+		// Convert WC_Shipping_Rate to array (shipping will be excluded from hash o.w.)
+		if ( is_a( $package['shipping'], 'WC_Shipping_Rate' ) ) {
+			$package['shipping'] = array(
+				'id'         => $package['shipping']->id,
+				'label'      => $package['shipping']->label,
+				'cost'       => $package['shipping']->cost,
+				'method_id'  => $package['shipping']->method_id
+			);			
+		}
+
+		return 'sst_pack_' . md5( json_encode( $package ) . WC_Cache_Helper::get_transient_version( 'shipping' ) );
 	}
 
 	/**

@@ -4,9 +4,10 @@
  * Plugin Name: Simple Sales Tax
  * Plugin URI: https://simplesalestax.com
  * Description: Harness the power of TaxCloud to accurately calculate sales tax for your WooCommerce store.
- * Version: 5.5
+ * Version: 5.6
  * Author: Simple Sales Tax
  * Author URI: https://simplesalestax.com
+ * WC Tested Up To: 3.2.3
  *
  * Copyright 2017 The WooTax Corporation (email: support@simplesalestax.com)
  *
@@ -55,7 +56,7 @@ final class SST {
 	 * @var string Plugin version.
 	 * @since 4.2
 	 */
-	public $version = '5.5';
+	public $version = '5.6';
 
 	/**
 	 * @var SST The single plugin instance.
@@ -196,6 +197,7 @@ final class SST {
 		 * Frontend only.
 		 */
 		if ( $this->is_request( 'frontend' ) ) {
+			include_once 'includes/frontend/class-sst-cart-proxy.php';
 			include_once 'includes/frontend/class-sst-checkout.php';
 		}
 	}

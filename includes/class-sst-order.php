@@ -93,7 +93,9 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @return array
 	 */
 	protected function get_packages() {
-		return $this->get_meta( 'packages' );
+		// use array_values so package keys are integers (we want nice order IDs like 9004_0, 9004_1,... in TaxCloud)
+		// todo: store cached packages separately so this isn't necessary
+		return array_values( $this->get_meta( 'packages' ) );
 	}
 
 	/**

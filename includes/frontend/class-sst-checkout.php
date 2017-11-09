@@ -29,6 +29,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	public function __construct() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'woocommerce_calculate_totals', array( $this, 'calculate_tax_totals' ), 15 );
+		add_filter( 'woocommerce_calculated_total', array( $this, 'filter_calculated_total' ) );
 		add_filter( 'woocommerce_cart_hide_zero_taxes', array( $this, 'hide_zero_taxes' ) );
 		add_action( 'woocommerce_new_order', array( $this, 'add_order_meta' ) );
 		add_action( 'woocommerce_resume_order', array( $this, 'add_order_meta' ) );
@@ -54,9 +55,21 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @return bool True on success, false on error.
 	 */
 	public function calculate_tax_totals( $cart ) {
-		$this->cart = $cart;
+		$this->cart = new SST_Cart_Proxy( $cart );
 		parent::calculate_taxes();
-		$this->cart = null;
+	}
+
+	/**
+	 * Add the calculated sales tax to the cart total (WC 3.2+)
+	 *
+	 * @since 5.6
+	 * @param $total total calculated by WooCommerce (excludes tax)
+	 */
+	public function filter_calculated_total( $total ) {
+		if ( sst_woocommerce_gte_32() ) {
+			$total += $this->cart->get_cart_contents_tax() + $this->cart->get_fee_tax() + $this->cart->get_shipping_tax();
+		}
+		return $total;
 	}
 
 	/**
@@ -78,7 +91,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @return array
 	 */
 	protected function get_packages() {
-		return $this->cart->sst_packages;
+		return $this->cart->get_packages();
 	}
 
 	/**
@@ -89,7 +102,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @param $packages array (default: array())
 	 */
  	protected function set_packages( $packages = array() ) {
- 		$this->cart->sst_packages = $packages;
+ 		$this->cart->set_packages( $packages );
  	}
 
  	/**
@@ -241,7 +254,6 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	protected function reset_taxes() {
-		/* Reset tax totals for all items + shipping */
 		foreach ( $this->cart->get_cart() as $cart_key => $item ) {
 			$this->set_product_tax( $cart_key, 0 );
 		}
@@ -250,12 +262,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 			$this->set_fee_tax( $key, 0 );
 		}
 
-		$this->cart->sst_shipping_taxes = array();
-
-		/* Initialize sst_packages array if need be */
-		if ( ! is_array( $this->cart->sst_packages ) ) {
-			$this->cart->sst_packages = array();
-		}
+		$this->cart->reset_shipping_taxes();
 
 		$this->update_taxes();
 	}
@@ -266,11 +273,11 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
  	protected function update_taxes() {
- 		/* Compute the total cart tax added by us */
  		$cart_tax_total = 0;
 
  		foreach ( $this->cart->get_cart() as $item ) {
  			$tax_data = $item['line_tax_data'];
+ 			
  			if ( isset( $tax_data['total'], $tax_data['total'][ SST_RATE_ID ] ) ) {
  				$cart_tax_total += $tax_data['total'][ SST_RATE_ID ];
  			}
@@ -282,11 +289,12 @@ class SST_Checkout extends SST_Abstract_Cart {
  			}
  		}
 
- 		/* Set total cart tax/shipping tax */
- 		$this->cart->taxes[ SST_RATE_ID ] = $cart_tax_total;
-		$this->cart->tax_total = WC_Tax::get_tax_total( $this->cart->taxes );
-		$this->cart->shipping_taxes[ SST_RATE_ID ] = WC_Tax::get_tax_total( $this->cart->sst_shipping_taxes );
-		$this->cart->shipping_tax_total = WC_Tax::get_tax_total( $this->cart->shipping_taxes );
+ 		$shipping_tax_total = WC_Tax::get_tax_total( $this->cart->sst_shipping_taxes );
+
+ 		$this->cart->set_tax_amount( SST_RATE_ID, $cart_tax_total );
+ 		$this->cart->set_shipping_tax_amount( SST_RATE_ID, $shipping_tax_total );
+ 		
+ 		$this->cart->update_tax_totals();
  	}
 
 	/**
@@ -298,24 +306,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @param float $tax Sales tax for product.
 	 */
 	protected function set_product_tax( $id, $tax ) {
-		// Update tax data
-		$tax_data = $this->cart->cart_contents[ $id ][ 'line_tax_data' ];
-
-		if ( ! isset( $tax_data['subtotal'][ SST_RATE_ID ] ) ) {
-			$tax_data['subtotal'][ SST_RATE_ID ] = 0;
-		}
-		if ( ! isset( $tax_data['total'][ SST_RATE_ID ] ) ) {
-			$tax_data['total'][ SST_RATE_ID ] = 0;
-		}
-
-		$tax_data['subtotal'][ SST_RATE_ID ] += $tax;
-		$tax_data['total'][ SST_RATE_ID ]    += $tax;
-
-		$this->cart->cart_contents[ $id ][ 'line_tax_data' ] = $tax_data;
-
-		// Update totals
-		$this->cart->cart_contents[ $id ]['line_subtotal_tax'] = array_sum( $tax_data['subtotal'] );
-		$this->cart->cart_contents[ $id ]['line_tax']          = array_sum( $tax_data['total'] );
+		$this->cart->set_cart_item_tax( $id, $tax );
 	}
 	
 	/**
@@ -327,7 +318,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @param float $tax Sales tax for package.
 	 */
 	protected function set_shipping_tax( $id, $tax ) {
-		$this->cart->sst_shipping_taxes[ $id ] = $tax;
+		$this->cart->set_package_tax( $id, $tax );
 	}
 
 	/**
@@ -339,8 +330,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @param float $tax Sales tax for fee.
 	 */
 	protected function set_fee_tax( $id, $tax ) {
-		$this->cart->fees[ $id ]->tax_data[ SST_RATE_ID ] = $tax;
-		$this->cart->fees[ $id ]->tax = array_sum( $this->cart->fees[ $id ]->tax_data );
+		$this->cart->set_fee_item_tax( $id,  $tax );
 	}
 
 	/**
@@ -386,7 +376,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @param int $order_id ID of new order.
 	 */
 	public function add_order_meta( $order_id ) {
-		$this->cart = WC()->cart; /* Save data from 'main' cart */
+		$this->cart = new SST_Cart_Proxy( WC()->cart ); /* Save data from 'main' cart */
 
 		$order = new SST_Order( $order_id );
 
