@@ -604,7 +604,7 @@ class SST_Order extends SST_Abstract_Cart {
 				$to_match = $package['map'][ $cart_item_key ];
 
 				if ( 'shipping' == $to_match['type'] ) {
-					$to_match['id'] = $package['shipping']->method_id;
+					$to_match['id'] = $this->process_method_id( $package['shipping']->method_id );
 				}
 
 				foreach ( $items as $item_key => $item ) {
@@ -661,8 +661,8 @@ class SST_Order extends SST_Abstract_Cart {
 
 	/**
 	 * Shipping methods like WooCommerce FedEx Drop Shipping Pro use nonstandard
-	 * method IDs. This method converts those nonstandard IDs into standard IDs
-	 * of the form METHOD_ID:INSTANCE_ID.
+	 * method IDs. This method converts those nonstandard IDs into the standard
+	 * format.
 	 *
 	 * @since 5.3
 	 *
@@ -676,7 +676,7 @@ class SST_Order extends SST_Abstract_Cart {
 		if ( class_exists( 'ups_drop_shipping_rate' ) ) {
 			$method_id = preg_replace( '/ups_drop_shipping_rate_UPS (.*)/', 'ups_drop_shipping_rate:$1', $method_id );
 		}
-		return $method_id;
+		return current( explode( ':', $method_id ) );
 	}
 
 	/**
@@ -710,7 +710,7 @@ class SST_Order extends SST_Abstract_Cart {
 					$id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
 				break;
 				case 'shipping':  // TODO: handle packages w/ same method
-					$id = current( explode( ':', $this->process_method_id( $item['method_id'] ) ) );
+					$id = $this->process_method_id( $item['method_id'] );
 				break;
 				case 'fee':
 					$name = empty( $item['name'] ) ? __( 'Fee', 'simplesalestax' ) : $item['name'];

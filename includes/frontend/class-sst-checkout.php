@@ -33,6 +33,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 		add_filter( 'woocommerce_cart_hide_zero_taxes', array( $this, 'hide_zero_taxes' ) );
 		add_action( 'woocommerce_new_order', array( $this, 'add_order_meta' ) );
 		add_action( 'woocommerce_resume_order', array( $this, 'add_order_meta' ) );
+		add_action( 'woocommerce_cart_emptied', array( $this, 'clear_package_cache' ) );
 
 		if ( sst_storefront_active() ) {
 			add_action( 'woocommerce_checkout_shipping', array( $this, 'output_exemption_form' ), 15 );
@@ -530,6 +531,15 @@ class SST_Checkout extends SST_Abstract_Cart {
 			'checked'  => ! $_POST && $this->is_user_exempt() || $_POST && isset( $_POST[ 'tax_exempt' ] ),
 			'selected' => isset( $_POST['certificate_id'] ) ? $_POST['certificate_id'] : '',
 		), 'sst/checkout/', SST()->plugin_path() . '/includes/frontend/views/' );
+	}
+
+	/**
+	 * Clear cached shipping packages when the cart is emptied.
+	 *
+	 * @since 5.7
+	 */
+	public function clear_package_cache() {
+		WC()->session->set( 'sst_packages', array() );
 	}
 }
 
