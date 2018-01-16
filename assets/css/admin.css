@@ -1,11 +1,11 @@
 /* WooTax admin CSS */
 
 .toplevel .form-error {
-	border-color: #be0636 !important;
+    border-color: #be0636 !important;
 }
 
 .wootax-reports-page {
-	padding-left: 10px;
+    padding-left: 10px;
 }
 
 .button.add-order-tax, a.delete_refund {
