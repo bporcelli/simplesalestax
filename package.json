@@ -1,0 +1,28 @@
+{
+  "name": "simplesalestax",
+  "version": "5.7.0",
+  "description": "A TaxCloud integration for WooCommerce.",
+  "scripts": {
+    "build": "grunt"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bporcelli/simplesalestax.git"
+  },
+  "keywords": [
+    "wordpress",
+    "woocommerce",
+    "sales",
+    "tax"
+  ],
+  "author": "Simple Sales Tax",
+  "license": "GPL-3.0+",
+  "bugs": {
+    "url": "https://github.com/bporcelli/simplesalestax/issues"
+  },
+  "homepage": "https://github.com/bporcelli/simplesalestax#readme",
+  "devDependencies": {
+    "grunt": "^1.0.1",
+    "grunt-wp-i18n": "^1.0.1"
+  }
+}

@@ -1,0 +1,806 @@
+# Copyright (C) 2018 Simple Sales Tax
+# This file is distributed under the GPL-3.0+.
+msgid ""
+msgstr ""
+"Project-Id-Version: Simple Sales Tax 5.7\n"
+"Report-Msgid-Bugs-To: https://github.com/bporcelli/simplesalestax/issues\n"
+"POT-Creation-Date: 2018-01-16 15:45:18+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2018-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: TaxCloud <support@taxcloud.net>\n"
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Poedit-Country: United States\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Poedit-KeywordsList: "
+"__;_e;_x:1,2c;_ex:1,2c;_n:1,2;_nx:1,2,4c;_n_noop:1,2;_nx_noop:1,2,3c;esc_"
+"attr__;esc_html__;esc_attr_e;esc_html_e;esc_attr_x:1,2c;esc_html_x:1,2c;\n"
+"X-Poedit-Basepath: ../\n"
+"X-Poedit-SearchPath-0: .\n"
+"X-Poedit-Bookmarks: \n"
+"X-Textdomain-Support: yes\n"
+"X-Generator: grunt-wp-i18n1.0.1\n"
+
+#: includes/abstracts/class-sst-abstract-cart.php:52
+msgid "Failed to calculate sales tax: %s"
+msgstr ""
+
+#: includes/abstracts/class-sst-abstract-cart.php:229
+msgid "Failed to calculate sales tax: no origin address for product %d."
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:81
+msgid "Please enter your API Login ID and API Key."
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:82
+msgid "Success! Your TaxCloud settings are valid."
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:83
+msgid "Connection to TaxCloud failed."
+msgstr ""
+
+#. Author of the plugin/theme
+msgid "Simple Sales Tax"
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:144
+msgid "Go to TaxCloud Reports Page"
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:159
+msgid "Taxes"
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:162
+msgid "Overview"
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:187
+msgid "There are no cached rates to remove."
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:196
+msgid "%d cached tax rates removed."
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:216
+msgid "Delete cached tax rates"
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:217
+msgid "Clear cache"
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:218
+msgid "This tool will remove any tax rates cached by WooCommerce."
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:243
+#: includes/admin/views/html-select-tic-bulk.php:9
+#: includes/admin/views/html-select-tic-category.php:18
+#: includes/admin/views/html-select-tic.php:17
+#: includes/class-sst-product.php:170
+msgid "Using site default"
+msgstr ""
+
+#: includes/admin/class-sst-integration.php:26
+msgid ""
+"<p>Simple Sales Tax makes sales tax easy by connecting your store with <a "
+"href=\"https://taxcloud.net\" target=\"_blank\">TaxCloud</a>. If you have "
+"trouble with Simple Sales Tax, please consult the <a "
+"href=\"https://simplesalestax.com/#faq\" target=\"_blank\">FAQ</a> and the "
+"<a href=\"https://simplesalestax.com/installation-guide/\" "
+"target=\"_blank\">Installation Guide</a> before contacting "
+"support.</p><p>Need help? <a "
+"href=\"https://simplesalestax.com/contact-us/\" target=\"_blank\">Contact "
+"us</a>.</p>"
+msgstr ""
+
+#: includes/admin/class-sst-integration.php:128
+msgid "At least one default address is required."
+msgstr ""
+
+#: includes/admin/class-sst-integration.php:209
+msgid "Failed to save address <em>%s</em>: %s"
+msgstr ""
+
+#: includes/admin/class-sst-integration.php:218
+msgid "Failed to validate address: %s."
+msgstr ""
+
+#: includes/admin/views/html-address-table.php:12
+msgid "Address 1"
+msgstr ""
+
+#: includes/admin/views/html-address-table.php:12
+msgid "Line 1 of your business address."
+msgstr ""
+
+#: includes/admin/views/html-address-table.php:13
+msgid "Address 2"
+msgstr ""
+
+#: includes/admin/views/html-address-table.php:13
+msgid "Line 2 of your business address."
+msgstr ""
+
+#: includes/admin/views/html-address-table.php:14
+msgid "City"
+msgstr ""
+
+#: includes/admin/views/html-address-table.php:14
+msgid "The city in which your business operates."
+msgstr ""
+
+#: includes/admin/views/html-address-table.php:15
+msgid "State"
+msgstr ""
+
+#: includes/admin/views/html-address-table.php:15
+msgid "The state where your business is located."
+msgstr ""
+
+#: includes/admin/views/html-address-table.php:16
+msgid "ZIP Code"
+msgstr ""
+
+#: includes/admin/views/html-address-table.php:16
+msgid "5 or 9-digit ZIP code of your business address."
+msgstr ""
+
+#: includes/admin/views/html-address-table.php:17
+msgid "Default?"
+msgstr ""
+
+#: includes/admin/views/html-address-table.php:17
+msgid ""
+"Check this if you want this address to be used as a default 'Shipment "
+"Origin Address' for your products. You must have at least one default "
+"address."
+msgstr ""
+
+#: includes/admin/views/html-address-table.php:23
+msgid "Add Address"
+msgstr ""
+
+#: includes/admin/views/html-address-table.php:33
+msgid "No addresses added."
+msgstr ""
+
+#: includes/admin/views/html-address-table.php:43
+msgid "Remove"
+msgstr ""
+
+#: includes/admin/views/html-address-table.php:56
+msgid "Select One"
+msgstr ""
+
+#: includes/admin/views/html-meta-box.php:6
+msgid "TaxCloud Status"
+msgstr ""
+
+#: includes/admin/views/html-meta-box.php:6
+msgid ""
+"Status of order in TaxCloud ('Pending', 'Captured', or 'Refunded'). All "
+"orders should eventually be 'Captured' or 'Refunded.'"
+msgstr ""
+
+#: includes/admin/views/html-meta-box.php:8
+msgid "Exemption Certificate"
+msgstr ""
+
+#: includes/admin/views/html-meta-box.php:8
+msgid "The customer's exemption certificate, if applicable."
+msgstr ""
+
+#: includes/admin/views/html-meta-box.php:8
+msgid "View"
+msgstr ""
+
+#: includes/admin/views/html-notice-update.php:11
+#: includes/admin/views/html-notice-updating.php:11
+msgid "Simple Sales Tax data update."
+msgstr ""
+
+#: includes/admin/views/html-notice-update.php:11
+msgid "We need to update your database to the latest version."
+msgstr ""
+
+#: includes/admin/views/html-notice-update.php:12
+msgid "Run the updater"
+msgstr ""
+
+#: includes/admin/views/html-notice-updating.php:11
+msgid ""
+"Your database is being updated in the background. This notice will "
+"disappear when the update is complete."
+msgstr ""
+
+#: includes/admin/views/html-origin-select.php:10
+msgid "Origin addresses"
+msgstr ""
+
+#: includes/admin/views/html-origin-select.php:22
+msgid "There are no addresses to select."
+msgstr ""
+
+#: includes/admin/views/html-origin-select.php:26
+msgid ""
+"Used by Simple Sales Tax for tax calculations. These are the addresses from "
+"which this product will be shipped."
+msgstr ""
+
+#: includes/admin/views/html-select-tic-bulk.php:7
+#: includes/admin/views/html-select-tic.php:13
+msgid "TIC"
+msgstr ""
+
+#: includes/admin/views/html-select-tic-bulk.php:11
+#: includes/admin/views/html-select-tic-category.php:20
+#: includes/admin/views/html-select-tic-modal.php:13
+#: includes/admin/views/html-select-tic.php:18
+msgid "Select"
+msgstr ""
+
+#: includes/admin/views/html-select-tic-category.php:23
+msgid "This TIC will be used as the default for all products in this category."
+msgstr ""
+
+#: includes/admin/views/html-select-tic-modal.php:23
+msgid "Select TIC"
+msgstr ""
+
+#: includes/admin/views/html-select-tic-modal.php:25
+#: includes/frontend/views/html-certificate-table.php:84
+#: includes/frontend/views/html-view-certificate.php:13
+msgid "Close modal panel"
+msgstr ""
+
+#: includes/admin/views/html-select-tic-modal.php:30
+msgid "Start typing to search"
+msgstr ""
+
+#: includes/class-sst-ajax.php:122
+msgid "Invalid request."
+msgstr ""
+
+#: includes/class-sst-install.php:142
+msgid ""
+"Simple Sales Tax found extra rates in your tax tables. Please choose to <a "
+"href=\"%s\">keep the rates</a> or <a href=\"%s\">delete them</a>."
+msgstr ""
+
+#: includes/class-sst-install.php:235
+msgid "Exempt Customer"
+msgstr ""
+
+#: includes/class-sst-install.php:251
+msgid "Settings"
+msgstr ""
+
+#: includes/class-sst-install.php:365
+msgid "Sales Tax"
+msgstr ""
+
+#: includes/class-sst-order.php:247 includes/class-sst-order.php:716
+#: includes/sst-update-functions.php:516
+msgid "Fee"
+msgstr ""
+
+#: includes/class-sst-order.php:532
+msgid "Failed to capture order %d: already captured."
+msgstr ""
+
+#: includes/class-sst-order.php:536
+msgid "Failed to capture order %d: order was refunded."
+msgstr ""
+
+#: includes/class-sst-order.php:557
+msgid "Failed to capture order %d: %s."
+msgstr ""
+
+#: includes/class-sst-order.php:579
+msgid "Can't refund order %d: order must be completed first."
+msgstr ""
+
+#: includes/class-sst-order.php:645
+msgid "Failed to refund order %d: %s."
+msgstr ""
+
+#: includes/class-sst-product.php:122
+msgid "No Change"
+msgstr ""
+
+#: includes/class-sst-product.php:170
+msgid "Same as parent"
+msgstr ""
+
+#: includes/class-sst-settings.php:47
+msgid "TaxCloud Settings"
+msgstr ""
+
+#: includes/class-sst-settings.php:49
+msgid ""
+"You must enter a valid TaxCloud API ID and API Key for Simple Sales Tax to "
+"work properly. Use the \"Verify Settings\" button to test your settings."
+msgstr ""
+
+#: includes/class-sst-settings.php:52
+msgid "TaxCloud API ID"
+msgstr ""
+
+#: includes/class-sst-settings.php:54
+msgid ""
+"Your TaxCloud API ID. This can be found in your TaxCloud account on the "
+"\"Websites\" page."
+msgstr ""
+
+#: includes/class-sst-settings.php:59
+msgid "TaxCloud API Key"
+msgstr ""
+
+#: includes/class-sst-settings.php:61
+msgid ""
+"Your TaxCloud API Key. This can be found in your TaxCloud account on the "
+"\"Websites\" page."
+msgstr ""
+
+#: includes/class-sst-settings.php:66
+msgid "Verify TaxCloud Settings"
+msgstr ""
+
+#: includes/class-sst-settings.php:67
+msgid "Verify Settings"
+msgstr ""
+
+#: includes/class-sst-settings.php:69
+msgid "Use this button to verify that your site can communicate with TaxCloud."
+msgstr ""
+
+#: includes/class-sst-settings.php:74
+msgid "Business Addresses"
+msgstr ""
+
+#: includes/class-sst-settings.php:76
+msgid ""
+"You must enter at least one business address for Simple Sales Tax to work "
+"properly. <strong>Important:</strong> Any addresses you enter here should "
+"also be registered as <a "
+"href=\"https://simplesalestax.com/taxcloud/locations/\" "
+"target=\"_blank\">locations</a> in TaxCloud."
+msgstr ""
+
+#: includes/class-sst-settings.php:83
+msgid "Exemption Settings"
+msgstr ""
+
+#: includes/class-sst-settings.php:85
+msgid ""
+"If you have tax exempt customers, be sure to enable tax exemptions and "
+"enter your company name."
+msgstr ""
+
+#: includes/class-sst-settings.php:88
+msgid "Enable Tax Exemptions?"
+msgstr ""
+
+#: includes/class-sst-settings.php:91 includes/class-sst-settings.php:121
+#: includes/class-sst-settings.php:134
+msgid "Yes"
+msgstr ""
+
+#: includes/class-sst-settings.php:92 includes/class-sst-settings.php:122
+#: includes/class-sst-settings.php:135
+msgid "No"
+msgstr ""
+
+#: includes/class-sst-settings.php:95
+msgid "Set this to \"Yes\" if you have tax exempt customers."
+msgstr ""
+
+#: includes/class-sst-settings.php:99
+msgid "Company Name"
+msgstr ""
+
+#: includes/class-sst-settings.php:102
+msgid "Enter your company name as it should be displayed on exemption certificates."
+msgstr ""
+
+#: includes/class-sst-settings.php:106
+msgid "Exempt User Roles"
+msgstr ""
+
+#: includes/class-sst-settings.php:111
+msgid ""
+"When a user with one of these roles shops on your site, WooTax will "
+"automatically find and apply the first exemption certificate associated "
+"with their account. Convenient if you have repeat exempt customers."
+msgstr ""
+
+#: includes/class-sst-settings.php:115
+msgid "Restrict to Exempt Roles"
+msgstr ""
+
+#: includes/class-sst-settings.php:118
+msgid ""
+"Set this to \"Yes\" to restrict users aside from those specified above from "
+"seeing the exemption form during checkout."
+msgstr ""
+
+#: includes/class-sst-settings.php:126
+msgid "Display Settings"
+msgstr ""
+
+#: includes/class-sst-settings.php:128
+msgid "Control how taxes are displayed during checkout."
+msgstr ""
+
+#: includes/class-sst-settings.php:131
+msgid "Show Zero Tax?"
+msgstr ""
+
+#: includes/class-sst-settings.php:138
+msgid "When the sales tax due is zero, should the \"Sales Tax\" line be shown?"
+msgstr ""
+
+#: includes/class-sst-settings.php:142
+msgid "Advanced Settings"
+msgstr ""
+
+#: includes/class-sst-settings.php:144
+msgid ""
+"For advanced users only. Leave these settings untouched if you are not sure "
+"how to use them."
+msgstr ""
+
+#: includes/class-sst-settings.php:147
+msgid "Log Requests"
+msgstr ""
+
+#: includes/class-sst-settings.php:151
+msgid ""
+"When selected, Simple Sales Tax will log all requests sent to TaxCloud for "
+"debugging purposes."
+msgstr ""
+
+#: includes/class-sst-settings.php:155
+msgid "Capture Orders Immediately"
+msgstr ""
+
+#: includes/class-sst-settings.php:159
+msgid ""
+"By default, orders are marked as Captured in TaxCloud when they are "
+"shipped. Select this option to mark orders as Captured immediately when "
+"payment is received. Useful for stores that have items with long lead times."
+msgstr ""
+
+#: includes/class-sst-settings.php:163
+msgid "Tax Based On"
+msgstr ""
+
+#: includes/class-sst-settings.php:166
+msgid "Item Price"
+msgstr ""
+
+#: includes/class-sst-settings.php:167
+msgid "Line Subtotal"
+msgstr ""
+
+#: includes/class-sst-settings.php:170
+msgid ""
+"\"Item Price\": TaxCloud determines the taxable amount for a line item by "
+"multiplying the item price by its quantity. \"Line Subtotal\": the taxable "
+"amount is determined by the line subtotal. Useful in instances where "
+"rounding becomes an issue."
+msgstr ""
+
+#: includes/class-sst-settings.php:174
+msgid "Remove All Data"
+msgstr ""
+
+#: includes/class-sst-settings.php:178
+msgid ""
+"When this feature is enabled, all Simple Sales Tax options and data will be "
+"removed when you click deactivate and delete the plugin."
+msgstr ""
+
+#: includes/class-sst-settings.php:182
+msgid "Download Log File"
+msgstr ""
+
+#: includes/class-sst-settings.php:183
+msgid "Download Log"
+msgstr ""
+
+#: includes/class-sst-settings.php:187
+msgid ""
+"Click this button to download the Simple Sales Tax log file for debugging "
+"purposes."
+msgstr ""
+
+#: includes/class-sst-subscriptions.php:118
+msgid "Failed to calculate sales tax for renewal order %d: %s."
+msgstr ""
+
+#: includes/frontend/class-sst-checkout.php:522
+msgid "Failed to delete certificate"
+msgstr ""
+
+#: includes/frontend/class-sst-checkout.php:523
+msgid "Failed to add certificate"
+msgstr ""
+
+#: includes/frontend/class-sst-checkout.php:524
+msgid ""
+"Are you sure you want to delete this certificate? This action is "
+"irreversible."
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:17
+msgid "Tax exempt?"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:22
+#: includes/frontend/views/html-certificate-table.php:89
+msgid "Warning"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:22
+msgid ""
+"This interface will not function properly with JavaScript disabled. Please "
+"enable JavaScript to continue."
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:27
+msgid ""
+"Select an exemption certificate from the table below, or click \"Add "
+"Certificate\" and fill out the provided form."
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:33
+msgid "ID"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:34
+msgid "Issued To"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:35
+msgid "Date"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:36
+msgid "Actions"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:42
+msgid "Add Certificate"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:50
+msgid "Please log in or register."
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:58
+msgid "There are no certificates to display. Click 'Add Certificate' to add one."
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:82
+#: includes/frontend/views/html-certificate-table.php:198
+msgid "Add certificate"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:89
+msgid ""
+"You are responsible for knowing if you qualify to claim exemption from tax "
+"in the state that is due tax on this sale. You  will be held liable for any "
+"tax and interest, as well as civil and criminal penalties imposed by the "
+"member state, if you are not eligible to claim this exemption."
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:93
+msgid "Where does this exemption apply?"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:100
+msgid "Tax ID Type"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:104
+#: includes/frontend/views/html-certificate-table.php:132
+#: includes/frontend/views/html-certificate-table.php:170
+msgid "Select one"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:105
+msgid "Federal Employer ID"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:106
+msgid "State Issued Exemption ID or Drivers License"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:112
+msgid "Tax ID"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:120
+msgid "ID issued by..."
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:121
+msgid "Select if your ID is state issued."
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:128
+msgid "Business Type"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:133
+msgid "Accommodation And Food Services"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:134
+msgid "Agricultural/Forestry/Fishing/Hunting"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:135
+msgid "Construction"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:136
+msgid "Finance or Insurance"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:137
+msgid "Information Publishing and Communications"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:138
+msgid "Manufacturing"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:139
+msgid "Mining"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:140
+msgid "Real Estate"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:141
+msgid "Rental and Leasing"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:142
+msgid "Retail Trade"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:143
+msgid "Transportation and Warehousing"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:144
+msgid "Utilities"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:145
+msgid "Wholesale Trade"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:146
+msgid "Business Services"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:147
+msgid "Professional Services"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:148
+msgid "Education and Health Care Services"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:149
+msgid "Nonprofit Organization"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:150
+msgid "Government"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:151
+msgid "Not a Business"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:152
+#: includes/frontend/views/html-certificate-table.php:182
+msgid "Other"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:158
+#: includes/frontend/views/html-certificate-table.php:188
+msgid "Please explain"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:159
+msgid "Explain the nature of your business."
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:166
+msgid "Reason for Exemption"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:171
+msgid "Federal Government Department"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:172
+msgid "State Or Local Government"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:173
+msgid "Tribal Government"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:174
+msgid "Foreign Diplomat"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:175
+msgid "Charitable Organization"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:176
+msgid "Religious or Educational Organization"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:177
+msgid "Resale"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:178
+msgid "Agricultural Production"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:179
+msgid "Industrial Production or Manufacturing"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:180
+msgid "Direct Pay Permit"
+msgstr ""
+
+#: includes/frontend/views/html-certificate-table.php:181
+msgid "Direct Mail"
+msgstr ""
+
+#: includes/frontend/views/html-view-certificate.php:11
+msgid "View certificate"
+msgstr ""
+
+#: simplesalestax.php:79 simplesalestax.php:88
+msgid "Cheatin&#8217; huh?"
+msgstr ""
+
+#: simplesalestax.php:250
+msgid "Simple Sales Tax is inactive."
+msgstr ""
+
+#: simplesalestax.php:250
+msgid "WooCommerce 2.6 or greater is required for Simple Sales Tax to work."
+msgstr ""
+
+#. Author URI of the plugin/theme
+msgid "https://simplesalestax.com"
+msgstr ""
+
+#. Description of the plugin/theme
+msgid ""
+"Harness the power of TaxCloud to accurately calculate sales tax for your "
+"WooCommerce store."
+msgstr ""

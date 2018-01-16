@@ -1,3 +1,4 @@
 changelog.txt
 composer.lock
-includes/vendor/*
+includes/vendor/
+node_modules/
