@@ -19,21 +19,18 @@
 /**
  * Hide Tax Status/Tax Class fields
  */
-.hide-tax-options .form-field._tax_status_field, .hide-tax-options .form-field._tax_class_field {
+.form-field._tax_status_field, .form-field._tax_class_field {
     display: none !important;
 }
 
-.hide-tax-options #woocommerce-fields > label:nth-of-type(2), .hide-tax-options #woocommerce-fields > label:nth-of-type(3), .hide-tax-options #woocommerce-fields > br:nth-of-type(2), .hide-tax-options #woocommerce-fields > br:nth-of-type(3) {
+#woocommerce-fields-bulk > label:nth-of-type(2), #woocommerce-fields-bulk > label:nth-of-type(3) {
+    display: none !important;
+}
+ 
+.woocommerce_variable_attributes .data > div:nth-of-type(5) p:nth-of-type(2), p[class*="variable_tax_class"] {
     display: none !important;
 }
 
-.hide-tax-options #woocommerce-fields-bulk > label:nth-of-type(2), .hide-tax-options #woocommerce-fields-bulk > label:nth-of-type(3) {
-    display: none !important;
-}
-
-.hide-tax-options .woocommerce_variable_attributes .data > div:nth-of-type(5) p:nth-of-type(2) {
-    display: none !important;
-}
 
 /**
  * Shipping origin select

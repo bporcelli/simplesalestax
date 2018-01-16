@@ -34,7 +34,6 @@ class SST_Admin {
 		add_filter( 'woocommerce_integrations', array( __CLASS__, 'add_integration' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_scripts_and_styles' ) );
 		add_action( 'add_meta_boxes', array( __CLASS__, 'add_metaboxes' ) );
-		add_filter( 'admin_body_class', array( __CLASS__, 'set_body_class' ) );
 		add_action( 'woocommerce_reports_charts', array( __CLASS__, 'add_reports_tab' ) );
 		add_filter( 'woocommerce_debug_tools', array( __CLASS__, 'register_debug_tool' ) );
 		add_action( 'product_cat_add_form_fields', array( __CLASS__, 'output_category_tic_select' ) );
@@ -221,23 +220,6 @@ class SST_Admin {
 		);
 
 		return $tools;
-	}
-
-	/**
-	 * The presence of existing tax options like "Tax Class" and "Tax Status" can
-	 * be confusing to users. Therefore, we provide a mechanism to hide these options.
-	 *
-	 * This method adds the class "hide-tax-options" to the body element when the tax
-	 * options should be hidden.
-	 *
-	 * @since 4.6
-	 *
-	 * @param array $classes Classes for body element.
-	 */
-	public static function set_body_class( $classes ) {
-		if ( true === apply_filters( 'wootax_hide_tax_options', true ) )
-			$classes .= ' hide-tax-options';
-		return $classes;
 	}
 
 	/**
