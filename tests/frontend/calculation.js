@@ -5,11 +5,11 @@ import test from 'selenium-webdriver/testing';
 import { By } from 'selenium-webdriver';
 import { WebDriverManager, WebDriverHelper as helper } from 'wp-e2e-webdriver';
 import { CustomerFlow, Helper, SingleProductPage } from 'wc-e2e-page-objects';
+import * as SSTHelper from '../helper';
 
 chai.use( chaiAsPromised );
 const assert = chai.assert;
 
-const TAX_ROW_SELECTOR = By.xpath( `//tr[th[contains(., "Sales Tax")]]` );
 const COUPON_CODE_SELECTOR = By.css( 'input[name="coupon_code"]' );
 const APPLY_COUPON_SELECTOR = By.css( 'input[type="submit"][name="apply_coupon"]' );
 const REMOVE_COUPON_SELECTOR = By.css( '.woocommerce-remove-coupon' );
@@ -29,26 +29,18 @@ test.describe( 'Basic Calculation Tests', function() {
             password: config.get( 'users.customer.password' )
         } );
     };
+    const assertTaxApplied = () => {
+        assert.eventually.ok( SSTHelper.taxApplied( driver ) );
+    };
+    const assertTaxNotApplied = () => {
+        assert.eventually.ok( SSTHelper.taxNotApplied( driver ) );
+    };
     const assertCheckoutPageLoaded = ( uncheck = true ) => {
         const checkoutPage = customer.openCheckout();
         if ( uncheck ) {
             checkoutPage.uncheckShipToDifferentAddress();
         }
         assert.eventually.ok( Helper.waitTillUIBlockNotPresent( driver ) );
-    };
-    const assertTaxApplied = () => {
-        const applied = helper.isEventuallyPresentAndDisplayed(
-            driver,
-            TAX_ROW_SELECTOR
-        );
-        assert.eventually.ok( applied );
-    };
-    const assertTaxNotApplied = () => {
-        const applied = helper.isEventuallyPresentAndDisplayed(
-            driver,
-            TAX_ROW_SELECTOR
-        );
-        assert.eventually.equal( applied, false );
     };
     const assertVariationAddedToCart = ( path, attr, variation ) => {
         let productPage = visitProductByPath( path );
