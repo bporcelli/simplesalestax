@@ -14,6 +14,8 @@ const COUPON_CODE_SELECTOR = By.css( 'input[name="coupon_code"]' );
 const APPLY_COUPON_SELECTOR = By.css( 'input[type="submit"][name="apply_coupon"]' );
 const REMOVE_COUPON_SELECTOR = By.css( '.woocommerce-remove-coupon' );
 const TAX_SELECTOR = By.css( 'tr.tax-rate td' );
+const SAVE_ADDRESS_SELECTOR = By.css( 'button[name="save_address"]' );
+const SUCCESS_MSG_SELECTOR = By.xpath( `//div[contains(@class, "woocommerce-message") and contains(., "Address changed successfully.")]` );
 
 let manager;
 let driver;
@@ -80,6 +82,20 @@ test.describe( 'Basic Calculation Tests', function() {
             return element.getAttribute( 'textContent' );
         } );
     };
+    const resetShippingAddress = () => {
+        return driver
+            .get( manager.getPageUrl( '/my-account/edit-address/shipping' ) )
+            .then( () => {
+                return helper
+                    .clickWhenClickable( driver, SAVE_ADDRESS_SELECTOR )
+                    .then( () => {
+                        return helper.isEventuallyPresentAndDisplayed(
+                            driver,
+                            SUCCESS_MSG_SELECTOR
+                        );
+                    } );
+            } );
+    };
     const visitProductByPath = path => {
         return new SingleProductPage( driver, { url: manager.getPageUrl( path ) } );
     };
@@ -95,7 +111,7 @@ test.describe( 'Basic Calculation Tests', function() {
 
     this.timeout( config.get( 'mochaTimeoutMs' ) );
 
-    test.ignore( 'calculates tax', () => {
+    test.it( 'calculates tax', () => {
         customer.fromShopAddProductsToCart( 'General Product', 'Lumber', 'eBook' );
 
         assertCheckoutPageLoaded();
@@ -104,7 +120,7 @@ test.describe( 'Basic Calculation Tests', function() {
         removeProductsFromCart( 'General Product', 'Lumber', 'eBook' );
     } );
 
-    test.ignore( 'uses assigned TICs for simple products', () => {
+    test.it( 'uses assigned TICs for simple products', () => {
         // Assumes eBook is assigned a nontaxable TIC
         customer.fromShopAddProductsToCart( 'eBook' );
 
@@ -114,7 +130,7 @@ test.describe( 'Basic Calculation Tests', function() {
         removeProductsFromCart( 'eBook' );
     } );
 
-    test.ignore( 'uses assigned TICs for variable products', () => {
+    test.it( 'uses assigned TICs for variable products', () => {
         // Assumes variation A is assigned a taxable TIC and variation B is not
         assertVariationAddedToCart( '/product/variable-product', 'Version', 'A' );
         assertCheckoutPageLoaded();
@@ -127,7 +143,7 @@ test.describe( 'Basic Calculation Tests', function() {
         removeProductsFromCart( 'Variable Product - B' );
     } );
 
-    test.ignore( 'respects applied coupons', () => {
+    test.it( 'respects applied coupons', () => {
         customer.fromShopAddProductsToCart( 'General Product' );
         
         // Tax should be added at first
@@ -152,10 +168,13 @@ test.describe( 'Basic Calculation Tests', function() {
          *  - The customer's shipping and billing address are set such that 
          *    toggling "Ship to a different address" changes the origin address
          *    selected for the product. 
-         */ 
+         */
+        assert.eventually.ok( resetShippingAddress() );
+
         customer.fromShopAddProductsToCart( 'Multi-origin Product' );
 
         const checkoutPage = customer.openCheckout();
+
         checkoutPage.checkShipToDifferentAddress();
         assert.eventually.ok( Helper.waitTillUIBlockNotPresent( driver ) );
 
