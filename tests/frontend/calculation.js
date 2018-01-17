@@ -144,14 +144,18 @@ test.describe( 'Basic Calculation Tests', function() {
     } );
 
     test.it( 'uses the correct origin address for multi-origin products', () => {
-        /* Assumptions: Multi-origin Product has two origin addresses with
-         * different tax rates. The customer's shipping and billing address
-         * are set such that toggling "Ship to a different address" changes
-         * the origin address selected for the product. */ 
+        /**
+         * Assumes:
+         *
+         *  - Multi-origin Product has two origin addresses with different tax
+         *    rates. 
+         *  - The customer's shipping and billing address are set such that 
+         *    toggling "Ship to a different address" changes the origin address
+         *    selected for the product. 
+         */ 
         customer.fromShopAddProductsToCart( 'Multi-origin Product' );
 
         const checkoutPage = customer.openCheckout();
-
         checkoutPage.checkShipToDifferentAddress();
         assert.eventually.ok( Helper.waitTillUIBlockNotPresent( driver ) );
 
