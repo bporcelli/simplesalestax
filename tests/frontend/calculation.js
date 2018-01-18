@@ -4,7 +4,7 @@ import chaiAsPromised from 'chai-as-promised';
 import test from 'selenium-webdriver/testing';
 import { By } from 'selenium-webdriver';
 import { WebDriverManager, WebDriverHelper as helper } from 'wp-e2e-webdriver';
-import { CustomerFlow, Helper, SingleProductPage } from 'wc-e2e-page-objects';
+import { Helper, SingleProductPage } from 'wc-e2e-page-objects';
 import * as SSTHelper from '../helper';
 
 chai.use( chaiAsPromised );
@@ -22,13 +22,6 @@ let driver;
 let customer;
 
 test.describe( 'Basic Calculation Tests', function() {
-    const loginAsCustomer = () => {
-        return new CustomerFlow( driver, {
-            baseUrl: config.get( 'url' ),
-            username: config.get( 'users.customer.username' ),
-            password: config.get( 'users.customer.password' )
-        } );
-    };
     const assertTaxApplied = () => {
         assert.eventually.ok( SSTHelper.taxApplied( driver ) );
     };
@@ -64,10 +57,7 @@ test.describe( 'Basic Calculation Tests', function() {
         assert.eventually.ok( Helper.waitTillUIBlockNotPresent( driver ) );
     };
     const removeProductsFromCart = ( ...products ) => {
-        const cartPage = customer.openCart();
-        for ( let product of products ) {
-            cartPage.getItem( product ).remove();
-        }
+        SSTHelper.removeProductsFromCart( driver, customer, ...products );
     };
     const getSalesTax = () => {
         return driver.findElement( TAX_SELECTOR ).then( element => {
@@ -98,7 +88,7 @@ test.describe( 'Basic Calculation Tests', function() {
 
         manager = new WebDriverManager( 'chrome', { baseUrl: config.get( 'url' ) } );        
         driver = manager.getDriver();
-        customer = loginAsCustomer();
+        customer = SSTHelper.loginAsCustomer( driver );
     } );
 
     this.timeout( config.get( 'mochaTimeoutMs' ) );
