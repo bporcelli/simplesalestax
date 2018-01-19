@@ -4,7 +4,6 @@ import chaiAsPromised from 'chai-as-promised';
 import test from 'selenium-webdriver/testing';
 import { By } from 'selenium-webdriver';
 import { WebDriverManager, WebDriverHelper as helper } from 'wp-e2e-webdriver';
-import { WPLogin } from 'wp-e2e-page-objects';
 import { StoreOwnerFlow, Helper } from 'wc-e2e-page-objects';
 import * as SSTHelper from '../helper';
 
@@ -38,14 +37,7 @@ test.describe( 'Settings Page Tests', function() {
         return helper.selectOption( driver, getFieldSelector( id ), optionText );
     };
     const select2Option = ( id, optionText, withSearch = false ) => {
-        const fieldId = getFieldId( id );
-        const selector = By.xpath( `//span[contains(@class, "select2") and ../select[@id="${ fieldId }"]]//input` );
-
-        if ( withSearch ) {
-            return Helper.select2OptionWithSearch( driver, selector, optionText, optionText );
-        } else {
-            return Helper.select2Option( driver, selector, optionText );
-        }
+        return SSTHelper.select2Option( driver, getFieldId( id ), optionText, withSearch );
     };
     const setCheckbox = id => {
         return helper.setCheckbox( driver, getFieldSelector( id ) );
