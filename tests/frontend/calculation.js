@@ -16,6 +16,7 @@ const REMOVE_COUPON_SELECTOR = By.css( '.woocommerce-remove-coupon' );
 const TAX_SELECTOR = By.css( 'tr.tax-rate td' );
 const SAVE_ADDRESS_SELECTOR = By.css( 'input[name="save_address"]' );
 const SUCCESS_MSG_SELECTOR = By.xpath( `//div[contains(@class, "woocommerce-message") and contains(., "Address changed successfully.")]` );
+const FREE_SHIPPING_SELECTOR = By.css( 'input[name*="shipping_method"][value*="free_shipping"]' );
 
 let manager;
 let driver;
@@ -47,11 +48,23 @@ test.describe( 'Basic Calculation Tests', function() {
         assert.eventually.ok( helper.setWhenSettable( driver, COUPON_CODE_SELECTOR, code ) );
         assert.eventually.ok( helper.clickWhenClickable( driver, APPLY_COUPON_SELECTOR ) );
         assert.eventually.ok( Helper.waitTillUIBlockNotPresent( driver ) );
+
+        // If free shipping is available, select it
+        helper.isEventuallyPresentAndDisplayed(
+            driver,
+            FREE_SHIPPING_SELECTOR
+        ).then( available => {
+            if ( ! available ) {
+                return;
+            }
+            assert.eventually.ok( helper.clickWhenClickable( driver, FREE_SHIPPING_SELECTOR ) );
+            assert.eventually.ok( Helper.waitTillUIBlockNotPresent( driver ) );
+        } );
     };
     const assertCouponRemoved = code => {
         customer.openCart();
        
-        const selector = By.css( '.coupon-' + code + ' .woocommerce-remove-coupon' );
+        const selector = By.css( `.woocommerce-remove-coupon[data-coupon="${ code }"]` );
        
         assert.eventually.ok( helper.clickWhenClickable( driver, selector ) );
         assert.eventually.ok( Helper.waitTillUIBlockNotPresent( driver ) );
@@ -64,19 +77,20 @@ test.describe( 'Basic Calculation Tests', function() {
             return element.getAttribute( 'textContent' );
         } );
     };
-    const resetShippingAddress = () => {
-        return driver
-            .get( manager.getPageUrl( '/my-account/edit-address/shipping' ) )
-            .then( () => {
-                return helper
-                    .clickWhenClickable( driver, SAVE_ADDRESS_SELECTOR )
-                    .then( () => {
-                        return helper.isEventuallyPresentAndDisplayed(
-                            driver,
-                            SUCCESS_MSG_SELECTOR
-                        );
-                    } );
-            } );
+    const resetShippingAddress = checkoutPage => {
+        const shippingDetails = checkoutPage.components.shippingDetails;
+
+        return driver.wait( () => {
+            shippingDetails.setFirstName( 'John' );
+            shippingDetails.setLastName( 'Doe' );
+            shippingDetails.selectCountry( 'united', 'United States (US)' );
+            shippingDetails.setAddress1( '206 Washington St SW' );
+            shippingDetails.setCity( 'Atlanta' );
+            shippingDetails.selectState( 'geo', 'Georgia' );
+            shippingDetails.setZip( '30334' );
+
+            return Helper.waitTillUIBlockNotPresent( driver );
+        }, 10000, 'Timed out resetting shipping address.' );
     };
     const visitProductByPath = path => {
         return new SingleProductPage( driver, { url: manager.getPageUrl( path ) } );
@@ -151,28 +165,28 @@ test.describe( 'Basic Calculation Tests', function() {
          *    toggling "Ship to a different address" changes the origin address
          *    selected for the product. 
          */
-        assert.eventually.ok( resetShippingAddress() );
-
         customer.fromShopAddProductsToCart( 'Multi-origin Product' );
 
         const checkoutPage = customer.openCheckout();
 
         checkoutPage.checkShipToDifferentAddress();
-        assert.eventually.ok( Helper.waitTillUIBlockNotPresent( driver ) );
 
-        const taxAmountChanged = getSalesTax().then( taxForShipping => {
-            checkoutPage.uncheckShipToDifferentAddress();
-            assert.eventually.ok( Helper.waitTillUIBlockNotPresent( driver ) );
+        Helper.waitTillUIBlockNotPresent( driver ).then( () => {
+            resetShippingAddress( checkoutPage ).then( () => {
+                getSalesTax().then( taxForShipping => {
+                    checkoutPage.uncheckShipToDifferentAddress();
 
-            return getSalesTax().then( taxForBilling => {
-                return taxForShipping !== taxForBilling;
+                    Helper.waitTillUIBlockNotPresent( driver ).then( () => {
+                        getSalesTax().then( taxForBilling => {
+                            assert.equal( taxForShipping !== taxForBilling, true );
+                        } );
+                    } );
+                } );
             } );
+        } ).finally( () => {
+            // Reset
+            removeProductsFromCart( 'Multi-origin Product' );
         } );
-
-        assert.eventually.equal( taxAmountChanged, true );
-
-        // Reset
-        removeProductsFromCart( 'Multi-origin Product' );
     } );
 
     // Close the browser after finished testing.

@@ -274,6 +274,14 @@ INSERT INTO `wp_postmeta` (`meta_id`,`post_id`,`meta_key`,`meta_value`) VALUES (
 
 
 /**
+ * Delete persistent carts.
+ */
+DELETE 
+FROM wp_usermeta 
+WHERE meta_key LIKE '_woocommerce_persistent_cart%';
+
+
+/**
  * Reset plugin settings.
  */
 DELETE
