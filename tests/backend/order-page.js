@@ -25,7 +25,7 @@ const ADD_IN_DIALOG_SELECTOR = By.css( '#btn-ok' );
 const ITEM_SEARCH_ID = 'add_item_id';
 const TAXCLOUD_STATUS_SELECTOR = By.xpath( '//div[@id="sales_tax_meta"]//div[@class="inside"]/p' );
 const ADD_SHIPPING_COST_SELECTOR = By.css( '.add-order-shipping' );
-const ADD_ITEM_SELECTOR = By.css( '.add-line-item' );
+const ADD_ITEM_SELECTOR = By.xpath( '//div[not(@style="display: none;")]//button[contains(@class, "add-line-item")]' );
 const ORDER_STATUS_SELECTOR = By.css( 'p.wc-order-status' );
 
 test.describe( 'Order Page Tests', function() {
@@ -67,9 +67,9 @@ test.describe( 'Order Page Tests', function() {
     const clickAddShippingCost = itemsBox => {
         return helper.isEventuallyPresentAndDisplayed(
             driver,
-            ADD_SHIPPING_COST_SELECTOR
+            ADD_ITEM_SELECTOR
         ).then( displayed => {
-            if ( ! displayed ) {
+            if ( displayed ) {
                 return itemsBox.clickAddItems().then( () => {
                    return itemsBox.clickAddShippingCost();
                 } );
@@ -91,6 +91,7 @@ test.describe( 'Order Page Tests', function() {
 
         assert.eventually.ok( addProduct( orderItemsBox, 'General Product' ) );
         assert.eventually.ok( clickAddShippingCost( orderItemsBox ) );
+        assert.eventually.ok( Helper.waitTillUIBlockNotPresent( driver ) );
         assert.eventually.ok( helper.mouseMoveTo( driver, SHIPPING_ROW_SELECTOR ) );
         assert.eventually.ok( helper.clickWhenClickable( driver, EDIT_SHIPPING_SELECTOR ) );
         assert.eventually.ok( helper.setWhenSettable( driver, SHIPPING_COST_SELECTOR, '9.99' ) );
