@@ -14,7 +14,7 @@ const COUPON_CODE_SELECTOR = By.css( 'input[name="coupon_code"]' );
 const APPLY_COUPON_SELECTOR = By.css( 'input[type="submit"][name="apply_coupon"]' );
 const REMOVE_COUPON_SELECTOR = By.css( '.woocommerce-remove-coupon' );
 const TAX_SELECTOR = By.css( 'tr.tax-rate td' );
-const SAVE_ADDRESS_SELECTOR = By.css( 'button[name="save_address"]' );
+const SAVE_ADDRESS_SELECTOR = By.css( 'input[name="save_address"]' );
 const SUCCESS_MSG_SELECTOR = By.xpath( `//div[contains(@class, "woocommerce-message") and contains(., "Address changed successfully.")]` );
 
 let manager;
