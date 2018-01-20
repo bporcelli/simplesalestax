@@ -160,7 +160,7 @@ test.describe( 'Settings Page Tests', function() {
     test.it( 'allows the user to change the exemption settings', () => {
         assert.eventually.ok( selectOption( 'show_exempt', 'Yes' ) );
         assert.eventually.ok( setFieldWhenSettable( 'company_name', 'Simple Sales Tax' ) );
-        assert.eventually.ok( select2Option( 'exempt_roles', 'Customer', true ) );
+        assert.eventually.ok( select2Option( 'exempt_roles', 'Administrator', true ) );
         assert.eventually.ok( selectOption( 'restrict_exempt', 'No' ) );
     } );
 
