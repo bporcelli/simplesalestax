@@ -18,6 +18,11 @@ const DELETE_SELECTOR = By.xpath( '//div[@id="message"]/p/a[contains(text(), "de
 const TAX_RATE_SELECTOR = By.css( 'tbody#rates tr[data-id]' );
 
 test.describe( 'Installation Tests', function() {
+    const openStandardRates = () => {
+        return new WPAdminWCSettingsTaxRates( driver, {
+            url: manager.getPageUrl( '/wp-admin/admin.php?page=wc-settings&tab=tax&section=standard' )
+        } );
+    };
     const taxRateCount = () => {
         return driver.findElements( TAX_RATE_SELECTOR ).then( elements => {
             return elements.length;
@@ -43,19 +48,14 @@ test.describe( 'Installation Tests', function() {
         } );
     } );
 
-    test.it( 'allows the user to remove existing tax rates after installation', () => {
-        /**
-         * Assumptions:
-         *  - The option wootax_keep_rates has been deleted
-         *  - The tax rate removal notice is being displayed
-         *  - One tax rate is in the standard rates table
-         */
-        const ratesPage = new WPAdminWCSettingsTaxRates( driver, {
-            url: manager.getPageUrl( '/wp-admin/admin.php?page=wc-settings&tab=tax&section=standard' )
-        } );
-
+    test.it( 'allows the user to remove existing tax rates', () => {
+        // Assumes the test data set (../data/e2e-data.sql) is being used
+        openStandardRates();
         assert.eventually.equal( taxRateCount(), 1, 'exactly 1 rate should be in the standard rates table' );
+
         assert.eventually.ok( helper.clickWhenClickable( driver, DELETE_SELECTOR ) );
+
+        openStandardRates();
         assert.eventually.equal( taxRateCount(), 0, 'all tax rates should be removed' );
     } );
 
