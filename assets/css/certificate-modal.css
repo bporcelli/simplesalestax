@@ -2,7 +2,7 @@
  * Styles for Simple Sales Tax certificate modal.
  */
 .wc-backbone-modal .wc-backbone-modal-content.sst-certificate-modal-content {
-	width: 800px;
+    width: 800px;
 }
 
 .sst-view-certificate-modal-content .wc-backbone-modal-main, .sst-select-tic-modal-content .wc-backbone-modal-main {
@@ -10,11 +10,11 @@
 }
 
 .sst-hidden-field {
-	display: none;
+    display: none;
 }
 
 .sst-certificate {
-	background: top left no-repeat;
+    background: top left no-repeat;
     clear: both;
     width: 750px;
     height: 600px;
@@ -25,7 +25,7 @@
 }
 
 .sst-certificate span {
-	position: absolute;
+    position: absolute;
     text-align: center;
     height: 20px;
     line-height: 20px;
