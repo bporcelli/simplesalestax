@@ -238,7 +238,7 @@ class SST_Admin {
         }
 
         wp_localize_script( 'sst-tic-select', 'ticSelectLocalizeScript', array(
-            'tic_list'    => SST_TICS::get_tics(),
+            'tic_list'    => sst_get_tics(),
             'strings'     => array(
                 'default' => __( 'Using site default', 'simplesalestax' ),
             ),

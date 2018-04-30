@@ -16,40 +16,43 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SST_Install {
 
     /**
-     * @var array Callbacks that need to run for each update.
-     * @since 5.0
+     * Callbacks that need to run for each update.
+     *
+     * @var array
      */
-    private static $update_hooks = array(
-        '2.6' => array(
+    private static $update_hooks = [
+        '2.6' => [
             'sst_update_26_remove_shipping_taxable_option',
-        ),
-        '3.8' => array(
+        ],
+        '3.8' => [
             'sst_update_38_update_addresses',
-        ),
-        '4.2' => array(
+        ],
+        '4.2' => [
             'sst_update_42_migrate_settings',
             'sst_update_42_migrate_order_data',
-        ),
-        '4.5' => array(
+        ],
+        '4.5' => [
             'sst_update_45_remove_license_option',
-        ),
-        '5.0' => array(
+        ],
+        '5.0' => [
             'sst_update_50_origin_addresses',
             'sst_update_50_category_tics',
             'sst_update_50_order_data'
-        ),
-    );
+        ],
+	    '5.9' => [
+	    	'sst_update_59_tic_table'
+	    ]
+    ];
 
     /**
-     * @var SST_Updater Background updater.
-     * @since 5.0
+     * Background updater.
+     *
+     * @var SST_Updater
      */
     private static $background_updater;
 
     /**
      * Initialize installer.
-     *
-     * @since 4.4
      */
     public static function init() {
         add_action( 'init', array( __CLASS__, 'init_background_updater' ), 5 );
@@ -65,8 +68,6 @@ class SST_Install {
 
     /**
      * Runs on plugin deactivation. Removes all admin notices.
-     *
-     * @since 5.0
      */
     public static function deactivate() {
         self::remove_notices();
@@ -74,8 +75,6 @@ class SST_Install {
 
     /**
      * Initialize the background updater.
-     *
-     * @since 5.0
      */
     public static function init_background_updater() {
         include_once 'class-sst-updater.php';
@@ -85,8 +84,6 @@ class SST_Install {
     /**
      * Compares the current version of the plugin against the version stored
      * in the database and runs the installer if necessary.
-     *
-     * @since 4.4
      */
     public static function check_version() {
         if ( ! defined( 'IFRAME_REQUEST' ) && get_option( 'wootax_version' ) !== SST()->version ) {
@@ -96,8 +93,6 @@ class SST_Install {
 
     /**
      * Remove all SST admin notices.
-     *
-     * @since 5.0
      */
     private static function remove_notices() {
         if ( ! class_exists( 'WC_Admin_Notices' ) ) {
@@ -109,8 +104,6 @@ class SST_Install {
 
     /**
      * Install Simple Sales Tax.
-     *
-     * @since 5.0
      */
     public static function install() {
         // Include required classes
@@ -121,7 +114,6 @@ class SST_Install {
         // Install
         self::add_roles();
         self::add_tax_rate();
-        self::create_tables();
 
         // Remove existing notices, if any
         self::remove_notices();
@@ -146,8 +138,6 @@ class SST_Install {
 
     /**
      * Start update when a user clicks the "Update" button in the dashboard.
-     *
-     * @since 5.0
      */
     public static function trigger_update() {
         if ( ! empty( $_GET[ 'do_sst_update'] ) ) {
@@ -161,8 +151,6 @@ class SST_Install {
 
     /**
      * Remove rates when user clicks 'keep the rates' or 'delete them.'
-     *
-     * @since 5.0
      */
     public static function trigger_rate_removal() {
         global $wpdb;
@@ -179,8 +167,6 @@ class SST_Install {
 
     /**
      * Get content for update notice.
-     *
-     * @since 5.0
      *
      * @return string
      */
@@ -203,8 +189,6 @@ class SST_Install {
     /**
      * Queue all required updates to run in the background. Ripped from
      * WooCommerce core.
-     *
-     * @since 5.0
      */
     private static function update() {
         $current_db_version = get_option( 'wootax_version' );
@@ -228,8 +212,6 @@ class SST_Install {
 
     /**
      * Add custom user roles.
-     *
-     * @since 5.0
      */
     public static function add_roles() {
         add_role( 'exempt-customer', __( 'Exempt Customer', 'simplesalestax' ), array(
@@ -241,8 +223,6 @@ class SST_Install {
 
     /**
      * Add plugin action links.
-     *
-     * @since 4.2
      *
      * @param  array $links Existing action links for plugin.
      * @return array
@@ -256,8 +236,6 @@ class SST_Install {
 
     /**
      * Add a tax rate so we can persist calculate tax totals after checkout.
-     *
-     * @since 5.0
      */
     private static function add_tax_rate() {
         global $wpdb;
@@ -293,35 +271,7 @@ class SST_Install {
     }
 
     /**
-     * Create database tables.
-     *
-     * @since 5.0
-     *
-     * @return bool
-     */
-    private static function create_tables() {
-        global $wpdb;
-
-        $table_name      = $wpdb->prefix . 'sst_tics';
-        $charset_collate = $wpdb->get_charset_collate();
-
-        $sql = "CREATE TABLE $table_name (
-            id int(5),
-            ssuta int(1) NOT NULL DEFAULT '1',
-            parent int(5) NULL,
-            title varchar(255) NOT NULL,
-            label varchar(255) NOT NULL,
-            PRIMARY KEY  (id)
-        ) $charset_collate;";
-
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        dbDelta( $sql );
-    }
-
-    /**
      * Are any extra tax rates present in the tax tables?
-     *
-     * @since 4.5
      *
      * @return bool
      */
@@ -337,8 +287,6 @@ class SST_Install {
     /**
      * Return correct rate code for our tax rate (SALES-TAX).
      *
-     * @since 5.0
-     *
      * @param  string $code Rate code.
      * @param  int $key Tax rate ID.
      * @return string
@@ -353,8 +301,6 @@ class SST_Install {
 
     /**
      * Return correct label for our tax rate ("Sales Tax").
-     *
-     * @since 5.0
      *
      * @param  string $label Original label.
      * @param  int $key Tax rate id.
@@ -372,12 +318,10 @@ class SST_Install {
      * Disable the WC Multiple Shipping woocommerce_order_get_items hook. The
      * hook is not needed when SST is active and leads to corruption of line
      * item taxes.
-     *
-     * @since 5.0
      */
     public static function disable_wcms_order_items_hook() {
         if ( sst_wcms_active() ) {
-            remove_filter( 'woocommerce_order_get_items', array( $GLOBALS['wcms']->order, 'order_item_taxes' ), 30, 2 );
+            remove_filter( 'woocommerce_order_get_items', array( $GLOBALS['wcms']->order, 'order_item_taxes' ), 30 );
         }
     }
 }
