@@ -74,8 +74,7 @@ class SST_Integration extends WC_Integration {
         ?>
         <tr valign="top">
             <th scope="row" class="titledesc">
-                <label for="<?php echo esc_attr( $field ); ?>"><?php echo wp_kses_post( $data[ 'title' ] ); ?></label>
-                <?php echo $this->get_tooltip_html( $data ); ?>
+                <label for="<?php echo esc_attr( $field ); ?>"><?php echo wp_kses_post( $data[ 'title' ] ); ?> <?php echo $this->get_tooltip_html( $data ); ?></label>
             </th>
             <td class="forminp">
                 <fieldset>
@@ -101,8 +100,7 @@ class SST_Integration extends WC_Integration {
         ?>
         <tr valign="top">
             <th scope="row" class="titledesc">
-                <label for="<?php echo esc_attr( $field ); ?>"><?php echo wp_kses_post( $data[ 'title' ] ); ?></label>
-                <?php echo $this->get_tooltip_html( $data ); ?>
+                <label for="<?php echo esc_attr( $field ); ?>"><?php echo wp_kses_post( $data[ 'title' ] ); ?> <?php echo $this->get_tooltip_html( $data ); ?></label>
             </th>
             <td class="forminp">
                 <fieldset>
@@ -161,14 +159,16 @@ class SST_Integration extends WC_Integration {
         return $addresses;
     }
 
-    /**
-     * Validate addresses when options are saved.
-     *
-     * @since 5.0
-     *
-     * @param string $key
-     * @param string $value
-     */
+	/**
+	 * Validate addresses when options are saved.
+	 *
+	 * @since 5.0
+	 *
+	 * @param string $key
+	 * @param string $value
+	 *
+	 * @return array
+	 */
     public function validate_addresses_field( $key, $value ) {
         if ( ! isset( $_POST['addresses'] ) || ! is_array( $_POST['addresses'] ) ) {
             return array();
