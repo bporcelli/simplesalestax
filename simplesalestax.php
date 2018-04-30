@@ -164,7 +164,6 @@ final class SST {
         include_once 'includes/class-sst-customer.php';
         include_once 'includes/class-sst-ajax.php';
         include_once 'includes/class-sst-tic.php';
-        include_once 'includes/class-sst-tics.php';
         include_once 'includes/class-sst-product.php';
         include_once 'includes/class-sst-shipping.php';
         include_once 'includes/class-sst-addresses.php';

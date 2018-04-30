@@ -171,8 +171,40 @@ function sst_unslash( $value ) {
  *
  * @since 5.0
  *
- * @return Client
+ * @return \TaxCloud\Client
  */
 function TaxCloud() {
     return new TaxCloud\Client();
+}
+
+/**
+ * Returns a list of all available TICs. The list will be updated if it is more
+ * than one week old.
+ *
+ * @since 5.9
+ *
+ * @return SST_TIC[]
+ */
+function sst_get_tics() {
+	$tics = get_transient( 'sst_tics' );
+
+	if ( false === $tics ) {
+		$tics     = [];
+		$get_tics = new \TaxCloud\Request\GetTICs( SST_Settings::get( 'tc_id' ), SST_Settings::get( 'tc_key' ) );
+
+		try {
+			$tics = TaxCloud()->GetTICs( $get_tics );
+
+			set_transient( 'sst_tics', $tics, WEEK_IN_SECONDS );
+		} catch ( \TaxCloud\Exceptions\GetTICsException $ex ) {
+			$logger = wc_get_logger();
+			$logger->error( "Failed to update TaxCloud TICs: {$ex->getMessage()}" );
+		}
+	}
+
+	foreach ( $tics as $id => $description ) {
+		$tics[ $id ] = new SST_TIC( $id, $description );
+	}
+
+	return $tics;
 }

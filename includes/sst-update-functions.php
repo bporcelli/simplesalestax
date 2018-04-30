@@ -584,3 +584,12 @@ function sst_update_50_order_data() {
 
     return false;
 }
+
+/**
+ * Starting with 5.9, TICs are stored in a WordPress transient. The sst_tics
+ * table is no longer needed and can be safely dropped.
+ */
+function sst_update_59_tic_table() {
+	global $wpdb;
+	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}sst_tics" );
+}
