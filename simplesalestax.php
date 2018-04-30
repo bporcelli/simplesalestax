@@ -6,11 +6,11 @@
  * Description:          Harness the power of TaxCloud to accurately calculate sales tax for your WooCommerce store.
  * Author:               Simple Sales Tax
  * Author URI:           https://simplesalestax.com
- * Version:              5.8
+ * Version:              5.9
  * Requires at least:    4.5.0
- * Tested up to:         4.9.1
+ * Tested up to:         4.9.5
  * WC requires at least: 2.6.0
- * WC tested up to:      3.3.0
+ * WC tested up to:      3.4.0
  * Text Domain:          simplesalestax
  * Domain Path:          /languages
  * License:              GPL-3.0+
@@ -50,7 +50,7 @@ final class SST {
      * @var string Plugin version.
      * @since 4.2
      */
-    public $version = '5.8';
+    public $version = '5.9';
 
     /**
      * @var SST The single plugin instance.
