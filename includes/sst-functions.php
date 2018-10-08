@@ -11,7 +11,7 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly
+    exit;
 }
 
 /**
@@ -26,7 +26,7 @@ function sst_tip( $tip ) {
         echo wc_help_tip( $tip );
     } else {
         $img_path = WC()->plugin_url() . '/assets/images/help.png';
-        $format = '<img class="help_tip" data-tip="%s" src="%s" height="16" width="16" />';
+        $format   = '<img class="help_tip" data-tip="%s" src="%s" height="16" width="16" />';
         printf( $format, $tip, $img_path );
     }
 }
@@ -36,8 +36,9 @@ function sst_tip( $tip ) {
  *
  * @since 5.0
  *
- * @param  string $ugly
- * @return Pretty string if found, otherwise original string.
+ * @param string $ugly
+ *
+ * @return string Pretty string if found, otherwise original string.
  */
 function sst_prettify( $ugly ) {
     // Map from ugly string to pretty strings
@@ -119,10 +120,11 @@ function sst_prettify( $ugly ) {
         'WY'                                      => 'Wyoming',
     );
 
-    if ( array_key_exists( $ugly, $ugly_strings ) )
+    if ( array_key_exists( $ugly, $ugly_strings ) ) {
         return $ugly_strings[ $ugly ];
-    else
+    } else {
         return $ugly;
+    }
 }
 
 /**
@@ -132,6 +134,7 @@ function sst_prettify( $ugly ) {
  * @since 5.0
  *
  * @param  array $package
+ *
  * @return array
  */
 function sst_create_package( $package = array() ) {
@@ -156,7 +159,8 @@ function sst_create_package( $package = array() ) {
  *
  * @since 5.4
  *
- * @param  string $value
+ * @param string $value
+ *
  * @return string
  */
 function sst_unslash( $value ) {
