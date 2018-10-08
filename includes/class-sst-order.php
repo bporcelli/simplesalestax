@@ -25,11 +25,11 @@ class SST_Order extends SST_Abstract_Cart {
      * @var array Default values for order meta fields.
      * @since 4.4
      */
-    protected static $defaults = array(
-        'packages'    => array(),
+    protected static $defaults = [
+        'packages'    => [],
         'exempt_cert' => null,
-        'status'      => 'pending'
-    );
+        'status'      => 'pending',
+    ];
 
     /**
      * @var WC_Order WooCommerce order.
@@ -47,8 +47,10 @@ class SST_Order extends SST_Abstract_Cart {
     public function __construct( $order ) {
         if ( is_numeric( $order ) ) {
             $this->order = wc_get_order( $order );
-        } else if ( is_a( $order, 'WC_Order' ) ) {
-            $this->order = $order;
+        } else {
+            if ( is_a( $order, 'WC_Order' ) ) {
+                $this->order = $order;
+            }
         }
     }
 
@@ -57,16 +59,17 @@ class SST_Order extends SST_Abstract_Cart {
      *
      * @since 5.0
      *
-     * @param  string $name
-     * @param  array $args
+     * @param string $name
+     * @param array $args
+     *
      * @return mixed
      */
-    public function __call( $name, $args = array() ) {
+    public function __call( $name, $args = [] ) {
         if ( is_callable( array( $this->order, $name ) ) ) {
             return call_user_func_array( array( $this->order, $name ), $args );
         }
 
-        return NULL;
+        return null;
     }
 
     /**
@@ -74,11 +77,16 @@ class SST_Order extends SST_Abstract_Cart {
      *
      * @since 5.0
      *
-     * @param  array $package
+     * @param array $package
+     *
      * @return bool
      */
     protected function ready_for_lookup( $package ) {
-        return parent::ready_for_lookup( $package ) && 'pending' == $this->get_taxcloud_status() && ! $this->get_total_refunded();
+        if ( 'pending' !== $this->get_taxcloud_status() || 0 < $this->order->get_total_refunded() ) {
+            return false;
+        }
+
+        return parent::ready_for_lookup( $package );
     }
 
     /**
@@ -111,7 +119,8 @@ class SST_Order extends SST_Abstract_Cart {
      *
      * @since 5.0
      *
-     * @param  array $cart_items
+     * @param array $cart_items
+     *
      * @return array
      */
     protected function transform_items( $cart_items ) {
@@ -144,7 +153,7 @@ class SST_Order extends SST_Abstract_Cart {
      */
     protected function get_base_packages() {
         $packages = [];
-        $items    = $this->transform_items( $this->get_items() );
+        $items    = $this->transform_items( $this->order->get_items() );
 
         /* Create a virtual package for all items that don't need shipping */
         if ( ( $virtual_package = $this->create_virtual_package( $items ) ) ) {
@@ -152,7 +161,7 @@ class SST_Order extends SST_Abstract_Cart {
         }
 
         /* Create an additional package for each shipping method. */
-        $ship_methods = $this->get_shipping_methods();
+        $ship_methods = $this->order->get_shipping_methods();
 
         if ( $ship_methods && $items ) {
             $items_per_package = ceil( count( $items ) / count( $ship_methods ) );
@@ -173,14 +182,18 @@ class SST_Order extends SST_Abstract_Cart {
                             $method['method_id']    // method id
                         ),
                         'user'     => [
-                            'ID' => $this->get_user_id(),
+                            'ID' => $this->order->get_user_id(),
                         ],
                     ]
                 );
 
                 /* Set destination based on shipping method. */
                 if ( SST_Shipping::is_local_pickup( [ $package['shipping']->method_id ] ) ) {
-                    $pickup_address = apply_filters( 'wootax_pickup_address', SST_Addresses::get_default_address(), $this->order );
+                    $pickup_address = apply_filters(
+                        'wootax_pickup_address',
+                        SST_Addresses::get_default_address(),
+                        $this->order
+                    );
 
                     $package['destination'] = [
                         'country'   => 'US',
@@ -227,7 +240,7 @@ class SST_Order extends SST_Abstract_Cart {
                     'contents'    => $virtual_items,
                     'destination' => $this->get_billing_address(),
                     'user'        => [
-                        'ID' => $this->get_user_id(),
+                        'ID' => $this->order->get_user_id(),
                     ],
                 ]
             );
@@ -244,10 +257,14 @@ class SST_Order extends SST_Abstract_Cart {
      * @return array
      */
     protected function create_packages() {
-        $packages = array();
+        $packages = [];
 
         /* Let devs change the packages before we split them. */
-        $raw_packages = apply_filters( 'wootax_order_packages_before_split', $this->get_filtered_packages(), $this->order );
+        $raw_packages = apply_filters(
+            'wootax_order_packages_before_split',
+            $this->get_filtered_packages(),
+            $this->order
+        );
 
         /* Split packages by origin address. */
         foreach ( $raw_packages as $raw_package ) {
@@ -256,16 +273,16 @@ class SST_Order extends SST_Abstract_Cart {
 
         /* Add fees to first package. */
         if ( apply_filters( 'wootax_add_fees', true ) ) {
-            $fees = array();
+            $fees = [];
 
-            foreach ( $this->get_fees() as $item_id => $fee ) {
+            foreach ( $this->order->get_fees() as $item_id => $fee ) {
                 $name   = empty( $fee['name'] ) ? __( 'Fee', 'simplesalestax' ) : $fee['name'];
                 $fee_id = sanitize_title( $name );
 
-                $fees[ $item_id ] = (object) array(
+                $fees[ $item_id ] = (object) [
                     'id'     => $fee_id,
                     'amount' => $fee['line_total'],
-                );
+                ];
             }
 
             $packages[ key( $packages ) ]['fees'] = $fees;
@@ -281,7 +298,7 @@ class SST_Order extends SST_Abstract_Cart {
      */
     protected function reset_taxes() {
         /* Remove tax from products and fees */
-        foreach ( $this->get_items() + $this->get_fees() as $item_id => $item ) {
+        foreach ( $this->order->get_items( [ 'line_item', 'fee' ] ) as $item_id => $item ) {
             $tax_data = $item['line_tax_data'];
 
             if ( isset( $tax_data['total'][ SST_RATE_ID ] ) ) {
@@ -298,9 +315,10 @@ class SST_Order extends SST_Abstract_Cart {
         }
 
         /* Remove shipping tax */
-        foreach ( $this->get_shipping_methods() as $method ) {
-            if ( ! isset( $method['taxes'] ) )
+        foreach ( $this->order->get_shipping_methods() as $method ) {
+            if ( ! isset( $method['taxes'] ) ) {
                 continue;
+            }
 
             $tax_data = $method['taxes'];
 
@@ -334,7 +352,7 @@ class SST_Order extends SST_Abstract_Cart {
      * @param float $tax Sales tax for product.
      */
     protected function set_product_tax( $id, $tax ) {
-        $item     = $this->get_item( $id );
+        $item     = $this->order->get_item( $id );
         $tax_data = $item->get_taxes( 'edit' );
 
         if ( ! is_array( $tax_data ) ) {
@@ -348,7 +366,7 @@ class SST_Order extends SST_Abstract_Cart {
         $item->save();
 
         // Add the modified item to the order so the changes take effect
-        $this->add_item( $item );
+        $this->order->add_item( $item );
     }
 
     /**
@@ -400,8 +418,10 @@ class SST_Order extends SST_Abstract_Cart {
 
         if ( defined( 'DOING_AJAX' ) ) {
             throw new Exception( $message );
-        } else if ( function_exists( 'sst_add_message' ) ) {
-            sst_add_message( $message, 'error' );
+        } else {
+            if ( function_exists( 'sst_add_message' ) ) {
+                sst_add_message( $message, 'error' );
+            }
         }
     }
 
@@ -410,7 +430,8 @@ class SST_Order extends SST_Abstract_Cart {
      *
      * @since 5.0
      *
-     * @param  string $context (default: 'edit')
+     * @param string $context (default: 'edit')
+     *
      * @return string
      */
     public function get_taxcloud_status( $context = 'edit' ) {
@@ -431,14 +452,14 @@ class SST_Order extends SST_Abstract_Cart {
      * @return array
      */
     protected function get_billing_address() {
-        return array(
-            'country'   => $this->get_billing_country(),
-            'address'   => $this->get_billing_address_1(),
-            'address_2' => $this->get_billing_address_2(),
-            'city'      => $this->get_billing_city(),
-            'state'     => $this->get_billing_state(),
-            'postcode'  => $this->get_billing_postcode(),
-        );
+        return [
+            'country'   => $this->order->get_billing_country(),
+            'address'   => $this->order->get_billing_address_1(),
+            'address_2' => $this->order->get_billing_address_2(),
+            'city'      => $this->order->get_billing_city(),
+            'state'     => $this->order->get_billing_state(),
+            'postcode'  => $this->order->get_billing_postcode(),
+        ];
     }
 
     /**
@@ -449,14 +470,14 @@ class SST_Order extends SST_Abstract_Cart {
      * @return array
      */
     protected function get_shipping_address() {
-        return array(
-            'country'   => $this->get_shipping_country(),
-            'address'   => $this->get_shipping_address_1(),
-            'address_2' => $this->get_shipping_address_2(),
-            'city'      => $this->get_shipping_city(),
-            'state'     => $this->get_shipping_state(),
-            'postcode'  => $this->get_shipping_postcode(),
-        );
+        return [
+            'country'   => $this->order->get_shipping_country(),
+            'address'   => $this->order->get_shipping_address_1(),
+            'address_2' => $this->order->get_shipping_address_2(),
+            'city'      => $this->order->get_shipping_city(),
+            'state'     => $this->order->get_shipping_state(),
+            'postcode'  => $this->order->get_shipping_postcode(),
+        ];
     }
 
     /**
@@ -483,12 +504,12 @@ class SST_Order extends SST_Abstract_Cart {
                 $raw_address['address_2'],
                 $raw_address['city'],
                 $raw_address['state'],
-                substr( $raw_address['postcode'] , 0, 5 )
+                substr( $raw_address['postcode'], 0, 5 )
             );
 
             return SST_Addresses::verify_address( $address );
         } catch ( Exception $ex ) {
-            return NULL;
+            return null;
         }
     }
 
@@ -497,14 +518,16 @@ class SST_Order extends SST_Abstract_Cart {
      *
      * @since 5.0
      *
-     * @param  string $package_key
-     * @param  array $package (default: array())
+     * @param string $package_key
+     * @param array $package (default: array())
+     *
      * @return string
      */
     protected function get_package_order_id( $package_key, $package = array() ) {
         if ( isset( $package['order_id'] ) ) { /* Legacy (pre 5.0) order */
             return $package['order_id'];
         }
+
         return $this->order->get_id() . '_' . $package_key;
     }
 
@@ -524,12 +547,24 @@ class SST_Order extends SST_Abstract_Cart {
         // Handle error cases
         if ( 'captured' == $taxcloud_status ) {
             if ( 'no' == SST_Settings::get( 'capture_immediately' ) ) {
-                $this->handle_error( sprintf( __( "Failed to capture order %d: already captured.", 'simplesalestax' ), $this->order->get_id() ) );
+                $this->handle_error(
+                    sprintf(
+                        __( "Failed to capture order %d: already captured.", 'simplesalestax' ),
+                        $this->order->get_id()
+                    )
+                );
             }
             return false;
-        } else if ( 'refunded' == $taxcloud_status ) {
-            $this->handle_error( sprintf( __( "Failed to capture order %d: order was refunded.", 'simplesalestax' ), $this->order->get_id() ) );
-            return false;
+        } else {
+            if ( 'refunded' == $taxcloud_status ) {
+                $this->handle_error(
+                    sprintf(
+                        __( "Failed to capture order %d: order was refunded.", 'simplesalestax' ),
+                        $this->order->get_id()
+                    )
+                );
+                return false;
+            }
         }
 
         // Send AuthorizedWithCapture for all packages
@@ -549,13 +584,19 @@ class SST_Order extends SST_Abstract_Cart {
             try {
                 TaxCloud()->AuthorizedWithCapture( $request );
             } catch ( Exception $ex ) {
-                $this->handle_error( sprintf( __( "Failed to capture order %d: %s.", 'simplesalestax' ), $this->order->get_id(), $ex->getMessage() ) );
+                $this->handle_error(
+                    sprintf(
+                        __( "Failed to capture order %d: %s.", 'simplesalestax' ),
+                        $this->order->get_id(),
+                        $ex->getMessage()
+                    )
+                );
                 return false;
             }
         }
 
         $this->update_meta( 'status', 'captured' );
-        $this->save();
+        $this->order->save();
 
         return true;
     }
@@ -571,15 +612,20 @@ class SST_Order extends SST_Abstract_Cart {
      *
      * @throws Exception
      */
-    public function do_refund( $items = array() ) {
+    public function do_refund( $items = [] ) {
         if ( 'captured' !== $this->get_taxcloud_status() ) {
-            $this->handle_error( sprintf( __( "Can't refund order %d: order must be completed first.", 'simplesalestax' ), $this->order->get_id() ) );
+            $this->handle_error(
+                sprintf(
+                    __( "Can't refund order %d: order must be completed first.", 'simplesalestax' ),
+                    $this->order->get_id()
+                )
+            );
             return false;
         }
 
         // For full refunds, refund all fees, line items, and shipping charges
         if ( empty( $items ) ) {
-            $items = $this->get_items( array( 'fee', 'shipping', 'line_item' ) );
+            $items = $this->order->get_items( [ 'fee', 'shipping', 'line_item' ] );
         }
 
         $this->prepare_refund_items( $items );
@@ -595,7 +641,7 @@ class SST_Order extends SST_Abstract_Cart {
             }
 
             $cart_items   = $package['request']->getCartItems();
-            $refund_items = array();
+            $refund_items = [];
 
             foreach ( $cart_items as $cart_item_key => $pitem ) {
                 $to_match = $package['map'][ $cart_item_key ];
@@ -639,7 +685,13 @@ class SST_Order extends SST_Abstract_Cart {
                 try {
                     TaxCloud()->Returned( $request );
                 } catch ( Exception $ex ) {
-                    $this->handle_error( sprintf( __( "Failed to refund order %d: %s.", 'simplesalestax' ), $this->order->get_id(), $ex->getMessage() ) );
+                    $this->handle_error(
+                        sprintf(
+                            __( "Failed to refund order %d: %s.", 'simplesalestax' ),
+                            $this->order->get_id(),
+                            $ex->getMessage()
+                        )
+                    );
                     return false;
                 }
             }
@@ -648,9 +700,9 @@ class SST_Order extends SST_Abstract_Cart {
         }
 
         // If order was fully refunded, set status accordingly
-        if ( 0 >= $this->get_remaining_refund_amount() ) {
+        if ( 0 >= $this->order->get_remaining_refund_amount() ) {
             $this->update_meta( 'status', 'refunded' );
-            $this->save();
+            $this->order->save();
         }
 
         return true;
@@ -664,6 +716,7 @@ class SST_Order extends SST_Abstract_Cart {
      * @since 5.3
      *
      * @param  string $method_id
+     *
      * @return string
      */
     protected function process_method_id( $method_id ) {
@@ -704,20 +757,20 @@ class SST_Order extends SST_Abstract_Cart {
             switch ( $item['type'] ) {
                 case 'line_item':
                     $id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
-                break;
+                    break;
                 case 'shipping':  // TODO: handle packages w/ same method
                     $id = $this->process_method_id( $item['method_id'] );
-                break;
+                    break;
                 case 'fee':
                     $name = empty( $item['name'] ) ? __( 'Fee', 'simplesalestax' ) : $item['name'];
                     $id   = sanitize_title( $name );
             }
 
-            $items[ $item_id ] = array(
+            $items[ $item_id ] = [
                 'qty'   => $quantity,
                 'price' => $price,
                 'id'    => $id,
-            );
+            ];
         }
     }
 
