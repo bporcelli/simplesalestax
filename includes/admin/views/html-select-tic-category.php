@@ -29,4 +29,4 @@ if ( $is_edit ): ?>
 </div>
 <?php endif; ?>
 
-<?php include SST()->plugin_path() . '/includes/admin/views/html-select-tic-modal.php'; ?>
+<?php include __DIR__ . '/html-select-tic-modal.php'; ?>

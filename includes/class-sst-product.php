@@ -107,7 +107,7 @@ class SST_Product {
         if ( ! is_array( $addresses ) || count( $addresses ) < 2 )
             return;
 
-        include SST()->plugin_path() . '/includes/admin/views/html-origin-select.php';
+        include __DIR__ . '/admin/views/html-origin-select.php';
     }
 
     /**
@@ -116,16 +116,16 @@ class SST_Product {
      * @since 5.0
      */
     public static function output_bulk_edit_fields() {
-        wp_localize_script( 'sst-tic-select', 'ticSelectLocalizeScript', array(
+        wp_localize_script( 'simplesalestax.tic-select', 'ticSelectLocalizeScript', array(
             'tic_list'    => sst_get_tics(),
             'strings'     => array(
                 'default' => __( 'No Change', 'simplesalestax' ),
             ),
         ) );
 
-        wp_enqueue_script( 'sst-tic-select' );
+        SST()->assets->enqueue( 'script', 'simplesalestax.tic-select' );
 
-        require_once SST()->plugin_path() . '/includes/admin/views/html-select-tic-bulk.php';
+        require_once __DIR__ . '/admin/views/html-select-tic-bulk.php';
     }
     
     /**
@@ -164,16 +164,16 @@ class SST_Product {
 
         $current_tic = get_post_meta( $product_id, 'wootax_tic', true );
 
-        wp_localize_script( 'sst-tic-select', 'ticSelectLocalizeScript', array(
+        wp_localize_script( 'simplesalestax.tic-select', 'ticSelectLocalizeScript', array(
             'tic_list'    => sst_get_tics(),
             'strings'     => array(
                 'default' => $is_variation ? __( 'Same as parent', 'simplesalestax' ) : __( 'Using site default', 'simplesalestax' ),
             ),
         ) );
 
-        wp_enqueue_script( 'sst-tic-select' );
+        SST()->assets->enqueue( 'script', 'simplesalestax.tic-select' );
 
-        require SST()->plugin_path() . '/includes/admin/views/html-select-tic.php';
+        require __DIR__ . '/admin/views/html-select-tic.php';
     }
 
     /**

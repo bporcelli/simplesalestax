@@ -63,7 +63,6 @@ class SST_Install {
         add_filter( 'woocommerce_rate_code', array( __CLASS__, 'get_rate_code' ), 10, 2 );
         add_filter( 'woocommerce_rate_label', array( __CLASS__, 'get_rate_label' ), 10, 2 );
         add_action( 'plugins_loaded', array( __CLASS__, 'disable_wcms_order_items_hook' ), 100 );
-        register_deactivation_hook( SST()->plugin_file(), array( __CLASS__, 'deactivate' ) );
     }
 
     /**
@@ -177,9 +176,9 @@ class SST_Install {
 
         if ( version_compare( $db_version, max( array_keys( self::$update_hooks ) ), '<' ) ) {
             if ( self::$background_updater->is_updating() || ! empty( $_GET['do_sst_update'] ) ) {
-                include SST()->plugin_path() . '/includes/admin/views/html-notice-updating.php';
+                require __DIR__ . '/admin/views/html-notice-updating.php';
             } else {
-                include SST()->plugin_path() . '/includes/admin/views/html-notice-update.php';
+                require __DIR__ . '/admin/views/html-notice-update.php';
             }
         }
 

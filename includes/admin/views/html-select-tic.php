@@ -19,4 +19,4 @@ if ( $is_variation ) {
     <input type="hidden" name="wootax_tic[<?php echo $product_id; ?>]" class="sst-tic-input" value="<?php echo $current_tic; ?>">
 </p>
 
-<?php include SST()->plugin_path() . '/includes/admin/views/html-select-tic-modal.php'; ?>
+<?php include __DIR__ . '/html-select-tic-modal.php'; ?>

@@ -31,16 +31,6 @@ class SST_Integration extends WC_Integration {
         // Register action hooks.
         add_action( 'woocommerce_update_options_integration_' .  $this->id, array( $this, 'process_admin_options' ) );
         add_action( 'admin_init', array( $this, 'maybe_download_log_file' ) );
-        add_action( 'admin_enqueue_scripts', array( $this, 'register_scripts' ) );
-    }
-
-    /**
-     * Register scripts.
-     *
-     * @since 5.0
-     */
-    public function register_scripts() {
-        wp_register_script( 'sst-addresses', SST()->plugin_url() . '/assets/js/address-table.js', array( 'jquery', 'wp-util', 'underscore', 'backbone' ), SST()->version );
     }
 
     /**
@@ -120,23 +110,27 @@ class SST_Integration extends WC_Integration {
      * @since 4.5
      */
     public function generate_address_table_html( $key, $data ) {
-        wp_localize_script( 'sst-addresses', 'addressesLocalizeScript', array(
-            'addresses'       => $this->get_addresses(),
-            'strings'         => array(
-                'one_default_required' => __( 'At least one default address is required.', 'simplesalestax' ),
-            ),
-            'default_address' => array(
-                'ID'       => '',
-                'Address1' => '',
-                'Address2' => '',
-                'City'     => '',
-                'State'    => '',
-                'Zip5'     => '',
-                'Zip4'     => '',
-                'Default'  => false,
-            ),
-        ) );
-        wp_enqueue_script( 'sst-addresses' );
+        SST()->assets->enqueue( 'script', 'simplesalestax.address-table', [
+            'deps'     => [ 'jquery', 'wp-util', 'underscore', 'backbone' ],
+            'localize' => [
+                'addressesLocalizeScript' => [
+                    'addresses'       => $this->get_addresses(),
+                    'strings'         => [
+                        'one_default_required' => __( 'At least one default address is required.', 'simplesalestax' ),
+                    ],
+                    'default_address' => [
+                        'ID'       => '',
+                        'Address1' => '',
+                        'Address2' => '',
+                        'City'     => '',
+                        'State'    => '',
+                        'Zip5'     => '',
+                        'Zip4'     => '',
+                        'Default'  => false,
+                    ],
+                ]
+            ],
+        ] );
 
         ob_start();
         include dirname( __FILE__ ) . '/views/html-address-table.php';

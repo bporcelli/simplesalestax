@@ -1,10 +1,10 @@
 {
     "_readme": [
         "This file locks the dependencies of your project to a known state",
-        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "fa949b2639d8223f40737a35c1bd2a80",
+    "content-hash": "7e3c8a1e83322f828e79078a39e2abf2",
     "packages": [
         {
             "name": "bporcelli/php-taxcloud",
@@ -66,17 +66,45 @@
             "time": "2017-06-02T13:49:13+00:00"
         },
         {
+            "name": "bporcelli/wordframe",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "git@bitbucket.org:bporcelli/wordframe",
+                "reference": "8113405b372e70471fa0ed47ffbfe17c2fb40516"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "WordFrame\\": "src/",
+                    "WordFrame\\v1_1_0\\": "src/",
+                    "WordFrame\\v1_1_0\\Updates\\": "src/updates/"
+                }
+            },
+            "license": [
+                "GPL-3+"
+            ],
+            "authors": [
+                {
+                    "name": "Brett Porcelli",
+                    "email": "brett@thepluginpros.com"
+                }
+            ],
+            "description": "A simple WordPress plugin development framework.",
+            "time": "2018-08-17T03:27:37+00:00"
+        },
+        {
             "name": "guzzlehttp/guzzle",
-            "version": "6.2.3",
+            "version": "6.3.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/guzzle.git",
-                "reference": "8d6c6cc55186db87b7dc5009827429ba4e9dc006"
+                "reference": "407b0cb880ace85c9b63c5f9551db498cb2d50ba"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/8d6c6cc55186db87b7dc5009827429ba4e9dc006",
-                "reference": "8d6c6cc55186db87b7dc5009827429ba4e9dc006",
+                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/407b0cb880ace85c9b63c5f9551db498cb2d50ba",
+                "reference": "407b0cb880ace85c9b63c5f9551db498cb2d50ba",
                 "shasum": ""
             },
             "require": {
@@ -86,13 +114,16 @@
             },
             "require-dev": {
                 "ext-curl": "*",
-                "phpunit/phpunit": "^4.0",
+                "phpunit/phpunit": "^4.8.35 || ^5.7 || ^6.4 || ^7.0",
                 "psr/log": "^1.0"
+            },
+            "suggest": {
+                "psr/log": "Required for using the Log middleware"
             },
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "6.2-dev"
+                    "dev-master": "6.3-dev"
                 }
             },
             "autoload": {
@@ -125,7 +156,7 @@
                 "rest",
                 "web service"
             ],
-            "time": "2017-02-28T22:50:30+00:00"
+            "time": "2018-04-22T15:46:56+00:00"
         },
         {
             "name": "guzzlehttp/promises",
@@ -297,7 +328,9 @@
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {
+        "bporcelli/wordframe": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": [],

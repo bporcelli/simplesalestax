@@ -27,7 +27,7 @@ class SST_Checkout extends SST_Abstract_Cart {
      * @since 5.0
      */
     public function __construct() {
-        add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+        add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_styles' ) );
         add_action( 'woocommerce_calculate_totals', array( $this, 'calculate_tax_totals' ), 15 );
         add_filter( 'woocommerce_calculated_total', array( $this, 'filter_calculated_total' ) );
         add_filter( 'woocommerce_cart_hide_zero_taxes', array( $this, 'hide_zero_taxes' ) );
@@ -164,7 +164,7 @@ class SST_Checkout extends SST_Abstract_Cart {
         /* Start with the packages returned by Woo */
         $packages = WC()->shipping->get_packages();
 
-        /* After WooCommerce 3.0, items that do not need shipping are excluded 
+        /* After WooCommerce 3.0, items that do not need shipping are excluded
          * from shipping packages. To ensure that these products are taxed, we
          * create a special package for them. */
         if ( ( $virtual_package = $this->create_virtual_package() ) ) {
@@ -187,7 +187,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 
             if ( SST_Shipping::is_local_pickup( array( $method->method_id ) ) ) {
                 $pickup_address = apply_filters( 'wootax_pickup_address', SST_Addresses::get_default_address(), null );
-                
+
                 $packages[ $key ]['destination'] = array(
                     'country'   => 'US',
                     'address'   => $pickup_address->getAddress1(),
@@ -196,7 +196,7 @@ class SST_Checkout extends SST_Abstract_Cart {
                     'state'     => $pickup_address->getState(),
                     'postcode'  => $pickup_address->getZip5(),
                 );
-            } 
+            }
         }
 
         return $packages;
@@ -287,7 +287,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 
         foreach ( $this->cart->get_cart() as $item ) {
             $tax_data = $item['line_tax_data'];
-            
+
             if ( isset( $tax_data['total'], $tax_data['total'][ SST_RATE_ID ] ) ) {
                 $cart_tax_total += $tax_data['total'][ SST_RATE_ID ];
             }
@@ -303,7 +303,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 
         $this->cart->set_tax_amount( SST_RATE_ID, $cart_tax_total );
         $this->cart->set_shipping_tax_amount( SST_RATE_ID, $shipping_tax_total );
-        
+
         $this->cart->update_tax_totals();
     }
 
@@ -318,7 +318,7 @@ class SST_Checkout extends SST_Abstract_Cart {
     protected function set_product_tax( $id, $tax ) {
         $this->cart->set_cart_item_tax( $id, $tax );
     }
-    
+
     /**
      * Set the tax for a shipping package.
      *
@@ -357,7 +357,7 @@ class SST_Checkout extends SST_Abstract_Cart {
             $post_data = array();
             parse_str( $_POST['post_data'], $post_data );
         }
-        
+
         if ( isset( $post_data['tax_exempt'] ) && isset( $post_data['certificate_id'] ) ) {
             $certificate_id = sanitize_text_field( $post_data['certificate_id'] );
             return new TaxCloud\ExemptionCertificateBase( $certificate_id );
@@ -370,7 +370,7 @@ class SST_Checkout extends SST_Abstract_Cart {
      * Display an error message to the user.
      *
      * @since 5.0
-     * 
+     *
      * @param string $message Message describing the error.
      */
     protected function handle_error( $message ) {
@@ -414,7 +414,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 
             if ( $last_underscore_i !== FALSE ) {
                 $cart_key      = substr( $package_key, 0, $last_underscore_i );
-                $package_index = substr( $package_key, $last_underscore_i + 1 );                
+                $package_index = substr( $package_key, $last_underscore_i + 1 );
             }
         }
 
@@ -451,18 +451,13 @@ class SST_Checkout extends SST_Abstract_Cart {
     }
 
     /**
-     * Enqueue JS/CSS for exemption management interface.
+     * Enqueues the CSS for the exemption management interface.
      *
      * @since 5.0
      */
-    public function enqueue_scripts() {
-        // CSS
-        wp_enqueue_style( 'sst-modal', SST()->plugin_url() . '/assets/css/modal.css' );
-        wp_enqueue_style( 'sst-certificate-modal', SST()->plugin_url() . '/assets/css/certificate-modal.css' );
-
-        // JS
-        wp_register_script( 'sst-backbone-modal', SST()->plugin_url() . '/assets/js/backbone-modal.js', array( 'underscore', 'backbone', 'wp-util' ), SST()->version );
-        wp_register_script( 'sst-checkout', SST()->plugin_url() . '/assets/js/checkout.js', array( 'jquery', 'wp-util', 'underscore', 'backbone', 'sst-backbone-modal', 'jquery-blockui' ), SST()->version );
+    public function enqueue_styles() {
+        SST()->assets->enqueue( 'style', 'simplesalestax.modal' );
+        SST()->assets->enqueue( 'style', 'simplesalestax.certificate-modal' );
     }
 
     /**
@@ -500,29 +495,12 @@ class SST_Checkout extends SST_Abstract_Cart {
             return;
         }
 
-        wp_localize_script( 'sst-checkout', 'SSTCertData', array(
-            'certificates'             => SST_Certificates::get_certificates_formatted(),
-            'add_certificate_nonce'    => wp_create_nonce( 'sst_add_certificate' ),
-            'delete_certificate_nonce' => wp_create_nonce( 'sst_delete_certificate' ),
-            'ajaxurl'                  => admin_url( 'admin-ajax.php' ),
-            'seller_name'              => SST_Settings::get( 'company_name' ),
-            'images'                   => array(
-                'single_cert'  => SST()->plugin_url() . '/assets/img/sp_exemption_certificate750x600.png',
-                'blanket_cert' => SST()->plugin_url() . '/assets/img/exemption_certificate750x600.png',
-            ),
-            'strings'                  => array(
-                'delete_failed'      => __( 'Failed to delete certificate', 'simplesalestax' ),
-                'add_failed'         => __( 'Failed to add certificate', 'simplesalestax' ),
-                'delete_certificate' => __( 'Are you sure you want to delete this certificate? This action is irreversible.', 'simplesalestax' ), 
-            ),
-        ) );
-
-        wp_enqueue_script( 'sst-checkout' );
+        SST()->assets->enqueue( 'script', 'simplesalestax.checkout' );
 
         wc_get_template( 'html-certificate-table.php', array(
             'checked'  => ! $_POST && $this->is_user_exempt() || $_POST && isset( $_POST[ 'tax_exempt' ] ),
             'selected' => isset( $_POST['certificate_id'] ) ? $_POST['certificate_id'] : '',
-        ), 'sst/checkout/', SST()->plugin_path() . '/includes/frontend/views/' );
+        ), 'sst/checkout/', SST()->path( '/includes/frontend/views' ) );
     }
 
     /**

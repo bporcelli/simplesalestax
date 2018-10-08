@@ -12,4 +12,4 @@ if ( ! defined( 'ABSPATH' ) ) {
     </span>
 </label>
 
-<?php include SST()->plugin_path() . '/includes/admin/views/html-select-tic-modal.php'; ?>
+<?php include __DIR__ . '/html-select-tic-modal.php'; ?>

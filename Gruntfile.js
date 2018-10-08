@@ -1,5 +1,5 @@
-module.exports = function(grunt) {
-    
+module.exports = function (grunt) {
+
     // Project configuration.
     grunt.initConfig({
         makepot: {
@@ -14,13 +14,38 @@ module.exports = function(grunt) {
                     }
                 }
             }
+        },
+        uglify: {
+            target: {
+                files: [{
+                    expand: true,
+                    cwd: 'assets/js',
+                    src: ['*.js', '!*.min.js'],
+                    dest: 'assets/js',
+                    rename: function (dst, src) {
+                        return dst + '/' + src.replace('.js', '.min.js')
+                    }
+                }]
+            }
+        },
+        cssmin: {
+            target: {
+                files: [{
+                    expand: true,
+                    cwd: 'assets/css',
+                    src: ['*.css', '!*.min.css'],
+                    dest: 'assets/css',
+                    ext: '.min.css'
+                }]
+            }
         }
     });
 
-    // Load the makepot task
-    grunt.loadNpmTasks( 'grunt-wp-i18n' );
+    grunt.loadNpmTasks('grunt-wp-i18n');
+    grunt.loadNpmTasks('grunt-contrib-uglify');
+    grunt.loadNpmTasks('grunt-contrib-cssmin');
 
-    // Default task(s).
-    grunt.registerTask( 'default', [ 'makepot' ] );
+    grunt.registerTask('assets', ['uglify', 'cssmin']);
+    grunt.registerTask('default', ['makepot', 'assets']);
 
 };

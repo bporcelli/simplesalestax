@@ -204,4 +204,4 @@ if ( ! defined( 'ABSPATH' ) ) {
     <div class="wc-backbone-modal-backdrop modal-close"></div>
 </script>
 
-<?php include SST()->plugin_path() . '/includes/frontend/views/html-view-certificate.php'; ?>
+<?php include __DIR__ . '/html-view-certificate.php'; ?>
