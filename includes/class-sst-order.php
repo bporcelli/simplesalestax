@@ -115,19 +115,21 @@ class SST_Order extends SST_Abstract_Cart {
      * @return array
      */
     protected function transform_items( $cart_items ) {
-        $new_items = array();
+        $new_items = [];
 
         foreach ( $cart_items as $item_id => $item ) {
             $product_id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
 
-            $new_items[ $item_id ] = array(
-                'product_id'    => $item['product_id'],
-                'variation_id'  => $item['variation_id'],
-                'quantity'      => $item['qty'],
-                'line_total'    => $item['line_total'],
-                'line_subtotal' => $item['line_subtotal'],  
-                'data'          => wc_get_product( $product_id ),
-            );
+            if ( ( $product = wc_get_product( $product_id ) ) ) {
+                $new_items[ $item_id ] = [
+                    'product_id'    => $item['product_id'],
+                    'variation_id'  => $item['variation_id'],
+                    'quantity'      => $item['qty'],
+                    'line_total'    => $item['line_total'],
+                    'line_subtotal' => $item['line_subtotal'],
+                    'data'          => $product,
+                ];
+            }
         }
 
         return $new_items;
@@ -148,14 +150,14 @@ class SST_Order extends SST_Abstract_Cart {
         if ( ( $virtual_package = $this->create_virtual_package( $items ) ) ) {
             $packages[] = $virtual_package;
         }
-        
+
         /* Create an additional package for each shipping method. */
         $ship_methods = $this->get_shipping_methods();
 
         if ( $ship_methods && $items ) {
             $items_per_package = ceil( count( $items ) / count( $ship_methods ) );
             $package_items     = array_chunk( $items, $items_per_package, true );
-            
+
             foreach ( $package_items as $contents ) {
                 $method = current( $ship_methods );
 
@@ -179,7 +181,7 @@ class SST_Order extends SST_Abstract_Cart {
                 /* Set destination based on shipping method. */
                 if ( SST_Shipping::is_local_pickup( [ $package['shipping']->method_id ] ) ) {
                     $pickup_address = apply_filters( 'wootax_pickup_address', SST_Addresses::get_default_address(), $this->order );
-            
+
                     $package['destination'] = [
                         'country'   => 'US',
                         'address'   => $pickup_address->getAddress1(),
@@ -255,11 +257,11 @@ class SST_Order extends SST_Abstract_Cart {
         /* Add fees to first package. */
         if ( apply_filters( 'wootax_add_fees', true ) ) {
             $fees = array();
-            
+
             foreach ( $this->get_fees() as $item_id => $fee ) {
                 $name   = empty( $fee['name'] ) ? __( 'Fee', 'simplesalestax' ) : $fee['name'];
                 $fee_id = sanitize_title( $name );
-                
+
                 $fees[ $item_id ] = (object) array(
                     'id'     => $fee_id,
                     'amount' => $fee['line_total'],
@@ -473,7 +475,7 @@ class SST_Order extends SST_Abstract_Cart {
             $raw_address = $this->get_billing_address();
         } else {
             $raw_address = $this->get_shipping_address();
-        }       
+        }
 
         try {
             $address = new TaxCloud\Address(
@@ -512,7 +514,7 @@ class SST_Order extends SST_Abstract_Cart {
      * @since 5.0
      *
      * @return bool true on success, false on failure.
-     * 
+     *
      * @throws Exception
      */
     public function do_capture() {
@@ -616,7 +618,7 @@ class SST_Order extends SST_Abstract_Cart {
                         $item['price'],
                         $qty
                     );
-                    
+
                     $item['qty'] -= $qty;
 
                     if ( $item['qty'] == 0 ) {
