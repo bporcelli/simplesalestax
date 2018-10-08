@@ -41,11 +41,7 @@ class SST_Checkout extends SST_Abstract_Cart {
             add_action( 'woocommerce_checkout_after_customer_details', array( $this, 'output_exemption_form' ) );
         }
 
-        if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
-            add_action( 'woocommerce_add_shipping_order_item', array( $this, 'add_shipping_meta_old' ), 10, 3 );
-        } else {
-            add_action( 'woocommerce_checkout_create_order_shipping_item', array( $this, 'add_shipping_meta' ), 10, 3 );
-        }
+        add_action( 'woocommerce_checkout_create_order_shipping_item', array( $this, 'add_shipping_meta' ), 10, 3 );
     }
 
     /**
@@ -171,25 +167,8 @@ class SST_Checkout extends SST_Abstract_Cart {
         /* After WooCommerce 3.0, items that do not need shipping are excluded 
          * from shipping packages. To ensure that these products are taxed, we
          * create a special package for them. */
-        if ( version_compare( WC_VERSION, '3.0', '>=' ) ) {
-            $digital_items = $this->get_items_not_needing_shipping();
-
-            if ( ! empty( $digital_items ) ) {
-                $packages[] = sst_create_package( array(
-                    'contents'    => $digital_items,
-                    'destination' => array(
-                        'country'   => SST_Customer::get_billing_country(),
-                        'address'   => SST_Customer::get_billing_address(),
-                        'address_2' => SST_Customer::get_billing_address_2(),
-                        'city'      => SST_Customer::get_billing_city(),
-                        'state'     => SST_Customer::get_billing_state(),
-                        'postcode'  => SST_Customer::get_billing_postcode(),
-                    ),
-                    'user'        => array(
-                        'ID' => get_current_user_id(),
-                    ),
-                ) );
-            }
+        if ( ( $virtual_package = $this->create_virtual_package() ) ) {
+            $packages[] = $virtual_package;
         }
 
         /* Set the shipping method for each package, replacing the destination
@@ -221,6 +200,36 @@ class SST_Checkout extends SST_Abstract_Cart {
         }
 
         return $packages;
+    }
+
+    /**
+     * Creates a virtual shipping package for all items that don't need shipping.
+     *
+     * @return array|false Package or false if all cart items need shipping.
+     */
+    protected function create_virtual_package() {
+        $digital_items = $this->get_items_not_needing_shipping();
+
+        if ( ! empty( $digital_items ) ) {
+            return sst_create_package(
+                [
+                    'contents'    => $digital_items,
+                    'destination' => [
+                        'country'   => WC()->customer->get_billing_country()(),
+                        'address'   => WC()->customer->get_billing_address(),
+                        'address_2' => WC()->customer->get_billing_address_2(),
+                        'city'      => WC()->customer->get_billing_city()(),
+                        'state'     => WC()->customer->get_billing_state()(),
+                        'postcode'  => WC()->customer->get_billing_postcode()(),
+                    ],
+                    'user'        => [
+                        'ID' => get_current_user_id(),
+                    ],
+                ]
+            );
+        }
+
+        return false;
     }
 
     /**
@@ -421,32 +430,15 @@ class SST_Checkout extends SST_Abstract_Cart {
     }
 
     /**
-     * Add shipping meta for newly created shipping items (WooCommerce 2.6.x).
-     *
-     * @since 5.0
-     *
-     * @param int $order_id
-     * @param int $item_id
-     * @param int $package_key
-     */
-    public function add_shipping_meta_old( $order_id, $item_id, $package_key ) {
-        $shipping_tax = $this->get_package_shipping_tax( $package_key );
-
-        if ( $shipping_tax >= 0 ) {
-            $taxes = wc_get_order_item_meta( $item_id, 'taxes', true );
-            $taxes[ SST_RATE_ID ] = $shipping_tax;
-            wc_update_order_item_meta( $item_id, 'taxes', $taxes );
-        }
-    }
-
-    /**
-     * Add shipping meta for newly created shipping items (WooCommerce 3.0.x).
+     * Add shipping meta for newly created shipping items.
      *
      * @since 5.0
      *
      * @param WC_Order_Item_Shipping $item
      * @param int $package_key
      * @param array $package
+     *
+     * @throws WC_Data_Exception
      */
     public function add_shipping_meta( $item, $package_key, $package ) {
         $shipping_tax = $this->get_package_shipping_tax( $package_key );

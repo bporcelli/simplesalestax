@@ -212,11 +212,11 @@ class SST_Subscriptions {
                     'ID' => get_current_user_id(),
                 ),
                 'destination' => array(
-                    'address'   => SST_Customer::get_billing_address(),
-                    'address_2' => SST_Customer::get_billing_address_2(),
-                    'city'      => SST_Customer::get_billing_city(),
-                    'state'     => SST_Customer::get_billing_state(),
-                    'postcode'  => SST_Customer::get_billing_postcode(),
+                    'address'   => WC()->customer->get_billing_address(),
+                    'address_2' => WC()->customer->get_billing_address_2(),
+                    'city'      => WC()->customer->get_billing_city()(),
+                    'state'     => WC()->customer->get_billing_state()(),
+                    'postcode'  => WC()->customer->get_billing_postcode()(),
                 ),
             ) );
         }

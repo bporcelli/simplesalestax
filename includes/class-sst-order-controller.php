@@ -133,15 +133,18 @@ class SST_Order_Controller {
      *
      * @param array $taxes
      * @param WC_Order_Item $item
+     *
+     * @return array
      */
     public function fix_shipping_tax_issue( $taxes, $item ) {
-        if ( version_compare( WC_VERSION, '3.0', '>=' ) && 'shipping' == $item->get_type() ) {
+        if ( 'shipping' == $item->get_type() ) {
             if ( isset( $taxes['total'], $taxes['total']['total'] ) ) {
                 unset( $taxes['total']['total'] );
             }
         }
         return $taxes;
     }
+
 }
 
 new SST_Order_Controller();

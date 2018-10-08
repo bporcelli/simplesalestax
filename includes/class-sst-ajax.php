@@ -92,12 +92,12 @@ class SST_Ajax {
 
         try {
             TaxCloud()->DeleteExemptCertificate( $request );
-            
+
             // Invalidate cached certificates
             SST_Certificates::delete_certificates();
 
             wp_send_json_success( array(
-                'certificates' => SST_Certificates::get_certificates_formatted(), 
+                'certificates' => SST_Certificates::get_certificates_formatted(),
             ) );
         } catch ( Exception $ex ) { /* Failed to delete */
             wp_send_json_error( $ex->getMessage() );
@@ -131,7 +131,7 @@ class SST_Ajax {
         $exempt_state = new TaxCloud\ExemptState(
             $form_data['ExemptState'],
             $form_data['PurchaserExemptionReason'],
-            $form_data['IDNumber'] 
+            $form_data['IDNumber']
         );
 
         $tax_id = new TaxCloud\TaxID(
@@ -205,7 +205,6 @@ class SST_Ajax {
         $state        = strtoupper( esc_attr( $_POST['state'] ) );
         $postcode     = strtoupper( esc_attr( $_POST['postcode'] ) );
         $city         = wc_clean( esc_attr( $_POST['city'] ) );
-        $woo_3_0      = version_compare( WC_VERSION, '3.0', '>=' );
 
         /* Let Woo take the reins if the customer is international */
         if ( 'US' != $country ) {
@@ -245,13 +244,8 @@ class SST_Ajax {
             wp_die( $ex->getMessage() );
         }
 
-        /* Send back response */
-        if ( ! $woo_3_0 ) {
-            $data = get_post_meta( $order_id );
-        }
-
         include WC()->plugin_path() . '/includes/admin/meta-boxes/views/html-order-items.php';
-        
+
         wp_die();
     }
 

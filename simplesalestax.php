@@ -9,7 +9,7 @@
  * Version:              5.9
  * Requires at least:    4.5.0
  * Tested up to:         4.9.5
- * WC requires at least: 2.6.0
+ * WC requires at least: 3.0.0
  * WC tested up to:      3.4.0
  * Text Domain:          simplesalestax
  * Domain Path:          /languages
@@ -32,7 +32,7 @@ require_once 'includes/sst-compatibility-functions.php';
  * Check that WooCommerce is active and at the minimum required version. If not,
  * display a notice and bail.
  */
-if ( ! sst_woocommerce_active() || version_compare( get_option( 'woocommerce_db_version' ), '2.6', '<' ) ) {
+if ( ! sst_woocommerce_active() || version_compare( get_option( 'woocommerce_db_version' ), '3.0', '<' ) ) {
     add_action( 'admin_notices', array( 'SST', 'plugin_inactive_notice' ) );
     return;
 }
@@ -161,7 +161,6 @@ final class SST {
         include_once 'includes/class-sst-settings.php';
         include_once 'includes/class-sst-logger.php';
         include_once 'includes/class-sst-plugin-updater.php';
-        include_once 'includes/class-sst-customer.php';
         include_once 'includes/class-sst-ajax.php';
         include_once 'includes/class-sst-tic.php';
         include_once 'includes/class-sst-product.php';
@@ -246,7 +245,7 @@ final class SST {
             return;
         }
         
-        $notice = '<strong>' . __( 'Simple Sales Tax is inactive.', 'simplesalestax' ) . '</strong> ' . __( 'WooCommerce 2.6 or greater is required for Simple Sales Tax to work.', 'simplesalestax' );
+        $notice = '<strong>' . __( 'Simple Sales Tax is inactive.', 'simplesalestax' ) . '</strong> ' . __( 'WooCommerce 3.0 or greater is required for Simple Sales Tax to work.', 'simplesalestax' );
 
         printf( "<div class='error'><p>%s</p></div>", $notice );
     }
