@@ -215,12 +215,12 @@ class SST_Checkout extends SST_Abstract_Cart {
                 [
                     'contents'    => $digital_items,
                     'destination' => [
-                        'country'   => WC()->customer->get_billing_country()(),
+                        'country'   => WC()->customer->get_billing_country(),
                         'address'   => WC()->customer->get_billing_address(),
                         'address_2' => WC()->customer->get_billing_address_2(),
-                        'city'      => WC()->customer->get_billing_city()(),
-                        'state'     => WC()->customer->get_billing_state()(),
-                        'postcode'  => WC()->customer->get_billing_postcode()(),
+                        'city'      => WC()->customer->get_billing_city(),
+                        'state'     => WC()->customer->get_billing_state(),
+                        'postcode'  => WC()->customer->get_billing_postcode(),
                     ],
                     'user'        => [
                         'ID' => get_current_user_id(),

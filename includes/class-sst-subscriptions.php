@@ -214,9 +214,9 @@ class SST_Subscriptions {
                 'destination' => array(
                     'address'   => WC()->customer->get_billing_address(),
                     'address_2' => WC()->customer->get_billing_address_2(),
-                    'city'      => WC()->customer->get_billing_city()(),
-                    'state'     => WC()->customer->get_billing_state()(),
-                    'postcode'  => WC()->customer->get_billing_postcode()(),
+                    'city'      => WC()->customer->get_billing_city(),
+                    'state'     => WC()->customer->get_billing_state(),
+                    'postcode'  => WC()->customer->get_billing_postcode(),
                 ),
             ) );
         }
