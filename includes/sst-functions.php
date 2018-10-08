@@ -212,3 +212,31 @@ function sst_get_tics() {
 
     return $tics;
 }
+
+/**
+ * Calculates the taxes for an order using the TaxCloud API.
+ *
+ * @param WC_Order|int $order Order object or order ID.
+ *
+ * @return bool|WP_Error True on success, WP_Error instance on failure.
+ */
+function sst_order_calculate_taxes( $order ) {
+    if ( is_numeric( $order ) ) {
+        $order = wc_get_order( $order );
+    }
+
+    if ( ! is_a( $order, 'WC_Order' ) ) {
+        return new WP_Error( 'invalid_order', 'Invalid order.' );
+    }
+
+    $_order = new SST_Order( $order );
+
+    try {
+        $_order->calculate_taxes();
+        $_order->calculate_totals( false );
+    } catch ( Exception $ex ) {
+        return new WP_Error( 'calculate_error', $ex->getMessage() );
+    }
+
+    return true;
+}

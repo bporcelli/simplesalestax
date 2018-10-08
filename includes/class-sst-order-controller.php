@@ -26,6 +26,7 @@ class SST_Order_Controller {
         add_action( 'woocommerce_payment_complete', array( $this, 'maybe_capture_order' ) );
         add_filter( 'woocommerce_hidden_order_itemmeta', array( $this, 'hide_order_item_meta' ) );
         add_filter( 'woocommerce_order_item_get_taxes', array( $this, 'fix_shipping_tax_issue' ), 10, 2 );
+        add_action( 'woocommerce_rest_pre_insert_shop_order_object', array( $this, 'rest_calculate_order_taxes' ) );
     }
 
     /**
@@ -143,6 +144,19 @@ class SST_Order_Controller {
             }
         }
         return $taxes;
+    }
+
+    /**
+     * Calculates the tax due for an order created through the WC REST API.
+     *
+     * @param WC_Order $order Order being created or updated.
+     *
+     * @return WC_Order Modified $order
+     */
+    public function rest_calculate_order_taxes( $order ) {
+        sst_order_calculate_taxes( $order );
+
+        return $order;
     }
 
 }

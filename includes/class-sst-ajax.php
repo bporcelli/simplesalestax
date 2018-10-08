@@ -36,10 +36,11 @@ class SST_Ajax {
             $function = str_replace( array( 'woocommerce_', 'sst_' ), '', $hook );
 
             /* If we are overriding a woo hook, give ours higher priority */
-            if ( 0 === strpos( $hook, 'woocommerce_' ) )
+            if ( 0 === strpos( $hook, 'woocommerce_' ) ) {
                 $priority = 1;
-            else
+            } else {
                 $priority = 10;
+            }
 
             add_action( "wp_ajax_$hook", array( __CLASS__, $function ), $priority );
 
@@ -55,8 +56,8 @@ class SST_Ajax {
      * @since 5.0
      */
     public static function verify_taxcloud() {
-        $taxcloud_id  = sanitize_text_field( $_POST[ 'wootax_tc_id' ] );
-        $taxcloud_key = sanitize_text_field( $_POST[ 'wootax_tc_key' ] );
+        $taxcloud_id  = sanitize_text_field( $_POST['wootax_tc_id'] );
+        $taxcloud_key = sanitize_text_field( $_POST['wootax_tc_key'] );
 
         if ( empty( $taxcloud_id ) || empty( $taxcloud_key ) ) {
             wp_send_json_error();
@@ -78,11 +79,11 @@ class SST_Ajax {
      * @since 5.0
      */
     public static function delete_certificate() {
-        if ( ! isset( $_POST[ 'nonce' ] ) || ! wp_verify_nonce( $_POST[ 'nonce' ], 'sst_delete_certificate' ) ) {
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'sst_delete_certificate' ) ) {
             return;
         }
 
-        $certificate_id = esc_attr( $_POST[ 'certificate_id' ] );
+        $certificate_id = esc_attr( $_POST['certificate_id'] );
 
         $request = new TaxCloud\Request\DeleteExemptCertificate(
             SST_Settings::get( 'tc_id' ),
@@ -96,9 +97,11 @@ class SST_Ajax {
             // Invalidate cached certificates
             SST_Certificates::delete_certificates();
 
-            wp_send_json_success( array(
-                'certificates' => SST_Certificates::get_certificates_formatted(),
-            ) );
+            wp_send_json_success(
+                array(
+                    'certificates' => SST_Certificates::get_certificates_formatted(),
+                )
+            );
         } catch ( Exception $ex ) { /* Failed to delete */
             wp_send_json_error( $ex->getMessage() );
         }
@@ -198,7 +201,7 @@ class SST_Ajax {
             wp_die( -1 );
         }
 
-        $items        = array();
+        $items        = [];
         $order_id     = absint( $_POST['order_id'] );
         $tax_based_on = get_option( 'woocommerce_tax_based_on' );
         $country      = strtoupper( esc_attr( $_POST['country'] ) );
@@ -206,47 +209,61 @@ class SST_Ajax {
         $postcode     = strtoupper( esc_attr( $_POST['postcode'] ) );
         $city         = wc_clean( esc_attr( $_POST['city'] ) );
 
-        /* Let Woo take the reins if the customer is international */
-        if ( 'US' != $country ) {
+        // Let Woo take the reins if the customer is international
+        if ( 'US' !== $country ) {
             return;
         }
 
-        $order  = wc_get_order( $order_id );
-        $_order = new SST_Order( $order );
-
-        /* Parse jQuery serialized items */
+        // Parse jQuery serialized items
         parse_str( $_POST['items'], $items );
 
-        /* Set customer billing/shipping address as needed */
-        $address = array(
-            'country'   => 'US',
-            'address_1' => '',
-            'address_2' => '',
-            'city'      => $city,
-            'state'     => $state,
-            'postcode'  => $postcode
-        );
-
-        if ( 'shipping' === $tax_based_on || empty( $_order->get_shipping_country() ) ) {
-            $_order->set_address( $address, 'shipping' );
-        }
-        if ( 'billing' === $tax_based_on || empty( $_order->get_billing_country() )) {
-            $_order->set_address( $address, 'billing' );
-        }
-
-        /* Save items and recalc taxes */
+        // Save items and recalc taxes
         wc_save_order_items( $order_id, $items );
 
-        try {
-            $_order->calculate_taxes();
-            $_order->calculate_totals( false );
-        } catch ( Exception $ex ) {
-            wp_die( $ex->getMessage() );
+        $order = wc_get_order( $order_id );
+
+        self::ensure_order_address( $order, $tax_based_on, compact( 'country', 'state', 'city', 'postcode' ) );
+
+        $result = sst_order_calculate_taxes( $order );
+
+        if ( is_wp_error( $result ) ) {
+            wp_die( $result->get_error_message() );
         }
 
         include WC()->plugin_path() . '/includes/admin/meta-boxes/views/html-order-items.php';
 
         wp_die();
+    }
+
+    /**
+     * Ensures that the order billing or shipping address is set before taxes
+     * are calculated.
+     *
+     * @param WC_Order $order Order object.
+     * @param string $type Type of address - can be 'billing' or 'shipping'.
+     * @param array $address POSTed address data.
+     */
+    protected static function ensure_order_address( $order, $type, $address ) {
+        if ( ! in_array( $type, [ 'billing', 'shipping' ] ) ) {
+            return;
+        }
+
+        try {
+            foreach ( $address as $field => $value ) {
+                if ( empty( $order->{"get_{$type}_{$field}"}() ) ) {
+                    $order->{"set_{$type}_{$field}"}( $value );
+                }
+            }
+        } catch ( WC_Data_Exception $ex ) {
+            wc_get_logger()->error(
+                sprintf(
+                    "Failed to set %s address for order #%d: %s",
+                    $type,
+                    $order->get_id(),
+                    $ex->getMessage()
+                )
+            );
+        }
     }
 
 }
