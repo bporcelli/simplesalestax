@@ -49,7 +49,7 @@ class SST_Checkout extends SST_Abstract_Cart {
      *
      * @since 5.0
      *
-     * @return bool True on success, false on error.
+     * @param WC_Cart $cart
      */
     public function calculate_tax_totals( $cart ) {
         $this->cart = new SST_Cart_Proxy( $cart );
@@ -60,11 +60,15 @@ class SST_Checkout extends SST_Abstract_Cart {
      * Add the calculated sales tax to the cart total (WC 3.2+)
      *
      * @since 5.6
-     * @param $total total calculated by WooCommerce (excludes tax)
+     *
+     * @param float $total total calculated by WooCommerce (excludes tax)
+     *
+     * @return float
      */
     public function filter_calculated_total( $total ) {
         if ( sst_woocommerce_gte_32() ) {
-            $total += $this->cart->get_cart_contents_tax() + $this->cart->get_fee_tax() + $this->cart->get_shipping_tax();
+            $total += $this->cart->get_cart_contents_tax() + $this->cart->get_fee_tax() + $this->cart->get_shipping_tax(
+                );
         }
         return $total;
     }
@@ -107,7 +111,8 @@ class SST_Checkout extends SST_Abstract_Cart {
      *
      * @since 5.0
      *
-     * @param  array $item
+     * @param array $item
+     *
      * @return bool
      */
     protected function filter_items_not_needing_shipping( $item ) {
@@ -130,8 +135,9 @@ class SST_Checkout extends SST_Abstract_Cart {
      *
      * @since 5.0
      *
-     * @param  int $key
-     * @param  array $package
+     * @param int $key
+     * @param array $package
+     *
      * @return WC_Shipping_Rate | NULL
      */
     protected function get_package_shipping_rate( $key, $package ) {
@@ -150,7 +156,7 @@ class SST_Checkout extends SST_Abstract_Cart {
             return $package['rates'][ $chosen_methods[ $key ] ];
         }
 
-        return NULL;
+        return null;
     }
 
     /**
@@ -180,7 +186,7 @@ class SST_Checkout extends SST_Abstract_Cart {
                 continue;
             }
 
-            $method = clone $method;    /* IMPORTANT: preserve original */
+            $method     = clone $method;    /* IMPORTANT: preserve original */
             $method->id = $key;
 
             $packages[ $key ]['shipping'] = $method;
@@ -243,7 +249,11 @@ class SST_Checkout extends SST_Abstract_Cart {
         $packages = array();
 
         /* Let devs change the packages before we split them. */
-        $raw_packages = apply_filters( 'wootax_cart_packages_before_split', $this->get_filtered_packages(), $this->cart );
+        $raw_packages = apply_filters(
+            'wootax_cart_packages_before_split',
+            $this->get_filtered_packages(),
+            $this->cart
+        );
 
         /* Split packages by origin address. */
         foreach ( $raw_packages as $raw_package ) {
@@ -340,7 +350,7 @@ class SST_Checkout extends SST_Abstract_Cart {
      * @param float $tax Sales tax for fee.
      */
     protected function set_fee_tax( $id, $tax ) {
-        $this->cart->set_fee_item_tax( $id,  $tax );
+        $this->cart->set_fee_item_tax( $id, $tax );
     }
 
     /**
@@ -348,7 +358,7 @@ class SST_Checkout extends SST_Abstract_Cart {
      *
      * @since 5.0
      *
-     * @return ExemptionCertificateBase|NULL
+     * @return TaxCloud\ExemptionCertificateBase|NULL
      */
     public function get_certificate() {
         if ( ! isset( $_POST['post_data'] ) ) {
@@ -363,7 +373,7 @@ class SST_Checkout extends SST_Abstract_Cart {
             return new TaxCloud\ExemptionCertificateBase( $certificate_id );
         }
 
-        return NULL;
+        return null;
     }
 
     /**
@@ -375,6 +385,7 @@ class SST_Checkout extends SST_Abstract_Cart {
      */
     protected function handle_error( $message ) {
         wc_add_notice( $message, 'error' );
+
         SST_Logger::add( $message );
     }
 
@@ -401,7 +412,8 @@ class SST_Checkout extends SST_Abstract_Cart {
      *
      * @since 5.0
      *
-     * @param  string $package_key
+     * @param string $package_key
+     *
      * @return float -1 if no shipping tax, otherwise shipping tax.
      */
     protected function get_package_shipping_tax( $package_key ) {
@@ -412,7 +424,7 @@ class SST_Checkout extends SST_Abstract_Cart {
         if ( sst_subs_active() ) {
             $last_underscore_i = strrpos( $package_key, '_' );
 
-            if ( $last_underscore_i !== FALSE ) {
+            if ( $last_underscore_i !== false ) {
                 $cart_key      = substr( $package_key, 0, $last_underscore_i );
                 $package_index = substr( $package_key, $last_underscore_i + 1 );
             }
@@ -444,7 +456,7 @@ class SST_Checkout extends SST_Abstract_Cart {
         $shipping_tax = $this->get_package_shipping_tax( $package_key );
 
         if ( $shipping_tax >= 0 ) {
-            $taxes = $item->get_taxes();
+            $taxes                         = $item->get_taxes();
             $taxes['total'][ SST_RATE_ID ] = $shipping_tax;
             $item->set_taxes( $taxes );
         }
@@ -469,8 +481,9 @@ class SST_Checkout extends SST_Abstract_Cart {
      */
     protected function is_user_exempt() {
         $current_user = wp_get_current_user();
-        $exempt_roles = SST_Settings::get( 'exempt_roles', array() );
-        $user_roles   = is_user_logged_in() ? $current_user->roles : array();
+        $exempt_roles = SST_Settings::get( 'exempt_roles', [] );
+        $user_roles   = is_user_logged_in() ? $current_user->roles : [];
+
         return count( array_intersect( $exempt_roles, $user_roles ) ) > 0;
     }
 
@@ -482,6 +495,7 @@ class SST_Checkout extends SST_Abstract_Cart {
     protected function show_exemption_form() {
         $restricted = SST_Settings::get( 'restrict_exempt' ) == 'yes';
         $enabled    = SST_Settings::get( 'show_exempt' ) == 'true';
+
         return $enabled && ( ! $restricted || $this->is_user_exempt() );
     }
 
@@ -516,6 +530,7 @@ class SST_Checkout extends SST_Abstract_Cart {
     public function clear_package_cache() {
         WC()->session->set( 'sst_packages', array() );
     }
+
 }
 
 new SST_Checkout();
