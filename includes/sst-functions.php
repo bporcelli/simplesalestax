@@ -186,25 +186,25 @@ function TaxCloud() {
  * @return SST_TIC[]
  */
 function sst_get_tics() {
-	$tics = get_transient( 'sst_tics' );
+    $tics = get_transient( 'sst_tics' );
 
-	if ( false === $tics ) {
-		$tics     = [];
-		$get_tics = new \TaxCloud\Request\GetTICs( SST_Settings::get( 'tc_id' ), SST_Settings::get( 'tc_key' ) );
+    if ( false === $tics ) {
+        $tics = [];
 
-		try {
-			$tics = TaxCloud()->GetTICs( $get_tics );
+        try {
+            $tics = TaxCloud()->GetTICs(
+                new \TaxCloud\Request\GetTICs( SST_Settings::get( 'tc_id' ), SST_Settings::get( 'tc_key' ) )
+            );
 
-			set_transient( 'sst_tics', $tics, WEEK_IN_SECONDS );
-		} catch ( \TaxCloud\Exceptions\GetTICsException $ex ) {
-			$logger = wc_get_logger();
-			$logger->error( "Failed to update TaxCloud TICs: {$ex->getMessage()}" );
-		}
-	}
+            set_transient( 'sst_tics', $tics, WEEK_IN_SECONDS );
+        } catch ( Exception $ex ) {
+            wc_get_logger()->error( "Failed to update TaxCloud TICs: {$ex->getMessage()}" );
+        }
+    }
 
-	foreach ( $tics as $id => $description ) {
-		$tics[ $id ] = new SST_TIC( $id, $description );
-	}
+    foreach ( $tics as $id => $description ) {
+        $tics[ $id ] = new SST_TIC( $id, $description );
+    }
 
-	return $tics;
+    return $tics;
 }
