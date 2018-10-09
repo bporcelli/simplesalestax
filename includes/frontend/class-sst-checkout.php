@@ -31,8 +31,7 @@ class SST_Checkout extends SST_Abstract_Cart {
         add_action( 'woocommerce_calculate_totals', array( $this, 'calculate_tax_totals' ), 15 );
         add_filter( 'woocommerce_calculated_total', array( $this, 'filter_calculated_total' ) );
         add_filter( 'woocommerce_cart_hide_zero_taxes', array( $this, 'hide_zero_taxes' ) );
-        add_action( 'woocommerce_new_order', array( $this, 'add_order_meta' ) );
-        add_action( 'woocommerce_resume_order', array( $this, 'add_order_meta' ) );
+        add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'add_order_meta' ) );
         add_action( 'woocommerce_cart_emptied', array( $this, 'clear_package_cache' ) );
 
         if ( sst_storefront_active() ) {
@@ -397,13 +396,14 @@ class SST_Checkout extends SST_Abstract_Cart {
      * @param int $order_id ID of new order.
      */
     public function add_order_meta( $order_id ) {
-        $this->cart = new SST_Cart_Proxy( WC()->cart ); /* Save data from 'main' cart */
+        // Make sure we're saving the data from the 'main' cart
+        $this->cart = new SST_Cart_Proxy( WC()->cart );
 
         $order = new SST_Order( $order_id );
 
         $order->update_meta( 'packages', $this->get_packages() );
         $order->update_meta( 'exempt_cert', $this->get_certificate() );
-        $order->update_meta( 'db_version', SST()->version );
+
         $order->save();
     }
 

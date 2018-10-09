@@ -26,7 +26,7 @@ class SST_Order_Controller {
         add_action( 'woocommerce_payment_complete', array( $this, 'maybe_capture_order' ) );
         add_filter( 'woocommerce_hidden_order_itemmeta', array( $this, 'hide_order_item_meta' ) );
         add_filter( 'woocommerce_order_item_get_taxes', array( $this, 'fix_shipping_tax_issue' ), 10, 2 );
-        add_action( 'woocommerce_rest_pre_insert_shop_order_object', array( $this, 'rest_calculate_order_taxes' ) );
+        add_action( 'woocommerce_before_order_object_save', array( $this, 'on_order_saved' ) );
     }
 
     /**
@@ -161,16 +161,28 @@ class SST_Order_Controller {
     }
 
     /**
-     * Calculates the tax due for an order created through the WC REST API.
+     * Runs when an order is saved.
      *
-     * @param WC_Order $order Order being created or updated.
+     * Calculates the tax for the order if it was created via the REST API and
+     * ensures that the order DB version is set.
      *
-     * @return WC_Order Modified $order
+     * @param WC_Order $order
      */
-    public function rest_calculate_order_taxes( $order ) {
-        sst_order_calculate_taxes( $order );
+    public function on_order_saved( $order ) {
+        if ( 'rest-api' === $order->get_created_via() ) {
+            // Remove hook temporarily to prevent infinite loop
+            remove_action( 'woocommerce_before_order_object_save', array( $this, 'on_order_saved' ) );
 
-        return $order;
+            sst_order_calculate_taxes( $order );
+
+            add_action( 'woocommerce_before_order_object_save', array( $this, 'on_order_saved' ) );
+        }
+
+        $db_version = $order->get_meta( '_wootax_db_version', true );
+
+        if ( empty( $db_version ) ) {
+            $order->update_meta_data( '_wootax_db_version', SST()->version );
+        }
     }
 
 }
