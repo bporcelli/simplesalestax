@@ -571,17 +571,17 @@ class SST_Order extends SST_Abstract_Cart {
         foreach ( $packages as $key => $package ) {
             $now = date( 'c' );
 
-            $request = new TaxCloud\Request\AuthorizedWithCapture(
-                SST_Settings::get( 'tc_id' ),
-                SST_Settings::get( 'tc_key' ),
-                $package['request']->getCustomerID(),
-                $package['cart_id'],
-                $this->get_package_order_id( $key ),
-                $now,
-                $now
-            );
-
             try {
+                $request = new TaxCloud\Request\AuthorizedWithCapture(
+                    SST_Settings::get( 'tc_id' ),
+                    SST_Settings::get( 'tc_key' ),
+                    $package['request']->getCustomerID(),
+                    $package['cart_id'],
+                    $this->get_package_order_id( $key ),
+                    $now,
+                    $now
+                );
+
                 TaxCloud()->AuthorizedWithCapture( $request );
             } catch ( Exception $ex ) {
                 $this->handle_error(
@@ -674,15 +674,15 @@ class SST_Order extends SST_Abstract_Cart {
             }
 
             if ( ! empty( $refund_items ) ) {
-                $request = new TaxCloud\Request\Returned(
-                    SST_Settings::get( 'tc_id' ),
-                    SST_Settings::get( 'tc_key' ),
-                    $this->get_package_order_id( key( $packages ), $package ),
-                    $refund_items,
-                    date( 'c' )
-                );
-
                 try {
+                    $request = new TaxCloud\Request\Returned(
+                        SST_Settings::get( 'tc_id' ),
+                        SST_Settings::get( 'tc_key' ),
+                        $this->get_package_order_id( key( $packages ), $package ),
+                        $refund_items,
+                        date( 'c' )
+                    );
+
                     TaxCloud()->Returned( $request );
                 } catch ( Exception $ex ) {
                     $this->handle_error(

@@ -161,13 +161,13 @@ class SST_Certificates {
             return array(); /* Invalid user ID. */
         }
 
-        $request = new TaxCloud\Request\GetExemptCertificates(
-            SST_Settings::get( 'tc_id' ),
-            SST_Settings::get( 'tc_key' ),
-            $user->user_login
-        );
-        
         try {
+            $request = new TaxCloud\Request\GetExemptCertificates(
+                SST_Settings::get( 'tc_id' ),
+                SST_Settings::get( 'tc_key' ),
+                $user->user_login
+            );
+
             $certificates = TaxCloud()->GetExemptCertificates( $request );
 
             $final_certs = array();

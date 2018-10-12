@@ -96,8 +96,12 @@ class SST_Addresses {
                 $decoded['Zip4']
             );
         } else {
-            $request = new TaxCloud\Request\VerifyAddress( SST_Settings::get( 'tc_id' ), SST_Settings::get( 'tc_key' ), $address );
             try {
+                $request = new TaxCloud\Request\VerifyAddress(
+                    SST_Settings::get( 'tc_id' ),
+                    SST_Settings::get( 'tc_key' ),
+                    $address
+                );
                 $address = TaxCloud()->VerifyAddress( $request );
             } catch ( Exception $ex ) {
                 // Leave address as-is

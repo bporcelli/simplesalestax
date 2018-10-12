@@ -62,10 +62,8 @@ class SST_Ajax {
         if ( empty( $taxcloud_id ) || empty( $taxcloud_key ) ) {
             wp_send_json_error();
         } else {
-            $ping = new TaxCloud\Request\Ping( $taxcloud_id, $taxcloud_key );
-
             try {
-                TaxCloud()->Ping( $ping );
+                TaxCloud()->Ping( new TaxCloud\Request\Ping( $taxcloud_id, $taxcloud_key ) );
                 wp_send_json_success();
             } catch ( Exception $ex ) {
                 wp_send_json_error( $ex->getMessage() );
@@ -85,13 +83,13 @@ class SST_Ajax {
 
         $certificate_id = esc_attr( $_POST['certificate_id'] );
 
-        $request = new TaxCloud\Request\DeleteExemptCertificate(
-            SST_Settings::get( 'tc_id' ),
-            SST_Settings::get( 'tc_key' ),
-            $certificate_id
-        );
-
         try {
+            $request = new TaxCloud\Request\DeleteExemptCertificate(
+                SST_Settings::get( 'tc_id' ),
+                SST_Settings::get( 'tc_key' ),
+                $certificate_id
+            );
+
             TaxCloud()->DeleteExemptCertificate( $request );
 
             // Invalidate cached certificates
@@ -165,17 +163,18 @@ class SST_Ajax {
         // Add certificate
         $user = wp_get_current_user();
 
-        $request = new TaxCloud\Request\AddExemptCertificate(
-            SST_Settings::get( 'tc_id' ),
-            SST_Settings::get( 'tc_key' ),
-            $user->user_login,  // TODO: USE ID?
-            $certificate
-        );
-
         $certificate_id = '';
 
         try {
+            $request = new TaxCloud\Request\AddExemptCertificate(
+                SST_Settings::get( 'tc_id' ),
+                SST_Settings::get( 'tc_key' ),
+                $user->user_login,  // todo: use user ID instead?
+                $certificate
+            );
+
             $certificate_id = TaxCloud()->AddExemptCertificate( $request );
+
             SST_Certificates::delete_certificates();  // Invalidate cache
         } catch ( Exception $ex ) {
             wp_send_json_error( $ex->getMessage() );
