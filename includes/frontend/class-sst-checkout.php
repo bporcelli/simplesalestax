@@ -383,7 +383,9 @@ class SST_Checkout extends SST_Abstract_Cart {
      * @param string $message Message describing the error.
      */
     protected function handle_error( $message ) {
-        wc_add_notice( $message, 'error' );
+        if ( ! wc_has_notice( $message ) ) {
+            wc_add_notice( $message, 'error' );
+        }
 
         SST_Logger::add( $message );
     }
