@@ -18,7 +18,7 @@ final class SimpleSalesTax extends \WordFrame\v1_1_0\Plugin {
     /**
      * @var string Plugin version.
      */
-    public $version = '6.0.0';
+    public $version = '6.0.1';
 
     /**
      * Bootstraps the plugin when all requirements are met.
