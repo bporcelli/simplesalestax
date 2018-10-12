@@ -26,8 +26,9 @@ class SST_Certificates {
      *
      * @since 5.0
      *
-     * @param  int $user_id (default: 0)
-     * @return ExemptionCertificate[]
+     * @param int $user_id (default: 0)
+     *
+     * @return TaxCloud\ExemptionCertificate[]
      */
     public static function get_certificates( $user_id = 0 ) {
         if ( ! $user_id && ! ( $user_id = get_current_user_id() ) ) {
@@ -41,7 +42,7 @@ class SST_Certificates {
 
         if ( false !== $raw_certs ) {
             $certificates = json_decode( $raw_certs, true );
-            
+
             foreach ( $certificates as $key => $certificate ) {
                 $certificates[ $key ] = TaxCloud\ExemptionCertificate::fromArray( $certificate );
             }
@@ -58,9 +59,10 @@ class SST_Certificates {
      *
      * @since 5.0
      *
-     * @param  string $id Certificate ID.
-     * @param  int $user_id (default: 0)
-     * @return ExemptionCertificate|NULL
+     * @param string $id Certificate ID.
+     * @param int $user_id (default: 0)
+     *
+     * @return TaxCloud\ExemptionCertificate|NULL
      */
     public static function get_certificate( $id, $user_id = 0 ) {
         $certificates = self::get_certificates( $user_id );
@@ -68,7 +70,7 @@ class SST_Certificates {
         if ( isset( $certificates[ $id ] ) ) {
             return $certificates[ $id ];
         } else {
-            return NULL;
+            return null;
         }
     }
 
@@ -77,8 +79,9 @@ class SST_Certificates {
      *
      * @since 5.0
      *
-     * @param  string $id Certificate ID.
-     * @param  int $user_id (default: 0)
+     * @param string $id Certificate ID.
+     * @param int $user_id (default: 0)
+     *
      * @return array|NULL
      */
     public static function get_certificate_formatted( $id, $user_id = 0 ) {
@@ -88,13 +91,14 @@ class SST_Certificates {
         }
         return $certificate;
     }
-    
+
     /**
      * Format a certificate for display.
      *
      * @since 5.0
      *
-     * @param  TaxCloud\ExemptionCertificate $certificate
+     * @param TaxCloud\ExemptionCertificate $certificate
+     *
      * @return array
      */
     protected static function format_certificate( $certificate ) {
@@ -110,7 +114,7 @@ class SST_Certificates {
             'SinglePurchaserOrderNumber' => $detail->getSinglePurchaseOrderNumber(),
             'TaxType'                    => sst_prettify( $detail->getPurchaserTaxID()->getTaxType() ),
             'IDNumber'                   => $detail->getPurchaserTaxID()->getIDNumber(),
-            'PurchaserBusinessType'      => sst_prettify( $detail->getPurchaserBusinessType() )
+            'PurchaserBusinessType'      => sst_prettify( $detail->getPurchaserBusinessType() ),
         );
         return $formatted;
     }
@@ -121,13 +125,15 @@ class SST_Certificates {
      *
      * @since 5.0
      *
-     * @param  int $user_id (default: 0)
-     * @return array()
+     * @param int $user_id (default: 0)
+     *
+     * @return array
      */
     public static function get_certificates_formatted( $user_id = 0 ) {
         $certificates = array();
-        foreach ( self::get_certificates( $user_id ) as $id => $raw_cert )
+        foreach ( self::get_certificates( $user_id ) as $id => $raw_cert ) {
             $certificates[ $id ] = self::format_certificate( $raw_cert );
+        }
         return $certificates;
     }
 
@@ -137,7 +143,7 @@ class SST_Certificates {
      * @since 5.0
      *
      * @param int $user_id (default: 0)
-     * @param ExemptionCertificate[] $certificates (default: array()).
+     * @param TaxCloud\ExemptionCertificate[] $certificates (default: array()).
      */
     public static function set_certificates( $user_id = 0, $certificates = array() ) {
         set_transient( self::get_transient_name( $user_id ), json_encode( $certificates ), 3 * DAY_IN_SECONDS );
@@ -149,13 +155,15 @@ class SST_Certificates {
      * @since 5.0
      *
      * @param int $user_id (default: 0)
+     *
      * @return array
      */
-    private static function fetch_certificates( $user_id  = 0 ) {
-        if ( ! $user_id )
+    private static function fetch_certificates( $user_id = 0 ) {
+        if ( ! $user_id ) {
             $user = wp_get_current_user();
-        else
+        } else {
             $user = new WP_User( $user_id );
+        }
 
         if ( ! isset( $user->ID ) ) {
             return array(); /* Invalid user ID. */
@@ -171,7 +179,7 @@ class SST_Certificates {
             $certificates = TaxCloud()->GetExemptCertificates( $request );
 
             $final_certs = array();
-            
+
             foreach ( $certificates as $certificate ) {
                 $detail = $certificate->getDetail();
                 if ( ! $detail->getSinglePurchase() ) { /* Skip single certs */
@@ -193,9 +201,10 @@ class SST_Certificates {
      * @param int $user_id (default: 0)
      */
     public static function delete_certificates( $user_id = 0 ) {
-        if ( ! $user_id )
+        if ( ! $user_id ) {
             $user_id = get_current_user_id();
-        
+        }
+
         delete_transient( self::get_transient_name( $user_id ) );
     }
 
@@ -204,10 +213,12 @@ class SST_Certificates {
      *
      * @since 5.0
      *
-     * @param  int $user_id
+     * @param int $user_id
+     *
      * @return string
      */
     private static function get_transient_name( $user_id ) {
         return self::TRANS_PREFIX . $user_id;
     }
+
 }

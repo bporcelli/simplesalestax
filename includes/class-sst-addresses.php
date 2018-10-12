@@ -20,11 +20,18 @@ class SST_Addresses {
      *
      * @since 5.0
      *
-     * @param  Address $address
+     * @param TaxCloud\Address $address
+     *
      * @return string
      */
     public static function format( $address ) {
-        return sprintf( '%s, %s, %s %s', $address->getAddress1(), $address->getCity(), $address->getState(), $address->getZip5() );
+        return sprintf(
+            '%s, %s, %s %s',
+            $address->getAddress1(),
+            $address->getCity(),
+            $address->getState(),
+            $address->getZip5()
+        );
     }
 
     /**
@@ -33,20 +40,23 @@ class SST_Addresses {
      *
      * @since 5.0
      *
-     * @param  Address $address
+     * @param TaxCloud\Address $address
+     *
      * @return bool
      */
     public static function is_valid( $address ) {
-        if ( is_null( $address ) )
+        if ( is_null( $address ) ) {
             return false;
+        }
 
         $required = array( $address->getCity(), $address->getState(), $address->getZip5() );
 
         foreach ( $required as $value ) {
-            if ( empty( $value ) ) 
+            if ( empty( $value ) ) {
                 return false;
+            }
         }
-            
+
         return true;
     }
 
@@ -55,16 +65,18 @@ class SST_Addresses {
      *
      * @since 5.0
      *
-     * @param  int $index Location key.
+     * @param int $index Location key.
+     *
      * @return SST_Origin_Address|NULL
      */
     public static function get_address( $index ) {
         $addresses = self::get_origin_addresses();
-        
-        if ( isset( $addresses[ $index ] ) )
-            return $addresses[ $index ];
 
-        return NULL;
+        if ( isset( $addresses[ $index ] ) ) {
+            return $addresses[ $index ];
+        }
+
+        return null;
     }
 
     /**
@@ -72,12 +84,13 @@ class SST_Addresses {
      *
      * @since 5.0
      *
-     * @param  Address $address
-     * @return Address
+     * @param TaxCloud\Address $address
+     *
+     * @return TaxCloud\Address
      */
     public static function verify_address( $address ) {
         $addresses = get_transient( 'sst_verified_addresses' );
-        
+
         if ( ! is_array( $addresses ) ) {
             $addresses = array();
         }
@@ -86,7 +99,7 @@ class SST_Addresses {
 
         if ( array_key_exists( $md5_hash, $addresses ) ) {
             $decoded = json_decode( $addresses[ $md5_hash ], true );
-            
+
             $address = new TaxCloud\Address(
                 $decoded['Address1'],
                 $decoded['Address2'],
@@ -126,15 +139,16 @@ class SST_Addresses {
     public static function get_default_addresses() {
         $return    = array();
         $addresses = self::get_origin_addresses();
-        
+
         foreach ( $addresses as $address ) {
             if ( $address->getDefault() ) {
-                $return[ $address->getID() ] = $address; 
+                $return[ $address->getID() ] = $address;
             }
         }
-        
+
         return $return;
     }
+
     /**
      * Get default pickup address.
      *
@@ -148,8 +162,8 @@ class SST_Addresses {
         if ( ! empty( $defaults ) ) {
             return current( $defaults );
         }
-        
-        return NULL;
+
+        return null;
     }
 
     /**
@@ -170,7 +184,7 @@ class SST_Addresses {
 
         foreach ( $raw_addresses as $raw_address ) {
             $address = json_decode( $raw_address, true );
-            
+
             $addresses[] = new SST_Origin_Address(
                 $address['ID'],
                 $address['Default'],
@@ -191,8 +205,9 @@ class SST_Addresses {
      *
      * @since 5.0
      *
-     * @param  SST_Origin_Address $address
-     * @return Address
+     * @param SST_Origin_Address $address
+     *
+     * @return TaxCloud\Address
      */
     public static function to_address( $address ) {
         if ( is_null( $address ) || ! is_a( $address, 'SST_Origin_Address' ) ) {
@@ -208,4 +223,5 @@ class SST_Addresses {
             );
         }
     }
+
 }
