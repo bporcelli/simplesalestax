@@ -61,26 +61,33 @@ abstract class SST_Abstract_Cart {
 
                 foreach ( $cart_items as $index => $tax_total ) {
                     $info = $package['map'][ $index ];
-                    
+
                     switch ( $info['type'] ) {
                         case 'shipping':
                             $this->set_shipping_tax( $info['cart_id'], $tax_total );
-                        break;
+                            break;
                         case 'line_item':
                             $this->set_product_tax( $info['cart_id'], $tax_total );
-                        break;
+                            break;
                         case 'fee':
                             $this->set_fee_tax( $info['cart_id'], $tax_total );
                     }
                 }
             } else {
-                $this->handle_error( sprintf( __( "Failed to calculate sales tax: %s", 'simplesalestax' ), $response->get_error_message() ) );
-                return;
+                $this->handle_error(
+                    sprintf(
+                        __( "Failed to calculate sales tax: %s", 'simplesalestax' ),
+                        $response->get_error_message()
+                    )
+                );
+                return false;
             }
         }
 
-        /* Update tax totals */
+        // Update tax totals
         $this->update_taxes();
+
+        return true;
     }
 
     /**
@@ -92,7 +99,7 @@ abstract class SST_Abstract_Cart {
      */
     protected function do_lookup() {
         $packages = array();
-        
+
         /* Get saved packages */
         $saved_pkgs = $this->get_packages();
 
@@ -102,16 +109,18 @@ abstract class SST_Abstract_Cart {
 
             if ( array_key_exists( $hash, $saved_pkgs ) ) {
                 $packages[ $hash ] = $saved_pkgs[ $hash ]; /* Use cached result */
-            } else if ( $this->ready_for_lookup( $package ) ) {
-                try {
-                    $package['request']  = $this->get_lookup_for_package( $package );
-                    $package['response'] = TaxCloud()->Lookup( $package['request'] );
-                    $package['cart_id']  = key( $package['response'] );
-                } catch ( Exception $ex ) {
-                    $package['response'] = new WP_Error( 'lookup_error', $ex->getMessage() );
-                }
+            } else {
+                if ( $this->ready_for_lookup( $package ) ) {
+                    try {
+                        $package['request']  = $this->get_lookup_for_package( $package );
+                        $package['response'] = TaxCloud()->Lookup( $package['request'] );
+                        $package['cart_id']  = key( $package['response'] );
+                    } catch ( Exception $ex ) {
+                        $package['response'] = new WP_Error( 'lookup_error', $ex->getMessage() );
+                    }
 
-                $packages[ $hash ] = $package;
+                    $packages[ $hash ] = $package;
+                }
             }
         }
 
@@ -126,17 +135,17 @@ abstract class SST_Abstract_Cart {
      *
      * @since 5.0
      *
-     * @param  $package array
+     * @param $package array
+     *
      * @return TaxCloud\Request\Lookup
      */
     protected function get_lookup_for_package( &$package ) {
-
         $cart_items = array();
         $based_on   = SST_Settings::get( 'tax_based_on' );
 
         /* Add products */
         foreach ( $package['contents'] as $cart_id => $item ) {
-            
+
             $line_total       = $item['line_total'];
             $discounted_price = round( $line_total / $item['quantity'], wc_get_price_decimals() );
 
@@ -152,7 +161,7 @@ abstract class SST_Abstract_Cart {
             /* Give devs a chance to change the taxable product price. */
             $price = apply_filters( 'wootax_product_price', $price, $item['data'] );
 
-            $cart_items[] = new TaxCloud\CartItem(
+            $cart_items[]     = new TaxCloud\CartItem(
                 sizeof( $cart_items ),
                 $item['variation_id'] ? $item['variation_id'] : $item['product_id'],
                 SST_Product::get_tic( $item['product_id'], $item['variation_id'] ),
@@ -168,7 +177,7 @@ abstract class SST_Abstract_Cart {
 
         /* Add fees */
         foreach ( $package['fees'] as $cart_id => $fee ) {
-            $cart_items[] = new TaxCloud\CartItem(
+            $cart_items[]     = new TaxCloud\CartItem(
                 sizeof( $cart_items ),
                 $fee->id,
                 apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC ),
@@ -189,7 +198,7 @@ abstract class SST_Abstract_Cart {
         if ( ! is_null( $shipping_rate ) ) {
             $local_delivery = SST_Shipping::is_local_delivery( $shipping_rate->method_id );
 
-            $cart_items[] = new TaxCloud\CartItem(
+            $cart_items[]     = new TaxCloud\CartItem(
                 sizeof( $cart_items ),
                 SST_SHIPPING_ITEM,
                 apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC ),
@@ -208,7 +217,7 @@ abstract class SST_Abstract_Cart {
             $this->api_id,
             $this->api_key,
             $package['user']['ID'],
-            NULL,                               /* CartID */
+            null,
             $cart_items,
             $package['origin'],
             $package['destination'],
@@ -225,7 +234,8 @@ abstract class SST_Abstract_Cart {
      *
      * @since 5.0
      *
-     * @param  array Package.
+     * @param array Package.
+     *
      * @return array Subpackages (empty on error).
      */
     protected function split_package( $package ) {
@@ -238,7 +248,7 @@ abstract class SST_Abstract_Cart {
                 $package['destination']['address_2'],
                 $package['destination']['city'],
                 $package['destination']['state'],
-                substr( $package['destination']['postcode'], 0, 5)
+                substr( $package['destination']['postcode'], 0, 5 )
             );
 
             $package['destination'] = SST_Addresses::verify_address( $destination );
@@ -251,7 +261,12 @@ abstract class SST_Abstract_Cart {
             $origin = $this->get_origin_for_product( $item, $package['destination'] );
 
             if ( ! $origin ) {
-                $this->handle_error( sprintf( __( "Failed to calculate sales tax: no origin address for product %d.", 'simplesalestax' ), $item['product_id'] ) );
+                $this->handle_error(
+                    sprintf(
+                        __( "Failed to calculate sales tax: no origin address for product %d.", 'simplesalestax' ),
+                        $item['product_id']
+                    )
+                );
                 return array();
             }
 
@@ -259,12 +274,16 @@ abstract class SST_Abstract_Cart {
 
             /* Create subpackage for origin if need be */
             if ( ! array_key_exists( $origin_id, $packages ) ) {
-                $packages[ $origin_id ] = sst_create_package( array(
-                    'origin'      => SST_Addresses::to_address( $origin ),
-                    'destination' => $package['destination'],
-                    'certificate' => $this->get_certificate(),
-                    'user'        => isset( $package['user'] ) ? $package['user'] : array( 'ID' => get_current_user_id() )
-                ) );
+                $packages[ $origin_id ] = sst_create_package(
+                    array(
+                        'origin'      => SST_Addresses::to_address( $origin ),
+                        'destination' => $package['destination'],
+                        'certificate' => $this->get_certificate(),
+                        'user'        => isset( $package['user'] ) ? $package['user'] : array(
+                            'ID' => get_current_user_id(),
+                        ),
+                    )
+                );
 
                 /* Associate shipping with first subpackage */
                 if ( isset( $package['shipping'] ) ) {
@@ -285,7 +304,8 @@ abstract class SST_Abstract_Cart {
      *
      * @since 5.0
      *
-     * @param  array $package
+     * @param array $package
+     *
      * @return string
      */
     private function get_package_hash( $package ) {
@@ -297,11 +317,11 @@ abstract class SST_Abstract_Cart {
         // Convert WC_Shipping_Rate to array (shipping will be excluded from hash o.w.)
         if ( is_a( $package['shipping'], 'WC_Shipping_Rate' ) ) {
             $package['shipping'] = array(
-                'id'         => $package['shipping']->id,
-                'label'      => $package['shipping']->label,
-                'cost'       => $package['shipping']->cost,
-                'method_id'  => $package['shipping']->method_id
-            );          
+                'id'        => $package['shipping']->id,
+                'label'     => $package['shipping']->label,
+                'cost'      => $package['shipping']->cost,
+                'method_id' => $package['shipping']->method_id,
+            );
         }
 
         return 'sst_pack_' . md5( json_encode( $package ) . WC_Cache_Helper::get_transient_version( 'shipping' ) );
@@ -319,8 +339,9 @@ abstract class SST_Abstract_Cart {
      *
      * @since 5.0
      *
-     * @param  array $item
-     * @param  TaxCloud\Address $destination
+     * @param array $item
+     * @param TaxCloud\Address $destination
+     *
      * @return SST_Origin_Address
      */
     protected function get_origin_for_product( $item, $destination ) {
@@ -328,7 +349,7 @@ abstract class SST_Abstract_Cart {
         $origin  = null;
 
         if ( ! empty( $origins ) ) {
-            $origin = current( $origins ); 
+            $origin = current( $origins );
 
             foreach ( $origins as $candidate ) {
                 if ( $candidate->getState() == $destination->getState() ) {
@@ -346,7 +367,8 @@ abstract class SST_Abstract_Cart {
      *
      * @since 5.0
      *
-     * @param  array $package
+     * @param array $package
+     *
      * @return bool
      */
     protected function ready_for_lookup( $package ) {
@@ -367,8 +389,10 @@ abstract class SST_Abstract_Cart {
         foreach ( $packages as $key => $package ) {
             if ( ! isset( $package['destination'], $package['destination']['country'] ) ) {
                 unset( $packages[ $key ] );
-            } else if ( 'US' !== $package['destination']['country'] ) {
-                unset( $packages[ $key ] );
+            } else {
+                if ( 'US' !== $package['destination']['country'] ) {
+                    unset( $packages[ $key ] );
+                }
             }
         }
 
@@ -401,7 +425,7 @@ abstract class SST_Abstract_Cart {
      *
      * Completeness: The keys 'contents', 'user', 'shipping', and 'destination'
      * must be defined.
-     * 
+     *
      * Inclusiveness: Every item in the cart must be included in exactly one
      * package.
      *
@@ -425,7 +449,7 @@ abstract class SST_Abstract_Cart {
      *              'quantity'     => 1,
      *              'data'         => WC_Product,
      *          )
-     *          ...     
+     *          ...
      *      ),
      *      'fees'          => array(
      *          ...
@@ -507,7 +531,7 @@ abstract class SST_Abstract_Cart {
      * @param float $tax Sales tax for fee.
      */
     abstract protected function set_fee_tax( $id, $tax );
-    
+
     /**
      * Get the exemption certificate for the customer.
      *
@@ -521,8 +545,9 @@ abstract class SST_Abstract_Cart {
      * Handle an error by logging it or displaying it to the user.
      *
      * @since 5.0
-     * 
+     *
      * @param string $message Message describing the error.
      */
     abstract protected function handle_error( $message );
+
 }
