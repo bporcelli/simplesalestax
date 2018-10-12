@@ -17,6 +17,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 abstract class SST_Abstract_Cart {
 
     /**
+     * @var string TaxCloud API ID.
+     */
+    protected $api_id;
+
+    /**
+     * @var string TaxCloud API Key.
+     */
+    protected $api_key;
+
+    /**
+     * Constructor.
+     *
+     * Sets the TaxCloud API ID and API Key.
+     */
+    public function __construct() {
+        $this->api_id  = SST_Settings::get( 'tc_id' );
+        $this->api_key = SST_Settings::get( 'tc_key' );
+    }
+
+    /**
      * Perform a tax lookup and update the sales tax for all items.
      *
      * @since 5.0
@@ -24,10 +44,15 @@ abstract class SST_Abstract_Cart {
      * @return bool True on success, false on error.
      */
     public function calculate_taxes() {
-        /* Reset */
         $this->reset_taxes();
 
-        /* Perform tax lookup(s) */
+        // No API Login ID or API Key? Bail.
+        if ( empty( $this->api_id ) || empty( $this->api_key ) ) {
+            SST_Logger::add( 'API Login ID or API Key is empty. Skipping lookup.' );
+            return false;
+        }
+
+        // Perform tax lookup(s)
         foreach ( $this->do_lookup() as $package ) {
             $response = $package['response'];
 
@@ -180,8 +205,8 @@ abstract class SST_Abstract_Cart {
 
         /* Build Lookup */
         $request = new TaxCloud\Request\Lookup(
-            SST_Settings::get( 'tc_id' ),
-            SST_Settings::get( 'tc_key' ),
+            $this->api_id,
+            $this->api_key,
             $package['user']['ID'],
             NULL,                               /* CartID */
             $cart_items,

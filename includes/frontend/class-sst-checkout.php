@@ -41,6 +41,8 @@ class SST_Checkout extends SST_Abstract_Cart {
         }
 
         add_action( 'woocommerce_checkout_create_order_shipping_item', array( $this, 'add_shipping_meta' ), 10, 3 );
+
+        parent::__construct();
     }
 
     /**

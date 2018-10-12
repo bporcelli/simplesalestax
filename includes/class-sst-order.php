@@ -52,6 +52,8 @@ class SST_Order extends SST_Abstract_Cart {
                 $this->order = $order;
             }
         }
+
+        parent::__construct();
     }
 
     /**
@@ -573,8 +575,8 @@ class SST_Order extends SST_Abstract_Cart {
 
             try {
                 $request = new TaxCloud\Request\AuthorizedWithCapture(
-                    SST_Settings::get( 'tc_id' ),
-                    SST_Settings::get( 'tc_key' ),
+                    $this->api_id,
+                    $this->api_key,
                     $package['request']->getCustomerID(),
                     $package['cart_id'],
                     $this->get_package_order_id( $key ),
@@ -676,8 +678,8 @@ class SST_Order extends SST_Abstract_Cart {
             if ( ! empty( $refund_items ) ) {
                 try {
                     $request = new TaxCloud\Request\Returned(
-                        SST_Settings::get( 'tc_id' ),
-                        SST_Settings::get( 'tc_key' ),
+                        $this->api_id,
+                        $this->api_key,
                         $this->get_package_order_id( key( $packages ), $package ),
                         $refund_items,
                         date( 'c' )
