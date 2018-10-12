@@ -383,7 +383,22 @@ class SST_Checkout extends SST_Abstract_Cart {
      * @param string $message Message describing the error.
      */
     protected function handle_error( $message ) {
-        if ( ! wc_has_notice( $message ) ) {
+        // Messages to suppress at checkout
+        $ignored_messages = [
+            'API Login ID not set.',
+            'API Key not set.',
+        ];
+
+        $should_ignore = false;
+
+        foreach ( $ignored_messages as $ignored_message ) {
+            if ( false !== strpos( $message, $ignored_message ) ) {
+                $should_ignore = true;
+                break;
+            }
+        }
+
+        if ( ! $should_ignore && ! wc_has_notice( $message ) ) {
             wc_add_notice( $message, 'error' );
         }
 
