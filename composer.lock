@@ -71,14 +71,14 @@
             "source": {
                 "type": "git",
                 "url": "git@bitbucket.org:bporcelli/wordframe",
-                "reference": "8113405b372e70471fa0ed47ffbfe17c2fb40516"
+                "reference": "601168fa831e30d88aa3a988fdce2d9c3392937d"
             },
             "type": "library",
             "autoload": {
                 "psr-4": {
                     "WordFrame\\": "src/",
-                    "WordFrame\\v1_1_0\\": "src/",
-                    "WordFrame\\v1_1_0\\Updates\\": "src/updates/"
+                    "WordFrame\\v1_1_1\\": "src/",
+                    "WordFrame\\v1_1_1\\Updates\\": "src/updates/"
                 }
             },
             "license": [
@@ -91,7 +91,7 @@
                 }
             ],
             "description": "A simple WordPress plugin development framework.",
-            "time": "2018-08-17T03:27:37+00:00"
+            "time": "2018-10-24T15:38:58+00:00"
         },
         {
             "name": "guzzlehttp/guzzle",
