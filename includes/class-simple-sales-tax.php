@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @package SST
  * @since   6.0.0
  */
-final class SimpleSalesTax extends \WordFrame\v1_1_1\Plugin {
+final class SimpleSalesTax extends \WordFrame\v1_1_2\Plugin {
 
     /**
      * @var string Plugin version.
