@@ -15,7 +15,7 @@ let driver;
 
 const CHECKBOX_SELECTOR = By.css( '#tax_exempt_checkbox' );
 const MESSAGE_SELECTOR = By.css( '#tax_details p' );
-const TABLE_SELECTOR = By.css( '#tax_details table' );
+const TABLE_SELECTOR = By.css( 'table#sst-certificates' );
 const ADD_BTN_SELECTOR = By.css( '.sst-certificate-add' );
 const VIEW_BTN_SELECTOR = By.xpath( `(//a[@class="sst-certificate-view"])[last()]` );
 const DELETE_BTN_SELECTOR = By.xpath( `(//a[@class="sst-certificate-delete"])[last()]` );
