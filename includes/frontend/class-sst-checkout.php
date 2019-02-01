@@ -16,10 +16,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SST_Checkout extends SST_Abstract_Cart {
 
     /**
-     * @var WC_Cart The cart we are calculating taxes for.
-     * @since 5.0
+     * The cart we are calculating taxes for.
+     *
+     * @var WC_Cart
      */
     private $cart = null;
+
+    /**
+     * Cart validation errors.
+     *
+     * @var array
+     */
+    private $errors = [];
 
     /**
      * Constructor: Initialize hooks.
@@ -32,6 +40,7 @@ class SST_Checkout extends SST_Abstract_Cart {
         add_filter( 'woocommerce_cart_hide_zero_taxes', array( $this, 'hide_zero_taxes' ) );
         add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'add_order_meta' ) );
         add_action( 'woocommerce_cart_emptied', array( $this, 'clear_package_cache' ) );
+        add_action( 'woocommerce_after_checkout_validation', array( $this, 'validate_checkout' ), 10, 2 );
 
         if ( sst_storefront_active() ) {
             add_action( 'woocommerce_checkout_shipping', array( $this, 'output_exemption_form' ), 15 );
@@ -55,10 +64,19 @@ class SST_Checkout extends SST_Abstract_Cart {
         $this->cart = new SST_Cart_Proxy( $cart );
 
         if ( apply_filters( 'sst_calculate_tax_totals', is_checkout() ) ) {
-            parent::calculate_taxes();
+            $this->calculate_taxes();
 
             add_filter( 'woocommerce_calculated_total', array( $this, 'filter_calculated_total' ) );
         }
+    }
+
+    /**
+     * Calculates the tax due for the cart.
+     */
+    public function calculate_taxes() {
+        $this->errors = [];
+
+        parent::calculate_taxes();
     }
 
     /**
@@ -72,9 +90,10 @@ class SST_Checkout extends SST_Abstract_Cart {
      */
     public function filter_calculated_total( $total ) {
         if ( sst_woocommerce_gte_32() ) {
-            $total += $this->cart->get_cart_contents_tax() + $this->cart->get_fee_tax() + $this->cart->get_shipping_tax(
-                );
+            $cart  = $this->cart;
+            $total += $cart->get_cart_contents_tax() + $cart->get_fee_tax() + $cart->get_shipping_tax();
         }
+
         return $total;
     }
 
@@ -375,6 +394,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 
         if ( isset( $post_data['tax_exempt'] ) && isset( $post_data['certificate_id'] ) ) {
             $certificate_id = sanitize_text_field( $post_data['certificate_id'] );
+
             return new TaxCloud\ExemptionCertificateBase( $certificate_id );
         }
 
@@ -389,26 +409,45 @@ class SST_Checkout extends SST_Abstract_Cart {
      * @param string $message Message describing the error.
      */
     protected function handle_error( $message ) {
-        // Messages to suppress at checkout
-        $ignored_messages = [
-            'API Login ID not set.',
-            'API Key not set.',
-        ];
+        $action = $this->get_error_action( $message );
 
-        $should_ignore = false;
-
-        foreach ( $ignored_messages as $ignored_message ) {
-            if ( false !== strpos( $message, $ignored_message ) ) {
-                $should_ignore = true;
+        switch ( $action ) {
+            case 'show':
+                if ( ! wc_has_notice( $message ) ) {
+                    wc_add_notice( $message, 'error' );
+                }
                 break;
-            }
-        }
-
-        if ( ! $should_ignore && ! wc_has_notice( $message ) ) {
-            wc_add_notice( $message, 'error' );
+            case 'defer':
+                $this->errors[] = $message;
+                break;
         }
 
         SST_Logger::add( $message );
+    }
+
+    /**
+     * Determines whether the given error message should be shown immediately,
+     * suppressed, or deferred until checkout is complete.
+     *
+     * @param string $error The error message.
+     *
+     * @return string What do to with the error message - valid return values
+     *                are 'show', 'suppress', and 'defer'.
+     */
+    protected function get_error_action( $error ) {
+        $error_actions = [
+            'API Login ID not set.' => 'suppress',
+            'API Key not set.'      => 'suppress',
+            'The Ship To zip code'  => 'defer',
+        ];
+
+        foreach ( $error_actions as $error_message => $action ) {
+            if ( false !== strpos( $error, $error_message ) ) {
+                return $action;
+            }
+        }
+
+        return 'show';
     }
 
     /**
@@ -552,6 +591,18 @@ class SST_Checkout extends SST_Abstract_Cart {
      */
     public function clear_package_cache() {
         WC()->session->set( 'sst_packages', array() );
+    }
+
+    /**
+     * Displays any validation errors on {@see 'woocommerce_after_checkout_validation'}.
+     *
+     * @param array $data POST data.
+     * @param WP_Error $errors Checkout errors.
+     */
+    public function validate_checkout( $data, $errors ) {
+        foreach ( $this->errors as $error_message ) {
+            $errors->add( 'tax', $error_message );
+        }
     }
 
 }
