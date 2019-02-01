@@ -418,12 +418,8 @@ class SST_Order extends SST_Abstract_Cart {
 	protected function handle_error( $message ) {
 		SST_Logger::add( $message );
 
-		if ( defined( 'DOING_AJAX' ) ) {
-			throw new Exception( $message );
-		} else {
-			if ( function_exists( 'sst_add_message' ) ) {
-				sst_add_message( $message, 'error' );
-			}
+		if ( ! defined( 'DOING_AJAX' ) && function_exists( 'sst_add_message' ) ) {
+			sst_add_message( $message, 'error' );
 		}
 	}
 
