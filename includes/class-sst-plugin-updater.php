@@ -10,10 +10,10 @@
  */
 
 final class SST_Plugin_Updater {
-	private $api_url  = '';
+	private $api_url = '';
 	private $api_data = array();
-	private $name     = '';
-	private $slug     = '';
+	private $name = '';
+	private $slug = '';
 
 	/**
 	 * Class constructor.
@@ -21,18 +21,19 @@ final class SST_Plugin_Updater {
 	 * @uses plugin_basename()
 	 * @uses hook()
 	 *
-	 * @param string $_api_url The URL pointing to the custom API endpoint.
+	 * @param string $_api_url     The URL pointing to the custom API endpoint.
 	 * @param string $_plugin_file Path to the plugin file.
-	 * @param array $_api_data Optional data to send with API calls.
+	 * @param array  $_api_data    Optional data to send with API calls.
+	 *
 	 * @return void
 	 */
 	public function __construct( $_api_url, $_plugin_file, $_api_data = null ) {
 		$this->api_url  = trailingslashit( $_api_url );
 		$this->api_data = urlencode_deep( $_api_data );
 		$this->name     = plugin_basename( $_plugin_file );
-		$this->slug     = basename( $_plugin_file, '.php');
+		$this->slug     = basename( $_plugin_file, '.php' );
 		$this->version  = $_api_data['version'];
-		
+
 		// Set up hooks.
 		$this->hook();
 	}
@@ -45,7 +46,10 @@ final class SST_Plugin_Updater {
 	 * @return void
 	 */
 	private function hook() {
-		add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'pre_set_site_transient_update_plugins_filter' ) );
+		add_filter(
+			'pre_set_site_transient_update_plugins',
+			array( $this, 'pre_set_site_transient_update_plugins_filter' )
+		);
 		add_filter( 'plugins_api', array( $this, 'plugins_api_filter' ), 10, 3 );
 		add_filter( 'http_request_args', array( $this, 'http_request_args' ), 10, 2 );
 	}
@@ -61,21 +65,24 @@ final class SST_Plugin_Updater {
 	 * @uses api_request()
 	 *
 	 * @param array $_transient_data Update array build by Wordpress.
+	 *
 	 * @return array Modified update array with custom plugin data.
 	 */
 	function pre_set_site_transient_update_plugins_filter( $_transient_data ) {
-
-		if ( empty( $_transient_data ) ) return $_transient_data;
+		if ( empty( $_transient_data ) ) {
+			return $_transient_data;
+		}
 
 		$to_send = array( 'slug' => $this->slug );
 
 		$api_response = $this->api_request( 'get_version', $to_send );
 
 		if ( false !== $api_response && is_object( $api_response ) && isset( $api_response->new_version ) ) {
-			if ( version_compare( $this->version, $api_response->new_version, '<' ) )
-				$_transient_data->response[$this->name] = $api_response;
+			if ( version_compare( $this->version, $api_response->new_version, '<' ) ) {
+				$_transient_data->response[ $this->name ] = $api_response;
+			}
 		}
-				
+
 		return $_transient_data;
 	}
 
@@ -85,21 +92,24 @@ final class SST_Plugin_Updater {
 	 *
 	 * @uses api_request()
 	 *
-	 * @param mixed $_data
+	 * @param mixed  $_data
 	 * @param string $_action
 	 * @param object $_args
+	 *
 	 * @return object $_data
 	 */
 	function plugins_api_filter( $_data, $_action = '', $_args = null ) {
-		if ( ( $_action != 'plugin_information' ) || !isset( $_args->slug ) || ( $_args->slug != $this->slug ) )
+		if ( ( $_action != 'plugin_information' ) || ! isset( $_args->slug ) || ( $_args->slug != $this->slug ) ) {
 			return $_data;
+		}
 
 		$to_send = array( 'slug' => $this->slug );
 
 		$api_response = $this->api_request( 'get_version', $to_send );
 
-		if ( false !== $api_response ) 
+		if ( false !== $api_response ) {
 			$_data = $api_response;
+		}
 
 		return $_data;
 	}
@@ -108,8 +118,9 @@ final class SST_Plugin_Updater {
 	/**
 	 * Disable SSL verification in order to prevent download update failures
 	 *
-	 * @param array $args
+	 * @param array  $args
 	 * @param string $url
+	 *
 	 * @return object $array
 	 */
 	function http_request_args( $args, $url ) {
@@ -117,38 +128,43 @@ final class SST_Plugin_Updater {
 		if ( strpos( $url, 'https://' ) !== false && strpos( $url, 'wt_action=package_download' ) ) {
 			$args['sslverify'] = false;
 		}
+
 		return $args;
 	}
 
 	/**
-	 * Calls the API and, if successfull, returns the object delivered by the API.
+	 * Calls the API and, if successful, returns the object delivered by the API.
 	 *
-	 * @uses get_bloginfo()
-	 * @uses wp_remote_post()
-	 * @uses is_wp_error()
+	 * @uses         get_bloginfo()
+	 * @uses         wp_remote_post()
+	 * @uses         is_wp_error()
 	 *
 	 * @param string $_action The requested action.
-	 * @param array $_data Parameters for the API action.
+	 * @param array  $_data   Parameters for the API action.
+	 *
 	 * @return false||object
 	 */
 	private function api_request( $_action, $_data ) {
-
 		global $wp_version;
 
-		$query_string = '?wt_action='. $_action;
+		$query_string = '?wt_action=' . $_action;
 
-		foreach ( $_data as $key => $val ) 
-			$query_string .= "&$key=". urlencode( $val );
+		foreach ( $_data as $key => $val ) {
+			$query_string .= "&$key=" . urlencode( $val );
+		}
 
 		$request = wp_remote_get( $this->api_url . $query_string, array( 'timeout' => 15, 'sslverify' => false ) );
-		
+
 		if ( ! is_wp_error( $request ) ):
 			$request = json_decode( wp_remote_retrieve_body( $request ) );
-			if ( $request && isset( $request->sections ) )
+			if ( $request && isset( $request->sections ) ) {
 				$request->sections = maybe_unserialize( $request->sections );
+			}
+
 			return $request;
 		else:
 			return false;
 		endif;
 	}
+
 }

@@ -4,8 +4,19 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
-} 
+	exit;
+}
 
 ?>
-<p><strong><?php _e( 'Simple Sales Tax data update.', 'woocommerce' ); ?></strong> <?php _e( 'Your database is being updated in the background. This notice will disappear when the update is complete.', 'simplesalestax' ); ?></p>
+<p>
+	<?php
+	printf(
+		'<strong>%s</strong> %s',
+		__( 'Simple Sales Tax data update.', 'simplesalestax' ),
+		__(
+			'Your database is being updated in the background. This notice will disappear when the update is complete.',
+			'simplesalestax'
+		)
+	);
+	?>
+</p>

@@ -20,7 +20,7 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
 require __DIR__ . '/includes/vendor/autoload.php';
@@ -35,20 +35,20 @@ require __DIR__ . '/includes/class-simple-sales-tax.php';
  * @return SimpleSalesTax
  */
 function SST() {
-    return SimpleSalesTax::init(
-        __FILE__,
-        [
-            'requires' => [
-                'plugins' => [
-                    'woocommerce/woocommerce.php' => [
-                        'name'    => __( 'WooCommerce', 'simplesalestax' ),
-                        'version' => '3.0',
-                    ],
-                ],
-                'php'     => '5.5',
-            ],
-        ]
-    );
+	return SimpleSalesTax::init(
+		__FILE__,
+		[
+			'requires' => [
+				'plugins' => [
+					'woocommerce/woocommerce.php' => [
+						'name'    => __( 'WooCommerce', 'simplesalestax' ),
+						'version' => '3.0',
+					],
+				],
+				'php'     => '5.5',
+			],
+		]
+	);
 }
 
 SST();

@@ -11,7 +11,7 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly
+	exit; // Exit if accessed directly
 }
 
 /**
@@ -22,16 +22,20 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return bool
  */
 function sst_woocommerce_active() {
-    if ( function_exists( 'woocommerce_active_check' ) ) {
-        return woocommerce_active_check();
-    }
+	if ( function_exists( 'woocommerce_active_check' ) ) {
+		return woocommerce_active_check();
+	}
 
-    $active_plugins = get_option( 'active_plugins', array() );
+	$active_plugins = get_option( 'active_plugins', array() );
 
-    if ( is_multisite() )
-        $active_plugins = array_merge( $active_plugins, get_site_option( 'active_sitewide_plugins', array() ) );
+	if ( is_multisite() ) {
+		$active_plugins = array_merge( $active_plugins, get_site_option( 'active_sitewide_plugins', array() ) );
+	}
 
-    return in_array( 'woocommerce/woocommerce.php', $active_plugins ) || array_key_exists( 'woocommerce/woocommmerce.php', $active_plugins );
+	return (
+		in_array( 'woocommerce/woocommerce.php', $active_plugins ) ||
+		array_key_exists( 'woocommerce/woocommmerce.php', $active_plugins )
+	);
 }
 
 /**
@@ -41,7 +45,7 @@ function sst_woocommerce_active() {
  * @return bool
  */
 function sst_woocommerce_gte_32() {
-    return version_compare( WC_VERSION, '3.2.0', '>=' );
+	return version_compare( WC_VERSION, '3.2.0', '>=' );
 }
 
 /**
@@ -52,7 +56,7 @@ function sst_woocommerce_gte_32() {
  * @return bool
  */
 function sst_subs_active() {
-    return class_exists( 'WC_Subscriptions' );
+	return class_exists( 'WC_Subscriptions' );
 }
 
 /**
@@ -63,7 +67,7 @@ function sst_subs_active() {
  * @return bool
  */
 function sst_wcms_active() {
-    return class_exists( 'WC_Ship_Multiple' );
+	return class_exists( 'WC_Ship_Multiple' );
 }
 
 /**
@@ -74,17 +78,17 @@ function sst_wcms_active() {
  * @return bool
  */
 function sst_storefront_active() {
-    $theme = wp_get_theme();
+	$theme = wp_get_theme();
 
-    if ( is_null( $theme ) ) {
-        return false;
-    }
+	if ( is_null( $theme ) ) {
+		return false;
+	}
 
-    if ( ! empty( $theme->template ) ) {
-        $theme_name = $theme->template; /* child */
-    } else {
-        $theme_name = $theme->name;
-    }
+	if ( ! empty( $theme->template ) ) {
+		$theme_name = $theme->template; /* child */
+	} else {
+		$theme_name = $theme->name;
+	}
 
-    return 'storefront' == strtolower( $theme_name );
+	return 'storefront' == strtolower( $theme_name );
 }

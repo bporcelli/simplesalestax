@@ -26,7 +26,7 @@
 #woocommerce-fields-bulk > label:nth-of-type(2), #woocommerce-fields-bulk > label:nth-of-type(3) {
     display: none !important;
 }
- 
+
 .woocommerce_variable_attributes .data > div:nth-of-type(5) p:nth-of-type(2), p[class*="variable_tax_class"] {
     display: none !important;
 }
@@ -50,6 +50,20 @@
  */
 .postbox#sales_tax_meta .woocommerce-help-tip {
     margin: 0;
+}
+
+.postbox#sales_tax_meta .inside {
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.postbox#sales_tax_meta .inside div {
+    margin: 1.33em 0;
+}
+
+.postbox#sales_tax_meta h3 {
+    font-size: 13px;
+    margin: 0 0 5px 0;
 }
 
 /**

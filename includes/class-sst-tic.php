@@ -1,7 +1,7 @@
 <?php
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly
+	exit; // Exit if accessed directly
 }
 
 /**
@@ -15,19 +15,19 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class SST_TIC implements JsonSerializable {
 
-    /**
-     * ID.
-     *
-     * @var string
-     */
-    protected $id;
+	/**
+	 * ID.
+	 *
+	 * @var string
+	 */
+	protected $id;
 
-    /**
-     * Description.
-     *
-     * @var string
-     */
-    protected $description;
+	/**
+	 * Description.
+	 *
+	 * @var string
+	 */
+	protected $description;
 
 	/**
 	 * Constructor.
@@ -35,36 +35,36 @@ class SST_TIC implements JsonSerializable {
 	 * @param string $id
 	 * @param string $description
 	 */
-    public function __construct( $id, $description ) {
-    	$this->id          = str_pad( $id, 5, "0" );
-    	$this->description = $description;
-    }
+	public function __construct( $id, $description ) {
+		$this->id          = str_pad( $id, 5, "0" );
+		$this->description = $description;
+	}
 
-    /**
-     * Get ID.
-     *
-     * @return string
-     */
-    public function get_id() {
-        return $this->id;
-    }
+	/**
+	 * Get ID.
+	 *
+	 * @return string
+	 */
+	public function get_id() {
+		return $this->id;
+	}
 
-    /**
-     * Get description.
-     *
-     * @return string
-     */
-    public function get_description() {
-        return $this->description;
-    }
+	/**
+	 * Get description.
+	 *
+	 * @return string
+	 */
+	public function get_description() {
+		return $this->description;
+	}
 
-    /**
-     * Return in format that can be JSON serialized.
-     *
-     * @return array
-     */
-    public function jsonSerialize() {
-        return get_object_vars( $this );
-    }
+	/**
+	 * Return in format that can be JSON serialized.
+	 *
+	 * @return array
+	 */
+	public function jsonSerialize() {
+		return get_object_vars( $this );
+	}
 
 }

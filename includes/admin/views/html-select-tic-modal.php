@@ -1,6 +1,6 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly
+	exit; // Exit if accessed directly
 } ?>
 
 <script type="text/html" id="tmpl-sst-tic-row">
@@ -10,7 +10,9 @@ if ( ! defined( 'ABSPATH' ) ) {
             <p>{{ data.description }}</p>
         </td>
         <td width="1%">
-            <button type="button" class="button button-primary sst-select-done"><?php _e( 'Select', 'simplesalestax' ); ?></button>
+            <button type="button" class="button button-primary sst-select-done">
+				<?php _e( 'Select', 'simplesalestax' ); ?>
+            </button>
         </td>
     </tr>
 </script>
@@ -27,7 +29,9 @@ if ( ! defined( 'ABSPATH' ) ) {
                 </header>
                 <article>
                     <form action="" method="post">
-                        <input name="search" class="sst-tic-search" placeholder="<?php _e( 'Start typing to search', 'simplesalestax' ); ?>" type="text" data-list=".sst-tic-list">
+                        <input name="search" class="sst-tic-search"
+                               placeholder="<?php _e( 'Start typing to search', 'simplesalestax' ); ?>" type="text"
+                               data-list=".sst-tic-list">
                         <table>
                             <tbody class="sst-tic-list"></tbody>
                         </table>
