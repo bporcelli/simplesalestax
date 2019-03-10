@@ -100,7 +100,7 @@ abstract class SST_Abstract_Cart {
 	 * @return array Array of packages.
 	 */
 	protected function do_lookup() {
-		$packages = array();
+		$packages = [];
 
 		/* Get saved packages */
 		$saved_pkgs = $this->get_packages();
@@ -127,7 +127,7 @@ abstract class SST_Abstract_Cart {
 		}
 
 		/* Updated saved packages */
-		$this->set_packages( $packages );
+		$this->set_packages( array_merge( $saved_pkgs, $packages ) );
 
 		return $packages;
 	}
