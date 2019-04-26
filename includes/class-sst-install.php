@@ -21,26 +21,29 @@ class SST_Install {
 	 * @var array
 	 */
 	private static $update_hooks = [
-		'2.6' => [
+		'2.6'   => [
 			'sst_update_26_remove_shipping_taxable_option',
 		],
-		'3.8' => [
+		'3.8'   => [
 			'sst_update_38_update_addresses',
 		],
-		'4.2' => [
+		'4.2'   => [
 			'sst_update_42_migrate_settings',
 			'sst_update_42_migrate_order_data',
 		],
-		'4.5' => [
+		'4.5'   => [
 			'sst_update_45_remove_license_option',
 		],
-		'5.0' => [
+		'5.0'   => [
 			'sst_update_50_origin_addresses',
 			'sst_update_50_category_tics',
 			'sst_update_50_order_data'
 		],
-		'5.9' => [
-			'sst_update_59_tic_table'
+		'5.9'   => [
+			'sst_update_59_tic_table',
+		],
+		'6.0.6' => [
+			'sst_update_606_fix_duplicate_transactions',
 		]
 	];
 

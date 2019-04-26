@@ -17,6 +17,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 abstract class SST_Abstract_Cart {
 
 	/**
+	 * @const How long lookup results are cached for, in seconds.
+	 */
+	const LOOKUP_CACHE_TIMEOUT = MONTH_IN_SECONDS;
+
+	/**
 	 * @var string TaxCloud API ID.
 	 */
 	protected $api_id;
@@ -102,34 +107,49 @@ abstract class SST_Abstract_Cart {
 	protected function do_lookup() {
 		$packages = [];
 
-		/* Get saved packages */
-		$saved_pkgs = $this->get_packages();
+		foreach ( $this->create_packages() as $package ) {
+			$hash          = $this->get_package_hash( $package );
+			$saved_package = get_transient( $hash );
 
-		/* Perform Lookup for each package */
-		foreach ( $this->create_packages() as $key => $package ) {
-			$hash = $this->get_package_hash( $package );
+			if ( false === $saved_package ){
+				$saved_package = $this->do_package_lookup( $package );
 
-			if ( array_key_exists( $hash, $saved_pkgs ) ) {
-				$packages[ $hash ] = $saved_pkgs[ $hash ]; /* Use cached result */
-			} else {
-				if ( $this->ready_for_lookup( $package ) ) {
-					try {
-						$package['request']  = $this->get_lookup_for_package( $package );
-						$package['response'] = TaxCloud()->Lookup( $package['request'] );
-						$package['cart_id']  = key( $package['response'] );
-					} catch ( Exception $ex ) {
-						$package['response'] = new WP_Error( 'lookup_error', $ex->getMessage() );
-					}
-
-					$packages[ $hash ] = $package;
+				if ( $saved_package ) {
+					set_transient( $hash, $saved_package, self::LOOKUP_CACHE_TIMEOUT );
 				}
+			}
+
+			if ( $saved_package ) {
+				$packages[] = $saved_package;
 			}
 		}
 
-		/* Updated saved packages */
-		$this->set_packages( array_merge( $saved_pkgs, $packages ) );
+		$this->set_packages( $packages );
 
 		return $packages;
+	}
+
+	/**
+	 * Perform a tax lookup for a shipping package.
+	 *
+	 * @param array $package
+	 *
+	 * @return bool|array False if the package is not ready for lookup, or the updated package otherwise.
+	 */
+	protected function do_package_lookup( $package ) {
+		if ( ! $this->ready_for_lookup( $package ) ) {
+			return false;
+		}
+
+		try {
+			$package['request']  = $this->get_lookup_for_package( $package );
+			$package['response'] = TaxCloud()->Lookup( $package['request'] );
+			$package['cart_id']  = key( $package['response'] );
+		} catch ( Exception $ex ) {
+			$package['response'] = new WP_Error( 'lookup_error', $ex->getMessage() );
+		}
+
+		return $package;
 	}
 
 	/**

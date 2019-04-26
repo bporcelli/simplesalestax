@@ -638,3 +638,188 @@ function sst_update_59_tic_table() {
 
 	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}sst_tics" );
 }
+
+/**
+ * Fixes the duplicate transaction bug introduced in v6.0.5.
+ */
+function sst_update_606_fix_duplicate_transactions() {
+	$batch_size = 25;
+	$args       = [
+		'type'           => 'shop_order',
+		'return'         => 'ids',
+		'limit'          => $batch_size,
+		'wootax_version' => '6.0.5',
+		'wootax_status'  => 'captured',
+	];
+
+	$order_ids = wc_get_orders( $args );
+
+	$api_id  = SST_Settings::get( 'tc_id' );
+	$api_key = SST_Settings::get( 'tc_key' );
+
+	foreach ( $order_ids as $order_id ) {
+		$order          = new SST_Order( $order_id );
+		$old_packages   = array_values( $order->get_meta( 'packages' ) );
+		$order_packages = $order->create_packages();
+		$new_packages   = [];
+		$removed        = [];
+
+		foreach ( $old_packages as $key => $package ) {
+			$matching_package = _sst_update_606_find_matching_package( $package, $order_packages );
+
+			if ( $matching_package ) {
+				$new_packages[] = $package;
+			} else {
+				$package_order_id = sprintf( '%d_%s', $order_id, $key );
+				$cart_items       = $package['request']->getCartItems();
+
+				// Try to return the extraneous package
+				try {
+					$request = new TaxCloud\Request\Returned(
+						$api_id,
+						$api_key,
+						$package_order_id,
+						$cart_items,
+						date( 'c' )
+					);
+
+					TaxCloud()->Returned( $request );
+				} catch ( Exception $ex ) {
+					wc_get_logger()->debug(
+						sprintf(
+							__( 'Failed to refund extraneous package for order #%d: %s.', 'simplesalestax' ),
+							$order_id,
+							$ex->getMessage()
+						),
+						[ 'source' => 'sst_db_updates' ]
+					);
+				}
+
+				$removed[] = $package;
+			}
+		}
+
+		if ( sizeof( $removed ) > 0 ) {
+			$order->update_meta( 'removed_packages', $removed );
+		}
+
+		$order->update_meta( 'packages', $new_packages );
+		$order->update_meta( 'db_version', '6.0.6' );
+
+		$order->save();
+	}
+
+	if ( sizeof( $order_ids ) === $batch_size ) {
+		// More orders remain to be processed
+		return 'sst_update_606_fix_duplicate_transactions';
+	}
+
+	return false;
+}
+
+/**
+ * Helper to find a shipping package matching the given package.
+ *
+ * Packages match if they have the same contents, fees, shipping method, origin and destination addresses,
+ * and exemption certificate.
+ *
+ * @param array $needle   Package to find a match for.
+ * @param array $haystack Packages to search for matches.
+ *
+ * @return bool|array False if no matching package is found or matching package otherwise.
+ */
+function _sst_update_606_find_matching_package( $needle, $haystack ) {
+	$needle      = _sst_update_606_normalize_package( $needle );
+	$needle_hash = md5( json_encode( $needle ) );
+
+	foreach ( $haystack as $package ) {
+		$normalized_package = _sst_update_606_normalize_package( $package );
+		$package_hash       = md5( json_encode( $normalized_package ) );
+
+		if ( $needle_hash === $package_hash ) {
+			return $package;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Normalizes packages to ensure that the hashes of two identical packages are the same.
+ *
+ * @param array $package
+ *
+ * @return array
+ */
+function _sst_update_606_normalize_package( $package ) {
+	$new_package = [];
+
+	// Items
+	$contents = [];
+
+	foreach ( $package['contents'] as $item ) {
+		$contents[] = [
+			'product_id'    => (int) $item['product_id'],
+			'variation_id'  => (int) $item['variation_id'],
+			'quantity'      => (int) $item['quantity'],
+			'line_total'    => (float) $item['line_total'],
+			'line_subtotal' => (float) $item['line_subtotal'],
+		];
+	}
+
+	$new_package['contents'] = wp_list_sort( $contents, 'product_id' );
+
+	// Fees
+	$fees = [];
+
+	foreach ( $package['fees'] as $fee ) {
+		$fees[] = [
+			'id'     => $fee->id,
+			'amount' => $fee->amount,
+		];
+	}
+
+	$new_package['fees'] = wp_list_sort( $fees, 'id' );
+
+	// Shipping
+	$shipping = null;
+
+	if ( ! empty( $package['shipping'] ) ) {
+		$shipping = [
+			'method_id' => $package['shipping']->method_id,
+			'cost'      => $package['shipping']->cost,
+		];
+	}
+
+	$new_package['shipping'] = $shipping;
+
+	// Origin and destination addresses
+	$new_package['origin']      = _sst_update_606_get_address( $package['origin'] );
+	$new_package['destination'] = _sst_update_606_get_address( $package['destination'] );
+
+	// Certificate - use ID for comparison
+	$new_package['certificate'] = $package['certificate'];
+
+	if ( ! empty( $new_package['certificate'] ) ) {
+		$new_package['certificate'] = $new_package['certificate']->getCertificateID();
+	}
+
+	return $new_package;
+}
+
+/**
+ * Gets a TaxCloud Address as an array.
+ *
+ * @param TaxCloud\Address $address
+ *
+ * @return array
+ */
+function _sst_update_606_get_address( $address ) {
+	return [
+		'address_1' => $address->getAddress1(),
+		'address_2' => $address->getAddress2(),
+		'city'      => $address->getCity(),
+		'state'     => $address->getState(),
+		'zip'       => $address->getZip(),
+	];
+}
