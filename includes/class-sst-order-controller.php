@@ -27,6 +27,12 @@ class SST_Order_Controller {
 		add_filter( 'woocommerce_hidden_order_itemmeta', array( $this, 'hide_order_item_meta' ) );
 		add_filter( 'woocommerce_order_item_get_taxes', array( $this, 'fix_shipping_tax_issue' ), 10, 2 );
 		add_action( 'woocommerce_before_order_object_save', array( $this, 'on_order_saved' ) );
+		add_filter(
+			'woocommerce_order_data_store_cpt_get_orders_query',
+			array( $this, 'handle_version_query_var' ),
+			10,
+			2
+		);
 	}
 
 	/**
@@ -184,6 +190,36 @@ class SST_Order_Controller {
 		if ( empty( $db_version ) ) {
 			$order->update_meta_data( '_wootax_db_version', SST()->version );
 		}
+	}
+
+	/**
+	 * Adds support for querying orders by DB version and TaxCloud status with wc_get_orders()
+	 *
+	 * @param array $query      Args for WP_Query.
+	 * @param array $query_vars Query vars from WC_Order_Query.
+	 *
+	 * @return array
+	 */
+	public function handle_version_query_var( $query, $query_vars ) {
+		if ( ! is_array( $query['meta_query'] ) ) {
+			$query['meta_query'] = [];
+		}
+
+		if ( ! empty( $query_vars['wootax_version'] ) ) {
+			$query['meta_query'][] = [
+				'key'   => '_wootax_db_version',
+				'value' => esc_attr( $query_vars['wootax_version'] ),
+			];
+		}
+
+		if ( ! empty( $query_vars['wootax_status'] ) ) {
+			$query['meta_query'][] = [
+				'key'   => '_wootax_status',
+				'value' => esc_attr( $query_vars['wootax_status'] ),
+			];
+		}
+
+		return $query;
 	}
 
 }
