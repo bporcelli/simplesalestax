@@ -2,9 +2,9 @@
 # This file is distributed under the GPL-3.0+.
 msgid ""
 msgstr ""
-"Project-Id-Version: Simple Sales Tax 6.0.5\n"
+"Project-Id-Version: Simple Sales Tax 6.0.6\n"
 "Report-Msgid-Bugs-To: https://github.com/bporcelli/simplesalestax/issues\n"
-"POT-Creation-Date: 2019-03-10 17:29:00+00:00\n"
+"POT-Creation-Date: 2019-04-26 22:57:32+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -24,11 +24,11 @@ msgstr ""
 "X-Textdomain-Support: yes\n"
 "X-Generator: grunt-wp-i18n1.0.2\n"
 
-#: includes/abstracts/class-sst-abstract-cart.php:80
+#: includes/abstracts/class-sst-abstract-cart.php:85
 msgid "Failed to calculate sales tax: %s"
 msgstr ""
 
-#: includes/abstracts/class-sst-abstract-cart.php:268
+#: includes/abstracts/class-sst-abstract-cart.php:288
 msgid "Failed to calculate sales tax: no origin address for product %d."
 msgstr ""
 
@@ -311,46 +311,46 @@ msgid ""
 "irreversible."
 msgstr ""
 
-#: includes/class-sst-install.php:134
+#: includes/class-sst-install.php:137
 msgid ""
 "Simple Sales Tax found extra rates in your tax tables. Please choose to <a "
 "href=\"%s\">keep the rates</a> or <a href=\"%s\">delete them</a>."
 msgstr ""
 
-#: includes/class-sst-install.php:230
+#: includes/class-sst-install.php:233
 msgid "Exempt Customer"
 msgstr ""
 
-#: includes/class-sst-install.php:247
+#: includes/class-sst-install.php:250
 msgid "Settings"
 msgstr ""
 
-#: includes/class-sst-install.php:336
+#: includes/class-sst-install.php:339
 msgid "Sales Tax"
 msgstr ""
 
-#: includes/class-sst-order.php:281 includes/class-sst-order.php:769
+#: includes/class-sst-order.php:280 includes/class-sst-order.php:768
 #: includes/sst-update-functions.php:559
 msgid "Fee"
 msgstr ""
 
-#: includes/class-sst-order.php:550
+#: includes/class-sst-order.php:549
 msgid "Failed to capture order %d: already captured."
 msgstr ""
 
-#: includes/class-sst-order.php:561
+#: includes/class-sst-order.php:560
 msgid "Failed to capture order %d: order was refunded."
 msgstr ""
 
-#: includes/class-sst-order.php:589
+#: includes/class-sst-order.php:588
 msgid "Failed to capture order %d: %s."
 msgstr ""
 
-#: includes/class-sst-order.php:620
+#: includes/class-sst-order.php:619
 msgid "Can't refund order %d: order must be completed first."
 msgstr ""
 
-#: includes/class-sst-order.php:692
+#: includes/class-sst-order.php:691
 msgid "Failed to refund order %d: %s."
 msgstr ""
 
@@ -812,6 +812,10 @@ msgstr ""
 
 #: includes/frontend/views/html-view-certificate.php:11
 msgid "View certificate"
+msgstr ""
+
+#: includes/sst-update-functions.php:690
+msgid "Failed to refund extraneous package for order #%d: %s."
 msgstr ""
 
 #: simplesalestax.php:44
