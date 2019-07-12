@@ -812,9 +812,13 @@ function _sst_update_606_normalize_package( $package ) {
  *
  * @param TaxCloud\Address $address
  *
- * @return array
+ * @return array|null Address, or NULL if $address is null.
  */
 function _sst_update_606_get_address( $address ) {
+	if ( is_null( $address ) ) {
+		return null;
+	}
+
 	return [
 		'address_1' => $address->getAddress1(),
 		'address_2' => $address->getAddress2(),
