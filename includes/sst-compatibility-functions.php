@@ -56,7 +56,7 @@ function sst_woocommerce_gte_32() {
  * @return bool
  */
 function sst_subs_active() {
-	return class_exists( 'WC_Subscriptions' );
+	return is_plugin_active( 'woocommerce-subscriptions/woocommerce-subscriptions.php' );
 }
 
 /**
