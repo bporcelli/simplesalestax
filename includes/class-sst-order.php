@@ -98,9 +98,15 @@ class SST_Order extends SST_Abstract_Cart {
 	 *
 	 * @return array
 	 */
-	protected function get_packages() {
+	public function get_packages() {
 		// use array_values so package keys are integers (we want nice order IDs like 9004_0, 9004_1,... in TaxCloud)
-		return array_values( $this->get_meta( 'packages' ) );
+		$packages = $this->get_meta( 'packages' );
+
+		if ( ! is_array( $packages ) ) {
+			return [];
+		}
+
+		return array_values( $packages );
 	}
 
 	/**
@@ -110,7 +116,11 @@ class SST_Order extends SST_Abstract_Cart {
 	 *
 	 * @param $packages array (default: array())
 	 */
-	protected function set_packages( $packages = array() ) {
+	public function set_packages( $packages = array() ) {
+		if ( ! is_array( $packages ) ) {
+			$packages = [];
+		}
+
 		$this->update_meta( 'packages', $packages );
 	}
 
@@ -402,7 +412,28 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @return TaxCloud\ExemptionCertificateBase
 	 */
 	public function get_certificate() {
-		return $this->get_meta( 'exempt_cert' );
+		$certificate = $this->get_meta( 'exempt_cert' );
+
+		if ( ! is_a( $certificate, 'TaxCloud\ExemptionCertificateBase' ) ) {
+			return null;
+		}
+
+		return $certificate;
+	}
+
+	/**
+	 * Sets the exemption certificate for the order.
+	 *
+	 * @since 6.0.7
+	 *
+	 * @param TaxCloud\ExemptionCertificateBase $certificate
+	 */
+	public function set_certificate( $certificate ) {
+		if ( ! is_a( $certificate, 'TaxCloud\ExemptionCertificateBase' ) ) {
+			$certificate = null;
+		}
+
+		$this->update_meta( 'exempt_cert', $certificate );
 	}
 
 	/**

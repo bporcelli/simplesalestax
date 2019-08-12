@@ -463,8 +463,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 
 		$order = new SST_Order( $order_id );
 
-		$order->update_meta( 'packages', $this->get_packages() );
-		$order->update_meta( 'exempt_cert', $this->get_certificate() );
+		$order->set_packages( $this->get_packages() );
+		$order->set_certificate( $this->get_certificate() );
 
 		$order->save();
 	}

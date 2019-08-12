@@ -446,12 +446,11 @@ function sst_update_50_order_data() {
 			$old_certificate = $_order->get_meta( 'exemption_applied' );
 
 			if ( is_array( $old_certificate ) && isset( $old_certificate['CertificateID'] ) ) {
-				$_order->update_meta(
-					'exempt_cert',
-					new TaxCloud\ExemptionCertificateBase(
-						$old_certificate['CertificateID']
-					)
+				$new_certificate = new TaxCloud\ExemptionCertificateBase(
+					$old_certificate['CertificateID']
 				);
+
+				$_order->set_certificate( $new_certificate );
 			}
 
 			/* Actions we take from here will depend on the order status (pending,
@@ -606,7 +605,7 @@ function sst_update_50_order_data() {
 					);
 				}
 
-				$_order->update_meta( 'packages', $packages );
+				$_order->set_packages( $packages );
 				$_order->update_meta( 'status', 'captured' );
 			} else if ( $refunded ) {                   /* Refunded */
 
@@ -659,7 +658,7 @@ function sst_update_606_fix_duplicate_transactions() {
 
 	foreach ( $order_ids as $order_id ) {
 		$order          = new SST_Order( $order_id );
-		$old_packages   = array_values( $order->get_meta( 'packages' ) );
+		$old_packages   = $order->get_packages();
 		$order_packages = $order->create_packages();
 		$new_packages   = [];
 		$removed        = [];
@@ -703,7 +702,7 @@ function sst_update_606_fix_duplicate_transactions() {
 			$order->update_meta( 'removed_packages', $removed );
 		}
 
-		$order->update_meta( 'packages', $new_packages );
+		$order->set_packages( $new_packages );
 		$order->update_meta( 'db_version', '6.0.6' );
 
 		$order->save();

@@ -122,7 +122,7 @@ class SST_Subscriptions {
 		$order = new SST_Order( $renewal_order );
 
 		/* Reset packages to force recalc */
-		$order->update_meta( 'packages', array() );
+		$order->set_packages( [] );
 
 		/* Reset status to ensure Lookup isn't blocked */
 		$order->update_meta( 'status', 'pending' );
