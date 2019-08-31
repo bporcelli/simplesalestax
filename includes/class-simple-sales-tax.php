@@ -132,6 +132,11 @@ final class SimpleSalesTax extends \WordFrame\v1_1_2\Plugin {
 		if ( sst_subs_active() ) {
 			include_once $integrations_dir . '/class-sst-subscriptions.php';
 		}
+
+		// WooCommerce Composite Products
+		if ( is_plugin_active( 'woocommerce-composite-products/woocommerce-composite-products.php' ) ) {
+			include_once $integrations_dir . '/class-sst-composite-products.php';
+		}
 	}
 
 	/**
