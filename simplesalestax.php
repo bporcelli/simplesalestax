@@ -6,7 +6,7 @@
  * Description:          Harness the power of TaxCloud to accurately calculate sales tax for your WooCommerce store.
  * Author:               Simple Sales Tax
  * Author URI:           https://simplesalestax.com
- * Version:              6.0.7
+ * Version:              6.0.8
  * Requires at least:    4.5.0
  * Tested up to:         5.2.0
  * WC requires at least: 3.0.0

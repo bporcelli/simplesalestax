@@ -2,9 +2,9 @@
 # This file is distributed under the GPL-3.0+.
 msgid ""
 msgstr ""
-"Project-Id-Version: Simple Sales Tax 6.0.7\n"
+"Project-Id-Version: Simple Sales Tax 6.0.8\n"
 "Report-Msgid-Bugs-To: https://github.com/bporcelli/simplesalestax/issues\n"
-"POT-Creation-Date: 2019-08-12 15:26:11+00:00\n"
+"POT-Creation-Date: 2019-08-31 17:43:16+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -24,11 +24,11 @@ msgstr ""
 "X-Textdomain-Support: yes\n"
 "X-Generator: grunt-wp-i18n1.0.2\n"
 
-#: includes/abstracts/class-sst-abstract-cart.php:85
+#: includes/abstracts/class-sst-abstract-cart.php:80
 msgid "Failed to calculate sales tax: %s"
 msgstr ""
 
-#: includes/abstracts/class-sst-abstract-cart.php:288
+#: includes/abstracts/class-sst-abstract-cart.php:283
 msgid "Failed to calculate sales tax: no origin address for product %d."
 msgstr ""
 
@@ -253,28 +253,28 @@ msgstr ""
 msgid "Start typing to search"
 msgstr ""
 
-#: includes/class-simple-sales-tax.php:185
+#: includes/class-simple-sales-tax.php:200
 #. translators: 1: required plugin name, 2: minimum version
 msgid ""
 "<strong>%1$s needs to be updated.</strong> Simple Sales Tax requires %1$s "
 "%2$s+."
 msgstr ""
 
-#: includes/class-simple-sales-tax.php:196
+#: includes/class-simple-sales-tax.php:211
 #. translators: 1: required plugin name
 msgid ""
 "<strong>%1$s not detected.</strong> Please install or activate %1$s to use "
 "Simple Sales Tax."
 msgstr ""
 
-#: includes/class-simple-sales-tax.php:220
+#: includes/class-simple-sales-tax.php:235
 #. translators: 1 - list of required PHP extensions
 msgid ""
 "<strong>Required PHP extensions are missing.</strong> Simple Sales Tax "
 "requires %1$s."
 msgstr ""
 
-#: includes/class-simple-sales-tax.php:229
+#: includes/class-simple-sales-tax.php:244
 #. translators: 1 - required php version
 msgid ""
 "<strong>PHP needs to be updated.</strong> Simple Sales Tax requires PHP "
@@ -329,28 +329,28 @@ msgstr ""
 msgid "Sales Tax"
 msgstr ""
 
-#: includes/class-sst-order.php:290 includes/class-sst-order.php:799
+#: includes/class-sst-order.php:291 includes/class-sst-order.php:800
 #: includes/sst-update-functions.php:558
 msgid "Fee"
 msgstr ""
 
-#: includes/class-sst-order.php:580
+#: includes/class-sst-order.php:581
 msgid "Failed to capture order %d: already captured."
 msgstr ""
 
-#: includes/class-sst-order.php:591
+#: includes/class-sst-order.php:592
 msgid "Failed to capture order %d: order was refunded."
 msgstr ""
 
-#: includes/class-sst-order.php:619
+#: includes/class-sst-order.php:620
 msgid "Failed to capture order %d: %s."
 msgstr ""
 
-#: includes/class-sst-order.php:650
+#: includes/class-sst-order.php:651
 msgid "Can't refund order %d: order must be completed first."
 msgstr ""
 
-#: includes/class-sst-order.php:722
+#: includes/class-sst-order.php:723
 msgid "Failed to refund order %d: %s."
 msgstr ""
 
@@ -563,10 +563,6 @@ msgstr ""
 msgid ""
 "Click this button to download the Simple Sales Tax log file for debugging "
 "purposes."
-msgstr ""
-
-#: includes/class-sst-subscriptions.php:137
-msgid "Failed to calculate sales tax for renewal order %d: %s."
 msgstr ""
 
 #: includes/frontend/views/html-certificate-table.php:19
@@ -812,6 +808,10 @@ msgstr ""
 
 #: includes/frontend/views/html-view-certificate.php:11
 msgid "View certificate"
+msgstr ""
+
+#: includes/integrations/class-sst-subscriptions.php:137
+msgid "Failed to calculate sales tax for renewal order %d: %s."
 msgstr ""
 
 #: includes/sst-update-functions.php:689
