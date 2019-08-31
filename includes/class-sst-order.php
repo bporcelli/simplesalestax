@@ -26,9 +26,10 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 4.4
 	 */
 	protected static $defaults = [
-		'packages'    => [],
-		'exempt_cert' => null,
-		'status'      => 'pending',
+		'packages'      => [],
+		'package_cache' => [],
+		'exempt_cert'   => null,
+		'status'        => 'pending',
 	];
 
 	/**
@@ -853,6 +854,41 @@ class SST_Order extends SST_Abstract_Cart {
 		}
 
 		return $value;
+	}
+
+	/**
+	 * Gets a saved package by its package hash.
+	 *
+	 * @param string $hash
+	 *
+	 * @return array|bool The saved package with the given hash, or false if no such package exists.
+	 */
+	protected function get_saved_package( $hash ) {
+		$saved_packages = $this->get_meta( 'package_cache' );
+
+		if ( is_array( $saved_packages ) && isset( $saved_packages[ $hash ] ) ) {
+			return $saved_packages[ $hash ];
+		}
+
+		return false;
+	}
+
+	/**
+	 * Saves a package.
+	 *
+	 * @param string $hash
+	 * @param array  $package
+	 */
+	protected function save_package( $hash, $package ) {
+		$saved_packages = $this->get_meta( 'package_cache' );
+
+		if ( ! is_array( $saved_packages ) ) {
+			$saved_packages = [];
+		}
+
+		$saved_packages[ $hash ] = $package;
+
+		$this->update_meta( 'package_cache', $saved_packages );
 	}
 
 }

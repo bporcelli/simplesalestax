@@ -17,11 +17,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 abstract class SST_Abstract_Cart {
 
 	/**
-	 * @const How long lookup results are cached for, in seconds.
-	 */
-	const LOOKUP_CACHE_TIMEOUT = MONTH_IN_SECONDS;
-
-	/**
 	 * @var string TaxCloud API ID.
 	 */
 	protected $api_id;
@@ -109,13 +104,13 @@ abstract class SST_Abstract_Cart {
 
 		foreach ( $this->create_packages() as $package ) {
 			$hash          = $this->get_package_hash( $package );
-			$saved_package = get_transient( $hash );
+			$saved_package = $this->get_saved_package( $hash );
 
 			if ( false === $saved_package ){
 				$saved_package = $this->do_package_lookup( $package );
 
 				if ( $saved_package ) {
-					set_transient( $hash, $saved_package, self::LOOKUP_CACHE_TIMEOUT );
+					$this->save_package( $hash, $saved_package );
 				}
 			}
 
@@ -510,6 +505,23 @@ abstract class SST_Abstract_Cart {
 	 * @return array
 	 */
 	abstract protected function create_packages();
+
+	/**
+	 * Gets a saved package by its package hash.
+	 *
+	 * @param string $hash
+	 *
+	 * @return array|bool The saved package with the given hash, or false if no such package exists.
+	 */
+	abstract protected function get_saved_package( $hash );
+
+	/**
+	 * Saves a package.
+	 *
+	 * @param string $hash
+	 * @param array  $package
+	 */
+	abstract protected function save_package( $hash, $package );
 
 	/**
 	 * Reset sales tax totals.

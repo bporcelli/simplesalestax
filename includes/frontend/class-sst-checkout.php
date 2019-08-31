@@ -116,7 +116,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @return array
 	 */
 	protected function get_packages() {
-		return $this->cart->get_packages();
+		return WC()->session->get( 'sst_packages', [] );
 	}
 
 	/**
@@ -126,8 +126,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 *
 	 * @param $packages array (default: array())
 	 */
-	protected function set_packages( $packages = array() ) {
-		$this->cart->set_packages( $packages );
+	protected function set_packages( $packages = [] ) {
+		WC()->session->set( 'sst_packages', $packages );
 	}
 
 	/**
@@ -461,10 +461,18 @@ class SST_Checkout extends SST_Abstract_Cart {
 		// Make sure we're saving the data from the 'main' cart
 		$this->cart = new SST_Cart_Proxy( WC()->cart );
 
+		// Save the packages from the last lookup and the applied exemption certificate (if any)
 		$order = new SST_Order( $order_id );
 
 		$order->set_packages( $this->get_packages() );
 		$order->set_certificate( $this->get_certificate() );
+
+		// Save cached packages as metadata to avoid duplicate lookups from the backend
+		$cached_packages = WC()->session->get( 'sst_package_cache', [] );
+
+		foreach ( $cached_packages as $hash => $package ) {
+			$order->save_package( $hash, $package );
+		}
 
 		$order->save();
 	}
@@ -590,7 +598,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @since 5.7
 	 */
 	public function clear_package_cache() {
-		WC()->session->set( 'sst_packages', array() );
+		WC()->session->set( 'sst_packages', [] );
+		WC()->session->set( 'sst_package_cache', [] );
 	}
 
 	/**
@@ -603,6 +612,36 @@ class SST_Checkout extends SST_Abstract_Cart {
 		foreach ( $this->errors as $error_message ) {
 			$errors->add( 'tax', $error_message );
 		}
+	}
+
+	/**
+	 * Gets a saved package by its package hash.
+	 *
+	 * @param string $hash
+	 *
+	 * @return array|bool The saved package with the given hash, or false if no such package exists.
+	 */
+	protected function get_saved_package( $hash ) {
+		$saved_packages = WC()->session->get( 'sst_package_cache', [] );
+
+		if ( isset( $saved_packages[ $hash ] ) ) {
+			return $saved_packages[ $hash ];
+		}
+
+		return false;
+	}
+
+	/**
+	 * Saves a package.
+	 *
+	 * @param string $hash
+	 * @param array  $package
+	 */
+	protected function save_package( $hash, $package ) {
+		$saved_packages          = WC()->session->get( 'sst_package_cache', [] );
+		$saved_packages[ $hash ] = $package;
+
+		WC()->session->set( 'sst_package_cache', $saved_packages );
 	}
 
 }

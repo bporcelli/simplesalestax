@@ -55,16 +55,6 @@ class SST_Cart_Proxy {
 	}
 
 	/**
-	 * Get SST shipping packages.
-	 *
-	 * @since  5.6
-	 * @return array
-	 */
-	public function get_packages() {
-		return WC()->session->get( 'sst_packages', array() );
-	}
-
-	/**
 	 * Set cart tax amount.
 	 *
 	 * @since 5.6
@@ -160,17 +150,6 @@ class SST_Cart_Proxy {
 	 */
 	public function set_package_tax( $key, $tax ) {
 		$this->cart->sst_shipping_taxes[ $key ] = $tax;
-	}
-
-	/**
-	 * Set SST shipping packages.
-	 *
-	 * @since 5.6
-	 *
-	 * @param array $packages
-	 */
-	public function set_packages( $packages ) {
-		WC()->session->set( 'sst_packages', $packages );
 	}
 
 	/**
