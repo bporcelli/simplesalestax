@@ -102,11 +102,9 @@ final class SimpleSalesTax extends \WordFrame\v1_1_2\Plugin {
 		include_once __DIR__ . '/class-sst-assets.php';
 
 		/**
-		 * Subscriptions support.
+		 * Third party integrations.
 		 */
-		if ( sst_subs_active() ) {
-			include_once __DIR__ . '/class-sst-subscriptions.php';
-		}
+		$this->load_integrations();
 
 		/**
 		 * Admin only.
@@ -121,6 +119,18 @@ final class SimpleSalesTax extends \WordFrame\v1_1_2\Plugin {
 		if ( $this->is_request( 'frontend' ) ) {
 			include_once __DIR__ . '/frontend/class-sst-cart-proxy.php';
 			include_once __DIR__ . '/frontend/class-sst-checkout.php';
+		}
+	}
+
+	/**
+	 * Loads integrations with third party extensions as needed.
+	 */
+	private function load_integrations() {
+		$integrations_dir = __DIR__ . '/integrations';
+
+		// WooCommerce Subscriptions by Prospress
+		if ( sst_subs_active() ) {
+			include_once $integrations_dir . '/class-sst-subscriptions.php';
 		}
 	}
 
