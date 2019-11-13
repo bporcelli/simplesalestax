@@ -30,6 +30,7 @@ class SST_Subscriptions {
 		add_action( 'woocommerce_cart_updated', array( $this, 'restore_shipping_taxes' ) );
 		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'destroy_session' ) );
 		add_filter( 'wcs_renewal_order_created', array( $this, 'recalc_taxes_for_renewal' ), 1, 2 );
+		add_filter( 'wootax_save_packages_for_capture', array( $this, 'should_save_packages_for_capture' ) );
 	}
 
 	/**
@@ -293,6 +294,15 @@ class SST_Subscriptions {
 		}
 
 		return $tic;
+	}
+
+	/**
+	 * Filters `wootax_save_packages_for_capture` to prevent Simple Sales Tax from sending recurring totals to TaxCloud.
+	 *
+	 * @return bool
+	 */
+	public function should_save_packages_for_capture() {
+		return 'none' === WC_Subscriptions_Cart::get_calculation_type();
 	}
 
 }

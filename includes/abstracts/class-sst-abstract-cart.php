@@ -119,7 +119,9 @@ abstract class SST_Abstract_Cart {
 			}
 		}
 
-		$this->set_packages( $packages );
+		if ( apply_filters( 'wootax_save_packages_for_capture', true ) ) {
+			$this->set_packages( $packages );
+		}
 
 		return $packages;
 	}
