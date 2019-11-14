@@ -26,7 +26,7 @@ class SST_Subscriptions {
 		add_filter( 'wootax_add_fees', array( $this, 'exclude_fees' ) );
 		add_filter( 'wootax_cart_packages_before_split', array( $this, 'add_package_for_no_ship_subs' ), 10, 2 );
 		add_filter( 'wootax_product_tic', array( $this, 'set_signup_fee_tic' ), 10, 3 );
-		add_filter( 'woocommerce_calculated_total', array( $this, 'save_shipping_taxes' ), 10, 2 );
+		add_filter( 'woocommerce_calculated_total', array( $this, 'save_shipping_taxes' ), 1200, 2 );
 		add_action( 'woocommerce_cart_updated', array( $this, 'restore_shipping_taxes' ) );
 		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'destroy_session' ) );
 		add_filter( 'wcs_renewal_order_created', array( $this, 'recalc_taxes_for_renewal' ), 1, 2 );
@@ -151,6 +151,8 @@ class SST_Subscriptions {
 	 * taxes for the main cart will be reset. This function saves the
 	 * computed shipping taxes before the recurring totals are calculated so
 	 * they can be restored later.
+	 *
+	 * IMPORTANT: This hook needs to run after SST_Checkout::calculate_tax_totals()
 	 *
 	 * @since 5.0
 	 *

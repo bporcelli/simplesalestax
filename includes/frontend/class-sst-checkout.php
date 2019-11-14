@@ -36,7 +36,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 */
 	public function __construct() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_styles' ) );
-		add_action( 'woocommerce_calculate_totals', array( $this, 'calculate_tax_totals' ), 15 );
+		add_filter( 'woocommerce_calculated_total', array( $this, 'calculate_tax_totals' ), 1100, 2 );
 		add_filter( 'woocommerce_cart_hide_zero_taxes', array( $this, 'hide_zero_taxes' ) );
 		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'add_order_meta' ) );
 		add_action( 'woocommerce_cart_emptied', array( $this, 'clear_package_cache' ) );
@@ -56,18 +56,32 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Perform a tax lookup and update the sales tax for all items.
 	 *
+	 * IMPORTANT: This hook needs to run after WC_Subscriptions_Cart::calculate_subscription_totals()
+	 *
 	 * @since 5.0
 	 *
+	 * @param float $total
 	 * @param WC_Cart $cart
+	 *
+	 * @return float
 	 */
-	public function calculate_tax_totals( $cart ) {
+	public function calculate_tax_totals( $total, $cart ) {
 		$this->cart = new SST_Cart_Proxy( $cart );
 
 		if ( apply_filters( 'sst_calculate_tax_totals', is_checkout() ) ) {
 			$this->calculate_taxes();
 
-			add_filter( 'woocommerce_calculated_total', array( $this, 'filter_calculated_total' ) );
+			if ( sst_woocommerce_gte_32() ) {
+				$total += $this->cart->get_cart_contents_tax();
+				$total += $this->cart->get_fee_tax();
+				$total += $this->cart->get_shipping_tax();
+			} else {
+				$total += $this->cart->tax_total;
+				$total += $this->cart->shipping_tax_total;
+			}
 		}
+
+		return $total;
 	}
 
 	/**
@@ -77,24 +91,6 @@ class SST_Checkout extends SST_Abstract_Cart {
 		$this->errors = [];
 
 		parent::calculate_taxes();
-	}
-
-	/**
-	 * Add the calculated sales tax to the cart total (WC 3.2+)
-	 *
-	 * @since 5.6
-	 *
-	 * @param float $total total calculated by WooCommerce (excludes tax)
-	 *
-	 * @return float
-	 */
-	public function filter_calculated_total( $total ) {
-		if ( sst_woocommerce_gte_32() ) {
-			$cart  = $this->cart;
-			$total += $cart->get_cart_contents_tax() + $cart->get_fee_tax() + $cart->get_shipping_tax();
-		}
-
-		return $total;
 	}
 
 	/**
