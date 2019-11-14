@@ -2,9 +2,9 @@
 # This file is distributed under the GPL-3.0+.
 msgid ""
 msgstr ""
-"Project-Id-Version: Simple Sales Tax 6.0.8\n"
+"Project-Id-Version: Simple Sales Tax 6.0.9\n"
 "Report-Msgid-Bugs-To: https://github.com/bporcelli/simplesalestax/issues\n"
-"POT-Creation-Date: 2019-08-31 17:43:16+00:00\n"
+"POT-Creation-Date: 2019-11-14 00:53:25+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -28,7 +28,7 @@ msgstr ""
 msgid "Failed to calculate sales tax: %s"
 msgstr ""
 
-#: includes/abstracts/class-sst-abstract-cart.php:283
+#: includes/abstracts/class-sst-abstract-cart.php:285
 msgid "Failed to calculate sales tax: no origin address for product %d."
 msgstr ""
 
@@ -810,7 +810,7 @@ msgstr ""
 msgid "View certificate"
 msgstr ""
 
-#: includes/integrations/class-sst-subscriptions.php:137
+#: includes/integrations/class-sst-subscriptions.php:138
 msgid "Failed to calculate sales tax for renewal order %d: %s."
 msgstr ""
 
