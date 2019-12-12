@@ -1,5 +1,7 @@
 <?php
 
+use WordFrame\v1_1_3\Plugin;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -13,12 +15,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @package SST
  * @since   6.0.0
  */
-final class SimpleSalesTax extends \WordFrame\v1_1_2\Plugin {
+final class SimpleSalesTax extends Plugin {
 
 	/**
 	 * @var string Plugin version.
 	 */
-	public $version = '6.0.9';
+	public $version = '6.0.10-rc.1';
 
 	/**
 	 * Bootstraps the plugin when all requirements are met.

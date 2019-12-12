@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "83577056d2f8fc0d89e219e5666309b1",
+    "content-hash": "ab27f1e73450e7ad9e201ef85989378b",
     "packages": [
         {
             "name": "bporcelli/php-taxcloud",
@@ -62,7 +62,7 @@
         },
         {
             "name": "bporcelli/wordframe",
-            "version": "dev-master",
+            "version": "1.1.3",
             "source": {
                 "type": "git",
                 "url": "git@bitbucket.org:bporcelli/wordframe",
@@ -371,9 +371,7 @@
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "bporcelli/wordframe": 20
-    },
+    "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": [],
