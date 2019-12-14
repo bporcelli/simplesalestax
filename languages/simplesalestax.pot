@@ -2,9 +2,9 @@
 # This file is distributed under the GPL-3.0+.
 msgid ""
 msgstr ""
-"Project-Id-Version: Simple Sales Tax 6.0.9\n"
+"Project-Id-Version: Simple Sales Tax 6.0.10\n"
 "Report-Msgid-Bugs-To: https://github.com/bporcelli/simplesalestax/issues\n"
-"POT-Creation-Date: 2019-11-14 00:53:25+00:00\n"
+"POT-Creation-Date: 2019-12-14 19:06:43+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -253,28 +253,28 @@ msgstr ""
 msgid "Start typing to search"
 msgstr ""
 
-#: includes/class-simple-sales-tax.php:200
+#: includes/class-simple-sales-tax.php:202
 #. translators: 1: required plugin name, 2: minimum version
 msgid ""
 "<strong>%1$s needs to be updated.</strong> Simple Sales Tax requires %1$s "
 "%2$s+."
 msgstr ""
 
-#: includes/class-simple-sales-tax.php:211
+#: includes/class-simple-sales-tax.php:213
 #. translators: 1: required plugin name
 msgid ""
 "<strong>%1$s not detected.</strong> Please install or activate %1$s to use "
 "Simple Sales Tax."
 msgstr ""
 
-#: includes/class-simple-sales-tax.php:235
+#: includes/class-simple-sales-tax.php:237
 #. translators: 1 - list of required PHP extensions
 msgid ""
 "<strong>Required PHP extensions are missing.</strong> Simple Sales Tax "
 "requires %1$s."
 msgstr ""
 
-#: includes/class-simple-sales-tax.php:244
+#: includes/class-simple-sales-tax.php:246
 #. translators: 1 - required php version
 msgid ""
 "<strong>PHP needs to be updated.</strong> Simple Sales Tax requires PHP "

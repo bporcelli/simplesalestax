@@ -20,7 +20,7 @@ final class SimpleSalesTax extends Plugin {
 	/**
 	 * @var string Plugin version.
 	 */
-	public $version = '6.0.10-rc.1';
+	public $version = '6.0.10';
 
 	/**
 	 * Bootstraps the plugin when all requirements are met.
