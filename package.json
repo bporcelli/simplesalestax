@@ -31,9 +31,9 @@
     "chromedriver": "^2.42.0",
     "config": "^1.31.0",
     "cross-env": "^5.2.0",
-    "grunt": "^1.0.3",
+    "grunt": "^1.0.4",
     "grunt-contrib-clean": "^2.0.0",
-    "grunt-contrib-compress": "^1.4.3",
+    "grunt-contrib-compress": "^1.6.0",
     "grunt-contrib-copy": "^1.0.0",
     "grunt-contrib-cssmin": "^3.0.0",
     "grunt-contrib-uglify": "^4.0.0",
@@ -43,6 +43,6 @@
     "wc-e2e-page-objects": "0.10.0"
   },
   "dependencies": {
-    "npm": "^6.4.1"
+    "npm": "^6.13.4"
   }
 }
