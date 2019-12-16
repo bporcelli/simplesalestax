@@ -30,7 +30,6 @@ final class SimpleSalesTax extends Plugin {
 
 		$this->define_constants();
 		$this->includes();
-		$this->check_updates();
 	}
 
 	/**
@@ -91,7 +90,6 @@ final class SimpleSalesTax extends Plugin {
 		include_once __DIR__ . '/class-sst-install.php';
 		include_once __DIR__ . '/class-sst-settings.php';
 		include_once __DIR__ . '/class-sst-logger.php';
-		include_once __DIR__ . '/class-sst-plugin-updater.php';
 		include_once __DIR__ . '/class-sst-ajax.php';
 		include_once __DIR__ . '/class-sst-tic.php';
 		include_once __DIR__ . '/class-sst-product.php';
@@ -139,21 +137,6 @@ final class SimpleSalesTax extends Plugin {
 		if ( is_plugin_active( 'woocommerce-composite-products/woocommerce-composite-products.php' ) ) {
 			include_once $integrations_dir . '/class-sst-composite-products.php';
 		}
-	}
-
-	/**
-	 * Check for updates.
-	 *
-	 * @since 5.0
-	 */
-	private function check_updates() {
-		new SST_Plugin_Updater(
-			'https://simplesalestax.com',
-			$this->file,
-			[
-				'version' => $this->version, // current version number
-			]
-		);
 	}
 
 	/**
