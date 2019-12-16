@@ -43,7 +43,7 @@ function sst_update_38_update_addresses() {
 		get_option( 'wootax_zip4' )
 	);
 
-	SST_Settings::set( 'addresses', array( json_encode( $address ) ) );
+	SST_Settings::set( 'addresses', [ json_encode( $address ) ] );
 
 	// Delete old options
 	delete_option( 'wootax_address1' );
@@ -66,7 +66,7 @@ function sst_update_38_update_addresses() {
 function sst_update_42_migrate_settings() {
 	global $wpdb;
 
-	$options = array(
+	$options = [
 		'wootax_tc_id',
 		'wootax_tc_key',
 		'wootax_usps_id',
@@ -77,7 +77,7 @@ function sst_update_42_migrate_settings() {
 		'wootax_tax_based_on',
 		'wootax_addresses',
 		'wootax_default_address',
-	);
+	];
 
 	// Get old options
 	$existing = $wpdb->get_results(
@@ -85,7 +85,7 @@ function sst_update_42_migrate_settings() {
 	);
 
 	// Migrate
-	$new_options = get_option( 'woocommerce_wootax_settings', array() );
+	$new_options = get_option( 'woocommerce_wootax_settings', [] );
 
 	foreach ( $existing as $old_option ) {
 		$new_options[ $old_option->option_name ] = maybe_unserialize( $old_option->option_value );
@@ -115,7 +115,7 @@ function sst_update_42_migrate_order_data() {
 
 	// Associate all existing metadata for wootax_order posts with the
 	// corresponding WooCommerce order.
-	$meta_keys = array(
+	$meta_keys = [
 		'_wootax_tax_total',
 		'_wootax_shipping_tax_total',
 		'_wootax_captured',
@@ -125,7 +125,7 @@ function sst_update_42_migrate_order_data() {
 		'_wootax_exemption_applied',
 		'_wootax_lookup_data',
 		'_wootax_cart_taxes',
-	);
+	];
 
 	$wpdb->query(
 		"
@@ -275,18 +275,17 @@ function sst_update_42_migrate_order_data() {
 /**
  * Helper for 4.2 update: Get item type given item ID.
  *
- * @since 5.0
- *
- * @param  int $item_id
+ * @param int $item_id
  *
  * @return string "shipping," "cart," or "fee"
+ * @since 5.0
  */
 function sst_update_42_get_item_type( $item_id ) {
 	global $wpdb;
 
 	if ( $item_id == 99999 ) {
 		return "shipping";
-	} else if ( in_array( get_post_type( $item_id ), array( 'product', 'product_variation' ) ) ) {
+	} else if ( in_array( get_post_type( $item_id ), [ 'product', 'product_variation' ] ) ) {
 		return "product";
 	} else {
 		return "fee";
@@ -351,10 +350,10 @@ function sst_update_50_origin_addresses() {
  */
 function sst_update_50_category_tics() {
 	$terms = get_terms(
-		array(
+		[
 			'taxonomy'   => 'product_cat',
 			'hide_empty' => false,
-		)
+		]
 	);
 
 	foreach ( $terms as $term ) {
@@ -463,7 +462,7 @@ function sst_update_50_order_data() {
 				/* If order is not actually pending, update the status, but don't
 				 * recalculate the taxes. Orders with a status other than pending
 				 * were very likely placed before SST was installed. */
-				if ( in_array( $_order->get_status(), array( 'pending', 'processing', 'on-hold' ) ) ) {
+				if ( in_array( $_order->get_status(), [ 'pending', 'processing', 'on-hold' ] ) ) {
 					$_order->calculate_taxes();
 					$_order->calculate_totals( false );
 				}
@@ -479,9 +478,9 @@ function sst_update_50_order_data() {
 				}
 
 				/* Build map from address keys to items */
-				$mappings = array();
+				$mappings = [];
 
-				foreach ( $_order->get_items( array( 'line_item', 'fee', 'shipping' ) ) as $item_id => $item ) {
+				foreach ( $_order->get_items( [ 'line_item', 'fee', 'shipping' ] ) as $item_id => $item ) {
 					$location_id = wc_get_order_item_meta( $item_id, '_wootax_location_id' );
 
 					if ( empty( $location_id ) ) /* Very old order (pre 4.2) */ {
@@ -489,14 +488,14 @@ function sst_update_50_order_data() {
 					}
 
 					if ( ! isset( $mappings[ $location_id ] ) ) {
-						$mappings[ $location_id ] = array();
+						$mappings[ $location_id ] = [];
 					}
 
 					$mappings[ $location_id ][ $item_id ] = $item;
 				}
 
 				/* For each address key, create one or more new packages. */
-				$packages = array();
+				$packages = [];
 
 				foreach ( $mappings as $address_key => $items ) {
 
@@ -513,7 +512,7 @@ function sst_update_50_order_data() {
 
 					/* Create a package for every shipping method that falls under
 					 * this address key. */
-					$new_packages = array();
+					$new_packages = [];
 
 					foreach ( $items as $item_id => $item ) {
 						if ( 'shipping' != $item['type'] ) {
@@ -526,7 +525,7 @@ function sst_update_50_order_data() {
 						$method_id = wc_get_order_item_meta( $item_id, 'method_id' );
 						$total     = wc_get_order_item_meta( $item_id, $woo_3_0 ? 'total' : 'cost' );
 
-						$new_package['shipping'] = new WC_Shipping_Rate( $item_id, '', $total, array(), $method_id );
+						$new_package['shipping'] = new WC_Shipping_Rate( $item_id, '', $total, [], $method_id );
 
 						/* Add cart item and map entry for shipping */
 						$new_package['contents'][] = new TaxCloud\CartItem(
@@ -536,11 +535,11 @@ function sst_update_50_order_data() {
 							$total,
 							1
 						);
-						$new_package['map'][]      = array(
+						$new_package['map'][]      = [
 							'type'    => 'shipping',
 							'id'      => SST_SHIPPING_ITEM,
 							'cart_id' => $item_id,
-						);
+						];
 
 						$new_packages[] = $new_package;
 						unset( $items[ $item_id ] );
@@ -565,11 +564,11 @@ function sst_update_50_order_data() {
 								$item['line_total'],
 								1
 							);
-							$new_packages[0]['map'][]      = array(
+							$new_packages[0]['map'][]      = [
 								'type'    => 'fee',
 								'id'      => $taxcloud_id,
 								'cart_id' => $item_id,
-							);
+							];
 						} else {
 							$taxcloud_id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
 
@@ -580,11 +579,11 @@ function sst_update_50_order_data() {
 								'item-price' == $based_on ? $item['line_subtotal'] / $item['qty'] : $item['line_subtotal'],
 								'item-price' == $based_on ? $item['qty'] : 1
 							);
-							$new_packages[0]['map'][]      = array(
+							$new_packages[0]['map'][]      = [
 								'type'    => 'line_item',
 								'id'      => $taxcloud_id,
 								'cart_id' => $item_id,
-							);
+							];
 						}
 					}
 

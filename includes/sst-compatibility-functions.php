@@ -17,19 +17,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Is WooCommerce active?
  *
- * @since 5.0
- *
  * @return bool
+ * @since 5.0
  */
 function sst_woocommerce_active() {
 	if ( function_exists( 'woocommerce_active_check' ) ) {
 		return woocommerce_active_check();
 	}
 
-	$active_plugins = get_option( 'active_plugins', array() );
+	$active_plugins = get_option( 'active_plugins', [] );
 
 	if ( is_multisite() ) {
-		$active_plugins = array_merge( $active_plugins, get_site_option( 'active_sitewide_plugins', array() ) );
+		$active_plugins = array_merge( $active_plugins, get_site_option( 'active_sitewide_plugins', [] ) );
 	}
 
 	return (
@@ -41,8 +40,8 @@ function sst_woocommerce_active() {
 /**
  * Is WooCommerce 3.2 or later installed?
  *
- * @since  5.6
  * @return bool
+ * @since  5.6
  */
 function sst_woocommerce_gte_32() {
 	return version_compare( WC_VERSION, '3.2.0', '>=' );
@@ -51,9 +50,8 @@ function sst_woocommerce_gte_32() {
 /**
  * Is WooCommerce Subscriptions active?
  *
- * @since 5.0
- *
  * @return bool
+ * @since 5.0
  */
 function sst_subs_active() {
 	return is_plugin_active( 'woocommerce-subscriptions/woocommerce-subscriptions.php' );
@@ -62,9 +60,8 @@ function sst_subs_active() {
 /**
  * Is WooCommerce Ship To Multiple Addresses active?
  *
- * @since 5.0
- *
  * @return bool
+ * @since 5.0
  */
 function sst_wcms_active() {
 	return class_exists( 'WC_Ship_Multiple' );
@@ -73,9 +70,8 @@ function sst_wcms_active() {
 /**
  * Is the Storefront theme active?
  *
- * @since 5.4
- *
  * @return bool
+ * @since 5.4
  */
 function sst_storefront_active() {
 	$theme = wp_get_theme();

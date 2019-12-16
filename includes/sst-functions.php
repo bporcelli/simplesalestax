@@ -17,9 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Output HTML for a help tip.
  *
- * @since 5.0
- *
  * @param string $tip Tooltip content.
+ *
+ * @since 5.0
  */
 function sst_tip( $tip ) {
 	if ( function_exists( 'wc_help_tip' ) ) {
@@ -34,15 +34,14 @@ function sst_tip( $tip ) {
 /**
  * Given an "ugly" string, return the corresponding "pretty" string.
  *
- * @since 5.0
- *
  * @param string $ugly
  *
  * @return string Pretty string if found, otherwise original string.
+ * @since 5.0
  */
 function sst_prettify( $ugly ) {
 	// Map from ugly string to pretty strings
-	$ugly_strings = array(
+	$ugly_strings = [
 		'AccommodationAndFoodServices'            => 'Accommodation and Food Services',
 		'Agricultural_Forestry_Fishing_Hunting'   => 'Agricultural/Forestry/Fishing/Hunting',
 		'FinanceAndInsurance'                     => 'Finance and Insurance',
@@ -118,7 +117,7 @@ function sst_prettify( $ugly ) {
 		'WV'                                      => 'West Virginia',
 		'WI'                                      => 'Wisconsin',
 		'WY'                                      => 'Wyoming',
-	);
+	];
 
 	if ( array_key_exists( $ugly, $ugly_strings ) ) {
 		return $ugly_strings[ $ugly ];
@@ -131,25 +130,24 @@ function sst_prettify( $ugly ) {
  * Create a new shipping package from the given array, using default values
  * for all keys that are omitted.
  *
- * @since 5.0
- *
- * @param  array $package
+ * @param array $package
  *
  * @return array
+ * @since 5.0
  */
-function sst_create_package( $package = array() ) {
-	$defaults = array(
-		'contents'    => array(),
-		'fees'        => array(),
+function sst_create_package( $package = [] ) {
+	$defaults = [
+		'contents'    => [],
+		'fees'        => [],
 		'shipping'    => null,
-		'map'         => array(),
-		'user'        => array(),
+		'map'         => [],
+		'user'        => [],
 		'request'     => null,
 		'response'    => null,
 		'origin'      => null,
 		'destination' => null,
 		'certificate' => null,
-	);
+	];
 
 	return wp_parse_args( $package, $defaults );
 }
@@ -157,11 +155,10 @@ function sst_create_package( $package = array() ) {
 /**
  * Strip all slashes from a given value.
  *
- * @since 5.4
- *
  * @param string $value
  *
  * @return string
+ * @since 5.4
  */
 function sst_unslash( $value ) {
 	while ( strstr( $value, '\\\\' ) ) {
@@ -174,9 +171,8 @@ function sst_unslash( $value ) {
 /**
  * Return an API client instance.
  *
- * @since 5.0
- *
  * @return \TaxCloud\Client
+ * @since 5.0
  */
 function TaxCloud() {
 	return new TaxCloud\Client();
@@ -186,9 +182,8 @@ function TaxCloud() {
  * Returns a list of all available TICs. The list will be updated if it is more
  * than one week old.
  *
- * @since 5.9
- *
  * @return SST_TIC[]
+ * @since 5.9
  */
 function sst_get_tics() {
 	$tics = get_transient( 'sst_tics' );

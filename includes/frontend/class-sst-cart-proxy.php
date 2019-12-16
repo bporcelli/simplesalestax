@@ -26,8 +26,8 @@ class SST_Cart_Proxy {
 	/**
 	 * Get cart taxes.
 	 *
-	 * @since  5.6
 	 * @return array of cart taxes.
+	 * @since  5.6
 	 */
 	public function get_cart_taxes() {
 		if ( sst_woocommerce_gte_32() ) {
@@ -43,8 +43,8 @@ class SST_Cart_Proxy {
 	/**
 	 * Get shipping taxes.
 	 *
-	 * @since  5.6
 	 * @return array of shipping taxes.
+	 * @since  5.6
 	 */
 	public function get_shipping_taxes() {
 		if ( sst_woocommerce_gte_32() ) {
@@ -57,9 +57,9 @@ class SST_Cart_Proxy {
 	/**
 	 * Set cart tax amount.
 	 *
-	 * @since 5.6
-	 *
 	 * @param string $value Value to set.
+	 *
+	 * @since 5.6
 	 */
 	public function set_cart_tax( $value ) {
 		if ( sst_woocommerce_gte_32() ) {
@@ -72,9 +72,9 @@ class SST_Cart_Proxy {
 	/**
 	 * Set shipping tax.
 	 *
-	 * @since 3.2.0
-	 *
 	 * @param string $value Value to set.
+	 *
+	 * @since 3.2.0
 	 */
 	public function set_shipping_tax( $value ) {
 		if ( sst_woocommerce_gte_32() ) {
@@ -87,10 +87,10 @@ class SST_Cart_Proxy {
 	/**
 	 * Set the tax for a particular cart item.
 	 *
-	 * @since 5.0
-	 *
 	 * @param mixed $key cart item key.
 	 * @param float $tax sales tax for cart item.
+	 *
+	 * @since 5.0
 	 */
 	public function set_cart_item_tax( $key, $tax ) {
 		if ( sst_woocommerce_gte_32() ) {
@@ -118,10 +118,10 @@ class SST_Cart_Proxy {
 	/**
 	 * Set the tax for a particular fee.
 	 *
-	 * @since 5.0
-	 *
 	 * @param mixed $id  fee ID.
 	 * @param float $tax sales tax for fee.
+	 *
+	 * @since 5.0
 	 */
 	public function set_fee_item_tax( $id, $tax ) {
 		if ( sst_woocommerce_gte_32() ) {
@@ -143,10 +143,10 @@ class SST_Cart_Proxy {
 	/**
 	 * Set the tax for a shipping package.
 	 *
-	 * @since 5.6
-	 *
 	 * @param mixed $key package key.
 	 * @param float $tax sales tax for package.
+	 *
+	 * @since 5.6
 	 */
 	public function set_package_tax( $key, $tax ) {
 		$this->cart->sst_shipping_taxes[ $key ] = $tax;
@@ -155,10 +155,10 @@ class SST_Cart_Proxy {
 	/**
 	 * Set the tax amount for a given tax rate.
 	 *
-	 * @since 5.6
-	 *
 	 * @param string $tax_rate_id ID of the tax rate to set taxes for.
 	 * @param float  $amount
+	 *
+	 * @since 5.6
 	 */
 	public function set_tax_amount( $tax_rate_id, $amount ) {
 		if ( sst_woocommerce_gte_32() ) {
@@ -173,10 +173,10 @@ class SST_Cart_Proxy {
 	/**
 	 * Set the shipping tax amount for a given tax rate.
 	 *
-	 * @since 5.6
-	 *
 	 * @param string $tax_rate_id ID of the tax rate to set shipping taxes for.
 	 * @param float  $amount
+	 *
+	 * @since 5.6
 	 */
 	public function set_shipping_tax_amount( $tax_rate_id, $amount ) {
 		if ( sst_woocommerce_gte_32() ) {
@@ -204,31 +204,29 @@ class SST_Cart_Proxy {
 	 * @since 5.6
 	 */
 	public function reset_shipping_taxes() {
-		$this->cart->sst_shipping_taxes = array();
+		$this->cart->sst_shipping_taxes = [];
 	}
 
 	/**
 	 * Forward calls to inaccessible methods to the underlying cart object.
 	 *
-	 * @since 5.6
-	 *
 	 * @param string $name name of method being called.
 	 * @param array  $args parameters of method.
 	 *
 	 * @return mixed
+	 * @since 5.6
 	 */
 	public function __call( $name, $args ) {
-		return call_user_func_array( array( $this->cart, $name ), $args );
+		return call_user_func_array( [ $this->cart, $name ], $args );
 	}
 
 	/**
 	 * Forward read requests for inaccessible properties to the underlying cart object.
 	 *
-	 * @since 5.6
-	 *
 	 * @param string $name name of property being read.
 	 *
 	 * @return mixed
+	 * @since 5.6
 	 */
 	public function __get( $name ) {
 		return $this->cart->$name;
@@ -237,10 +235,10 @@ class SST_Cart_Proxy {
 	/**
 	 * Forward write requests for inaccessible properties to the underlying cart object.
 	 *
-	 * @since 5.6
-	 *
 	 * @param string $name  name of property being written to.
 	 * @param mixed  $value value being written.
+	 *
+	 * @since 5.6
 	 */
 	public function __set( $name, $value ) {
 		$this->cart->$name = $value;

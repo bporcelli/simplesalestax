@@ -39,15 +39,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require __DIR__ . '/includes/vendor/autoload.php';
-
 require __DIR__ . '/includes/class-simple-sales-tax.php';
 
 /**
  * Get the singleton SST instance.
  *
- * @since 4.2
- *
  * @return SimpleSalesTax
+ * @since 4.2
  */
 function SST() {
 	return SimpleSalesTax::init(

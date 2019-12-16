@@ -42,9 +42,9 @@ class SST_Origin_Address extends Address {
 	/**
 	 * Set ID.
 	 *
-	 * @since 5.0
-	 *
 	 * @param int $ID
+	 *
+	 * @since 5.0
 	 */
 	public function setID( $ID ) {
 		$this->ID = $ID;
@@ -53,9 +53,8 @@ class SST_Origin_Address extends Address {
 	/**
 	 * Get ID.
 	 *
-	 * @since 5.0
-	 *
 	 * @return int
+	 * @since 5.0
 	 */
 	public function getID() {
 		return $this->ID;
@@ -64,9 +63,9 @@ class SST_Origin_Address extends Address {
 	/**
 	 * Set Default.
 	 *
-	 * @since 5.0
-	 *
 	 * @param bool $Default
+	 *
+	 * @since 5.0
 	 */
 	public function setDefault( $Default ) {
 		$this->Default = $Default;
@@ -75,9 +74,8 @@ class SST_Origin_Address extends Address {
 	/**
 	 * Get Default.
 	 *
-	 * @since 5.0
-	 *
 	 * @return bool
+	 * @since 5.0
 	 */
 	public function getDefault() {
 		return $this->Default;

@@ -15,17 +15,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 
-    <h3>
+	<h3>
 		<?php esc_html_e( 'Tax exempt?', 'simplesalestax' ); ?>
-        <input type="checkbox" name="tax_exempt" id="tax_exempt_checkbox" class="input-checkbox" value="1"<?php checked(
+		<input type="checkbox" name="tax_exempt" id="tax_exempt_checkbox" class="input-checkbox" value="1"<?php checked(
 			$checked
 		); ?>>
-    </h3>
+	</h3>
 
-    <div id="tax_details">
+	<div id="tax_details">
 
-        <noscript>
-            <p>
+		<noscript>
+			<p>
 				<?php printf(
 					'<strong>%s</strong> %s',
 					__( 'Warning:', 'simplesalestax' ),
@@ -34,87 +34,87 @@ if ( ! defined( 'ABSPATH' ) ) {
 						'simplesalestax'
 					)
 				); ?>
-            </p>
-        </noscript>
+			</p>
+		</noscript>
 
 		<?php if ( is_user_logged_in() ): ?>
 
-            <p>
+			<p>
 				<?php esc_html_e(
 					'Select an exemption certificate from the table below, or click "Add Certificate" and fill out the provided form.',
 					'simplesalestax'
 				); ?>
-            </p>
+			</p>
 
-            <table id="sst-certificates" class="shop_table">
-                <thead>
-                <tr>
-                    <th><!-- Radio button column --></th>
-                    <th><?php _e( 'ID', 'simplesalestax' ); ?></th>
-                    <th><?php _e( 'Issued To', 'simplesalestax' ); ?></th>
-                    <th><?php _e( 'Date', 'simplesalestax' ); ?></th>
-                    <th><?php _e( 'Actions', 'simplesalestax' ); ?></th>
-                </tr>
-                </thead>
-                <tfoot>
-                <tr>
-                    <td colspan="5">
-                        <a href="#" class="button sst-certificate-add">
+			<table id="sst-certificates" class="shop_table">
+				<thead>
+				<tr>
+					<th><!-- Radio button column --></th>
+					<th><?php _e( 'ID', 'simplesalestax' ); ?></th>
+					<th><?php _e( 'Issued To', 'simplesalestax' ); ?></th>
+					<th><?php _e( 'Date', 'simplesalestax' ); ?></th>
+					<th><?php _e( 'Actions', 'simplesalestax' ); ?></th>
+				</tr>
+				</thead>
+				<tfoot>
+				<tr>
+					<td colspan="5">
+						<a href="#" class="button sst-certificate-add">
 							<?php _e( 'Add Certificate', 'simplesalestax' ); ?>
-                        </a>
-                    </td>
-                </tr>
-                </tfoot>
-                <tbody></tbody>
-            </table>
+						</a>
+					</td>
+				</tr>
+				</tfoot>
+				<tbody></tbody>
+			</table>
 
 		<?php else: ?>
-            <p><?php esc_html_e( 'Please log in or register.' ); ?></p>
+			<p><?php esc_html_e( 'Please log in or register.' ); ?></p>
 		<?php endif; ?>
 
-    </div>
+	</div>
 
-    <script type="text/html" id="tmpl-sst-certificate-row-blank">
-        <tr>
-            <td colspan="5">
+	<script type="text/html" id="tmpl-sst-certificate-row-blank">
+		<tr>
+			<td colspan="5">
                 <span>
                     <?php _e(
 	                    "There are no certificates to display. Click 'Add Certificate' to add one.",
 	                    'simplesalestax'
                     ); ?>
                 </span>
-            </td>
-        </tr>
-    </script>
+			</td>
+		</tr>
+	</script>
 
-    <script type="text/html" id="tmpl-sst-certificate-row">
-        <tr data-id="{{ data.CertificateID }}">
-            <td>
-                <input type="radio" name="certificate_id" value="{{ data.CertificateID }}">
-            </td>
-            <td>{{ data.Index }}</td>
-            <td>{{ data.PurchaserName }}</td>
-            <td>{{ data.CreatedDate }}</td>
-            <td>
-                <a href="#" class="sst-certificate-view">View</a> | <a href="#"
-                                                                       class="sst-certificate-delete">Delete</a>
-            </td>
-        </tr>
-    </script>
+	<script type="text/html" id="tmpl-sst-certificate-row">
+		<tr data-id="{{ data.CertificateID }}">
+			<td>
+				<input type="radio" name="certificate_id" value="{{ data.CertificateID }}">
+			</td>
+			<td>{{ data.Index }}</td>
+			<td>{{ data.PurchaserName }}</td>
+			<td>{{ data.CreatedDate }}</td>
+			<td>
+				<a href="#" class="sst-certificate-view">View</a> | <a href="#"
+				                                                       class="sst-certificate-delete">Delete</a>
+			</td>
+		</tr>
+	</script>
 
-    <script type="text/html" id="tmpl-sst-modal-add-certificate">
-        <div class="wc-backbone-modal">
-            <div class="wc-backbone-modal-content sst-certificate-modal-content woocommerce">
-                <section class="wc-backbone-modal-main" role="main">
-                    <header class="wc-backbone-modal-header">
-                        <h1><?php _e( 'Add certificate', 'simplesalestax' ); ?></h1>
-                        <button class="modal-close modal-close-link dashicons dashicons-no-alt">
+	<script type="text/html" id="tmpl-sst-modal-add-certificate">
+		<div class="wc-backbone-modal">
+			<div class="wc-backbone-modal-content sst-certificate-modal-content woocommerce">
+				<section class="wc-backbone-modal-main" role="main">
+					<header class="wc-backbone-modal-header">
+						<h1><?php _e( 'Add certificate', 'simplesalestax' ); ?></h1>
+						<button class="modal-close modal-close-link dashicons dashicons-no-alt">
                             <span class="screen-reader-text">
                                 <?php _e( 'Close modal panel', 'simplesalestax' ); ?></span>
-                        </button>
-                    </header>
-                    <article>
-                        <form action="" method="post">
+						</button>
+					</header>
+					<article>
+						<form action="" method="post">
 							<?php printf(
 								'<strong>%s</strong> %s',
 								esc_html__( 'Warning', 'simplesalestax' ),
@@ -126,62 +126,62 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 							<?php woocommerce_form_field(
 								'ExemptState',
-								array(
+								[
 									'type'     => 'state',
 									'label'    => __( 'Where does this exemption apply?', 'simplesalestax' ),
 									'required' => true,
-									'class'    => array( 'sst-input' ),
-								)
+									'class'    => [ 'sst-input' ],
+								]
 							); ?>
 
 							<?php woocommerce_form_field(
 								'TaxType',
-								array(
+								[
 									'type'     => 'select',
 									'label'    => __( 'Tax ID Type', 'simplesalestax' ),
 									'required' => true,
-									'class'    => array( 'sst-input' ),
-									'options'  => array(
+									'class'    => [ 'sst-input' ],
+									'options'  => [
 										''            => __( 'Select one', 'simplesalestax' ),
 										'FEIN'        => __( 'Federal Employer ID', 'simplesalestax' ),
 										'StateIssued' => __(
 											'State Issued Exemption ID or Drivers License',
 											'simplesalestax'
 										),
-									),
-								)
+									],
+								]
 							); ?>
 
 							<?php woocommerce_form_field(
 								'IDNumber',
-								array(
+								[
 									'type'        => 'text',
 									'label'       => __( 'Tax ID', 'simplesalestax' ),
 									'placeholder' => '123-4567-89',
 									'required'    => true,
-									'class'       => array( 'sst-input' ),
-								)
+									'class'       => [ 'sst-input' ],
+								]
 							); ?>
 
 							<?php woocommerce_form_field(
 								'StateOfIssue',
-								array(
+								[
 									'type'        => 'state',
 									'label'       => __( 'ID issued by...', 'simplesalestax' ),
 									'placeholder' => __( 'Select if your ID is state issued.', 'simplesalestax' ),
 									'id'          => 'issuing-state',
-									'class'       => array( 'sst-hidden-field', 'sst-input' ),
-								)
+									'class'       => [ 'sst-hidden-field', 'sst-input' ],
+								]
 							); ?>
 
 							<?php woocommerce_form_field(
 								'PurchaserBusinessType',
-								array(
+								[
 									'type'     => 'select',
 									'label'    => __( 'Business Type', 'simplesalestax' ),
 									'required' => true,
-									'class'    => array( 'sst-input' ),
-									'options'  => array(
+									'class'    => [ 'sst-input' ],
+									'options'  => [
 										''                                        => __(
 											'Select one',
 											'simplesalestax'
@@ -260,29 +260,29 @@ if ( ! defined( 'ABSPATH' ) ) {
 											'simplesalestax'
 										),
 										'Other'                                   => __( 'Other', 'simplesalestax' ),
-									),
-								)
+									],
+								]
 							); ?>
 
 							<?php woocommerce_form_field(
 								'PurchaserBusinessTypeOtherValue',
-								array(
+								[
 									'type'        => 'text',
 									'label'       => __( 'Please explain', 'simplesalestax' ),
 									'placeholder' => __( 'Explain the nature of your business.', 'simplesalestax' ),
 									'id'          => 'business-type-other',
-									'class'       => array( 'sst-hidden-field', 'sst-input' ),
-								)
+									'class'       => [ 'sst-hidden-field', 'sst-input' ],
+								]
 							); ?>
 
 							<?php woocommerce_form_field(
 								'PurchaserExemptionReason',
-								array(
+								[
 									'type'     => 'select',
 									'label'    => __( 'Reason for Exemption', 'simplesalestax' ),
 									'required' => true,
-									'class'    => array( 'sst-input' ),
-									'options'  => array(
+									'class'    => [ 'sst-input' ],
+									'options'  => [
 										''                                    => __( 'Select one', 'simplesalestax' ),
 										'FederalGovernmentDepartment'         => __(
 											'Federal Government Department',
@@ -323,34 +323,34 @@ if ( ! defined( 'ABSPATH' ) ) {
 										),
 										'DirectMail'                          => __( 'Direct Mail', 'simplesalestax' ),
 										'Other'                               => __( 'Other', 'simplesalestax' ),
-									),
-								)
+									],
+								]
 							); ?>
 
 							<?php woocommerce_form_field(
 								'PurchaserExemptionReasonValue',
-								array(
+								[
 									'type'  => 'text',
 									'label' => __( 'Please explain', 'simplesalestax' ),
 									'id'    => 'exempt-other-reason',
-									'class' => array( 'sst-hidden-field', 'sst-input' ),
-								)
+									'class' => [ 'sst-hidden-field', 'sst-input' ],
+								]
 							); ?>
 
-                            <input type="hidden" name="CertificateID" value="{{{ data.CertificateID }}}">
-                        </form>
-                    </article>
-                    <footer>
-                        <div class="inner">
-                            <button id="btn-ok" class="button alt">
+							<input type="hidden" name="CertificateID" value="{{{ data.CertificateID }}}">
+						</form>
+					</article>
+					<footer>
+						<div class="inner">
+							<button id="btn-ok" class="button alt">
 								<?php _e( 'Add certificate', 'simplesalestax' ); ?>
-                            </button>
-                        </div>
-                    </footer>
-                </section>
-            </div>
-        </div>
-        <div class="wc-backbone-modal-backdrop modal-close"></div>
-    </script>
+							</button>
+						</div>
+					</footer>
+				</section>
+			</div>
+		</div>
+		<div class="wc-backbone-modal-backdrop modal-close"></div>
+	</script>
 
 <?php include __DIR__ . '/html-view-certificate.php'; ?>

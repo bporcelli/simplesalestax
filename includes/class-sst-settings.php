@@ -25,7 +25,7 @@ class SST_Settings {
 	 * @var array Plugin settings.
 	 * @since 5.0
 	 */
-	private static $settings = array();
+	private static $settings = [];
 
 	/**
 	 * Initialize the settings array.
@@ -33,7 +33,7 @@ class SST_Settings {
 	 * @since 5.0
 	 */
 	private static function init_settings() {
-		self::$settings = get_option( self::$options_key, array() );
+		self::$settings = get_option( self::$options_key, [] );
 	}
 
 	/**
@@ -42,16 +42,16 @@ class SST_Settings {
 	 * @since 5.0
 	 */
 	public static function get_form_fields() {
-		return array(
-			'taxcloud_settings'           => array(
+		return [
+			'taxcloud_settings'           => [
 				'title'       => __( 'TaxCloud Settings', 'simplesalestax' ),
 				'type'        => 'title',
 				'description' => __(
 					'You must enter a valid TaxCloud API ID and API Key for Simple Sales Tax to work properly. Use the "Verify Settings" button to test your settings.',
 					'simplesalestax'
-				)
-			),
-			'tc_id'                       => array(
+				),
+			],
+			'tc_id'                       => [
 				'title'       => __( 'TaxCloud API ID', 'simplesalestax' ),
 				'type'        => 'text',
 				'description' => __(
@@ -59,9 +59,9 @@ class SST_Settings {
 					'simplesalestax'
 				),
 				'desc_tip'    => true,
-				'default'     => ''
-			),
-			'tc_key'                      => array(
+				'default'     => '',
+			],
+			'tc_key'                      => [
 				'title'       => __( 'TaxCloud API Key', 'simplesalestax' ),
 				'type'        => 'text',
 				'description' => __(
@@ -69,9 +69,9 @@ class SST_Settings {
 					'simplesalestax'
 				),
 				'desc_tip'    => true,
-				'default'     => ''
-			),
-			'verify_settings'             => array(
+				'default'     => '',
+			],
+			'verify_settings'             => [
 				'title'       => __( 'Verify TaxCloud Settings', 'simplesalestax' ),
 				'label'       => __( 'Verify Settings', 'simplesalestax' ),
 				'type'        => 'button',
@@ -80,40 +80,40 @@ class SST_Settings {
 					'woocommerce-integration-demo'
 				),
 				'desc_tip'    => true,
-				'id'          => 'verifySettings'
-			),
-			'business_addresses_settings' => array(
+				'id'          => 'verifySettings',
+			],
+			'business_addresses_settings' => [
 				'title'       => __( 'Business Addresses', 'simplesalestax' ),
 				'type'        => 'title',
 				'description' => __(
 					'You must enter at least one business address for Simple Sales Tax to work properly. <strong>Important:</strong> Any addresses you enter here should also be registered as <a href="https://simplesalestax.com/taxcloud/locations/" target="_blank">locations</a> in TaxCloud.',
 					'simplesalestax'
-				)
-			),
-			'addresses'                   => array(
+				),
+			],
+			'addresses'                   => [
 				'type'    => 'address_table',
-				'default' => array(),
-			),
-			'exemption_settings'          => array(
+				'default' => [],
+			],
+			'exemption_settings'          => [
 				'title'       => __( 'Exemption Settings', 'simplesalestax' ),
 				'type'        => 'title',
 				'description' => __(
 					'If you have tax exempt customers, be sure to enable tax exemptions and enter your company name.',
 					'simplesalestax'
 				),
-			),
-			'show_exempt'                 => array(
+			],
+			'show_exempt'                 => [
 				'title'       => __( 'Enable Tax Exemptions?', 'simplesalestax' ),
 				'type'        => 'select',
-				'options'     => array(
+				'options'     => [
 					'true'  => __( 'Yes', 'simplesalestax' ),
 					'false' => __( 'No', 'simplesalestax' ),
-				),
+				],
 				'default'     => 'false',
 				'description' => __( 'Set this to "Yes" if you have tax exempt customers.', 'simplesalestax' ),
-				'desc_tip'    => true
-			),
-			'company_name'                => array(
+				'desc_tip'    => true,
+			],
+			'company_name'                => [
 				'title'       => __( 'Company Name', 'simplesalestax' ),
 				'type'        => 'text',
 				'default'     => '',
@@ -121,21 +121,21 @@ class SST_Settings {
 					'Enter your company name as it should be displayed on exemption certificates.',
 					'simplesalestax'
 				),
-				'desc_tip'    => true
-			),
-			'exempt_roles'                => array(
+				'desc_tip'    => true,
+			],
+			'exempt_roles'                => [
 				'title'       => __( 'Exempt User Roles', 'simplesalestax' ),
 				'type'        => 'multiselect',
 				'class'       => 'wc-enhanced-select',
 				'options'     => self::get_user_roles(),
-				'default'     => array( 'exempt-customer' ),
+				'default'     => [ 'exempt-customer' ],
 				'description' => __(
 					'When a user with one of these roles shops on your site, WooTax will automatically find and apply the first exemption certificate associated with their account. Convenient if you have repeat exempt customers.',
 					'simplesalestax'
 				),
 				'desc_tip'    => true,
-			),
-			'restrict_exempt'             => array(
+			],
+			'restrict_exempt'             => [
 				'title'       => __( 'Restrict to Exempt Roles', 'simplesalestax' ),
 				'type'        => 'select',
 				'default'     => 'no',
@@ -144,39 +144,39 @@ class SST_Settings {
 					'simplesalestax'
 				),
 				'desc_tip'    => true,
-				'options'     => array(
+				'options'     => [
 					'yes' => __( 'Yes', 'simplesalestax' ),
 					'no'  => __( 'No', 'simplesalestax' ),
-				),
-			),
-			'display_settings'            => array(
+				],
+			],
+			'display_settings'            => [
 				'title'       => __( 'Display Settings', 'simplesalestax' ),
 				'type'        => 'title',
-				'description' => __( 'Control how taxes are displayed during checkout.', 'simplesalestax' )
-			),
-			'show_zero_tax'               => array(
+				'description' => __( 'Control how taxes are displayed during checkout.', 'simplesalestax' ),
+			],
+			'show_zero_tax'               => [
 				'title'       => __( 'Show Zero Tax?', 'simplesalestax' ),
 				'type'        => 'select',
-				'options'     => array(
+				'options'     => [
 					'true'  => __( 'Yes', 'simplesalestax' ),
 					'false' => __( 'No', 'simplesalestax' ),
-				),
+				],
 				'default'     => 'false',
 				'description' => __(
 					'When the sales tax due is zero, should the "Sales Tax" line be shown?',
 					'simplesalestax'
 				),
-				'desc_tip'    => true
-			),
-			'advanced_settings'           => array(
+				'desc_tip'    => true,
+			],
+			'advanced_settings'           => [
 				'title'       => __( 'Advanced Settings', 'simplesalestax' ),
 				'type'        => 'title',
 				'description' => __(
 					'For advanced users only. Leave these settings untouched if you are not sure how to use them.',
 					'simplesalestax'
-				)
-			),
-			'log_requests'                => array(
+				),
+			],
+			'log_requests'                => [
 				'title'       => __( 'Log Requests', 'simplesalestax' ),
 				'type'        => 'checkbox',
 				'label'       => ' ',
@@ -185,9 +185,9 @@ class SST_Settings {
 					'When selected, Simple Sales Tax will log all requests sent to TaxCloud for debugging purposes.',
 					'simplesalestax'
 				),
-				'desc_tip'    => true
-			),
-			'capture_immediately'         => array(
+				'desc_tip'    => true,
+			],
+			'capture_immediately'         => [
 				'title'       => __( 'Capture Orders Immediately', 'simplesalestax' ),
 				'label'       => ' ',
 				'type'        => 'checkbox',
@@ -197,22 +197,22 @@ class SST_Settings {
 					'simplesalestax'
 				),
 				'desc_tip'    => true,
-			),
-			'tax_based_on'                => array(
+			],
+			'tax_based_on'                => [
 				'title'       => __( 'Tax Based On', 'simplesalestax' ),
 				'type'        => 'select',
-				'options'     => array(
+				'options'     => [
 					'item-price'    => __( 'Item Price', 'simplesalestax' ),
 					'line-subtotal' => __( 'Line Subtotal', 'simplesalestax' ),
-				),
+				],
 				'default'     => 'item-price',
 				'description' => __(
 					'"Item Price": TaxCloud determines the taxable amount for a line item by multiplying the item price by its quantity. "Line Subtotal": the taxable amount is determined by the line subtotal. Useful in instances where rounding becomes an issue.',
 					'simplesalestax'
 				),
-				'desc_tip'    => true
-			),
-			'remove_all_data'             => array(
+				'desc_tip'    => true,
+			],
+			'remove_all_data'             => [
 				'title'       => __( 'Remove All Data', 'simplesalestax' ),
 				'label'       => ' ',
 				'type'        => 'checkbox',
@@ -222,8 +222,8 @@ class SST_Settings {
 					'simplesalestax'
 				),
 				'desc_tip'    => true,
-			),
-			'download_log_button'         => array(
+			],
+			'download_log_button'         => [
 				'title'       => __( 'Download Log File', 'simplesalestax' ),
 				'label'       => __( 'Download Log', 'simplesalestax' ),
 				'type'        => 'anchor',
@@ -234,8 +234,8 @@ class SST_Settings {
 					'simplesalestax'
 				),
 				'desc_tip'    => true,
-			),
-		);
+			],
+		];
 	}
 
 	/**
@@ -243,8 +243,8 @@ class SST_Settings {
 	 *
 	 * Gets an option from the settings API, using defaults if necessary to prevent undefined notices.
 	 *
-	 * @param  string $key
-	 * @param  mixed  $empty_value
+	 * @param string $key
+	 * @param mixed  $empty_value
 	 *
 	 * @return string The value specified for the option or a default value for the option.
 	 */
@@ -285,9 +285,8 @@ class SST_Settings {
 	/**
 	 * Get a list of user roles.
 	 *
-	 * @since 5.0
-	 *
 	 * @return array
+	 * @since 5.0
 	 */
 	protected static function get_user_roles() {
 		global $wp_roles;

@@ -20,9 +20,9 @@ class SST_Assets {
 	 * Constructor.
 	 */
 	public function __construct() {
-		add_action( 'init', array( $this, 'init_assets' ) );
-		add_action( 'wp_enqueue_scripts', array( $this, 'register_assets' ) );
-		add_action( 'admin_enqueue_scripts', array( $this, 'register_admin_assets' ) );
+		add_action( 'init', [ $this, 'init_assets' ] );
+		add_action( 'wp_enqueue_scripts', [ $this, 'register_assets' ] );
+		add_action( 'admin_enqueue_scripts', [ $this, 'register_admin_assets' ] );
 	}
 
 	/**

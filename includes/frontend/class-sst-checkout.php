@@ -35,20 +35,20 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	public function __construct() {
-		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_styles' ) );
-		add_filter( 'woocommerce_calculated_total', array( $this, 'calculate_tax_totals' ), 1100, 2 );
-		add_filter( 'woocommerce_cart_hide_zero_taxes', array( $this, 'hide_zero_taxes' ) );
-		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'add_order_meta' ) );
-		add_action( 'woocommerce_cart_emptied', array( $this, 'clear_package_cache' ) );
-		add_action( 'woocommerce_after_checkout_validation', array( $this, 'validate_checkout' ), 10, 2 );
+		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_styles' ] );
+		add_filter( 'woocommerce_calculated_total', [ $this, 'calculate_tax_totals' ], 1100, 2 );
+		add_filter( 'woocommerce_cart_hide_zero_taxes', [ $this, 'hide_zero_taxes' ] );
+		add_action( 'woocommerce_checkout_update_order_meta', [ $this, 'add_order_meta' ] );
+		add_action( 'woocommerce_cart_emptied', [ $this, 'clear_package_cache' ] );
+		add_action( 'woocommerce_after_checkout_validation', [ $this, 'validate_checkout' ], 10, 2 );
 
 		if ( sst_storefront_active() ) {
-			add_action( 'woocommerce_checkout_shipping', array( $this, 'output_exemption_form' ), 15 );
+			add_action( 'woocommerce_checkout_shipping', [ $this, 'output_exemption_form' ], 15 );
 		} else {
-			add_action( 'woocommerce_checkout_after_customer_details', array( $this, 'output_exemption_form' ) );
+			add_action( 'woocommerce_checkout_after_customer_details', [ $this, 'output_exemption_form' ] );
 		}
 
-		add_action( 'woocommerce_checkout_create_order_shipping_item', array( $this, 'add_shipping_meta' ), 10, 3 );
+		add_action( 'woocommerce_checkout_create_order_shipping_item', [ $this, 'add_shipping_meta' ], 10, 3 );
 
 		parent::__construct();
 	}
@@ -58,12 +58,11 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 *
 	 * IMPORTANT: This hook needs to run after WC_Subscriptions_Cart::calculate_subscription_totals()
 	 *
-	 * @since 5.0
-	 *
-	 * @param float $total
+	 * @param float   $total
 	 * @param WC_Cart $cart
 	 *
 	 * @return float
+	 * @since 5.0
 	 */
 	public function calculate_tax_totals( $total, $cart ) {
 		$this->cart = new SST_Cart_Proxy( $cart );
@@ -96,9 +95,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Should the Sales Tax line item be hidden if no tax is due?
 	 *
-	 * @since 5.0
-	 *
 	 * @return bool
+	 * @since 5.0
 	 */
 	public function hide_zero_taxes() {
 		return SST_Settings::get( 'show_zero_tax' ) != 'true';
@@ -107,9 +105,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Get saved packages for this cart.
 	 *
-	 * @since 5.0
-	 *
 	 * @return array
+	 * @since 5.0
 	 */
 	protected function get_packages() {
 		return WC()->session->get( 'sst_packages', [] );
@@ -118,9 +115,9 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Set saved packages for this cart.
 	 *
-	 * @since 5.0
-	 *
 	 * @param $packages array (default: array())
+	 *
+	 * @since 5.0
 	 */
 	protected function set_packages( $packages = [] ) {
 		WC()->session->set( 'sst_packages', $packages );
@@ -129,11 +126,10 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Filter items not needing shipping callback.
 	 *
-	 * @since 5.0
-	 *
 	 * @param array $item
 	 *
 	 * @return bool
+	 * @since 5.0
 	 */
 	protected function filter_items_not_needing_shipping( $item ) {
 		return $item['data'] && ! $item['data']->needs_shipping();
@@ -142,30 +138,28 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Get only items that don't need shipping.
 	 *
-	 * @since 5.0
-	 *
 	 * @return array
+	 * @since 5.0
 	 */
 	protected function get_items_not_needing_shipping() {
-		return array_filter( $this->cart->get_cart(), array( $this, 'filter_items_not_needing_shipping' ) );
+		return array_filter( $this->cart->get_cart(), [ $this, 'filter_items_not_needing_shipping' ] );
 	}
 
 	/**
 	 * Get the shipping rate for a package.
 	 *
-	 * @since 5.0
-	 *
 	 * @param int   $key
 	 * @param array $package
 	 *
 	 * @return WC_Shipping_Rate | NULL
+	 * @since 5.0
 	 */
 	protected function get_package_shipping_rate( $key, $package ) {
 		$chosen_methods = WC()->session->get( 'chosen_shipping_methods' );
 
 		/* WC Multiple Shipping doesn't use chosen_shipping_methods -_- */
 		if ( function_exists( 'wcms_session_isset' ) && wcms_session_isset( 'shipping_methods' ) ) {
-			$chosen_methods = array();
+			$chosen_methods = [];
 
 			foreach ( wcms_session_get( 'shipping_methods' ) as $package_key => $method ) {
 				$chosen_methods[ $package_key ] = $method['id'];
@@ -182,9 +176,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Get the base shipping packages for this cart.
 	 *
-	 * @since 5.5
-	 *
 	 * @return array
+	 * @since 5.5
 	 */
 	protected function get_base_packages() {
 		/* Start with the packages returned by Woo */
@@ -211,17 +204,17 @@ class SST_Checkout extends SST_Abstract_Cart {
 
 			$packages[ $key ]['shipping'] = $method;
 
-			if ( SST_Shipping::is_local_pickup( array( $method->method_id ) ) ) {
+			if ( SST_Shipping::is_local_pickup( [ $method->method_id ] ) ) {
 				$pickup_address = apply_filters( 'wootax_pickup_address', SST_Addresses::get_default_address(), null );
 
-				$packages[ $key ]['destination'] = array(
+				$packages[ $key ]['destination'] = [
 					'country'   => 'US',
 					'address'   => $pickup_address->getAddress1(),
 					'address_2' => $pickup_address->getAddress2(),
 					'city'      => $pickup_address->getCity(),
 					'state'     => $pickup_address->getState(),
 					'postcode'  => $pickup_address->getZip5(),
-				);
+				];
 			}
 		}
 
@@ -261,12 +254,11 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Create shipping packages for this cart.
 	 *
-	 * @since 5.0
-	 *
 	 * @return array
+	 * @since 5.0
 	 */
 	protected function create_packages() {
-		$packages = array();
+		$packages = [];
 
 		/* Let devs change the packages before we split them. */
 		$raw_packages = apply_filters(
@@ -340,10 +332,10 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Set the tax for a product.
 	 *
-	 * @since 5.0
-	 *
 	 * @param mixed $id  Product ID.
 	 * @param float $tax Sales tax for product.
+	 *
+	 * @since 5.0
 	 */
 	protected function set_product_tax( $id, $tax ) {
 		$this->cart->set_cart_item_tax( $id, $tax );
@@ -352,10 +344,10 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Set the tax for a shipping package.
 	 *
-	 * @since 5.0
-	 *
 	 * @param mixed $id  Package key.
 	 * @param float $tax Sales tax for package.
+	 *
+	 * @since 5.0
 	 */
 	protected function set_shipping_tax( $id, $tax ) {
 		$this->cart->set_package_tax( $id, $tax );
@@ -364,10 +356,10 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Set the tax for a fee.
 	 *
-	 * @since 5.0
-	 *
 	 * @param mixed $id  Fee ID.
 	 * @param float $tax Sales tax for fee.
+	 *
+	 * @since 5.0
 	 */
 	protected function set_fee_tax( $id, $tax ) {
 		$this->cart->set_fee_item_tax( $id, $tax );
@@ -376,15 +368,14 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Get the customer exemption certificate.
 	 *
-	 * @since 5.0
-	 *
 	 * @return TaxCloud\ExemptionCertificateBase|NULL
+	 * @since 5.0
 	 */
 	public function get_certificate() {
 		if ( ! isset( $_POST['post_data'] ) ) {
 			$post_data = $_POST;
 		} else {
-			$post_data = array();
+			$post_data = [];
 			parse_str( $_POST['post_data'], $post_data );
 		}
 
@@ -400,9 +391,9 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Display an error message to the user.
 	 *
-	 * @since 5.0
-	 *
 	 * @param string $message Message describing the error.
+	 *
+	 * @since 5.0
 	 */
 	protected function handle_error( $message ) {
 		$action = $this->get_error_action( $message );
@@ -449,9 +440,9 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Save metadata when a new order is created.
 	 *
-	 * @since 4.2
-	 *
 	 * @param int $order_id ID of new order.
+	 *
+	 * @since 4.2
 	 */
 	public function add_order_meta( $order_id ) {
 		// Make sure we're saving the data from the 'main' cart
@@ -476,11 +467,10 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Given a package key, return the shipping tax for the package.
 	 *
-	 * @since 5.0
-	 *
 	 * @param string $package_key
 	 *
 	 * @return float -1 if no shipping tax, otherwise shipping tax.
+	 * @since 5.0
 	 */
 	protected function get_package_shipping_tax( $package_key ) {
 		$cart          = WC()->cart;
@@ -510,13 +500,12 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Add shipping meta for newly created shipping items.
 	 *
-	 * @since 5.0
-	 *
 	 * @param WC_Order_Item_Shipping $item
 	 * @param int                    $package_key
 	 * @param array                  $package
 	 *
 	 * @throws WC_Data_Exception
+	 * @since 5.0
 	 */
 	public function add_shipping_meta( $item, $package_key, $package ) {
 		$shipping_tax = $this->get_package_shipping_tax( $package_key );
@@ -541,9 +530,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Does the customer have an exempt user role?
 	 *
-	 * @since 5.0
-	 *
 	 * @return bool
+	 * @since 5.0
 	 */
 	protected function is_user_exempt() {
 		$current_user = wp_get_current_user();

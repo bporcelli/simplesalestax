@@ -18,11 +18,10 @@ class SST_Addresses {
 	/**
 	 * Converts an Address to a formatted string.
 	 *
-	 * @since 5.0
-	 *
 	 * @param TaxCloud\Address $address
 	 *
 	 * @return string
+	 * @since 5.0
 	 */
 	public static function format( $address ) {
 		return sprintf(
@@ -38,18 +37,17 @@ class SST_Addresses {
 	 * Determines whether an address is "valid." An address is considered to be
 	 * valid if a city, state, address, and ZIP code are provided.
 	 *
-	 * @since 5.0
-	 *
 	 * @param TaxCloud\Address $address
 	 *
 	 * @return bool
+	 * @since 5.0
 	 */
 	public static function is_valid( $address ) {
 		if ( is_null( $address ) ) {
 			return false;
 		}
 
-		$required = array( $address->getCity(), $address->getState(), $address->getZip5() );
+		$required = [ $address->getCity(), $address->getState(), $address->getZip5() ];
 
 		foreach ( $required as $value ) {
 			if ( empty( $value ) ) {
@@ -63,11 +61,10 @@ class SST_Addresses {
 	/**
 	 * Return business address with given location key.
 	 *
-	 * @since 5.0
-	 *
 	 * @param int $index Location key.
 	 *
 	 * @return SST_Origin_Address|NULL
+	 * @since 5.0
 	 */
 	public static function get_address( $index ) {
 		$addresses = self::get_origin_addresses();
@@ -82,17 +79,16 @@ class SST_Addresses {
 	/**
 	 * Verify an address.
 	 *
-	 * @since 5.0
-	 *
 	 * @param TaxCloud\Address $address
 	 *
 	 * @return TaxCloud\Address
+	 * @since 5.0
 	 */
 	public static function verify_address( $address ) {
 		$addresses = get_transient( 'sst_verified_addresses' );
 
 		if ( ! is_array( $addresses ) ) {
-			$addresses = array();
+			$addresses = [];
 		}
 
 		$md5_hash = md5( json_encode( $address ) );
@@ -132,12 +128,11 @@ class SST_Addresses {
 	/**
 	 * Get all default origin addresses.
 	 *
-	 * @since 5.0
-	 *
 	 * @return SST_Origin_Address[]
+	 * @since 5.0
 	 */
 	public static function get_default_addresses() {
-		$return    = array();
+		$return    = [];
 		$addresses = self::get_origin_addresses();
 
 		foreach ( $addresses as $address ) {
@@ -152,9 +147,8 @@ class SST_Addresses {
 	/**
 	 * Get default pickup address.
 	 *
-	 * @since 5.0
-	 *
 	 * @return SST_Origin_Address|NULL
+	 * @since 5.0
 	 */
 	public static function get_default_address() {
 		$defaults = self::get_default_addresses();
@@ -169,18 +163,17 @@ class SST_Addresses {
 	/**
 	 * Get all business addresses configured by the admin.
 	 *
-	 * @since 5.0
-	 *
 	 * @return SST_Origin_Address[] Array of SST_Origin_Address.
+	 * @since 5.0
 	 */
 	public static function get_origin_addresses() {
 		$raw_addresses = SST_Settings::get( 'addresses' );
 
 		if ( ! is_array( $raw_addresses ) ) {
-			return array();
+			return [];
 		}
 
-		$addresses = array();
+		$addresses = [];
 
 		foreach ( $raw_addresses as $raw_address ) {
 			$address = json_decode( $raw_address, true );
@@ -203,11 +196,10 @@ class SST_Addresses {
 	/**
 	 * Convert an SST_Origin_Address object to an Address object.
 	 *
-	 * @since 5.0
-	 *
 	 * @param SST_Origin_Address $address
 	 *
 	 * @return TaxCloud\Address
+	 * @since 5.0
 	 */
 	public static function to_address( $address ) {
 		if ( is_null( $address ) || ! is_a( $address, 'SST_Origin_Address' ) ) {

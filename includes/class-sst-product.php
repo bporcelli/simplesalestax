@@ -21,24 +21,23 @@ class SST_Product {
 	 * @since 5.0
 	 */
 	public static function init() {
-		add_action( 'woocommerce_product_options_shipping', array( __CLASS__, 'output_origin_select_box' ) );
-		add_action( 'woocommerce_product_bulk_edit_start', array( __CLASS__, 'output_bulk_edit_fields' ) );
-		add_action( 'woocommerce_product_bulk_edit_save', array( __CLASS__, 'save_bulk_edit_fields' ) );
-		add_action( 'woocommerce_product_options_tax', array( __CLASS__, 'display_tic_field' ) );
-		add_action( 'woocommerce_product_after_variable_attributes', array( __CLASS__, 'display_tic_field' ), 10, 3 );
-		add_action( 'woocommerce_ajax_save_product_variations', array( __CLASS__, 'ajax_save_variation_tics' ) );
-		add_action( 'save_post_product', array( __CLASS__, 'save_product_meta' ) );
+		add_action( 'woocommerce_product_options_shipping', [ __CLASS__, 'output_origin_select_box' ] );
+		add_action( 'woocommerce_product_bulk_edit_start', [ __CLASS__, 'output_bulk_edit_fields' ] );
+		add_action( 'woocommerce_product_bulk_edit_save', [ __CLASS__, 'save_bulk_edit_fields' ] );
+		add_action( 'woocommerce_product_options_tax', [ __CLASS__, 'display_tic_field' ] );
+		add_action( 'woocommerce_product_after_variable_attributes', [ __CLASS__, 'display_tic_field' ], 10, 3 );
+		add_action( 'woocommerce_ajax_save_product_variations', [ __CLASS__, 'ajax_save_variation_tics' ] );
+		add_action( 'save_post_product', [ __CLASS__, 'save_product_meta' ] );
 	}
 
 	/**
 	 * Returns an array of origin addresses for a given product. If no origin
 	 * addresses have been configured, returns set of default origin addresses.
 	 *
-	 * @since 5.0
-	 *
-	 * @param  int $product_id
+	 * @param int $product_id
 	 *
 	 * @return SST_Origin_Address[]
+	 * @since 5.0
 	 */
 	public static function get_origin_addresses( $product_id ) {
 		$raw_addresses = get_post_meta( $product_id, '_wootax_origin_addresses', true );
@@ -48,7 +47,7 @@ class SST_Product {
 		}
 
 		$addresses = SST_Addresses::get_origin_addresses();
-		$return    = array();
+		$return    = [];
 
 		foreach ( $raw_addresses as $address_id ) {
 			if ( isset( $addresses[ $address_id ] ) ) {
@@ -62,12 +61,11 @@ class SST_Product {
 	/**
 	 * Get the TIC for a product.
 	 *
-	 * @since 5.0
-	 *
-	 * @param  int $product_id
-	 * @param  int $variation_id (default: 0)
+	 * @param int $product_id
+	 * @param int $variation_id (default: 0)
 	 *
 	 * @return mixed TIC for product, or null if none set.
+	 * @since 5.0
 	 */
 	public static function get_tic( $product_id, $variation_id = 0 ) {
 		$product_tic   = get_post_meta( $product_id, 'wootax_tic', true );
@@ -122,12 +120,12 @@ class SST_Product {
 		wp_localize_script(
 			'simplesalestax.tic-select',
 			'ticSelectLocalizeScript',
-			array(
+			[
 				'tic_list' => sst_get_tics(),
-				'strings'  => array(
+				'strings'  => [
 					'default' => __( 'No Change', 'simplesalestax' ),
-				),
-			)
+				],
+			]
 		);
 
 		SST()->assets->enqueue( 'script', 'simplesalestax.tic-select' );
@@ -138,9 +136,9 @@ class SST_Product {
 	/**
 	 * Handle bulk TIC updates.
 	 *
-	 * @since 4.2
-	 *
 	 * @param WC_Product $product The product being saved.
+	 *
+	 * @since 4.2
 	 */
 	public static function save_bulk_edit_fields( $product ) {
 		$tic = sanitize_text_field( $_REQUEST['wootax_tic'] );
@@ -153,12 +151,12 @@ class SST_Product {
 	/**
 	 * Output TIC select box on "Edit Product" screen.
 	 *
-	 * @since 5.0
-	 *
 	 * @param int     $loop           Loop counter used by WooCommerce when displaying variation attributes (default:
 	 *                                null).
 	 * @param array   $variation_data Unused parameter (default: null).
 	 * @param WP_Post $variation      WP_Post for variation if variation is being displayed (default: null).
+	 *
+	 * @since 5.0
 	 */
 	public static function display_tic_field( $loop = null, $variation_data = null, $variation = null ) {
 		global $post;
@@ -176,15 +174,15 @@ class SST_Product {
 		wp_localize_script(
 			'simplesalestax.tic-select',
 			'ticSelectLocalizeScript',
-			array(
+			[
 				'tic_list' => sst_get_tics(),
-				'strings'  => array(
+				'strings'  => [
 					'default' => $is_variation ? __( 'Same as parent', 'simplesalestax' ) : __(
 						'Using site default',
 						'simplesalestax'
 					),
-				),
-			)
+				],
+			]
 		);
 
 		SST()->assets->enqueue( 'script', 'simplesalestax.tic-select' );
@@ -218,9 +216,9 @@ class SST_Product {
 	/**
 	 * Save the TIC and origin addresses for a product.
 	 *
-	 * @since 4.2
-	 *
 	 * @param int $product_id The ID of the product being saved.
+	 *
+	 * @since 4.2
 	 */
 	public static function save_product_meta( $product_id ) {
 		if ( isset( $_REQUEST['_inline_edit'] ) || isset( $_REQUEST['bulk_edit'] ) ) {
@@ -228,11 +226,11 @@ class SST_Product {
 		}
 
 		// Save product origin addresses
-		$origins = isset( $_REQUEST['_wootax_origin_addresses'] ) ? $_REQUEST['_wootax_origin_addresses'] : array();
+		$origins = isset( $_REQUEST['_wootax_origin_addresses'] ) ? $_REQUEST['_wootax_origin_addresses'] : [];
 		update_post_meta( $product_id, '_wootax_origin_addresses', $origins );
 
 		// Save product and variation TICs
-		$selected_tics = isset( $_REQUEST['wootax_tic'] ) ? $_REQUEST['wootax_tic'] : array();
+		$selected_tics = isset( $_REQUEST['wootax_tic'] ) ? $_REQUEST['wootax_tic'] : [];
 
 		foreach ( $selected_tics as $product_id => $tic ) {
 			update_post_meta( $product_id, 'wootax_tic', $tic );

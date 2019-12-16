@@ -21,15 +21,15 @@ class SST_Order_Controller {
 	 * @since 5.0
 	 */
 	public function __construct() {
-		add_action( 'woocommerce_order_status_completed', array( $this, 'capture_order' ) );
-		add_action( 'woocommerce_refund_created', array( $this, 'refund_order' ), 10, 2 );
-		add_action( 'woocommerce_payment_complete', array( $this, 'maybe_capture_order' ) );
-		add_filter( 'woocommerce_hidden_order_itemmeta', array( $this, 'hide_order_item_meta' ) );
-		add_filter( 'woocommerce_order_item_get_taxes', array( $this, 'fix_shipping_tax_issue' ), 10, 2 );
-		add_action( 'woocommerce_before_order_object_save', array( $this, 'on_order_saved' ) );
+		add_action( 'woocommerce_order_status_completed', [ $this, 'capture_order' ] );
+		add_action( 'woocommerce_refund_created', [ $this, 'refund_order' ], 10, 2 );
+		add_action( 'woocommerce_payment_complete', [ $this, 'maybe_capture_order' ] );
+		add_filter( 'woocommerce_hidden_order_itemmeta', [ $this, 'hide_order_item_meta' ] );
+		add_filter( 'woocommerce_order_item_get_taxes', [ $this, 'fix_shipping_tax_issue' ], 10, 2 );
+		add_action( 'woocommerce_before_order_object_save', [ $this, 'on_order_saved' ] );
 		add_filter(
 			'woocommerce_order_data_store_cpt_get_orders_query',
-			array( $this, 'handle_version_query_var' ),
+			[ $this, 'handle_version_query_var' ],
 			10,
 			2
 		);
@@ -38,13 +38,12 @@ class SST_Order_Controller {
 	/**
 	 * When an order is completed, mark it as captured in TaxCloud.
 	 *
-	 * @since 5.0
-	 *
 	 * @param int $order_id ID of completed order.
 	 *
 	 * @return bool True on success, false on failure.
 	 *
 	 * @throws Exception
+	 * @since 5.0
 	 */
 	public function capture_order( $order_id ) {
 		$order = new SST_Order( $order_id );
@@ -55,22 +54,21 @@ class SST_Order_Controller {
 	/**
 	 * When a new refund is created, send a Returned request to TaxCloud.
 	 *
-	 * @since 5.0
-	 *
 	 * @param int   $refund_id ID of new refund.
 	 * @param array $args      Refund arguments (see wc_create_refund()).
 	 *
 	 * @return bool True on success, false on failure.
 	 *
 	 * @throws Exception
+	 * @since 5.0
 	 */
 	public function refund_order( $refund_id, $args ) {
-		$items = isset( $args['line_items'] ) ? $args['line_items'] : array();
+		$items = isset( $args['line_items'] ) ? $args['line_items'] : [];
 		$order = new SST_Order( $args['order_id'] );
 
 		/* If items specified, convert to format expected by do_refund() */
 		if ( ! empty( $items ) ) {
-			$all_items = $order->get_items( array( 'line_item', 'shipping', 'fee' ) );
+			$all_items = $order->get_items( [ 'line_item', 'shipping', 'fee' ] );
 
 			foreach ( $items as $item_id => $data ) {
 				if ( $data['refund_total'] > 0 && isset( $all_items[ $item_id ] ) ) {
@@ -115,11 +113,10 @@ class SST_Order_Controller {
 	 * If the "Capture Orders Immediately" option is enabled, capture orders
 	 * when payment is received.
 	 *
-	 * @since 5.0
-	 *
 	 * @param int $order_id
 	 *
 	 * @throws Exception
+	 * @since 5.0
 	 */
 	public function maybe_capture_order( $order_id ) {
 		if ( 'yes' == SST_Settings::get( 'capture_immediately' ) ) {
@@ -132,11 +129,10 @@ class SST_Order_Controller {
 	/**
 	 * Hides Simple Sales Tax order item meta.
 	 *
-	 * @since 5.0
-	 *
 	 * @param array $to_hide Meta keys to hide.
 	 *
 	 * @return array
+	 * @since 5.0
 	 */
 	public function hide_order_item_meta( $to_hide ) {
 		$to_hide[] = '_wootax_tax_amount';
@@ -150,12 +146,11 @@ class SST_Order_Controller {
 	 * Temporary fix for #50. Ensures that tax data for shipping items is
 	 * correctly formatted.
 	 *
-	 * @since 5.0
-	 *
 	 * @param array         $taxes
 	 * @param WC_Order_Item $item
 	 *
 	 * @return array
+	 * @since 5.0
 	 */
 	public function fix_shipping_tax_issue( $taxes, $item ) {
 		if ( 'shipping' == $item->get_type() ) {
@@ -178,11 +173,11 @@ class SST_Order_Controller {
 	public function on_order_saved( $order ) {
 		if ( 'rest-api' === $order->get_created_via() ) {
 			// Remove hook temporarily to prevent infinite loop
-			remove_action( 'woocommerce_before_order_object_save', array( $this, 'on_order_saved' ) );
+			remove_action( 'woocommerce_before_order_object_save', [ $this, 'on_order_saved' ] );
 
 			sst_order_calculate_taxes( $order );
 
-			add_action( 'woocommerce_before_order_object_save', array( $this, 'on_order_saved' ) );
+			add_action( 'woocommerce_before_order_object_save', [ $this, 'on_order_saved' ] );
 		}
 
 		$db_version = $order->get_meta( '_wootax_db_version', true );

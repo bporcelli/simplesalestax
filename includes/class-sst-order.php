@@ -41,9 +41,9 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Constructor.
 	 *
-	 * @since 5.0
-	 *
 	 * @param mixed $order Order ID or WC_Order instance.
+	 *
+	 * @since 5.0
 	 */
 	public function __construct( $order ) {
 		if ( is_numeric( $order ) ) {
@@ -60,16 +60,15 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Forward method calls to the encapsulated WC_Order instance.
 	 *
-	 * @since 5.0
-	 *
 	 * @param string $name
 	 * @param array  $args
 	 *
 	 * @return mixed
+	 * @since 5.0
 	 */
 	public function __call( $name, $args = [] ) {
-		if ( is_callable( array( $this->order, $name ) ) ) {
-			return call_user_func_array( array( $this->order, $name ), $args );
+		if ( is_callable( [ $this->order, $name ] ) ) {
+			return call_user_func_array( [ $this->order, $name ], $args );
 		}
 
 		return null;
@@ -78,11 +77,10 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Can we perform a lookup for the given package?
 	 *
-	 * @since 5.0
-	 *
 	 * @param array $package
 	 *
 	 * @return bool
+	 * @since 5.0
 	 */
 	protected function ready_for_lookup( $package ) {
 		if ( 'pending' !== $this->get_taxcloud_status() || 0 < $this->order->get_total_refunded() ) {
@@ -95,9 +93,8 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Get saved packages for this order.
 	 *
-	 * @since 5.0
-	 *
 	 * @return array
+	 * @since 5.0
 	 */
 	public function get_packages() {
 		// use array_values so package keys are integers (we want nice order IDs like 9004_0, 9004_1,... in TaxCloud)
@@ -113,11 +110,11 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Set saved packages for this order.
 	 *
-	 * @since 5.0
-	 *
 	 * @param $packages array (default: array())
+	 *
+	 * @since 5.0
 	 */
-	public function set_packages( $packages = array() ) {
+	public function set_packages( $packages = [] ) {
 		if ( ! is_array( $packages ) ) {
 			$packages = [];
 		}
@@ -129,11 +126,10 @@ class SST_Order extends SST_Abstract_Cart {
 	 * Transform an array of cart items to match the format expected during
 	 * checkout.
 	 *
-	 * @since 5.0
-	 *
 	 * @param array $cart_items
 	 *
 	 * @return array
+	 * @since 5.0
 	 */
 	protected function transform_items( $cart_items ) {
 		$new_items = [];
@@ -159,9 +155,8 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Get base shipping packages for order.
 	 *
-	 * @since 5.5
-	 *
 	 * @return array
+	 * @since 5.5
 	 */
 	protected function get_base_packages() {
 		$packages = [];
@@ -264,9 +259,8 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Create shipping packages for order.
 	 *
-	 * @since 5.0
-	 *
 	 * @return array
+	 * @since 5.0
 	 */
 	public function create_packages() {
 		$packages = [];
@@ -358,10 +352,10 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Set the tax for a product.
 	 *
-	 * @since 5.0
-	 *
 	 * @param mixed $id  Item ID.
 	 * @param float $tax Sales tax for product.
+	 *
+	 * @since 5.0
 	 */
 	protected function set_product_tax( $id, $tax ) {
 		$item     = $this->order->get_item( $id );
@@ -384,10 +378,10 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Set the tax for a shipping item.
 	 *
-	 * @since 5.0
-	 *
 	 * @param mixed $id  Item ID.
 	 * @param float $tax Sales tax for item.
+	 *
+	 * @since 5.0
 	 */
 	protected function set_shipping_tax( $id, $tax ) {
 		$this->set_product_tax( $id, $tax );
@@ -396,10 +390,10 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Set the tax for a fee.
 	 *
-	 * @since 5.0
-	 *
 	 * @param mixed $id  Fee ID.
 	 * @param float $tax Sales tax for fee.
+	 *
+	 * @since 5.0
 	 */
 	protected function set_fee_tax( $id, $tax ) {
 		$this->set_product_tax( $id, $tax );
@@ -408,9 +402,8 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Get the exemption certificate for the customer.
 	 *
-	 * @since 5.0
-	 *
 	 * @return TaxCloud\ExemptionCertificateBase
+	 * @since 5.0
 	 */
 	public function get_certificate() {
 		$certificate = $this->get_meta( 'exempt_cert' );
@@ -425,9 +418,9 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Sets the exemption certificate for the order.
 	 *
-	 * @since 6.0.7
-	 *
 	 * @param TaxCloud\ExemptionCertificateBase $certificate
+	 *
+	 * @since 6.0.7
 	 */
 	public function set_certificate( $certificate ) {
 		if ( ! is_a( $certificate, 'TaxCloud\ExemptionCertificateBase' ) ) {
@@ -440,11 +433,10 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Handle an error by logging it or displaying it to the user.
 	 *
-	 * @since 5.0
-	 *
 	 * @param string $message Message describing the error.
 	 *
 	 * @throws Exception
+	 * @since 5.0
 	 */
 	protected function handle_error( $message ) {
 		SST_Logger::add( $message );
@@ -457,11 +449,10 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Get TaxCloud status.
 	 *
-	 * @since 5.0
-	 *
 	 * @param string $context (default: 'edit')
 	 *
 	 * @return string
+	 * @since 5.0
 	 */
 	public function get_taxcloud_status( $context = 'edit' ) {
 		$status = $this->get_meta( 'status' );
@@ -476,9 +467,8 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Get billing address.
 	 *
-	 * @since 5.5
-	 *
 	 * @return array
+	 * @since 5.5
 	 */
 	protected function get_billing_address() {
 		return [
@@ -494,9 +484,8 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Get shipping address.
 	 *
-	 * @since 5.5
-	 *
 	 * @return array
+	 * @since 5.5
 	 */
 	protected function get_shipping_address() {
 		return [
@@ -516,9 +505,8 @@ class SST_Order extends SST_Abstract_Cart {
 	 * the sst_update_50_order_data update routine. It should generally not be
 	 * used elsewhere.
 	 *
-	 * @since 5.0
-	 *
 	 * @return TaxCloud\Address|NULL
+	 * @since 5.0
 	 */
 	public function get_destination_address() {
 		if ( 'billing' === get_option( 'woocommerce_tax_based_on' ) ) {
@@ -545,14 +533,13 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Get order id for given package.
 	 *
-	 * @since 5.0
-	 *
 	 * @param string $package_key
 	 * @param array  $package (default: array())
 	 *
 	 * @return string
+	 * @since 5.0
 	 */
-	protected function get_package_order_id( $package_key, $package = array() ) {
+	protected function get_package_order_id( $package_key, $package = [] ) {
 		if ( isset( $package['order_id'] ) ) { /* Legacy (pre 5.0) order */
 			return $package['order_id'];
 		}
@@ -563,11 +550,10 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Send AuthorizedWithCapture request to capture order in TaxCloud.
 	 *
-	 * @since 5.0
-	 *
 	 * @return bool true on success, false on failure.
 	 *
 	 * @throws Exception
+	 * @since 5.0
 	 */
 	public function do_capture() {
 		$taxcloud_status = $this->get_taxcloud_status();
@@ -636,13 +622,12 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Send Returned request to fully or partially refund an order.
 	 *
-	 * @since 5.0
-	 *
 	 * @param array $items Array of items to refund (default: array())
 	 *
 	 * @return bool True on success, false on failure.
 	 *
 	 * @throws Exception
+	 * @since 5.0
 	 */
 	public function do_refund( $items = [] ) {
 		if ( 'captured' !== $this->get_taxcloud_status() ) {
@@ -747,11 +732,10 @@ class SST_Order extends SST_Abstract_Cart {
 	 * method IDs. This method converts those nonstandard IDs into the standard
 	 * format.
 	 *
-	 * @since 5.3
-	 *
-	 * @param  string $method_id
+	 * @param string $method_id
 	 *
 	 * @return string
+	 * @since 5.3
 	 */
 	protected function process_method_id( $method_id ) {
 		if ( class_exists( 'IgniteWoo_Shipping_Fedex_Drop_Shipping_Pro' ) ) {
@@ -767,9 +751,9 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Prepare items for refund.
 	 *
-	 * @since 5.0
-	 *
 	 * @param array $items Refund items.
+	 *
+	 * @since 5.0
 	 */
 	protected function prepare_refund_items( &$items ) {
 		$tax_based_on = SST_Settings::get( 'tax_based_on' );
@@ -812,10 +796,10 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Update order meta.
 	 *
-	 * @since 5.0
-	 *
 	 * @param string $key   Meta key.
 	 * @param mixed  $value Meta value.
+	 *
+	 * @since 5.0
 	 */
 	public function update_meta( $key, $value ) {
 		$key = self::$prefix . $key;
@@ -834,13 +818,12 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Get meta value.
 	 *
-	 * @since 5.0
-	 *
 	 * @param string $key
 	 * @param bool   $single
 	 * @param string $context
 	 *
 	 * @return mixed empty string if key doesn't exist, otherwise value.
+	 * @since 5.0
 	 */
 	public function get_meta( $key = '', $single = true, $context = 'view' ) {
 		$value = $this->order->get_meta( self::$prefix . $key, $single, $context );

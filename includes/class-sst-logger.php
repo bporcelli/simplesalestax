@@ -41,9 +41,8 @@ class SST_Logger {
 	/**
 	 * Get log file path.
 	 *
-	 * @since 5.0
-	 *
 	 * @return string
+	 * @since 5.0
 	 */
 	public static function get_log_path() {
 		return wc_get_log_file_path( self::$handle );
@@ -52,9 +51,9 @@ class SST_Logger {
 	/**
 	 * Add a log entry.
 	 *
-	 * @since 5.0
-	 *
 	 * @param string $message Log message.
+	 *
+	 * @since 5.0
 	 */
 	public static function add( $message ) {
 		if ( ! is_null( self::$logger ) ) {

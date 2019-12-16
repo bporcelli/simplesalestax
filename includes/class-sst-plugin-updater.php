@@ -11,21 +11,20 @@
 
 final class SST_Plugin_Updater {
 	private $api_url = '';
-	private $api_data = array();
+	private $api_data = [];
 	private $name = '';
 	private $slug = '';
 
 	/**
 	 * Class constructor.
 	 *
-	 * @uses plugin_basename()
-	 * @uses hook()
-	 *
 	 * @param string $_api_url     The URL pointing to the custom API endpoint.
 	 * @param string $_plugin_file Path to the plugin file.
 	 * @param array  $_api_data    Optional data to send with API calls.
 	 *
 	 * @return void
+	 * @uses plugin_basename()
+	 * @uses hook()
 	 */
 	public function __construct( $_api_url, $_plugin_file, $_api_data = null ) {
 		$this->api_url  = trailingslashit( $_api_url );
@@ -41,17 +40,16 @@ final class SST_Plugin_Updater {
 	/**
 	 * Set up Wordpress filters to hook into WP's update process.
 	 *
-	 * @uses add_filter()
-	 *
 	 * @return void
+	 * @uses add_filter()
 	 */
 	private function hook() {
 		add_filter(
 			'pre_set_site_transient_update_plugins',
-			array( $this, 'pre_set_site_transient_update_plugins_filter' )
+			[ $this, 'pre_set_site_transient_update_plugins_filter' ]
 		);
-		add_filter( 'plugins_api', array( $this, 'plugins_api_filter' ), 10, 3 );
-		add_filter( 'http_request_args', array( $this, 'http_request_args' ), 10, 2 );
+		add_filter( 'plugins_api', [ $this, 'plugins_api_filter' ], 10, 3 );
+		add_filter( 'http_request_args', [ $this, 'http_request_args' ], 10, 2 );
 	}
 
 	/**
@@ -62,18 +60,17 @@ final class SST_Plugin_Updater {
 	 * It is reassembled from parts of the native Wordpress plugin update code.
 	 * See wp-includes/update.php line 121 for the original wp_update_plugins() function.
 	 *
-	 * @uses api_request()
-	 *
 	 * @param array $_transient_data Update array build by Wordpress.
 	 *
 	 * @return array Modified update array with custom plugin data.
+	 * @uses api_request()
 	 */
 	function pre_set_site_transient_update_plugins_filter( $_transient_data ) {
 		if ( empty( $_transient_data ) ) {
 			return $_transient_data;
 		}
 
-		$to_send = array( 'slug' => $this->slug );
+		$to_send = [ 'slug' => $this->slug ];
 
 		$api_response = $this->api_request( 'get_version', $to_send );
 
@@ -90,20 +87,19 @@ final class SST_Plugin_Updater {
 	/**
 	 * Updates information on the "View version x.x details" page with custom data.
 	 *
-	 * @uses api_request()
-	 *
 	 * @param mixed  $_data
 	 * @param string $_action
 	 * @param object $_args
 	 *
 	 * @return object $_data
+	 * @uses api_request()
 	 */
 	function plugins_api_filter( $_data, $_action = '', $_args = null ) {
 		if ( ( $_action != 'plugin_information' ) || ! isset( $_args->slug ) || ( $_args->slug != $this->slug ) ) {
 			return $_data;
 		}
 
-		$to_send = array( 'slug' => $this->slug );
+		$to_send = [ 'slug' => $this->slug ];
 
 		$api_response = $this->api_request( 'get_version', $to_send );
 
@@ -135,14 +131,13 @@ final class SST_Plugin_Updater {
 	/**
 	 * Calls the API and, if successful, returns the object delivered by the API.
 	 *
-	 * @uses         get_bloginfo()
-	 * @uses         wp_remote_post()
-	 * @uses         is_wp_error()
-	 *
 	 * @param string $_action The requested action.
 	 * @param array  $_data   Parameters for the API action.
 	 *
 	 * @return false||object
+	 * @uses         get_bloginfo()
+	 * @uses         wp_remote_post()
+	 * @uses         is_wp_error()
 	 */
 	private function api_request( $_action, $_data ) {
 		global $wp_version;
@@ -153,7 +148,7 @@ final class SST_Plugin_Updater {
 			$query_string .= "&$key=" . urlencode( $val );
 		}
 
-		$request = wp_remote_get( $this->api_url . $query_string, array( 'timeout' => 15, 'sslverify' => false ) );
+		$request = wp_remote_get( $this->api_url . $query_string, [ 'timeout' => 15, 'sslverify' => false ] );
 
 		if ( ! is_wp_error( $request ) ):
 			$request = json_decode( wp_remote_retrieve_body( $request ) );

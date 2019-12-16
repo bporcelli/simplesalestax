@@ -39,9 +39,8 @@ abstract class SST_Abstract_Cart {
 	/**
 	 * Perform a tax lookup and update the sales tax for all items.
 	 *
-	 * @since 5.0
-	 *
 	 * @return bool True on success, false on error.
+	 * @since 5.0
 	 */
 	public function calculate_taxes() {
 		$this->reset_taxes();
@@ -95,9 +94,8 @@ abstract class SST_Abstract_Cart {
 	/**
 	 * Perform a tax lookup for each cart shipping package.
 	 *
-	 * @since 5.0
-	 *
 	 * @return array Array of packages.
+	 * @since 5.0
 	 */
 	protected function do_lookup() {
 		$packages = [];
@@ -106,7 +104,7 @@ abstract class SST_Abstract_Cart {
 			$hash          = $this->get_package_hash( $package );
 			$saved_package = $this->get_saved_package( $hash );
 
-			if ( false === $saved_package ){
+			if ( false === $saved_package ) {
 				$saved_package = $this->do_package_lookup( $package );
 
 				if ( $saved_package ) {
@@ -152,14 +150,13 @@ abstract class SST_Abstract_Cart {
 	/**
 	 * Generate a Lookup request for a given package.
 	 *
-	 * @since 5.0
-	 *
 	 * @param $package array
 	 *
 	 * @return TaxCloud\Request\Lookup
+	 * @since 5.0
 	 */
 	protected function get_lookup_for_package( &$package ) {
-		$cart_items = array();
+		$cart_items = [];
 		$based_on   = SST_Settings::get( 'tax_based_on' );
 
 		/* Add products */
@@ -187,11 +184,11 @@ abstract class SST_Abstract_Cart {
 				$price,
 				$quantity
 			);
-			$package['map'][] = array(
+			$package['map'][] = [
 				'type'    => 'line_item',
 				'id'      => $item['data']->get_id(),
 				'cart_id' => isset( $item['shipping_item_key'] ) ? $item['shipping_item_key'] : $cart_id,
-			);
+			];
 		}
 
 		/* Add fees */
@@ -203,11 +200,11 @@ abstract class SST_Abstract_Cart {
 				apply_filters( 'wootax_fee_price', $fee->amount, $fee ),
 				1
 			);
-			$package['map'][] = array(
+			$package['map'][] = [
 				'type'    => 'fee',
 				'id'      => $fee->id,
 				'cart_id' => $cart_id,
-			);
+			];
 		}
 
 		/* Add shipping */
@@ -224,11 +221,11 @@ abstract class SST_Abstract_Cart {
 				apply_filters( 'wootax_shipping_price', $shipping_rate->cost, $shipping_rate ),
 				1
 			);
-			$package['map'][] = array(
+			$package['map'][] = [
 				'type'    => 'shipping',
 				'id'      => SST_SHIPPING_ITEM,
 				'cart_id' => $shipping_rate->id,
-			);
+			];
 		}
 
 		/* Build Lookup */
@@ -251,14 +248,13 @@ abstract class SST_Abstract_Cart {
 	 * Split package into one or more subpackages, one for each product
 	 * origin address.
 	 *
-	 * @since 5.0
-	 *
 	 * @param array Package.
 	 *
 	 * @return array Subpackages (empty on error).
+	 * @since 5.0
 	 */
 	protected function split_package( $package ) {
-		$packages = array();
+		$packages = [];
 
 		/* Convert destination address to Address object */
 		try {
@@ -272,7 +268,7 @@ abstract class SST_Abstract_Cart {
 
 			$package['destination'] = SST_Addresses::verify_address( $destination );
 		} catch ( Exception $ex ) {
-			return array();
+			return [];
 		}
 
 		/* Split package into subpackages */
@@ -287,7 +283,7 @@ abstract class SST_Abstract_Cart {
 					)
 				);
 
-				return array();
+				return [];
 			}
 
 			$origin_id = $origin->getID();
@@ -295,14 +291,14 @@ abstract class SST_Abstract_Cart {
 			/* Create subpackage for origin if need be */
 			if ( ! array_key_exists( $origin_id, $packages ) ) {
 				$packages[ $origin_id ] = sst_create_package(
-					array(
+					[
 						'origin'      => SST_Addresses::to_address( $origin ),
 						'destination' => $package['destination'],
 						'certificate' => $this->get_certificate(),
-						'user'        => isset( $package['user'] ) ? $package['user'] : array(
+						'user'        => isset( $package['user'] ) ? $package['user'] : [
 							'ID' => get_current_user_id(),
-						),
-					)
+						],
+					]
 				);
 
 				/* Associate shipping with first subpackage */
@@ -322,11 +318,10 @@ abstract class SST_Abstract_Cart {
 	/**
 	 * Get the hash of a shipping package.
 	 *
-	 * @since 5.0
-	 *
 	 * @param array $package
 	 *
 	 * @return string
+	 * @since 5.0
 	 */
 	private function get_package_hash( $package ) {
 		// Remove data objects so hashes are consistent
@@ -336,12 +331,12 @@ abstract class SST_Abstract_Cart {
 
 		// Convert WC_Shipping_Rate to array (shipping will be excluded from hash o.w.)
 		if ( is_a( $package['shipping'], 'WC_Shipping_Rate' ) ) {
-			$package['shipping'] = array(
+			$package['shipping'] = [
 				'id'        => $package['shipping']->id,
 				'label'     => $package['shipping']->label,
 				'cost'      => $package['shipping']->cost,
 				'method_id' => $package['shipping']->method_id,
-			);
+			];
 		}
 
 		return 'sst_pack_' . md5( json_encode( $package ) . WC_Cache_Helper::get_transient_version( 'shipping' ) );
@@ -357,12 +352,11 @@ abstract class SST_Abstract_Cart {
 	 *  2) If there are multiple shipment origins, use one in the customer's state.
 	 *  3) If there are no origins in the customers state, use the first  origin.
 	 *
-	 * @since 5.0
-	 *
 	 * @param array            $item
 	 * @param TaxCloud\Address $destination
 	 *
 	 * @return SST_Origin_Address
+	 * @since 5.0
 	 */
 	protected function get_origin_for_product( $item, $destination ) {
 		$origins = SST_Product::get_origin_addresses( $item['product_id'] );
@@ -385,11 +379,10 @@ abstract class SST_Abstract_Cart {
 	/**
 	 * Can we perform a lookup for the given package?
 	 *
-	 * @since 5.0
-	 *
 	 * @param array $package
 	 *
 	 * @return bool
+	 * @since 5.0
 	 */
 	protected function ready_for_lookup( $package ) {
 		return isset( $package['destination'] ) && SST_Addresses::is_valid( $package['destination'] );
@@ -399,9 +392,8 @@ abstract class SST_Abstract_Cart {
 	 * Get the base packages for the cart, filtering out all packages destined
 	 * for places abroad.
 	 *
-	 * @since 5.5
-	 *
 	 * @return array
+	 * @since 5.5
 	 */
 	protected function get_filtered_packages() {
 		$packages = $this->get_base_packages();
@@ -422,20 +414,19 @@ abstract class SST_Abstract_Cart {
 	/**
 	 * Get saved packages for this cart.
 	 *
-	 * @since 5.0
-	 *
 	 * @return array
+	 * @since 5.0
 	 */
 	abstract protected function get_packages();
 
 	/**
 	 * Set saved packages for this cart.
 	 *
-	 * @since 5.0
-	 *
 	 * @param $packages array (default: array())
+	 *
+	 * @since 5.0
 	 */
-	abstract protected function set_packages( $packages = array() );
+	abstract protected function set_packages( $packages = [] );
 
 	/**
 	 * Get the base packages for the cart. The base packages are split by origin
@@ -449,9 +440,8 @@ abstract class SST_Abstract_Cart {
 	 * Inclusiveness: Every item in the cart must be included in exactly one
 	 * package.
 	 *
-	 * @since 5.5
-	 *
 	 * @return array
+	 * @since 5.5
 	 */
 	abstract protected function get_base_packages();
 
@@ -502,9 +492,8 @@ abstract class SST_Abstract_Cart {
 	 *      'certificate'   => TaxCloud\ExemptCertificate
 	 *  )
 	 *
-	 * @since 5.0
-	 *
 	 * @return array
+	 * @since 5.0
 	 */
 	abstract protected function create_packages();
 
@@ -542,48 +531,47 @@ abstract class SST_Abstract_Cart {
 	/**
 	 * Set the tax for a product.
 	 *
-	 * @since 5.0
-	 *
 	 * @param mixed $id  Product ID.
 	 * @param float $tax Sales tax for product.
+	 *
+	 * @since 5.0
 	 */
 	abstract protected function set_product_tax( $id, $tax );
 
 	/**
 	 * Set the tax for a shipping item.
 	 *
-	 * @since 5.0
-	 *
 	 * @param mixed $id  Item ID.
 	 * @param float $tax Sales tax for item.
+	 *
+	 * @since 5.0
 	 */
 	abstract protected function set_shipping_tax( $id, $tax );
 
 	/**
 	 * Set the tax for a fee.
 	 *
-	 * @since 5.0
-	 *
 	 * @param mixed $id  Fee ID.
 	 * @param float $tax Sales tax for fee.
+	 *
+	 * @since 5.0
 	 */
 	abstract protected function set_fee_tax( $id, $tax );
 
 	/**
 	 * Get the exemption certificate for the customer.
 	 *
-	 * @since 5.0
-	 *
 	 * @return TaxCloud\ExemptionCertificateBase
+	 * @since 5.0
 	 */
 	abstract public function get_certificate();
 
 	/**
 	 * Handle an error by logging it or displaying it to the user.
 	 *
-	 * @since 5.0
-	 *
 	 * @param string $message Message describing the error.
+	 *
+	 * @since 5.0
 	 */
 	abstract protected function handle_error( $message );
 

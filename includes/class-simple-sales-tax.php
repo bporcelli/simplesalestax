@@ -159,11 +159,10 @@ final class SimpleSalesTax extends Plugin {
 	/**
 	 * What type of request is this?
 	 *
-	 * @since 4.4
-	 *
 	 * @param string $type ajax, frontend or admin
 	 *
 	 * @return bool
+	 * @since 4.4
 	 */
 	private function is_request( $type ) {
 		switch ( $type ) {

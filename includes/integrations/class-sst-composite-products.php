@@ -15,7 +15,7 @@ class SST_Composite_Products {
 	 * Constructor.
 	 */
 	public function __construct() {
-		add_filter( 'wootax_product_price', array( $this, 'filter_composite_product_price' ), 10, 2 );
+		add_filter( 'wootax_product_price', [ $this, 'filter_composite_product_price' ], 10, 2 );
 	}
 
 	/**

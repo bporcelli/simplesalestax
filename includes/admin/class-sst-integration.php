@@ -32,8 +32,8 @@ class SST_Integration extends WC_Integration {
 		$this->init_form_fields();
 
 		// Register action hooks.
-		add_action( 'woocommerce_update_options_integration_' . $this->id, array( $this, 'process_admin_options' ) );
-		add_action( 'admin_init', array( $this, 'maybe_download_log_file' ) );
+		add_action( 'woocommerce_update_options_integration_' . $this->id, [ $this, 'process_admin_options' ] );
+		add_action( 'admin_init', [ $this, 'maybe_download_log_file' ] );
 	}
 
 	/**
@@ -65,24 +65,24 @@ class SST_Integration extends WC_Integration {
 
 		ob_start();
 		?>
-        <tr valign="top">
-            <th scope="row" class="titledesc">
-                <label for="<?php echo esc_attr( $field ); ?>">
+		<tr valign="top">
+			<th scope="row" class="titledesc">
+				<label for="<?php echo esc_attr( $field ); ?>">
 					<?php echo wp_kses_post( $data['title'] ); ?><?php echo $this->get_tooltip_html( $data ); ?>
-                </label>
-            </th>
-            <td class="forminp">
-                <fieldset>
-                    <legend class="screen-reader-text">
-                        <span><?php echo wp_kses_post( $data['title'] ); ?></span>
-                    </legend>
-                    <button class="wp-core-ui button button-secondary" type="button" id="<?php echo $data['id']; ?>">
+				</label>
+			</th>
+			<td class="forminp">
+				<fieldset>
+					<legend class="screen-reader-text">
+						<span><?php echo wp_kses_post( $data['title'] ); ?></span>
+					</legend>
+					<button class="wp-core-ui button button-secondary" type="button" id="<?php echo $data['id']; ?>">
 						<?php echo wp_kses_post( $data['label'] ); ?>
-                    </button>
+					</button>
 					<?php echo $this->get_description_html( $data ); ?>
-                </fieldset>
-            </td>
-        </tr>
+				</fieldset>
+			</td>
+		</tr>
 		<?php
 		return ob_get_clean();
 	}
@@ -97,25 +97,25 @@ class SST_Integration extends WC_Integration {
 
 		ob_start();
 		?>
-        <tr valign="top">
-            <th scope="row" class="titledesc">
-                <label for="<?php echo esc_attr( $field ); ?>">
+		<tr valign="top">
+			<th scope="row" class="titledesc">
+				<label for="<?php echo esc_attr( $field ); ?>">
 					<?php echo wp_kses_post( $data['title'] ); ?><?php echo $this->get_tooltip_html( $data ); ?>
-                </label>
-            </th>
-            <td class="forminp">
-                <fieldset>
-                    <legend class="screen-reader-text">
-                        <span><?php echo wp_kses_post( $data['title'] ); ?></span>
-                    </legend>
-                    <a href="<?php echo esc_url( $data['url'] ); ?>" target="_blank"
-                       class="wp-core-ui button button-secondary" id="<?php echo $data['id']; ?>">
+				</label>
+			</th>
+			<td class="forminp">
+				<fieldset>
+					<legend class="screen-reader-text">
+						<span><?php echo wp_kses_post( $data['title'] ); ?></span>
+					</legend>
+					<a href="<?php echo esc_url( $data['url'] ); ?>" target="_blank"
+					   class="wp-core-ui button button-secondary" id="<?php echo $data['id']; ?>">
 						<?php echo wp_kses_post( $data['label'] ); ?>
-                    </a>
+					</a>
 					<?php echo $this->get_description_html( $data ); ?>
-                </fieldset>
-            </td>
-        </tr>
+				</fieldset>
+			</td>
+		</tr>
 		<?php
 		return ob_get_clean();
 	}
@@ -150,7 +150,7 @@ class SST_Integration extends WC_Integration {
 							'Zip4'     => '',
 							'Default'  => false,
 						],
-					]
+					],
 				],
 			]
 		);
@@ -167,8 +167,8 @@ class SST_Integration extends WC_Integration {
 	 * @since 5.0
 	 */
 	private function get_addresses() {
-		$addresses     = array();
-		$raw_addresses = $this->get_option( 'addresses', array() );
+		$addresses     = [];
+		$raw_addresses = $this->get_option( 'addresses', [] );
 
 		foreach ( $raw_addresses as $raw_address ) {
 			$addresses[] = json_decode( $raw_address, true );
@@ -180,22 +180,21 @@ class SST_Integration extends WC_Integration {
 	/**
 	 * Validate addresses when options are saved.
 	 *
-	 * @since 5.0
-	 *
 	 * @param string $key
 	 * @param string $value
 	 *
 	 * @return array
+	 * @since 5.0
 	 */
 	public function validate_addresses_field( $key, $value ) {
 		if ( ! isset( $_POST['addresses'] ) || ! is_array( $_POST['addresses'] ) ) {
-			return array();
+			return [];
 		}
 
 		$taxcloud_id  = esc_attr( $_POST['woocommerce_wootax_tc_id'] );
 		$taxcloud_key = esc_attr( $_POST['woocommerce_wootax_tc_key'] );
 
-		$default_address = array(
+		$default_address = [
 			'Address1' => '',
 			'Address2' => '',
 			'City'     => '',
@@ -204,10 +203,10 @@ class SST_Integration extends WC_Integration {
 			'Zip4'     => '',
 			'ID'       => '',
 			'Default'  => 'no',
-		);
+		];
 
 		$has_default = false;
-		$addresses   = array();
+		$addresses   = [];
 
 		foreach ( $_POST['addresses'] as $raw_address ) {
 			// Use defaults for missing fields

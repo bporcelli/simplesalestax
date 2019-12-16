@@ -31,15 +31,15 @@ class SST_Admin {
 	 * @since 4.7
 	 */
 	private function hooks() {
-		add_filter( 'woocommerce_integrations', array( __CLASS__, 'add_integration' ) );
-		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_scripts_and_styles' ) );
-		add_action( 'add_meta_boxes', array( __CLASS__, 'add_metaboxes' ) );
-		add_action( 'woocommerce_reports_charts', array( __CLASS__, 'add_reports_tab' ) );
-		add_filter( 'woocommerce_debug_tools', array( __CLASS__, 'register_debug_tool' ) );
-		add_action( 'product_cat_add_form_fields', array( __CLASS__, 'output_category_tic_select' ) );
-		add_action( 'product_cat_edit_form_fields', array( __CLASS__, 'output_category_tic_select' ) );
-		add_action( 'create_product_cat', array( __CLASS__, 'save_category_tic' ) );
-		add_action( 'edited_product_cat', array( __CLASS__, 'save_category_tic' ) );
+		add_filter( 'woocommerce_integrations', [ __CLASS__, 'add_integration' ] );
+		add_action( 'admin_enqueue_scripts', [ __CLASS__, 'enqueue_scripts_and_styles' ] );
+		add_action( 'add_meta_boxes', [ __CLASS__, 'add_metaboxes' ] );
+		add_action( 'woocommerce_reports_charts', [ __CLASS__, 'add_reports_tab' ] );
+		add_filter( 'woocommerce_debug_tools', [ __CLASS__, 'register_debug_tool' ] );
+		add_action( 'product_cat_add_form_fields', [ __CLASS__, 'output_category_tic_select' ] );
+		add_action( 'product_cat_edit_form_fields', [ __CLASS__, 'output_category_tic_select' ] );
+		add_action( 'create_product_cat', [ __CLASS__, 'save_category_tic' ] );
+		add_action( 'edited_product_cat', [ __CLASS__, 'save_category_tic' ] );
 	}
 
 	/**
@@ -86,7 +86,7 @@ class SST_Admin {
 		add_meta_box(
 			'sales_tax_meta',
 			__( 'Simple Sales Tax', 'simplesalestax' ),
-			array( __CLASS__, 'output_tax_metabox' ),
+			[ __CLASS__, 'output_tax_metabox' ],
 			'shop_order',
 			'side',
 			'high'
@@ -96,9 +96,9 @@ class SST_Admin {
 	/**
 	 * Output HTML for "Sales Tax" metabox.
 	 *
-	 * @since 4.2
-	 *
 	 * @param WP_Post $post WP_Post object for product being edited.
+	 *
+	 * @since 4.2
 	 */
 	public static function output_tax_metabox( $post ) {
 		$order           = new SST_Order( $post->ID );
@@ -154,24 +154,23 @@ class SST_Admin {
 	/**
 	 * Add a "Taxes" tab to the WooCommerce reports page.
 	 *
-	 * @since 4.2
-	 *
-	 * @param  array $charts Array of charts to be rendered on the reports page.
+	 * @param array $charts Array of charts to be rendered on the reports page.
 	 *
 	 * @return array
+	 * @since 4.2
 	 */
 	public static function add_reports_tab( $charts ) {
-		$charts['taxes'] = array(
+		$charts['taxes'] = [
 			'title'  => __( 'Taxes', 'simplesalestax' ),
-			'charts' => array(
-				'overview' => array(
+			'charts' => [
+				'overview' => [
 					'title'       => __( 'Overview', 'simplesalestax' ),
 					'description' => '',
 					'hide_title'  => true,
-					'function'    => array( __CLASS__, 'output_tax_report_button' ),
-				),
-			),
-		);
+					'function'    => [ __CLASS__, 'output_tax_report_button' ],
+				],
+			],
+		];
 
 		return $charts;
 	}
@@ -218,19 +217,18 @@ class SST_Admin {
 	 *
 	 * Note that our tool can be accessed from WooCommerce -> System Status -> Tools.
 	 *
-	 * @since 4.4
-	 *
-	 * @param  array $tools Array of registered debug tools.
+	 * @param array $tools Array of registered debug tools.
 	 *
 	 * @return array
+	 * @since 4.4
 	 */
 	public static function register_debug_tool( $tools ) {
-		$tools['wootax_rate_tool'] = array(
+		$tools['wootax_rate_tool'] = [
 			'name'     => __( 'Delete cached tax rates', 'simplesalestax' ),
 			'button'   => __( 'Clear cache', 'simplesalestax' ),
 			'desc'     => __( 'This tool will remove any tax rates cached by WooCommerce.', 'simplesalestax' ),
-			'callback' => array( __CLASS__, 'remove_rate_transients' ),
-		);
+			'callback' => [ __CLASS__, 'remove_rate_transients' ],
+		];
 
 		return $tools;
 	}
@@ -238,9 +236,9 @@ class SST_Admin {
 	/**
 	 * Add a "Default TIC" field to the "Add Category" and "Edit Category" screens.
 	 *
-	 * @since 5.0
-	 *
 	 * @param WP_Term|string $term_or_taxonomy (default: NULL).
+	 *
+	 * @since 5.0
 	 */
 	public static function output_category_tic_select( $term_or_taxonomy = null ) {
 		$is_edit     = is_a( $term_or_taxonomy, 'WP_Term' );
@@ -253,12 +251,12 @@ class SST_Admin {
 		wp_localize_script(
 			'simplesalestax.tic-select',
 			'ticSelectLocalizeScript',
-			array(
+			[
 				'tic_list' => sst_get_tics(),
-				'strings'  => array(
+				'strings'  => [
 					'default' => __( 'Using site default', 'simplesalestax' ),
-				),
-			)
+				],
+			]
 		);
 
 		SST()->assets->enqueue( 'script', 'simplesalestax.tic-select' );
@@ -269,9 +267,9 @@ class SST_Admin {
 	/**
 	 * Save Default TIC for category.
 	 *
-	 * @since 4.5
-	 *
 	 * @param int $term_id ID of category being saved.
+	 *
+	 * @since 4.5
 	 */
 	public static function save_category_tic( $term_id ) {
 		update_term_meta( $term_id, 'tic', isset( $_REQUEST['wootax_tic'] ) ? $_REQUEST['wootax_tic'] : '' );

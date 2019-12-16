@@ -21,16 +21,16 @@ class SST_Subscriptions {
 	 * @since 5.0
 	 */
 	public function __construct() {
-		add_filter( 'wootax_product_price', array( $this, 'change_product_price' ), 100, 2 );
-		add_filter( 'wootax_shipping_price', array( $this, 'change_shipping_price' ), 10, 2 );
-		add_filter( 'wootax_add_fees', array( $this, 'exclude_fees' ) );
-		add_filter( 'wootax_cart_packages_before_split', array( $this, 'add_package_for_no_ship_subs' ), 10, 2 );
-		add_filter( 'wootax_product_tic', array( $this, 'set_signup_fee_tic' ), 10, 3 );
-		add_filter( 'woocommerce_calculated_total', array( $this, 'save_shipping_taxes' ), 1200, 2 );
-		add_action( 'woocommerce_cart_updated', array( $this, 'restore_shipping_taxes' ) );
-		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'destroy_session' ) );
-		add_filter( 'wcs_renewal_order_created', array( $this, 'recalc_taxes_for_renewal' ), 1, 2 );
-		add_filter( 'wootax_save_packages_for_capture', array( $this, 'should_save_packages_for_capture' ) );
+		add_filter( 'wootax_product_price', [ $this, 'change_product_price' ], 100, 2 );
+		add_filter( 'wootax_shipping_price', [ $this, 'change_shipping_price' ], 10, 2 );
+		add_filter( 'wootax_add_fees', [ $this, 'exclude_fees' ] );
+		add_filter( 'wootax_cart_packages_before_split', [ $this, 'add_package_for_no_ship_subs' ], 10, 2 );
+		add_filter( 'wootax_product_tic', [ $this, 'set_signup_fee_tic' ], 10, 3 );
+		add_filter( 'woocommerce_calculated_total', [ $this, 'save_shipping_taxes' ], 1200, 2 );
+		add_action( 'woocommerce_cart_updated', [ $this, 'restore_shipping_taxes' ] );
+		add_action( 'woocommerce_checkout_update_order_meta', [ $this, 'destroy_session' ] );
+		add_filter( 'wcs_renewal_order_created', [ $this, 'recalc_taxes_for_renewal' ], 1, 2 );
+		add_filter( 'wootax_save_packages_for_capture', [ $this, 'should_save_packages_for_capture' ] );
 	}
 
 	/**
@@ -40,12 +40,11 @@ class SST_Subscriptions {
 	 * Needed because Subscriptions removes its price filter before we calculate
 	 * the tax due.
 	 *
-	 * @since 5.0
-	 *
-	 * @param  float      $price
-	 * @param  WC_Product $product
+	 * @param float      $price
+	 * @param WC_Product $product
 	 *
 	 * @return float
+	 * @since 5.0
 	 */
 	public function change_product_price( $price, $product ) {
 		if ( ! did_action( 'woocommerce_calculate_totals' ) ) {
@@ -60,12 +59,11 @@ class SST_Subscriptions {
 	 * shipping price to zero if WC_Subscriptions_Cart::charge_shipping_up_front() is true.
 	 * This function hooks wootax_shipping_price to take care of this.
 	 *
-	 * @since 5.0
-	 *
 	 * @param float  $price         Taxable price.
 	 * @param string $shipping_rate Product ID.
 	 *
 	 * @return float
+	 * @since 5.0
 	 */
 	public function change_shipping_price( $price, $shipping_rate ) {
 		if ( ! did_action( 'woocommerce_calculate_totals' ) ) {
@@ -85,11 +83,10 @@ class SST_Subscriptions {
 	 * Exclude fees from tax lookups when subscription there is no subscription
 	 * sign up fee and all subscriptions qualify for a free trial.
 	 *
-	 * @since 5.0
-	 *
 	 * @param bool $add_fees Should fees be included in the lookup?
 	 *
 	 * @return bool
+	 * @since 5.0
 	 */
 	public function exclude_fees( $add_fees ) {
 		if ( ! did_action( 'woocommerce_calculate_totals' ) ) {
@@ -112,12 +109,11 @@ class SST_Subscriptions {
 	 * recalculates the sales tax for the order to account for the fact
 	 * that the customer address (and tax rates) may have changed.
 	 *
-	 * @since 5.0
-	 *
 	 * @param WC_Order        $renewal_order
 	 * @param WC_Subscription $subscription
 	 *
 	 * @return WC_Order
+	 * @since 5.0
 	 */
 	public function recalc_taxes_for_renewal( $renewal_order, $subscription ) {
 		$order = new SST_Order( $renewal_order );
@@ -154,18 +150,17 @@ class SST_Subscriptions {
 	 *
 	 * IMPORTANT: This hook needs to run after SST_Checkout::calculate_tax_totals()
 	 *
-	 * @since 5.0
-	 *
-	 * @param  double  $total Current cart total.
-	 * @param  WC_Cart $cart  Cart object.
+	 * @param double  $total Current cart total.
+	 * @param WC_Cart $cart  Cart object.
 	 *
 	 * @return double
+	 * @since 5.0
 	 */
 	public function save_shipping_taxes( $total, $cart ) {
 		$calc_type = WC_Subscriptions_Cart::get_calculation_type();
 
-		if ( in_array( $calc_type, array( 'none', 'recurring_total' ) ) ) {
-			$saved_taxes = WC()->session->get( 'sst_saved_shipping_taxes', array() );
+		if ( in_array( $calc_type, [ 'none', 'recurring_total' ] ) ) {
+			$saved_taxes = WC()->session->get( 'sst_saved_shipping_taxes', [] );
 
 			if ( sst_woocommerce_gte_32() ) {
 				$saved_taxes[ $calc_type ] = $cart->get_shipping_taxes();
@@ -187,8 +182,8 @@ class SST_Subscriptions {
 	public function restore_shipping_taxes() {
 		$calc_type = WC_Subscriptions_Cart::get_calculation_type();
 
-		if ( in_array( $calc_type, array( 'none', 'recurring_total' ) ) ) {
-			$saved_taxes = WC()->session->get( 'sst_saved_shipping_taxes', array() );
+		if ( in_array( $calc_type, [ 'none', 'recurring_total' ] ) ) {
+			$saved_taxes = WC()->session->get( 'sst_saved_shipping_taxes', [] );
 
 			if ( array_key_exists( $calc_type, $saved_taxes ) ) {
 				if ( sst_woocommerce_gte_32() ) {
@@ -206,7 +201,7 @@ class SST_Subscriptions {
 	 * @since 5.0
 	 */
 	public function destroy_session() {
-		WC()->session->set( 'sst_saved_shipping_taxes', array() );
+		WC()->session->set( 'sst_saved_shipping_taxes', [] );
 	}
 
 	/**
@@ -219,15 +214,14 @@ class SST_Subscriptions {
 	 * all removed subs. Since all subs in this package do not ship, we use the
 	 * customer billing address as the destination address.
 	 *
-	 * @since 5.0
-	 *
-	 * @param  array   $packages
-	 * @param  WC_Cart $cart
+	 * @param array   $packages
+	 * @param WC_Cart $cart
 	 *
 	 * @return array
+	 * @since 5.0
 	 */
 	public function add_package_for_no_ship_subs( $packages, $cart ) {
-		$contents  = array();
+		$contents  = [];
 		$calc_type = WC_Subscriptions_Cart::get_calculation_type();
 
 		if ( 'none' == $calc_type && WC_Subscriptions_Cart::cart_contains_free_trial() ) {
@@ -246,19 +240,19 @@ class SST_Subscriptions {
 
 		if ( ! empty( $contents ) ) {   /* Add package */
 			$packages[] = sst_create_package(
-				array(
+				[
 					'contents'    => $contents,
-					'user'        => array(
+					'user'        => [
 						'ID' => get_current_user_id(),
-					),
-					'destination' => array(
+					],
+					'destination' => [
 						'address'   => WC()->customer->get_billing_address(),
 						'address_2' => WC()->customer->get_billing_address_2(),
 						'city'      => WC()->customer->get_billing_city(),
 						'state'     => WC()->customer->get_billing_state(),
 						'postcode'  => WC()->customer->get_billing_postcode(),
-					),
-				)
+					],
+				]
 			);
 		}
 
@@ -271,13 +265,12 @@ class SST_Subscriptions {
 	 * trial period and sign up fee to "Membership fees" (91070). If this isn't
 	 * done, sign-up fees will be taxed as if they are subscriptions.
 	 *
-	 * @since 5.0
-	 *
-	 * @param  int $tic
-	 * @param  int $product_id
-	 * @param  int $variation_id (default: 0)
+	 * @param int $tic
+	 * @param int $product_id
+	 * @param int $variation_id (default: 0)
 	 *
 	 * @return int
+	 * @since 5.0
 	 */
 	public function set_signup_fee_tic( $tic, $product_id, $variation_id = 0 ) {
 		$initial_order = 'none' == WC_Subscriptions_Cart::get_calculation_type();

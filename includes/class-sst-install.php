@@ -37,14 +37,14 @@ class SST_Install {
 		'5.0'   => [
 			'sst_update_50_origin_addresses',
 			'sst_update_50_category_tics',
-			'sst_update_50_order_data'
+			'sst_update_50_order_data',
 		],
 		'5.9'   => [
 			'sst_update_59_tic_table',
 		],
 		'6.0.6' => [
 			'sst_update_606_fix_duplicate_transactions',
-		]
+		],
 	];
 
 	/**
@@ -58,14 +58,14 @@ class SST_Install {
 	 * Initialize installer.
 	 */
 	public static function init() {
-		add_action( 'init', array( __CLASS__, 'init_background_updater' ), 5 );
-		add_action( 'init', array( __CLASS__, 'check_version' ), 5 );
-		add_action( 'admin_init', array( __CLASS__, 'trigger_update' ) );
-		add_action( 'admin_init', array( __CLASS__, 'trigger_rate_removal' ) );
-		add_filter( 'plugin_action_links_' . SST_PLUGIN_BASENAME, array( __CLASS__, 'add_action_links' ) );
-		add_filter( 'woocommerce_rate_code', array( __CLASS__, 'get_rate_code' ), 10, 2 );
-		add_filter( 'woocommerce_rate_label', array( __CLASS__, 'get_rate_label' ), 10, 2 );
-		add_action( 'plugins_loaded', array( __CLASS__, 'disable_wcms_order_items_hook' ), 100 );
+		add_action( 'init', [ __CLASS__, 'init_background_updater' ], 5 );
+		add_action( 'init', [ __CLASS__, 'check_version' ], 5 );
+		add_action( 'admin_init', [ __CLASS__, 'trigger_update' ] );
+		add_action( 'admin_init', [ __CLASS__, 'trigger_rate_removal' ] );
+		add_filter( 'plugin_action_links_' . SST_PLUGIN_BASENAME, [ __CLASS__, 'add_action_links' ] );
+		add_filter( 'woocommerce_rate_code', [ __CLASS__, 'get_rate_code' ], 10, 2 );
+		add_filter( 'woocommerce_rate_label', [ __CLASS__, 'get_rate_label' ], 10, 2 );
+		add_action( 'plugins_loaded', [ __CLASS__, 'disable_wcms_order_items_hook' ], 100 );
 	}
 
 	/**
@@ -231,18 +231,18 @@ class SST_Install {
 		add_role(
 			'exempt-customer',
 			__( 'Exempt Customer', 'simplesalestax' ),
-			array(
+			[
 				'read'         => true,
 				'edit_posts'   => false,
 				'delete_posts' => false,
-			)
+			]
 		);
 	}
 
 	/**
 	 * Add plugin action links.
 	 *
-	 * @param  array $links Existing action links for plugin.
+	 * @param array $links Existing action links for plugin.
 	 *
 	 * @return array
 	 */
@@ -272,7 +272,7 @@ class SST_Install {
 		);
 
 		// Add or update tax rate
-		$_tax_rate = array(
+		$_tax_rate = [
 			'tax_rate_country'  => 'WT',
 			'tax_rate_state'    => 'RATE',
 			'tax_rate'          => 0,
@@ -282,13 +282,13 @@ class SST_Install {
 			'tax_rate_shipping' => 1,
 			'tax_rate_order'    => 0,
 			'tax_rate_class'    => 'standard',
-		);
+		];
 
 		if ( is_null( $existing ) ) {
 			$wpdb->insert( $tax_rates_table, $_tax_rate );
 			update_option( 'wootax_rate_id', $wpdb->insert_id );
 		} else {
-			$where = array( 'tax_rate_id' => $rate_id );
+			$where = [ 'tax_rate_id' => $rate_id ];
 			$wpdb->update( $tax_rates_table, $_tax_rate, $where );
 		}
 	}
@@ -313,8 +313,8 @@ class SST_Install {
 	/**
 	 * Return correct rate code for our tax rate (SALES-TAX).
 	 *
-	 * @param  string $code Rate code.
-	 * @param  int    $key  Tax rate ID.
+	 * @param string $code Rate code.
+	 * @param int    $key  Tax rate ID.
 	 *
 	 * @return string
 	 */
@@ -329,8 +329,8 @@ class SST_Install {
 	/**
 	 * Return correct label for our tax rate ("Sales Tax").
 	 *
-	 * @param  string $label Original label.
-	 * @param  int    $key   Tax rate id.
+	 * @param string $label Original label.
+	 * @param int    $key   Tax rate id.
 	 *
 	 * @return string
 	 */
@@ -349,7 +349,7 @@ class SST_Install {
 	 */
 	public static function disable_wcms_order_items_hook() {
 		if ( sst_wcms_active() ) {
-			remove_filter( 'woocommerce_order_get_items', array( $GLOBALS['wcms']->order, 'order_item_taxes' ), 30 );
+			remove_filter( 'woocommerce_order_get_items', [ $GLOBALS['wcms']->order, 'order_item_taxes' ], 30 );
 		}
 	}
 }
