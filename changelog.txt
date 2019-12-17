@@ -1,0 +1,551 @@
+Changelog for Simple Sales Tax
+
+Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+= [6.0.10] - 2019-12-15 =
+
+Fixed:
+- cURL error 60 when making TaxCloud API requests
+
+= [6.0.9] - 2019-11-13 =
+
+Fixed:
+- Recurring cart totals are sent to TaxCloud when a WooCommerce Subscriptions parent order is captured
+- The initial cart total for subscription orders does not include the calculated shipping tax
+
+Changed:
+- Declare support for WooCommerce 3.8 and WordPress 5.3
+
+= [6.0.8] - 2019-08-31 =
+
+Fixed:
+- Tax is over-calculated fpr products created with the WooCommerce Composite Products extension
+- "This transaction has already been marked as authorized" error when a customer places the same order two or more times within a 1 month period
+
+= [6.0.7] - 2019-04-26 =
+
+Fixed:
+- Don't load the Subscriptions integration unless the official WooCommerce Subscriptions plugin is installed
+- Update the Subscriptions integration to use the new API for getting and setting shipping taxes
+- Potential fatal error during 6.0.6 update
+
+Changed:
+- Add data validation and sanity checks to prevent errors when accessing orders
+- Update tested WordPress and WooCommerce versions
+
+= [6.0.6] - 2019-04-26 =
+
+Fixed:
+- Extraneous Captured transactions created in TaxCloud when an order is marked Completed
+
+= [6.0.5] - 2019-03-10 =
+
+Fixed:
+- Duplicate lookup requests sent when shipping method is changed during checkout
+
+= [6.0.4] - 2019-02-01 =
+
+Fixed:
+- ZIP code mismatch error messages block checkout
+- Broken e2e tests for the exemption certificate interface and the Edit Order screen
+
+= [6.0.3] - 2018-11-19 =
+
+Fixed:
+- CSS and JS assets don't load correctly in Windows environments
+
+= [6.0.2] - 2018-10-24 =
+
+Changed:
+- Refactor to improve cart and checkout page performance
+
+= [6.0.1] - 2018-10-12 =
+
+Fixed:
+- Fatal error when API Login ID or API Key is not set
+
+= [6.0.0] - 2018-10-08 =
+
+**NOTE:** THIS IS THE FIRST RELEASE TO USE SEMANTIC VERSIONING.
+
+Added:
+- Calculate tax for orders created through the WC REST API
+
+Fixed:
+- 'Edit Product' screen broken when API ID or API Key is left blank
+- Fatal error when taxes are recalculated for orders with deleted products
+
+Changed:
+- Update tested WC version to 3.5
+- Drop support for WC 2.6.x (last updated nearly 2 years ago)
+
+= [5.9] - 2018-01-21 =
+
+**NOTE:** THIS IS THE LAST RELEASE THAT DID *NOT* USE SEMANTIC VERSIONING.
+
+Fixed:
+- No TICs available for selection in WP admin
+- Tooltips overlap buttons on the plugin settings page
+
+Changed:
+- Bump tested WC version to 3.4
+- Bump tested WP version to 4.9.5
+
+= [5.8] - 2018-01-21 =
+
+Added:
+- POT file for translations
+- Add e2e tests for basic plugin functionality
+
+Changed:
+- Eliminate the wootax_hide_tax_options filter and hide the Tax Status and Tax Class fields always
+- Declare minimum and maximum supported WooCommerce and WordPress versions in plugin headers
+- Bump tested WC version to 3.3
+
+= [5.7] - 2017-12-22 =
+
+Fixed:
+- "Cart already marked as authorized" error when capturing a new order
+- Shipping refunds fail after the order taxes are recalculated
+
+= [5.6] - 2017-11-09 =
+
+Added:
+- Add support for WooCommerce 3.2+
+
+Fixed:
+- Simple Sales Tax is sending duplicate Lookup requests
+- Undefined index 'instance_id' error on checkout page in WooCommerce 3.0
+
+= [5.5] - 2017-07-21 =
+
+Fixed:
+- Tax is not calculated for digital items
+
+= [5.4] - 2017-07-02 =
+
+Added:
+- Add compatibility with the WooCommerce Storefront theme
+
+Changed:
+- Serialize order metadata before saving to make compatible with WC 3.1+
+
+= [5.3] - 2017-06-23 =
+
+Added:
+- Add support for WooCommerce FedEx Drop Shipping Pro and WooCommerce UPS Drop Shipping Pro
+
+Fixed:
+- Simple Sales Tax "Tax Based On" setting is not respected
+- Tax amounts for shipping lines are not set correctly
+
+Changed:
+- Assume quantity 1 if item quantities are omitted when processing a refund
+
+= [5.2] - 2017-06-15 =
+
+Fixed:
+- Update routines run for fresh plugin installations
+
+= [5.1] - 2017-06-08 =
+
+Fixed:
+- The "Run the updater" link sometimes links to admin-ajax.php
+
+= [5.0] - 2017-06-06 =
+
+THIS IS A MAJOR UPDATE. CAUTION SHOULD BE EXERCISED WHEN UPDATING FROM EARLIER VERSIONS.
+
+Added:
+- Add support for WooCommerce Subscriptions 2.0.0 and later
+- Add support for the WooCommerce Ship to Multiple Addresses extension
+- Add a "Remove all Data" option to replace the old "Uninstall" button
+- Add sst_subs_active() function to check whether WooCommerce Subscriptions is active
+- Prompt the user to keep or delete existing tax rates during installation
+- Add SST_Logger class to facilitate debug logging
+
+Fixed:
+- "Show Zero Tax" option is not working
+- Plugin activation and deactivation functions aren't running
+- Default plugin settings are lost when the tax rate removal tool is used during installation
+- Users can't make a newly added address the default business address
+- Default address is reset when a lower-indexed address is removed
+- Make untranslatable strings translatable
+
+Changed:
+- Bump minimum supported WooCommerce version to 2.6
+- Move exemption management interface to checkout page
+- Use new TaxCloud REST API instead of SOAP API
+- Include free items in TaxCloud Lookup requests
+- Display a more specific error message when an attempt to Capture an order in TaxCloud fails
+- Simplify data structures for saving TaxCloud order metadata
+- Store the current plugin version as metadata for each new order
+- Run plugin update check on `init`
+- Eliminate unused template files and JavaScripts
+- Drop WT_SUBS_ACTIVE constant in favor of new sst_subs_active() function
+- Rename wootax_tip() to sst_tip()
+- Move helper methods to new static helper classes: SST_Addresses, SST_Products, SST_Shipping
+
+= [4.9] - 2016-07-07 =
+
+Fixed:
+- Partial refunds are not working properly
+
+= [4.8] - 2016-06-28 =
+
+Fixed:
+- Automatic plugin updater is broken
+- WP cron broken while plugin is active
+- Tax totals are not calculated when the "Update Totals" button is pressed
+- WC_WooTax_Subscriptions class is not loaded
+
+= [4.7] - 2016-06-20 =
+
+Added:
+- Add support for WooCommerce 2.6+
+
+Fixed:
+- The wootax_shipping_tic and wootax_fee_tic filters are not working
+- Undefined index notice on the "Edit Product" screen
+- Variation description field is hidden when the plugin is active
+
+Changed:
+- Rename from WooTax to Simple Sales Tax
+- Bump minimum supported WooCommerce version to 2.2
+- Replace external TaxCloud links with permalinks
+- Drop constants: WT_VERSION, WT_PLUGIN_PATH, and WT_PLUGIN_DIR_URL
+- Add SST() function for retrieving the singleton plugin instance
+- Allow themes to override the tax exemption management templates
+
+= [4.6] - 2015-12-31 =
+
+Added:
+- Add the ability to assign a different TIC to individual variations of a variable product
+- Add a debug tool for removing all tax calculation results cached by WooCommerce
+
+Fixed:
+- Sales Tax row is not displayed under some circumstances
+- WooCommerce Subscriptions compatibility issues
+- Billing/shipping address swapped with certain WooCommerce configurations
+- Plugin ignores the "Enable or disable taxes" setting (WooCommerce > Settings > Tax)
+
+Changed:
+- Move TIC select box and Shipping Origin Addresses field to WooCommerce Product Data metabox
+- Use Select2 for the TIC dropdown
+- Leave the plugin tax rate in the database when the plugin is uninstalled
+- Use WC_Session to access and modify session data
+- Bump minimum WooCommerce Subscriptions to v1.5.4
+
+= [4.5] - 2015-06-05 =
+
+Added:
+- Introduce a wootax_rate_label filter to allow the "Sales Tax" label to be changed
+- Add "Capture Orders Immediately" option
+- Category level TIC assignment
+
+Fixed:
+- Suppress errors that the customer can't fix during checkout
+- Product TICs are reset when the WordPress Bulk Edit tool is used
+- Exemption interface broken when certain security plugins are installed
+
+Changed:
+- Change license to GPL
+- Drop code for activating Simple Sales Tax license key and replace plugin updater
+- Eliminate the "Install WooTax" page and move installation to the settings page
+- Remove unused JavaScripts
+- Hide the "Shipping Origin Addresses" field when the number of registered business address is 1 or less
+- Hide "Tax Status" fields while the plugin is active
+
+= [4.4] - 2015-04-22 =
+
+Added:
+- Add new wootax_fee_tic and wootax_shipping_tic filters
+- Add new wootax_taxable_price filter
+- Add wootax_pickup_address filter
+- Add wootax_local_delivery_methods filter
+- Add wootax_rate_code filter
+
+Fixed:
+- The WooCommerce "Tax Based On" setting is not being respected
+- Plugin interfering with international order refunds
+
+Changed:
+- Reduce frontend load speeds by 50%
+- Prevent redundant TaxCloud API calls
+- Use the most specific customer address possible when recalculating taxes on the backend
+
+= [4.3] - 2015-02-05 =
+
+Added:
+- Add "Tax Exempt User Roles" option
+- Add an option to hide the tax exemption form from users who don't have a tax exempt user role
+- Allow developers to filter the "local pickup" shipping methods with wootax_local_pickup_methods
+
+Changed:
+- Check for SOAPClient before enabling plugin functionality
+- Use Select2 for the Shipping Origin Address dropdown
+- Reorganize the plugin settings page
+- Move the exemption link to promote consistent display across a wider variety of websites
+- Remove unused JavaScripts
+
+= [4.2] - 2015-01-14 =
+
+Added:
+- Add optional request logging for debugging
+
+Fixed:
+- Various bugfixes
+
+Changed:
+- Refactor to meet WooCommerce development standards
+- Move settings page to WooCommerce > Settings > Integrations
+- Merge "Clear Settings" and "Deactivate License" into a single "Uninstall" button
+- Remove custom "Calculate Tax" button on the WooCommerce Edit Order screen
+- Remove redundant debug tool for removing all WooCommerce tax rates
+- Move WooCommerce Subscriptions code to a separate class
+
+= [4.1] - 2014-10-12 =
+
+Added:
+- WooCommerce Subscriptions compatibility
+
+Fixed:
+- Plugin is interfering with tax calculations for international orders
+- PHP notices on checkout page and in WP admin
+
+Changed:
+- Improve plugin performance
+
+= [4.0] - 2014-09-14 =
+
+Added:
+- Add support for partial refunds
+
+Changed:
+- Add compatibility with WooCommerce 2.2+
+
+= [3.8] - 2014-09-09 =
+
+Added:
+- Add support for businesses with nexus in multiple states
+- Add option to deactivate license key
+- Add option to customize exemption link text
+
+Fixed:
+- Customers can't save new exemption certificates
+- Automatic plugin updater not working with some server configurations
+
+Changed:
+- Revamp the admin settings page
+
+= [3.7] - 2014-08-13 =
+
+Fixed:
+- Installation broken when there are no tax rates in the WooCommerce tax tables
+
+= [3.6] - 2014-08-12 =
+
+Added:
+- Prompt the user to keep or delete existing tax rates during plugin installation
+
+Fixed:
+- Change default setting for "Display tax totals" to "As a single total" to avoid duplicate tax rows
+
+Changed:
+- Clean up admin templates
+- Improve settings field descriptions
+
+= [3.5] - 2014-08-04 =
+
+Fixed:
+- Make the "Show Zero Tax" setting work consistently across all supported versions of WooCommerce
+- PHP warning when no fees are in the cart (WC 2.0)
+
+Changed:
+- Check for WooCommerce before enabling plugin functionality
+- Improve tax total display code
+- Use WC_Session_Handler for storing and retrieving session data
+
+= [3.4] - 2014-08-01 =
+
+Added:
+- Add the ability to quickly reset a product's TIC
+
+Fixed:
+- Default TIC is not being applied properly
+
+= [3.3] - 2014-07-31 =
+
+Added:
+- Configure WooCommerce for optimal compatibility on plugin activation
+
+Fixed:
+- PHP warning when logging out
+- Product TICs are not being saved correctly
+- Fix appearance of admin notices
+
+Changed:
+- Hide coupon configuration warning message until invalid coupons are detected
+- Remove admin configuration notices
+
+= [3.2] - 2014-07-02 =
+
+Fixed:
+- Error when orders with no taxable items are marked as Completed
+
+= [3.1] - 2014-06-18 =
+
+Changed:
+- Improve efficiency of secondary tax lookups
+- Update plugin documentation link
+
+= [3.0] - 2014-06-11 =
+
+Fixed:
+- Fix a bug in the new getDestinationAddress function
+
+= [2.9] - 2014-06-01 =
+
+Added:
+- Add support for taxable fees
+
+Fixed:
+- Tax calculations fail with variable products in the cart
+- The WooCommerce "Tax Based On" setting is not respected
+
+= [2.8] - 2014-05-14 =
+
+Fixed:
+- Address validation failing for Firefox users
+- Fix handling of virtual and downloadable products
+
+= [2.7] - 2014-04-10 =
+
+Changed:
+- Refactor to avoid use of <?= tags
+- Return original, unvalidated address if address validation fails
+
+= [2.6] - 2014-03-25 =
+
+Changed:
+- Drop the "Charge Sales Tax on Shipping?" option
+
+= [2.5] - 2014-03-24 =
+
+Added:
+- Add an option to disable the calculation of tax on shipping
+
+Fixed:
+- "strip_tags" error when creating or updating products in WP admin
+
+Changed:
+- Link to the Quick Start Guide from the plugin settings page
+- Exclude products that are marked as non-taxable during tax calculations
+
+= [2.4] - 2014-03-13 =
+
+Fixed:
+- Error when saving orders in WP admin
+- $0 Sales Tax row appearing on the WooCommerce Order Review page
+
+= [2.3] - 2014-03-10 =
+
+Fixed:
+- "Plugin does not have valid header" error upon plugin activation
+
+= [2.2] - 2014-03-04 =
+
+Added:
+- Add a "Clear Settings" option to the settings page
+- Output a "Calculate Tax" button on the Edit Order screen for orders that don't yet have the status "Completed"
+
+Fixed:
+- Potential error when coupons are used
+- Sales tax line item duplicated on some systems
+
+Changed:
+- Improve backward compatibility with older versions of WooCommerce (tested down to WooCommerce v2.0.2)
+- Enhance error reporting and error messages in WP admin
+
+= [2.1] - 2014-02-28 =
+
+Fixed:
+- Address verification is failing
+- Tax total is not displayed on the cart and checkout pages
+- Prevent new lookups for orders that are already Captured in TaxCloud
+- Prevent non-captured or already refunded orders from being refunded in TaxCloud
+- Show "Returned" as the TaxCloud Status when an order has been returned in TaxCloud
+- Item mapping array is not updated when recalculating the order tax in WP admin
+- Attempt to set property is_vat_exempt on undefined in WooTaxOrder::doPostLookup()
+- Prevent per-item tax totals from becoming negative during checkout
+
+Changed:
+- Show a clear error message when network errors occur during a TaxCloud API request
+- Reset all session data when the customer logs out
+
+= [2.0] - 2014-02-25 =
+
+Fixed:
+- Fix exemption certificate bug
+
+Changed:
+- Allow Simple Sales Tax to run alongside the default WooCommerce tax system
+- Remove the "Default TIC" option (editable in TaxCloud)
+- Introduce a more reliable mechanism for storing order information
+
+= [1.8] - 2014-02-20 =
+
+Fixed:
+- Fix regressions in WC < 2.1
+
+Changed:
+- Remove debugging code
+
+= [1.7] - 2014-02-19 =
+
+Fixed:
+- Fix fatal error during checkout
+
+= [1.6] - 2014-02-19 =
+
+Changed:
+- Calculate sales tax for orders added in WP admin
+- Improve handling of "local pickup" and "local delivery" shipping methods
+
+= [1.5] - 2014-02-09 =
+
+Changed:
+- Add support for WooCommerce 2.1
+- Improve the exemption certificate management code
+
+= [1.4] - 2014-02-07 =
+
+Changed:
+- Improve exemption interface load speeds
+- Add safeguards to prevent issues with TaxCloud Authorized/Captured API requests
+
+= [1.3] - 2014-02-05 =
+
+Fixed:
+- Fix a bug in the tax exemption interface
+
+= [1.2] - 2014-02-05 =
+
+Added:
+- Add support for tax exemptions
+- Add an option to hide the "Sales Tax" line when the calculated tax is $0.00
+
+Changed:
+- Skip tax calculations for international shipping addresses
+
+= [1.1] - 2014-01-27 =
+
+Changed:
+- Tweak admin settings interface
+
+Fixed:
+- Fix issues with offline transactions and TaxCloud "Captured" requests
+
+= [1.0] - 2014-01-20 =
+
+Initial public release.
