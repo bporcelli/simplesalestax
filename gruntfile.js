@@ -50,7 +50,7 @@ module.exports = function (grunt) {
         copy: {
             target: {
                 expand: true,
-                src: ['assets/**', 'includes/**', 'languages/**', 'simplesalestax.php', 'uninstall.php'],
+                src: ['assets/**', 'includes/**', 'languages/**', 'simplesalestax.php', 'uninstall.php', 'readme.txt', 'changelog.txt'],
                 dest: 'build/'
             }
         },
