@@ -1,16 +1,16 @@
-# Copyright (C) 2019 Simple Sales Tax
-# This file is distributed under the GPL-3.0+.
+# Copyright (C) 2019 TaxCloud
+# This file is distributed under the same license as the Simple Sales Tax package.
 msgid ""
 msgstr ""
 "Project-Id-Version: Simple Sales Tax 6.0.10\n"
 "Report-Msgid-Bugs-To: https://github.com/bporcelli/simplesalestax/issues\n"
-"POT-Creation-Date: 2019-12-14 19:06:43+00:00\n"
+"POT-Creation-Date: 2019-12-17 01:45:14+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "PO-Revision-Date: 2019-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: TaxCloud <support@taxcloud.net>\n"
+"Language-Team: Brett Porcelli <bporcelli@taxcloud.com>\n"
 "Language: en\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Poedit-Country: United States\n"
@@ -24,15 +24,15 @@ msgstr ""
 "X-Textdomain-Support: yes\n"
 "X-Generator: grunt-wp-i18n1.0.2\n"
 
-#: includes/abstracts/class-sst-abstract-cart.php:80
+#: includes/abstracts/class-sst-abstract-cart.php:79
 msgid "Failed to calculate sales tax: %s"
 msgstr ""
 
-#: includes/abstracts/class-sst-abstract-cart.php:285
+#: includes/abstracts/class-sst-abstract-cart.php:281
 msgid "Failed to calculate sales tax: no origin address for product %d."
 msgstr ""
 
-#. Author of the plugin/theme
+#. Plugin Name of the plugin/theme
 msgid "Simple Sales Tax"
 msgstr ""
 
@@ -40,39 +40,39 @@ msgstr ""
 msgid "Go to TaxCloud Reports Page"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:165
+#: includes/admin/class-sst-admin.php:164
 msgid "Taxes"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:168
+#: includes/admin/class-sst-admin.php:167
 msgid "Overview"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:195
+#: includes/admin/class-sst-admin.php:194
 msgid "There are no cached rates to remove."
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:206
+#: includes/admin/class-sst-admin.php:205
 msgid "%d cached tax rates removed."
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:229
+#: includes/admin/class-sst-admin.php:227
 msgid "Delete cached tax rates"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:230
+#: includes/admin/class-sst-admin.php:228
 msgid "Clear cache"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:231
+#: includes/admin/class-sst-admin.php:229
 msgid "This tool will remove any tax rates cached by WooCommerce."
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:259
+#: includes/admin/class-sst-admin.php:257
 #: includes/admin/views/html-select-tic-bulk.php:9
 #: includes/admin/views/html-select-tic-category.php:18
 #: includes/admin/views/html-select-tic.php:17
-#: includes/class-sst-product.php:182
+#: includes/class-sst-product.php:180
 msgid "Using site default"
 msgstr ""
 
@@ -93,11 +93,11 @@ msgstr ""
 msgid "At least one default address is required."
 msgstr ""
 
-#: includes/admin/class-sst-integration.php:229
+#: includes/admin/class-sst-integration.php:228
 msgid "Failed to save address <em>%s</em>: %s"
 msgstr ""
 
-#: includes/admin/class-sst-integration.php:243
+#: includes/admin/class-sst-integration.php:242
 msgid "Failed to validate address: %s."
 msgstr ""
 
@@ -253,28 +253,28 @@ msgstr ""
 msgid "Start typing to search"
 msgstr ""
 
-#: includes/class-simple-sales-tax.php:202
+#: includes/class-simple-sales-tax.php:184
 #. translators: 1: required plugin name, 2: minimum version
 msgid ""
 "<strong>%1$s needs to be updated.</strong> Simple Sales Tax requires %1$s "
 "%2$s+."
 msgstr ""
 
-#: includes/class-simple-sales-tax.php:213
+#: includes/class-simple-sales-tax.php:195
 #. translators: 1: required plugin name
 msgid ""
 "<strong>%1$s not detected.</strong> Please install or activate %1$s to use "
 "Simple Sales Tax."
 msgstr ""
 
-#: includes/class-simple-sales-tax.php:237
+#: includes/class-simple-sales-tax.php:219
 #. translators: 1 - list of required PHP extensions
 msgid ""
 "<strong>Required PHP extensions are missing.</strong> Simple Sales Tax "
 "requires %1$s."
 msgstr ""
 
-#: includes/class-simple-sales-tax.php:246
+#: includes/class-simple-sales-tax.php:228
 #. translators: 1 - required php version
 msgid ""
 "<strong>PHP needs to be updated.</strong> Simple Sales Tax requires PHP "
@@ -329,36 +329,36 @@ msgstr ""
 msgid "Sales Tax"
 msgstr ""
 
-#: includes/class-sst-order.php:291 includes/class-sst-order.php:800
-#: includes/sst-update-functions.php:558
+#: includes/class-sst-order.php:285 includes/class-sst-order.php:784
+#: includes/sst-update-functions.php:557
 msgid "Fee"
 msgstr ""
 
-#: includes/class-sst-order.php:581
+#: includes/class-sst-order.php:567
 msgid "Failed to capture order %d: already captured."
 msgstr ""
 
-#: includes/class-sst-order.php:592
+#: includes/class-sst-order.php:578
 msgid "Failed to capture order %d: order was refunded."
 msgstr ""
 
-#: includes/class-sst-order.php:620
+#: includes/class-sst-order.php:606
 msgid "Failed to capture order %d: %s."
 msgstr ""
 
-#: includes/class-sst-order.php:651
+#: includes/class-sst-order.php:636
 msgid "Can't refund order %d: order must be completed first."
 msgstr ""
 
-#: includes/class-sst-order.php:723
+#: includes/class-sst-order.php:708
 msgid "Failed to refund order %d: %s."
 msgstr ""
 
-#: includes/class-sst-product.php:128
+#: includes/class-sst-product.php:126
 msgid "No Change"
 msgstr ""
 
-#: includes/class-sst-product.php:182
+#: includes/class-sst-product.php:180
 msgid "Same as parent"
 msgstr ""
 
@@ -810,24 +810,32 @@ msgstr ""
 msgid "View certificate"
 msgstr ""
 
-#: includes/integrations/class-sst-subscriptions.php:138
+#: includes/integrations/class-sst-subscriptions.php:134
 msgid "Failed to calculate sales tax for renewal order %d: %s."
 msgstr ""
 
-#: includes/sst-update-functions.php:689
+#: includes/sst-update-functions.php:688
 msgid "Failed to refund extraneous package for order #%d: %s."
 msgstr ""
 
-#: simplesalestax.php:44
+#: simplesalestax.php:57
 msgid "WooCommerce"
 msgstr ""
 
-#. Author URI of the plugin/theme
-msgid "https://simplesalestax.com"
+#. Plugin URI of the plugin/theme
+msgid "https://github.com/bporcelli/simplesalestax"
 msgstr ""
 
 #. Description of the plugin/theme
 msgid ""
 "Harness the power of TaxCloud to accurately calculate sales tax for your "
 "WooCommerce store."
+msgstr ""
+
+#. Author of the plugin/theme
+msgid "TaxCloud"
+msgstr ""
+
+#. Author URI of the plugin/theme
+msgid "https://taxcloud.com"
 msgstr ""
