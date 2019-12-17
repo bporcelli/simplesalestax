@@ -4,6 +4,7 @@
   "description": "A TaxCloud integration for WooCommerce.",
   "scripts": {
     "build": "grunt",
+    "deploy": "grunt deploy",
     "test": "cross-env NODE_CONFIG_DIR='./tests/config' BABEL_ENV=commonjs mocha \"tests\" --require babel-register --recursive --inspect"
   },
   "repository": {
@@ -37,6 +38,7 @@
     "grunt-contrib-copy": "^1.0.0",
     "grunt-contrib-cssmin": "^3.0.0",
     "grunt-contrib-uglify": "^4.0.0",
+    "grunt-wp-deploy": "^2.0.0",
     "grunt-wp-i18n": "^1.0.2",
     "istanbul": "^1.0.0-alpha",
     "mocha": "^5.2.0",
