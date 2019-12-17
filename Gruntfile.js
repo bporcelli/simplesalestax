@@ -17,7 +17,7 @@ module.exports = function (grunt) {
                     potHeaders: {
                         'poedit': true,
                         'report-msgid-bugs-to': 'https://github.com/bporcelli/simplesalestax/issues',
-                        'language-team': 'TaxCloud <support@taxcloud.net>'
+                        'language-team': 'Brett Porcelli <bporcelli@taxcloud.com>'
                     }
                 }
             }
@@ -58,7 +58,7 @@ module.exports = function (grunt) {
             target: {
                 options: {
                     archive: function () {
-                        return 'releases/wootax-' + pkg.version + '.zip'
+                        return 'releases/simplesalestax-' + pkg.version + '.zip'
                     }
                 },
                 files: [{
