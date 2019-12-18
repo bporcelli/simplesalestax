@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "fdad0f688bb8dcbd148d76dc01c620a9",
+    "content-hash": "2b81c9efe49e17ac839268b49579d2cd",
     "packages": [
         {
             "name": "bporcelli/php-taxcloud",
-            "version": "0.3.1",
+            "version": "0.3.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/bporcelli/php-taxcloud.git",
-                "reference": "ee4d558f9816629ec82e522093037544e5450b1b"
+                "reference": "04d3480ac88dd1320f74bdb1d4db16085990033c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bporcelli/php-taxcloud/zipball/ee4d558f9816629ec82e522093037544e5450b1b",
-                "reference": "ee4d558f9816629ec82e522093037544e5450b1b",
+                "url": "https://api.github.com/repos/bporcelli/php-taxcloud/zipball/04d3480ac88dd1320f74bdb1d4db16085990033c",
+                "reference": "04d3480ac88dd1320f74bdb1d4db16085990033c",
                 "shasum": ""
             },
             "require": {
@@ -58,7 +58,7 @@
                 "webshop",
                 "webstore"
             ],
-            "time": "2019-12-12T15:09:52+00:00"
+            "time": "2019-12-18T21:03:47+00:00"
         },
         {
             "name": "guzzlehttp/guzzle",
