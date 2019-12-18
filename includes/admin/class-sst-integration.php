@@ -76,7 +76,7 @@ class SST_Integration extends WC_Integration {
 					<legend class="screen-reader-text">
 						<span><?php echo wp_kses_post( $data['title'] ); ?></span>
 					</legend>
-					<button class="wp-core-ui button button-secondary" type="button" id="<?php echo $data['id']; ?>">
+					<button class="wp-core-ui button button-secondary" type="button" id="<?php echo esc_attr( $data['id'] ); ?>">
 						<?php echo wp_kses_post( $data['label'] ); ?>
 					</button>
 					<?php echo $this->get_description_html( $data ); ?>
@@ -109,7 +109,7 @@ class SST_Integration extends WC_Integration {
 						<span><?php echo wp_kses_post( $data['title'] ); ?></span>
 					</legend>
 					<a href="<?php echo esc_url( $data['url'] ); ?>" target="_blank"
-					   class="wp-core-ui button button-secondary" id="<?php echo $data['id']; ?>">
+					   class="wp-core-ui button button-secondary" id="<?php echo esc_attr( $data['id'] ); ?>">
 						<?php echo wp_kses_post( $data['label'] ); ?>
 					</a>
 					<?php echo $this->get_description_html( $data ); ?>
@@ -185,8 +185,8 @@ class SST_Integration extends WC_Integration {
 			return [];
 		}
 
-		$taxcloud_id  = esc_attr( $_POST['woocommerce_wootax_tc_id'] );
-		$taxcloud_key = esc_attr( $_POST['woocommerce_wootax_tc_key'] );
+		$taxcloud_id  = sanitize_text_field( $_POST['woocommerce_wootax_tc_id'] );
+		$taxcloud_key = sanitize_text_field( $_POST['woocommerce_wootax_tc_key'] );
 
 		$default_address = [
 			'Address1' => '',
@@ -204,7 +204,7 @@ class SST_Integration extends WC_Integration {
 
 		foreach ( $_POST['addresses'] as $raw_address ) {
 			// Use defaults for missing fields
-			$raw_address = array_merge( $default_address, $raw_address );
+			$raw_address = array_map( 'sanitize_text_field', array_merge( $default_address, $raw_address ) );
 
 			try {
 				$address = new TaxCloud\Address(

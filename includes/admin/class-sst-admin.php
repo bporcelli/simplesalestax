@@ -268,7 +268,9 @@ class SST_Admin {
 	 * @since 4.5
 	 */
 	public static function save_category_tic( $term_id ) {
-		update_term_meta( $term_id, 'tic', isset( $_REQUEST['wootax_tic'] ) ? $_REQUEST['wootax_tic'] : '' );
+	    $tic = isset( $_REQUEST['wootax_tic'] ) ? sanitize_text_field( $_REQUEST['wootax_tic'] ) : '';
+
+		update_term_meta( $term_id, 'tic', $tic );
 	}
 
 }

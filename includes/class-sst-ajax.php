@@ -81,7 +81,7 @@ class SST_Ajax {
 			return;
 		}
 
-		$certificate_id = esc_attr( $_POST['certificate_id'] );
+		$certificate_id = sanitize_text_field( $_POST['certificate_id'] );
 
 		try {
 			$request = new TaxCloud\Request\DeleteExemptCertificate(
@@ -119,14 +119,14 @@ class SST_Ajax {
 			return;
 		}
 
-		if ( ! isset( $_POST['form_data'] ) || ! isset( $_POST['certificate'] ) ) {
+		if ( ! isset( $_POST['form_data'], $_POST['certificate'] ) ) {
 			wp_send_json_error( __( 'Invalid request.', 'simplesalestax' ) );
 		}
 
 		// Get data
 		$form_data = [];
 		parse_str( $_POST['form_data'], $form_data );
-		$form_data = array_merge( $_POST['certificate'], $form_data );
+		$form_data = array_map( 'sanitize_text_field', array_merge( $_POST['certificate'], $form_data ) );
 
 		// Construct certificate
 		$exempt_state = new TaxCloud\ExemptState(
@@ -203,10 +203,10 @@ class SST_Ajax {
 		$items        = [];
 		$order_id     = absint( $_POST['order_id'] );
 		$tax_based_on = get_option( 'woocommerce_tax_based_on' );
-		$country      = strtoupper( esc_attr( $_POST['country'] ) );
-		$state        = strtoupper( esc_attr( $_POST['state'] ) );
-		$postcode     = strtoupper( esc_attr( $_POST['postcode'] ) );
-		$city         = wc_clean( esc_attr( $_POST['city'] ) );
+		$country      = strtoupper( sanitize_text_field( $_POST['country'] ) );
+		$state        = strtoupper( sanitize_text_field( $_POST['state'] ) );
+		$postcode     = strtoupper( sanitize_text_field( $_POST['postcode'] ) );
+		$city         = sanitize_text_field( $_POST['city'] );
 
 		// Let Woo take the reins if the customer is international
 		if ( 'US' !== $country ) {
@@ -215,6 +215,8 @@ class SST_Ajax {
 
 		// Parse jQuery serialized items
 		parse_str( $_POST['items'], $items );
+
+		$items = wc_clean( $items );
 
 		// Save items and recalc taxes
 		wc_save_order_items( $order_id, $items );

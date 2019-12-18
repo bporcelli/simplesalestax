@@ -27,7 +27,7 @@ function sst_tip( $tip ) {
 	} else {
 		$img_path = WC()->plugin_url() . '/assets/images/help.png';
 		$format   = '<img class="help_tip" data-tip="%s" src="%s" height="16" width="16" />';
-		printf( $format, $tip, $img_path );
+		printf( $format, esc_attr( $tip ), esc_url( $img_path ) );
 	}
 }
 

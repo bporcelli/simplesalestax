@@ -196,9 +196,9 @@ class SST_Product {
 	 * @since 4.6
 	 */
 	public static function ajax_save_variation_tics() {
-		$variable_post_id = $_POST['variable_post_id'];
-		$tic_selections   = $_POST['wootax_tic'];
-		$max_loop         = max( array_keys( $_POST['variable_post_id'] ) );
+		$variable_post_id = array_map( 'absint', $_POST['variable_post_id'] );
+		$tic_selections   = array_map( 'sanitize_text_field', $_POST['wootax_tic'] );
+		$max_loop         = max( array_keys( $variable_post_id ) );
 
 		for ( $i = 0; $i <= $max_loop; $i++ ) {
 			if ( ! isset( $variable_post_id[ $i ] ) ) {
@@ -226,11 +226,20 @@ class SST_Product {
 		}
 
 		// Save product origin addresses
-		$origins = isset( $_REQUEST['_wootax_origin_addresses'] ) ? $_REQUEST['_wootax_origin_addresses'] : [];
+		$origins = [];
+
+		if ( isset( $_REQUEST['_wootax_origin_addresses'] ) ) {
+			$origins = array_map( 'absint', $_REQUEST['_wootax_origin_addresses'] );
+		}
+
 		update_post_meta( $product_id, '_wootax_origin_addresses', $origins );
 
 		// Save product and variation TICs
-		$selected_tics = isset( $_REQUEST['wootax_tic'] ) ? $_REQUEST['wootax_tic'] : [];
+		$selected_tics = [];
+
+		if ( isset( $_REQUEST['wootax_tic'] ) ) {
+			$selected_tics = array_map( 'sanitize_text_field', $_REQUEST['wootax_tic'] );
+		}
 
 		foreach ( $selected_tics as $product_id => $tic ) {
 			update_post_meta( $product_id, 'wootax_tic', $tic );

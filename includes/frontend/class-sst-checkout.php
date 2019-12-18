@@ -568,8 +568,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 		wc_get_template(
 			'html-certificate-table.php',
 			[
-				'checked'  => ! $_POST && $this->is_user_exempt() || $_POST && isset( $_POST['tax_exempt'] ),
-				'selected' => isset( $_POST['certificate_id'] ) ? $_POST['certificate_id'] : '',
+				'checked'  => ( ! $_POST && $this->is_user_exempt() ) || ( $_POST && isset( $_POST['tax_exempt'] ) ),
+				'selected' => isset( $_POST['certificate_id'] ) ? sanitize_text_field( $_POST['certificate_id'] ) : '',
 			],
 			'sst/checkout/',
 			SST()->path( 'includes/frontend/views/' )

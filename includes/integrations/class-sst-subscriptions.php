@@ -278,7 +278,8 @@ class SST_Subscriptions {
 		/* On backend, can't use WC_Subscriptions_Cart to determine whether this
 		 * is the initial order. */
 		if ( isset( $_POST['order_id'] ) ) {
-			$initial_order = 'shop_order' == get_post_type( $_POST['order_id'] );
+			$order_id      = absint( $_POST['order_id'] );
+			$initial_order = 'shop_order' == get_post_type( $order_id );
 		}
 
 		$has_free_trial = WC_Subscriptions_Product::get_trial_length( $product_id ) > 0;

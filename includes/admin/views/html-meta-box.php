@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			)
 		); ?>
     </h3>
-	<?php echo $status; ?>
+	<?php echo esc_html( $status ); ?>
 </div>
 <div>
     <h3>
