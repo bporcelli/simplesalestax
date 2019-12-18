@@ -523,8 +523,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	public function enqueue_styles() {
-		SST()->assets->enqueue( 'style', 'simplesalestax.modal' );
-		SST()->assets->enqueue( 'style', 'simplesalestax.certificate-modal' );
+		wp_enqueue_style( 'sst-modal-css' );
+		wp_enqueue_style( 'sst-certificate-modal-css' );
 	}
 
 	/**
@@ -563,7 +563,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 			return;
 		}
 
-		SST()->assets->enqueue( 'script', 'simplesalestax.checkout' );
+		wp_enqueue_script( 'sst-checkout' );
 
 		wc_get_template(
 			'html-certificate-table.php',

@@ -1,7 +1,5 @@
 <?php
 
-use WordFrame\v1_1_3\Plugin;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -15,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @package SST
  * @since   6.0.0
  */
-final class SimpleSalesTax extends Plugin {
+final class SimpleSalesTax {
 
 	/**
 	 * @var string Plugin version.
@@ -23,13 +21,43 @@ final class SimpleSalesTax extends Plugin {
 	public $version = '6.0.10';
 
 	/**
-	 * Bootstraps the plugin when all requirements are met.
+	 * The singleton plugin instance.
+	 *
+	 * @var SimpleSalesTax
 	 */
-	public function load() {
-		parent::load();
+	protected static $instance = null;
 
+	/**
+	 * Singleton instance accessor.
+	 *
+	 * @return SimpleSalesTax
+	 */
+	public static function instance() {
+		if ( is_null( self::$instance ) ) {
+			self::$instance = new self();
+		}
+
+		return self::$instance;
+	}
+
+	/**
+	 * Plugin constructor.
+	 */
+	private function __construct() {
 		$this->define_constants();
-		$this->includes();
+		$this->load_text_domain();
+
+		add_action( 'plugins_loaded', [ $this, 'init' ] );
+	}
+
+	/**
+	 * Initializes the plugin on `plugins_loaded` if all requirements are met.
+	 */
+	public function init() {
+		if ( $this->check_environment() ) {
+			$this->includes();
+			$this->add_hooks();
+		}
 	}
 
 	/**
@@ -40,7 +68,8 @@ final class SimpleSalesTax extends Plugin {
 		define( 'SST_SHIPPING_ITEM', 'SHIPPING' );
 		define( 'SST_DEFAULT_FEE_TIC', 10010 );
 		define( 'SST_RATE_ID', get_option( 'wootax_rate_id' ) );
-		define( 'SST_PLUGIN_BASENAME', plugin_basename( $this->file ) );
+		define( 'SST_FILE', dirname( dirname( __FILE__ ) ) . '/simplesalestax.php' );
+		define( 'SST_PLUGIN_BASENAME', plugin_basename( SST_FILE ) );
 	}
 
 	/**
@@ -123,6 +152,14 @@ final class SimpleSalesTax extends Plugin {
 	}
 
 	/**
+	 * Registers the plugin activation and deactivation hooks.
+	 */
+	private function add_hooks() {
+		register_activation_hook( SST_FILE, [ $this, 'activate' ] );
+		register_deactivation_hook( SST_FILE, [ $this, 'deactivate' ] );
+	}
+	
+	/**
 	 * Loads integrations with third party extensions as needed.
 	 */
 	private function load_integrations() {
@@ -166,74 +203,95 @@ final class SimpleSalesTax extends Plugin {
 	 * Loads the plugin text domain.
 	 */
 	public function load_text_domain() {
-		load_plugin_textdomain( 'simplesalestax', false, basename( dirname( $this->file ) ) . '/languages' );
+		load_plugin_textdomain( 'simplesalestax', false, basename( dirname( SST_FILE ) ) . '/languages' );
 	}
 
 	/**
-	 * Returns the text to display in the notice when a required plugin is missing.
+	 * Checks the environment for compatible versions of PHP and WooCommerce.
 	 *
-	 * @param array $violation
-	 *
-	 * @return string
+	 * @return bool True if the installed PHP and WooCommerce are compatible, false otherwise.
 	 */
-	public function get_plugin_notice( array $violation ) {
-		switch ( $violation['type'] ) {
-			case 'wrong_version':
-				return sprintf(
-				/* translators: 1: required plugin name, 2: minimum version */
-					__(
-						'<strong>%1$s needs to be updated.</strong> Simple Sales Tax requires %1$s %2$s+.',
-						'simplesalestax'
-					),
-					$violation['data']['name'],
-					$violation['data']['version']
-				);
-			case 'inactive':
-			case 'not_installed':
-				return sprintf(
-				/* translators: 1: required plugin name */
-					__(
-						'<strong>%1$s not detected.</strong> Please install or activate %1$s to use Simple Sales Tax.',
-						'simplesalestax'
-					),
-					$violation['data']['name']
-				);
+	private function check_environment() {
+		// Make sure is_plugin_active() is defined
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+
+		// Check PHP version
+		if ( version_compare( phpversion(), '5.5', '<' ) ) {
+			add_action( 'admin_notices', [ $this, 'php_version_notice' ] );
+
+			return false;
 		}
 
-		return '';
+		// Check WooCommerce version
+		if ( ! is_plugin_active( 'woocommerce/woocommerce.php' ) ) {
+			add_action( 'admin_notices', [ $this, 'woocommerce_required_notice' ] );
+
+			return false;
+		} elseif ( ! defined( 'WC_VERSION' ) || version_compare( WC_VERSION, '3.0', '<' ) ) {
+			add_action( 'admin_notices', [ $this, 'woocommerce_version_notice' ] );
+
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
-	 * Returns the text to display when a PHP requirement is not met.
+	 * Notice displayed when the installed version of PHP is not compatible.
+	 */
+	public function php_version_notice() {
+		printf(
+			'<div class="notice notice-error"><p>%s</p></div>',
+			__( '<strong>PHP needs to be updated.</strong> Simple Sales Tax requires PHP 5.5+.', 'simplesalestax' )
+		);
+	}
+
+	/**
+	 * Notice displayed if WooCommerce is not installed or inactive.
+	 */
+	public function woocommerce_required_notice() {
+		printf(
+			'<div class="notice notice-error"><p>%s</p></div>',
+			__(
+				'<strong>WooCommerce not detected.</strong> Please install or activate WooCommerce to use Simple Sales Tax.',
+				'simplesalestax'
+			)
+		);
+	}
+
+	/**
+	 * Notice displayed if the installed version of WooCommerce is not compatible.
+	 */
+	public function woocommerce_version_notice() {
+		printf(
+			'<div class="notice notice-error"><p>%s</p></div>',
+			__(
+				'<strong>WooCommerce needs to be updated.</strong> Simple Sales Tax requires WooCommerce 3.0.0+.',
+				'simplesalestax'
+			)
+		);
+	}
+
+	/**
+	 * Gets the full path to a file or directory in the plugin directory.
 	 *
-	 * @param array $violation Information about the missing requirement.
+	 * @param string $path Relative path to file or directory
 	 *
 	 * @return string
 	 */
-	public function get_php_notice( $violation ) {
-		if ( 'extensions' === $violation['type'] ) {
-			$ext_list = implode( ', ', $violation['data']['required'] );
+	public function path( $path = '' ) {
+		return plugin_dir_path( SST_FILE ) . $path;
+	}
 
-			/* translators: 1 - list of required PHP extensions */
-			return sprintf(
-				__(
-					'<strong>Required PHP extensions are missing.</strong> Simple Sales Tax requires %1$s.',
-					'simplesalestax'
-				),
-				$ext_list
-			);
-		} elseif ( 'version' === $violation['type'] ) {
-			/* translators: 1 - required php version */
-			return sprintf(
-				__(
-					'<strong>PHP needs to be updated.</strong> Simple Sales Tax requires PHP %1$s+.',
-					'simplesalestax'
-				),
-				$violation['data']['required']
-			);
-		}
-
-		return '';
+	/**
+	 * Gets the URL of a file or directory in the plugin directory.
+	 *
+	 * @param string $path Relative path to file or directory
+	 *
+	 * @return string
+	 */
+	public function url( $path ) {
+		return plugin_dir_url( SST_FILE ) . $path;
 	}
 
 }

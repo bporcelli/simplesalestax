@@ -30,36 +30,37 @@ class SST_Assets {
 	 */
 	public function init_assets() {
 		$this->assets = [
-			[
-				'type'    => 'script',
-				'slug'    => 'simplesalestax.jquery.hideseek',
-				'context' => 'admin',
-				'options' => [
+			'sst-hideseek'              => [
+				'type'       => 'script',
+				'file'       => 'jquery.hideseek.min.js',
+				'context'    => 'admin',
+				'compressed' => true,
+				'options'    => [
 					'deps' => [ 'jquery' ],
 					'ver'  => '0.7.1',
 				],
 			],
-			[
+			'sst-backbone-modal'        => [
 				'type'    => 'script',
-				'slug'    => 'simplesalestax.backbone-modal',
+				'file'    => 'backbone-modal.js',
 				'context' => 'both',
 				'options' => [ 'deps' => [ 'underscore', 'backbone', 'wp-util' ] ],
 			],
-			[
+			'sst-tic-select'            => [
 				'type'    => 'script',
-				'slug'    => 'simplesalestax.tic-select',
+				'file'    => 'tic-select.js',
 				'context' => 'admin',
 				'options' => [
 					'deps' => [
 						'jquery',
-						'simplesalestax.jquery.hideseek',
-						'simplesalestax.backbone-modal',
+						'sst-hideseek',
+						'sst-backbone-modal',
 					],
 				],
 			],
-			[
+			'sst-admin-js'              => [
 				'type'    => 'script',
-				'slug'    => 'simplesalestax.admin',
+				'file'    => 'admin.js',
 				'context' => 'admin',
 				'options' => [
 					'deps'     => [ 'jquery' ],
@@ -80,9 +81,14 @@ class SST_Assets {
 					],
 				],
 			],
-			[
+			'sst-admin-css'             => [
+				'type'    => 'style',
+				'file'    => 'admin.css',
+				'context' => 'admin',
+			],
+			'sst-checkout'              => [
 				'type'    => 'script',
-				'slug'    => 'simplesalestax.checkout',
+				'file'    => 'checkout.js',
 				'context' => 'frontend',
 				'options' => [
 					'deps'     => [
@@ -90,7 +96,7 @@ class SST_Assets {
 						'wp-util',
 						'underscore',
 						'backbone',
-						'simplesalestax.backbone-modal',
+						'sst-backbone-modal',
 						'jquery-blockui',
 					],
 					'localize' => [
@@ -101,8 +107,8 @@ class SST_Assets {
 							'ajaxurl'                  => admin_url( 'admin-ajax.php' ),
 							'seller_name'              => SST_Settings::get( 'company_name' ),
 							'images'                   => [
-								'single_cert'  => SST()->url( '/assets/img/sp_exemption_certificate750x600.png' ),
-								'blanket_cert' => SST()->url( '/assets/img/exemption_certificate750x600.png' ),
+								'single_cert'  => SST()->url( 'assets/img/sp_exemption_certificate750x600.png' ),
+								'blanket_cert' => SST()->url( 'assets/img/exemption_certificate750x600.png' ),
 							],
 							'strings'                  => [
 								'delete_failed'      => __( 'Failed to delete certificate', 'simplesalestax' ),
@@ -113,6 +119,40 @@ class SST_Assets {
 								),
 							],
 						],
+					],
+				],
+			],
+			'sst-modal-css'             => [
+				'type'    => 'style',
+				'file'    => 'modal.css',
+				'context' => 'both',
+			],
+			'sst-certificate-modal-css' => [
+				'type'    => 'style',
+				'file'    => 'certificate-modal.css',
+				'context' => 'both',
+			],
+			'sst-view-certificate'      => [
+				'type'    => 'script',
+				'file'    => 'view-certificate.js',
+				'context' => 'admin',
+				'options' => [
+					'deps' => [
+						'jquery',
+						'sst-backbone-modal',
+					],
+				],
+			],
+			'sst-address-table'         => [
+				'type'    => 'script',
+				'file'    => 'address-table.js',
+				'context' => 'admin',
+				'options' => [
+					'deps' => [
+						'jquery',
+						'wp-util',
+						'underscore',
+						'backbone',
 					],
 				],
 			],
@@ -139,18 +179,51 @@ class SST_Assets {
 	 * @param string $context 'admin' or 'frontend'
 	 */
 	private function _register_assets( $context ) {
-		foreach ( $this->assets as $asset ) {
-			$defaults = [
-				'type'    => '',
-				'slug'    => '',
-				'context' => 'both',
-				'options' => [],
-			];
+		$js_base_url   = SST()->url( 'assets/js/' );
+		$css_base_url  = SST()->url( 'assets/css/' );
+		$load_minified = ! defined( 'SCRIPT_DEBUG' ) || ! SCRIPT_DEBUG;
+		$defaults      = [
+			'type'       => '',
+			'file'       => '',
+			'compressed' => false,
+			'context'    => 'both',
+			'options'    => [],
+		];
 
-			$asset = wp_parse_args( $asset, $defaults );
+		foreach ( $this->assets as $handle => $asset ) {
+			$asset   = wp_parse_args( $asset, $defaults );
+			$options = $asset['options'];
+			$ver     = isset( $options['ver'] ) ? $options['ver'] : false;
+			$deps    = [];
+
+			if ( isset( $options['deps'] ) ) {
+				$deps = $options['deps'];
+			}
 
 			if ( 'both' === $asset['context'] || $context === $asset['context'] ) {
-				SST()->assets->register( $asset['type'], $asset['slug'], $asset['options'] );
+				if ( 'script' === $asset['type'] ) {
+					$src = $js_base_url . $asset['file'];
+
+					if ( ! $asset['compressed'] && $load_minified ) {
+						$src = str_replace( '.js', '.min.js', $src );
+					}
+
+					wp_register_script( $handle, $src, $deps, $ver );
+
+					if ( isset( $options['localize'] ) ) {
+						foreach ( $options['localize'] as $object_name => $data ) {
+							wp_localize_script( $handle, $object_name, $data );
+						}
+					}
+				} else {
+					$src = $css_base_url . $asset['file'];
+
+					if ( ! $asset['compressed'] && $load_minified ) {
+						$src = str_replace( '.css', '.min.css', $src );
+					}
+
+					wp_register_style( $handle, $src, $deps, $ver );
+				}
 			}
 		}
 	}

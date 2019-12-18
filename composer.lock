@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ab27f1e73450e7ad9e201ef85989378b",
+    "content-hash": "fdad0f688bb8dcbd148d76dc01c620a9",
     "packages": [
         {
             "name": "bporcelli/php-taxcloud",
@@ -59,34 +59,6 @@
                 "webstore"
             ],
             "time": "2019-12-12T15:09:52+00:00"
-        },
-        {
-            "name": "bporcelli/wordframe",
-            "version": "1.1.3",
-            "source": {
-                "type": "git",
-                "url": "git@bitbucket.org:bporcelli/wordframe",
-                "reference": "f6115f4e0143da9c82b0cd8a87cd80663ecf2488"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "WordFrame\\": "src/",
-                    "WordFrame\\v1_1_3\\": "src/",
-                    "WordFrame\\v1_1_3\\Updates\\": "src/updates/"
-                }
-            },
-            "license": [
-                "GPL-3+"
-            ],
-            "authors": [
-                {
-                    "name": "Brett Porcelli",
-                    "email": "brett@thepluginpros.com"
-                }
-            ],
-            "description": "A simple WordPress plugin development framework.",
-            "time": "2019-05-08T22:27:48+00:00"
         },
         {
             "name": "guzzlehttp/guzzle",

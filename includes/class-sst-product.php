@@ -118,7 +118,7 @@ class SST_Product {
 	 */
 	public static function output_bulk_edit_fields() {
 		wp_localize_script(
-			'simplesalestax.tic-select',
+			'sst-tic-select',
 			'ticSelectLocalizeScript',
 			[
 				'tic_list' => sst_get_tics(),
@@ -128,7 +128,7 @@ class SST_Product {
 			]
 		);
 
-		SST()->assets->enqueue( 'script', 'simplesalestax.tic-select' );
+		wp_enqueue_script( 'sst-tic-select' );
 
 		require_once __DIR__ . '/admin/views/html-select-tic-bulk.php';
 	}
@@ -172,7 +172,7 @@ class SST_Product {
 		$current_tic = get_post_meta( $product_id, 'wootax_tic', true );
 
 		wp_localize_script(
-			'simplesalestax.tic-select',
+			'sst-tic-select',
 			'ticSelectLocalizeScript',
 			[
 				'tic_list' => sst_get_tics(),
@@ -185,7 +185,7 @@ class SST_Product {
 			]
 		);
 
-		SST()->assets->enqueue( 'script', 'simplesalestax.tic-select' );
+		wp_enqueue_script( 'sst-tic-select' );
 
 		require __DIR__ . '/admin/views/html-select-tic.php';
 	}

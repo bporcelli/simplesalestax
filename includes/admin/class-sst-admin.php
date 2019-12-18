@@ -70,11 +70,11 @@ class SST_Admin {
 	 */
 	public static function enqueue_scripts_and_styles() {
 		// Admin JS
-		SST()->assets->enqueue( 'script', 'simplesalestax.admin' );
+		wp_enqueue_script( 'sst-admin-js' );
 
 		// Admin CSS
-		SST()->assets->enqueue( 'style', 'simplesalestax.admin' );
-		SST()->assets->enqueue( 'style', 'simplesalestax.certificate-modal' );
+		wp_enqueue_style( 'sst-admin-css' );
+		wp_enqueue_style( 'sst-certificate-modal-css' );
 	}
 
 	/**
@@ -113,20 +113,16 @@ class SST_Admin {
 			);
 		}
 
-		SST()->assets->enqueue(
-			'script',
-			'simplesalestax.view-certificate',
+		wp_enqueue_script( 'sst-view-certificate' );
+		wp_localize_script(
+			'sst-view-certificate',
+			'SSTCertData',
 			[
-				'deps'     => [ 'jquery', 'simplesalestax.backbone-modal' ],
-				'localize' => [
-					'SSTCertData' => [
-						'certificate' => $certificate,
-						'seller_name' => SST_Settings::get( 'company_name' ),
-						'images'      => [
-							'single_cert'  => SST()->url( '/assets/img/sp_exemption_certificate750x600.png' ),
-							'blanket_cert' => SST()->url( '/assets/img/exemption_certificate750x600.png' ),
-						],
-					],
+				'certificate' => $certificate,
+				'seller_name' => SST_Settings::get( 'company_name' ),
+				'images'      => [
+					'single_cert'  => SST()->url( 'assets/img/sp_exemption_certificate750x600.png' ),
+					'blanket_cert' => SST()->url( 'assets/img/exemption_certificate750x600.png' ),
 				],
 			]
 		);
@@ -249,7 +245,7 @@ class SST_Admin {
 		}
 
 		wp_localize_script(
-			'simplesalestax.tic-select',
+			'sst-tic-select',
 			'ticSelectLocalizeScript',
 			[
 				'tic_list' => sst_get_tics(),
@@ -259,7 +255,7 @@ class SST_Admin {
 			]
 		);
 
-		SST()->assets->enqueue( 'script', 'simplesalestax.tic-select' );
+		wp_enqueue_script( 'sst-tic-select' );
 
 		include __DIR__ . '/views/html-select-tic-category.php';
 	}

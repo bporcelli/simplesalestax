@@ -48,20 +48,7 @@ require __DIR__ . '/includes/class-simple-sales-tax.php';
  * @since 4.2
  */
 function SST() {
-	return SimpleSalesTax::init(
-		__FILE__,
-		[
-			'requires' => [
-				'plugins' => [
-					'woocommerce/woocommerce.php' => [
-						'name'    => __( 'WooCommerce', 'simplesalestax' ),
-						'version' => '3.0',
-					],
-				],
-				'php'     => '5.5',
-			],
-		]
-	);
+	return SimpleSalesTax::instance();
 }
 
 SST();

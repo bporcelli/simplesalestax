@@ -126,31 +126,25 @@ class SST_Integration extends WC_Integration {
 	 * @since 4.5
 	 */
 	public function generate_address_table_html( $key, $data ) {
-		SST()->assets->enqueue(
-			'script',
-			'simplesalestax.address-table',
+		wp_enqueue_script( 'sst-address-table' );
+
+		wp_localize_script(
+			'sst-address-table',
+			'addressesLocalizeScript',
 			[
-				'deps'     => [ 'jquery', 'wp-util', 'underscore', 'backbone' ],
-				'localize' => [
-					'addressesLocalizeScript' => [
-						'addresses'       => $this->get_addresses(),
-						'strings'         => [
-							'one_default_required' => __(
-								'At least one default address is required.',
-								'simplesalestax'
-							),
-						],
-						'default_address' => [
-							'ID'       => '',
-							'Address1' => '',
-							'Address2' => '',
-							'City'     => '',
-							'State'    => '',
-							'Zip5'     => '',
-							'Zip4'     => '',
-							'Default'  => false,
-						],
-					],
+				'addresses'       => $this->get_addresses(),
+				'strings'         => [
+					'one_default_required' => __( 'At least one default address is required.', 'simplesalestax' ),
+				],
+				'default_address' => [
+					'ID'       => '',
+					'Address1' => '',
+					'Address2' => '',
+					'City'     => '',
+					'State'    => '',
+					'Zip5'     => '',
+					'Zip4'     => '',
+					'Default'  => false,
 				],
 			]
 		);
