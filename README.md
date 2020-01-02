@@ -2,7 +2,7 @@
 
 Simple Sales Tax connects your WooCommerce store to [TaxCloud](https://taxcloud.com) to automate sales tax calculation, filing, and remittance.
 
-For more information, please check our [plugin page](https://wordpress.org/plugins/simplesalestax/) on WordPress.org or contact [TaxCloud Customer Service](https://taxcloud.com/support) at service@taxcloud.net.
+For more information, please check our [plugin page](https://wordpress.org/plugins/simple-sales-tax/) on WordPress.org or contact [TaxCloud Customer Service](https://taxcloud.com/support) at service@taxcloud.net.
 
 ## Requirements
 
@@ -12,7 +12,7 @@ For more information, please check our [plugin page](https://wordpress.org/plugi
 
 ## Getting Started
 
-1. Download the Simple Sales Tax .zip file from [WordPress.org](https://wordpress.org/plugins/simplesalestax/).
+1. Download the Simple Sales Tax .zip file from [WordPress.org](https://wordpress.org/plugins/simple-sales-tax/).
 2. Go to **WordPress Admin > Plugins > Add New** and **Upload Plugin** with the zip file.
 3. **Install Now** and **Activate** the plugin.
 4. Follow the instructions in our [Setup Guide](https://taxcloud.com/support/woocommerce-setup-guide)
