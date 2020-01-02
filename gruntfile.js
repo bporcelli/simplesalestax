@@ -72,7 +72,7 @@ module.exports = function (grunt) {
         wp_deploy: {
             deploy: {
                 options: {
-                    plugin_slug: 'simplesalestax',
+                    plugin_slug: 'simple-sales-tax',
                     build_dir: 'build',
                     assets_dir: '.wordpress',
                     svn_user: 'bporcelli'
