@@ -282,7 +282,7 @@ class SST_Order extends SST_Abstract_Cart {
 			$fees = [];
 
 			foreach ( $this->order->get_fees() as $item_id => $fee ) {
-				$name   = empty( $fee['name'] ) ? __( 'Fee', 'simplesalestax' ) : $fee['name'];
+				$name   = empty( $fee['name'] ) ? __( 'Fee', 'simple-sales-tax' ) : $fee['name'];
 				$fee_id = sanitize_title( $name );
 
 				$fees[ $item_id ] = (object) [
@@ -564,7 +564,7 @@ class SST_Order extends SST_Abstract_Cart {
 			if ( 'no' == SST_Settings::get( 'capture_immediately' ) ) {
 				$this->handle_error(
 					sprintf(
-						__( "Failed to capture order %d: already captured.", 'simplesalestax' ),
+						__( "Failed to capture order %d: already captured.", 'simple-sales-tax' ),
 						$this->order->get_id()
 					)
 				);
@@ -575,7 +575,7 @@ class SST_Order extends SST_Abstract_Cart {
 			if ( 'refunded' == $taxcloud_status ) {
 				$this->handle_error(
 					sprintf(
-						__( "Failed to capture order %d: order was refunded.", 'simplesalestax' ),
+						__( "Failed to capture order %d: order was refunded.", 'simple-sales-tax' ),
 						$this->order->get_id()
 					)
 				);
@@ -603,7 +603,7 @@ class SST_Order extends SST_Abstract_Cart {
 			} catch ( Exception $ex ) {
 				$this->handle_error(
 					sprintf(
-						__( "Failed to capture order %d: %s.", 'simplesalestax' ),
+						__( "Failed to capture order %d: %s.", 'simple-sales-tax' ),
 						$this->order->get_id(),
 						$ex->getMessage()
 					)
@@ -633,7 +633,7 @@ class SST_Order extends SST_Abstract_Cart {
 		if ( 'captured' !== $this->get_taxcloud_status() ) {
 			$this->handle_error(
 				sprintf(
-					__( "Can't refund order %d: order must be completed first.", 'simplesalestax' ),
+					__( "Can't refund order %d: order must be completed first.", 'simple-sales-tax' ),
 					$this->order->get_id()
 				)
 			);
@@ -705,7 +705,7 @@ class SST_Order extends SST_Abstract_Cart {
 				} catch ( Exception $ex ) {
 					$this->handle_error(
 						sprintf(
-							__( "Failed to refund order %d: %s.", 'simplesalestax' ),
+							__( "Failed to refund order %d: %s.", 'simple-sales-tax' ),
 							$this->order->get_id(),
 							$ex->getMessage()
 						)
@@ -781,7 +781,7 @@ class SST_Order extends SST_Abstract_Cart {
 					$id = $this->process_method_id( $item['method_id'] );
 					break;
 				case 'fee':
-					$name = empty( $item['name'] ) ? __( 'Fee', 'simplesalestax' ) : $item['name'];
+					$name = empty( $item['name'] ) ? __( 'Fee', 'simple-sales-tax' ) : $item['name'];
 					$id   = sanitize_title( $name );
 			}
 

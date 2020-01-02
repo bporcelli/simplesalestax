@@ -685,7 +685,7 @@ function sst_update_606_fix_duplicate_transactions() {
 				} catch ( Exception $ex ) {
 					wc_get_logger()->debug(
 						sprintf(
-							__( 'Failed to refund extraneous package for order #%d: %s.', 'simplesalestax' ),
+							__( 'Failed to refund extraneous package for order #%d: %s.', 'simple-sales-tax' ),
 							$order_id,
 							$ex->getMessage()
 						),

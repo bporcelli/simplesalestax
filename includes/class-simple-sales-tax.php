@@ -68,7 +68,7 @@ final class SimpleSalesTax {
 		define( 'SST_SHIPPING_ITEM', 'SHIPPING' );
 		define( 'SST_DEFAULT_FEE_TIC', 10010 );
 		define( 'SST_RATE_ID', get_option( 'wootax_rate_id' ) );
-		define( 'SST_FILE', dirname( dirname( __FILE__ ) ) . '/simplesalestax.php' );
+		define( 'SST_FILE', dirname( dirname( __FILE__ ) ) . '/simple-sales-tax.php' );
 		define( 'SST_PLUGIN_BASENAME', plugin_basename( SST_FILE ) );
 	}
 
@@ -203,7 +203,7 @@ final class SimpleSalesTax {
 	 * Loads the plugin text domain.
 	 */
 	public function load_text_domain() {
-		load_plugin_textdomain( 'simplesalestax', false, basename( dirname( SST_FILE ) ) . '/languages' );
+		load_plugin_textdomain( 'simple-sales-tax', false, basename( dirname( SST_FILE ) ) . '/languages' );
 	}
 
 	/**
@@ -242,7 +242,7 @@ final class SimpleSalesTax {
 	public function php_version_notice() {
 		printf(
 			'<div class="notice notice-error"><p>%s</p></div>',
-			__( '<strong>PHP needs to be updated.</strong> Simple Sales Tax requires PHP 5.5+.', 'simplesalestax' )
+			__( '<strong>PHP needs to be updated.</strong> Simple Sales Tax requires PHP 5.5+.', 'simple-sales-tax' )
 		);
 	}
 
@@ -254,7 +254,7 @@ final class SimpleSalesTax {
 			'<div class="notice notice-error"><p>%s</p></div>',
 			__(
 				'<strong>WooCommerce not detected.</strong> Please install or activate WooCommerce to use Simple Sales Tax.',
-				'simplesalestax'
+				'simple-sales-tax'
 			)
 		);
 	}
@@ -267,7 +267,7 @@ final class SimpleSalesTax {
 			'<div class="notice notice-error"><p>%s</p></div>',
 			__(
 				'<strong>WooCommerce needs to be updated.</strong> Simple Sales Tax requires WooCommerce 3.0.0+.',
-				'simplesalestax'
+				'simple-sales-tax'
 			)
 		);
 	}

@@ -123,7 +123,7 @@ class SST_Product {
 			[
 				'tic_list' => sst_get_tics(),
 				'strings'  => [
-					'default' => __( 'No Change', 'simplesalestax' ),
+					'default' => __( 'No Change', 'simple-sales-tax' ),
 				],
 			]
 		);
@@ -177,9 +177,9 @@ class SST_Product {
 			[
 				'tic_list' => sst_get_tics(),
 				'strings'  => [
-					'default' => $is_variation ? __( 'Same as parent', 'simplesalestax' ) : __(
+					'default' => $is_variation ? __( 'Same as parent', 'simple-sales-tax' ) : __(
 						'Using site default',
-						'simplesalestax'
+						'simple-sales-tax'
 					),
 				],
 			]

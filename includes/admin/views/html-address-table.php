@@ -10,31 +10,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<thead>
 	<tr>
 		<th>
-			<?php _e( 'Address 1', 'simplesalestax' ); ?>
-			<?php sst_tip( __( 'Line 1 of your business address.', 'simplesalestax' ) ); ?>
+			<?php _e( 'Address 1', 'simple-sales-tax' ); ?>
+			<?php sst_tip( __( 'Line 1 of your business address.', 'simple-sales-tax' ) ); ?>
 		</th>
 		<th>
-			<?php _e( 'Address 2', 'simplesalestax' ); ?>
-			<?php sst_tip( __( 'Line 2 of your business address.', 'simplesalestax' ) ); ?>
+			<?php _e( 'Address 2', 'simple-sales-tax' ); ?>
+			<?php sst_tip( __( 'Line 2 of your business address.', 'simple-sales-tax' ) ); ?>
 		</th>
 		<th>
-			<?php _e( 'City', 'simplesalestax' ); ?>
-			<?php sst_tip( __( 'The city in which your business operates.', 'simplesalestax' ) ); ?>
+			<?php _e( 'City', 'simple-sales-tax' ); ?>
+			<?php sst_tip( __( 'The city in which your business operates.', 'simple-sales-tax' ) ); ?>
 		</th>
 		<th>
-			<?php _e( 'State', 'simplesalestax' ); ?>
-			<?php sst_tip( __( 'The state where your business is located.', 'simplesalestax' ) ); ?>
+			<?php _e( 'State', 'simple-sales-tax' ); ?>
+			<?php sst_tip( __( 'The state where your business is located.', 'simple-sales-tax' ) ); ?>
 		</th>
 		<th>
-			<?php _e( 'ZIP Code', 'simplesalestax' ); ?>
-			<?php sst_tip( __( '5 or 9-digit ZIP code of your business address.', 'simplesalestax' ) ); ?>
+			<?php _e( 'ZIP Code', 'simple-sales-tax' ); ?>
+			<?php sst_tip( __( '5 or 9-digit ZIP code of your business address.', 'simple-sales-tax' ) ); ?>
 		</th>
 		<th>
-			<?php _e( 'Default?', 'simplesalestax' ); ?>
+			<?php _e( 'Default?', 'simple-sales-tax' ); ?>
 			<?php sst_tip(
 				__(
 					'Check this if you want this address to be used as a default "Shipment Origin Address" for your products. You must have at least one default address.',
-					'simplesalestax'
+					'simple-sales-tax'
 				)
 			); ?>
 		</th>
@@ -44,7 +44,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<tr>
 		<th colspan="6">
 			<button class="wp-core-ui button-secondary sst-address-add">
-				<?php _e( 'Add Address', 'simplesalestax' ); ?>
+				<?php _e( 'Add Address', 'simple-sales-tax' ); ?>
 			</button>
 		</th>
 	</tr>
@@ -55,7 +55,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <script type="text/html" id="tmpl-sst-address-row-blank">
 	<tr id="sst-address-row-blank">
 		<td colspan="6">
-			<p class="main"><?php _e( 'No addresses added.', 'simplesalestax' ); ?></p>
+			<p class="main"><?php _e( 'No addresses added.', 'simple-sales-tax' ); ?></p>
 		</td>
 	</tr>
 </script>
@@ -66,7 +66,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<input type="text" name="addresses[{{ data.ID }}][Address1]" data-attribute="Address1"
 			       value="{{ data.Address1 }}">
 			<div class="row-actions">
-				<a href="#" class="sst-address-delete"><?php _e( 'Remove', 'simplesalestax' ); ?></a>
+				<a href="#" class="sst-address-delete"><?php _e( 'Remove', 'simple-sales-tax' ); ?></a>
 			</div>
 		</td>
 		<td>
@@ -81,7 +81,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<?php
 				$options = array_merge(
 					[
-						'' => __( 'Select One', 'simplesalestax' ),
+						'' => __( 'Select One', 'simple-sales-tax' ),
 					],
 					WC()->countries->get_states( 'US' )
 				);

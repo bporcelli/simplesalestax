@@ -85,7 +85,7 @@ class SST_Admin {
 	public static function add_metaboxes() {
 		add_meta_box(
 			'sales_tax_meta',
-			__( 'Simple Sales Tax', 'simplesalestax' ),
+			__( 'Simple Sales Tax', 'simple-sales-tax' ),
 			[ __CLASS__, 'output_tax_metabox' ],
 			'shop_order',
 			'side',
@@ -141,7 +141,7 @@ class SST_Admin {
         <div id="poststuff" class="wootax-reports-page">
             <a target="_blank" href="https://simplesalestax.com/taxcloud/reports/"
                class="wp-core-ui button button-primary">
-				<?php _e( 'Go to TaxCloud Reports Page', 'simplesalestax' ); ?>
+				<?php _e( 'Go to TaxCloud Reports Page', 'simple-sales-tax' ); ?>
             </a>
         </div>
 		<?php
@@ -157,10 +157,10 @@ class SST_Admin {
 	 */
 	public static function add_reports_tab( $charts ) {
 		$charts['taxes'] = [
-			'title'  => __( 'Taxes', 'simplesalestax' ),
+			'title'  => __( 'Taxes', 'simple-sales-tax' ),
 			'charts' => [
 				'overview' => [
-					'title'       => __( 'Overview', 'simplesalestax' ),
+					'title'       => __( 'Overview', 'simple-sales-tax' ),
 					'description' => '',
 					'hide_title'  => true,
 					'function'    => [ __CLASS__, 'output_tax_report_button' ],
@@ -187,7 +187,7 @@ class SST_Admin {
 			);
 
 			if ( ! $rate_transients ) {
-				sst_add_message( __( 'There are no cached rates to remove.', 'simplesalestax' ), 'updated' );
+				sst_add_message( __( 'There are no cached rates to remove.', 'simple-sales-tax' ), 'updated' );
 
 				return;
 			}
@@ -198,7 +198,7 @@ class SST_Admin {
 			}
 
 			sst_add_message(
-				sprintf( __( '%d cached tax rates removed.', 'simplesalestax' ), count( $rate_transients ) ),
+				sprintf( __( '%d cached tax rates removed.', 'simple-sales-tax' ), count( $rate_transients ) ),
 				'updated'
 			);
 		}
@@ -220,9 +220,9 @@ class SST_Admin {
 	 */
 	public static function register_debug_tool( $tools ) {
 		$tools['wootax_rate_tool'] = [
-			'name'     => __( 'Delete cached tax rates', 'simplesalestax' ),
-			'button'   => __( 'Clear cache', 'simplesalestax' ),
-			'desc'     => __( 'This tool will remove any tax rates cached by WooCommerce.', 'simplesalestax' ),
+			'name'     => __( 'Delete cached tax rates', 'simple-sales-tax' ),
+			'button'   => __( 'Clear cache', 'simple-sales-tax' ),
+			'desc'     => __( 'This tool will remove any tax rates cached by WooCommerce.', 'simple-sales-tax' ),
 			'callback' => [ __CLASS__, 'remove_rate_transients' ],
 		];
 
@@ -250,7 +250,7 @@ class SST_Admin {
 			[
 				'tic_list' => sst_get_tics(),
 				'strings'  => [
-					'default' => __( 'Using site default', 'simplesalestax' ),
+					'default' => __( 'Using site default', 'simple-sales-tax' ),
 				],
 			]
 		);

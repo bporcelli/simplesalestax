@@ -131,7 +131,7 @@ class SST_Subscriptions {
 		} catch ( Exception $ex ) {
 			$order->add_order_note(
 				sprintf(
-					__( 'Failed to calculate sales tax for renewal order %d: %s.', 'simplesalestax' ),
+					__( 'Failed to calculate sales tax for renewal order %d: %s.', 'simple-sales-tax' ),
 					$order->get_id(),
 					$ex->getMessage()
 				)

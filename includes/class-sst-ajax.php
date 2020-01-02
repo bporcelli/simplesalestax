@@ -120,7 +120,7 @@ class SST_Ajax {
 		}
 
 		if ( ! isset( $_POST['form_data'], $_POST['certificate'] ) ) {
-			wp_send_json_error( __( 'Invalid request.', 'simplesalestax' ) );
+			wp_send_json_error( __( 'Invalid request.', 'simple-sales-tax' ) );
 		}
 
 		// Get data

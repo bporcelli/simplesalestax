@@ -7,7 +7,7 @@ module.exports = function (grunt) {
         makepot: {
             target: {
                 options: {
-                    mainFile: 'simplesalestax.php',  // Main project file.
+                    mainFile: 'simple-sales-tax.php',  // Main project file.
                     type: 'wp-plugin',               // Type of project (wp-plugin or wp-theme).
                     exclude: [
                         'node_modules/.*',
@@ -50,7 +50,7 @@ module.exports = function (grunt) {
         copy: {
             target: {
                 expand: true,
-                src: ['assets/**', 'includes/**', 'languages/**', 'simplesalestax.php', 'uninstall.php', 'readme.txt', 'changelog.txt'],
+                src: ['assets/**', 'includes/**', 'languages/**', 'simple-sales-tax.php', 'uninstall.php', 'readme.txt', 'changelog.txt'],
                 dest: 'build/'
             }
         },
@@ -58,14 +58,14 @@ module.exports = function (grunt) {
             target: {
                 options: {
                     archive: function () {
-                        return 'releases/simplesalestax-' + pkg.version + '.zip'
+                        return 'releases/simple-sales-tax-' + pkg.version + '.zip'
                     }
                 },
                 files: [{
                     expand: true,
                     cwd: 'build/',
                     src: '**',
-                    dest: 'simplesalestax/'
+                    dest: 'simple-sales-tax/'
                 }]
             }
         },

@@ -12,10 +12,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<?php
 	printf(
 		'<strong>%s</strong> %s',
-		__( 'Simple Sales Tax data update.', 'simplesalestax' ),
+		__( 'Simple Sales Tax data update.', 'simple-sales-tax' ),
 		__(
 			'Your database is being updated in the background. This notice will disappear when the update is complete.',
-			'simplesalestax'
+			'simple-sales-tax'
 		)
 	);
 	?>

@@ -22,10 +22,10 @@ class SST_Integration extends WC_Integration {
 	 */
 	public function __construct() {
 		$this->id                 = 'wootax';
-		$this->method_title       = __( 'Simple Sales Tax', 'simplesalestax' );
+		$this->method_title       = __( 'Simple Sales Tax', 'simple-sales-tax' );
 		$this->method_description = __(
 			'<p>Simple Sales Tax makes sales tax easy by connecting your store with <a href="https://taxcloud.net" target="_blank">TaxCloud</a>. If you have trouble with Simple Sales Tax, please consult the <a href="https://simplesalestax.com/#faq" target="_blank">FAQ</a> and the <a href="https://simplesalestax.com/installation-guide/" target="_blank">Installation Guide</a> before contacting support.</p><p>Need help? <a href="https://simplesalestax.com/contact-us/" target="_blank">Contact us</a>.</p>',
-			'simplesalestax'
+			'simple-sales-tax'
 		);
 
 		// Load the settings.
@@ -134,7 +134,7 @@ class SST_Integration extends WC_Integration {
 			[
 				'addresses'       => $this->get_addresses(),
 				'strings'         => [
-					'one_default_required' => __( 'At least one default address is required.', 'simplesalestax' ),
+					'one_default_required' => __( 'At least one default address is required.', 'simple-sales-tax' ),
 				],
 				'default_address' => [
 					'ID'       => '',
@@ -219,7 +219,7 @@ class SST_Integration extends WC_Integration {
 				// Leave out address with error
 				$this->add_error(
 					sprintf(
-						__( 'Failed to save address <em>%s</em>: %s', 'simplesalestax' ),
+						__( 'Failed to save address <em>%s</em>: %s', 'simple-sales-tax' ),
 						$raw_address['Address1'],
 						$ex->getMessage()
 					)
@@ -233,7 +233,7 @@ class SST_Integration extends WC_Integration {
 			} catch ( Exception $ex ) {
 				// Use original address
 				SST_Logger::add(
-					sprintf( __( 'Failed to validate address: %s.', 'simplesalestax' ), $ex->getMessage() )
+					sprintf( __( 'Failed to validate address: %s.', 'simple-sales-tax' ), $ex->getMessage() )
 				);
 			}
 

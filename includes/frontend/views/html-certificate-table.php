@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 
 	<h3>
-		<?php esc_html_e( 'Tax exempt?', 'simplesalestax' ); ?>
+		<?php esc_html_e( 'Tax exempt?', 'simple-sales-tax' ); ?>
 		<input type="checkbox" name="tax_exempt" id="tax_exempt_checkbox" class="input-checkbox" value="1"<?php checked(
 			$checked
 		); ?>>
@@ -28,10 +28,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<p>
 				<?php printf(
 					'<strong>%s</strong> %s',
-					__( 'Warning:', 'simplesalestax' ),
+					__( 'Warning:', 'simple-sales-tax' ),
 					__(
 						'This interface will not function properly with JavaScript disabled. Please enable JavaScript to continue.',
-						'simplesalestax'
+						'simple-sales-tax'
 					)
 				); ?>
 			</p>
@@ -42,7 +42,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<p>
 				<?php esc_html_e(
 					'Select an exemption certificate from the table below, or click "Add Certificate" and fill out the provided form.',
-					'simplesalestax'
+					'simple-sales-tax'
 				); ?>
 			</p>
 
@@ -50,17 +50,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<thead>
 				<tr>
 					<th><!-- Radio button column --></th>
-					<th><?php _e( 'ID', 'simplesalestax' ); ?></th>
-					<th><?php _e( 'Issued To', 'simplesalestax' ); ?></th>
-					<th><?php _e( 'Date', 'simplesalestax' ); ?></th>
-					<th><?php _e( 'Actions', 'simplesalestax' ); ?></th>
+					<th><?php _e( 'ID', 'simple-sales-tax' ); ?></th>
+					<th><?php _e( 'Issued To', 'simple-sales-tax' ); ?></th>
+					<th><?php _e( 'Date', 'simple-sales-tax' ); ?></th>
+					<th><?php _e( 'Actions', 'simple-sales-tax' ); ?></th>
 				</tr>
 				</thead>
 				<tfoot>
 				<tr>
 					<td colspan="5">
 						<a href="#" class="button sst-certificate-add">
-							<?php _e( 'Add Certificate', 'simplesalestax' ); ?>
+							<?php _e( 'Add Certificate', 'simple-sales-tax' ); ?>
 						</a>
 					</td>
 				</tr>
@@ -80,7 +80,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <span>
                     <?php _e(
 	                    "There are no certificates to display. Click 'Add Certificate' to add one.",
-	                    'simplesalestax'
+	                    'simple-sales-tax'
                     ); ?>
                 </span>
 			</td>
@@ -107,20 +107,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<div class="wc-backbone-modal-content sst-certificate-modal-content woocommerce">
 				<section class="wc-backbone-modal-main" role="main">
 					<header class="wc-backbone-modal-header">
-						<h1><?php _e( 'Add certificate', 'simplesalestax' ); ?></h1>
+						<h1><?php _e( 'Add certificate', 'simple-sales-tax' ); ?></h1>
 						<button class="modal-close modal-close-link dashicons dashicons-no-alt">
                             <span class="screen-reader-text">
-                                <?php _e( 'Close modal panel', 'simplesalestax' ); ?></span>
+                                <?php _e( 'Close modal panel', 'simple-sales-tax' ); ?></span>
 						</button>
 					</header>
 					<article>
 						<form action="" method="post">
 							<?php printf(
 								'<strong>%s</strong> %s',
-								esc_html__( 'Warning', 'simplesalestax' ),
+								esc_html__( 'Warning', 'simple-sales-tax' ),
 								esc_html__(
 									'You are responsible for knowing if you qualify to claim exemption from tax in the state that is due tax on this sale. You  will be held liable for any tax and interest, as well as civil and criminal penalties imposed by the member state, if you are not eligible to claim this exemption.',
-									'simplesalestax'
+									'simple-sales-tax'
 								)
 							); ?>
 
@@ -128,7 +128,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 								'ExemptState',
 								[
 									'type'     => 'state',
-									'label'    => __( 'Where does this exemption apply?', 'simplesalestax' ),
+									'label'    => __( 'Where does this exemption apply?', 'simple-sales-tax' ),
 									'required' => true,
 									'class'    => [ 'sst-input' ],
 								]
@@ -138,15 +138,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 								'TaxType',
 								[
 									'type'     => 'select',
-									'label'    => __( 'Tax ID Type', 'simplesalestax' ),
+									'label'    => __( 'Tax ID Type', 'simple-sales-tax' ),
 									'required' => true,
 									'class'    => [ 'sst-input' ],
 									'options'  => [
-										''            => __( 'Select one', 'simplesalestax' ),
-										'FEIN'        => __( 'Federal Employer ID', 'simplesalestax' ),
+										''            => __( 'Select one', 'simple-sales-tax' ),
+										'FEIN'        => __( 'Federal Employer ID', 'simple-sales-tax' ),
 										'StateIssued' => __(
 											'State Issued Exemption ID or Drivers License',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 									],
 								]
@@ -156,7 +156,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 								'IDNumber',
 								[
 									'type'        => 'text',
-									'label'       => __( 'Tax ID', 'simplesalestax' ),
+									'label'       => __( 'Tax ID', 'simple-sales-tax' ),
 									'placeholder' => '123-4567-89',
 									'required'    => true,
 									'class'       => [ 'sst-input' ],
@@ -167,8 +167,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 								'StateOfIssue',
 								[
 									'type'        => 'state',
-									'label'       => __( 'ID issued by...', 'simplesalestax' ),
-									'placeholder' => __( 'Select if your ID is state issued.', 'simplesalestax' ),
+									'label'       => __( 'ID issued by...', 'simple-sales-tax' ),
+									'placeholder' => __( 'Select if your ID is state issued.', 'simple-sales-tax' ),
 									'id'          => 'issuing-state',
 									'class'       => [ 'sst-hidden-field', 'sst-input' ],
 								]
@@ -178,88 +178,88 @@ if ( ! defined( 'ABSPATH' ) ) {
 								'PurchaserBusinessType',
 								[
 									'type'     => 'select',
-									'label'    => __( 'Business Type', 'simplesalestax' ),
+									'label'    => __( 'Business Type', 'simple-sales-tax' ),
 									'required' => true,
 									'class'    => [ 'sst-input' ],
 									'options'  => [
 										''                                        => __(
 											'Select one',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'AccommodationAndFoodServices'            => __(
 											'Accommodation And Food Services',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'Agricultural_Forestry_Fishing_Hunting'   => __(
 											'Agricultural/Forestry/Fishing/Hunting',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'Construction'                            => __(
 											'Construction',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'FinanceAndInsurance'                     => __(
 											'Finance or Insurance',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'Information_PublishingAndCommunications' => __(
 											'Information Publishing and Communications',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'Manufacturing'                           => __(
 											'Manufacturing',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
-										'Mining'                                  => __( 'Mining', 'simplesalestax' ),
+										'Mining'                                  => __( 'Mining', 'simple-sales-tax' ),
 										'RealEstate'                              => __(
 											'Real Estate',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'RentalAndLeasing'                        => __(
 											'Rental and Leasing',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'RetailTrade'                             => __(
 											'Retail Trade',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'TransportationAndWarehousing'            => __(
 											'Transportation and Warehousing',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'Utilities'                               => __(
 											'Utilities',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'WholesaleTrade'                          => __(
 											'Wholesale Trade',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'BusinessServices'                        => __(
 											'Business Services',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'ProfessionalServices'                    => __(
 											'Professional Services',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'EducationAndHealthCareServices'          => __(
 											'Education and Health Care Services',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'NonprofitOrganization'                   => __(
 											'Nonprofit Organization',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'Government'                              => __(
 											'Government',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'NotABusiness'                            => __(
 											'Not a Business',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
-										'Other'                                   => __( 'Other', 'simplesalestax' ),
+										'Other'                                   => __( 'Other', 'simple-sales-tax' ),
 									],
 								]
 							); ?>
@@ -268,8 +268,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 								'PurchaserBusinessTypeOtherValue',
 								[
 									'type'        => 'text',
-									'label'       => __( 'Please explain', 'simplesalestax' ),
-									'placeholder' => __( 'Explain the nature of your business.', 'simplesalestax' ),
+									'label'       => __( 'Please explain', 'simple-sales-tax' ),
+									'placeholder' => __( 'Explain the nature of your business.', 'simple-sales-tax' ),
 									'id'          => 'business-type-other',
 									'class'       => [ 'sst-hidden-field', 'sst-input' ],
 								]
@@ -279,50 +279,50 @@ if ( ! defined( 'ABSPATH' ) ) {
 								'PurchaserExemptionReason',
 								[
 									'type'     => 'select',
-									'label'    => __( 'Reason for Exemption', 'simplesalestax' ),
+									'label'    => __( 'Reason for Exemption', 'simple-sales-tax' ),
 									'required' => true,
 									'class'    => [ 'sst-input' ],
 									'options'  => [
-										''                                    => __( 'Select one', 'simplesalestax' ),
+										''                                    => __( 'Select one', 'simple-sales-tax' ),
 										'FederalGovernmentDepartment'         => __(
 											'Federal Government Department',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'StateOrLocalGovernmentName'          => __(
 											'State Or Local Government',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'TribalGovernmentName'                => __(
 											'Tribal Government',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'ForeignDiplomat'                     => __(
 											'Foreign Diplomat',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'CharitableOrganization'              => __(
 											'Charitable Organization',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'ReligiousOrEducationalOrganization'  => __(
 											'Religious or Educational Organization',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
-										'Resale'                              => __( 'Resale', 'simplesalestax' ),
+										'Resale'                              => __( 'Resale', 'simple-sales-tax' ),
 										'AgriculturalProduction'              => __(
 											'Agricultural Production',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'IndustrialProductionOrManufacturing' => __(
 											'Industrial Production or Manufacturing',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
 										'DirectPayPermit'                     => __(
 											'Direct Pay Permit',
-											'simplesalestax'
+											'simple-sales-tax'
 										),
-										'DirectMail'                          => __( 'Direct Mail', 'simplesalestax' ),
-										'Other'                               => __( 'Other', 'simplesalestax' ),
+										'DirectMail'                          => __( 'Direct Mail', 'simple-sales-tax' ),
+										'Other'                               => __( 'Other', 'simple-sales-tax' ),
 									],
 								]
 							); ?>
@@ -331,7 +331,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 								'PurchaserExemptionReasonValue',
 								[
 									'type'  => 'text',
-									'label' => __( 'Please explain', 'simplesalestax' ),
+									'label' => __( 'Please explain', 'simple-sales-tax' ),
 									'id'    => 'exempt-other-reason',
 									'class' => [ 'sst-hidden-field', 'sst-input' ],
 								]
@@ -343,7 +343,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<footer>
 						<div class="inner">
 							<button id="btn-ok" class="button alt">
-								<?php _e( 'Add certificate', 'simplesalestax' ); ?>
+								<?php _e( 'Add certificate', 'simple-sales-tax' ); ?>
 							</button>
 						</div>
 					</footer>

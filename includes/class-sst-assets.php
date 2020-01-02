@@ -69,13 +69,13 @@ class SST_Assets {
 							'strings' => [
 								'enter_id_and_key' => __(
 									'Please enter your API Login ID and API Key.',
-									'simplesalestax'
+									'simple-sales-tax'
 								),
 								'settings_valid'   => __(
 									'Success! Your TaxCloud settings are valid.',
-									'simplesalestax'
+									'simple-sales-tax'
 								),
-								'verify_failed'    => __( 'Connection to TaxCloud failed.', 'simplesalestax' ),
+								'verify_failed'    => __( 'Connection to TaxCloud failed.', 'simple-sales-tax' ),
 							],
 						],
 					],
@@ -111,11 +111,11 @@ class SST_Assets {
 								'blanket_cert' => SST()->url( 'assets/img/exemption_certificate750x600.png' ),
 							],
 							'strings'                  => [
-								'delete_failed'      => __( 'Failed to delete certificate', 'simplesalestax' ),
-								'add_failed'         => __( 'Failed to add certificate', 'simplesalestax' ),
+								'delete_failed'      => __( 'Failed to delete certificate', 'simple-sales-tax' ),
+								'add_failed'         => __( 'Failed to add certificate', 'simple-sales-tax' ),
 								'delete_certificate' => __(
 									'Are you sure you want to delete this certificate? This action is irreversible.',
-									'simplesalestax'
+									'simple-sales-tax'
 								),
 							],
 						],

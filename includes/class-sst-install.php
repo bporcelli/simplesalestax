@@ -136,7 +136,7 @@ class SST_Install {
 			$notice     = sprintf(
 				__(
 					'Simple Sales Tax found extra rates in your tax tables. Please choose to <a href="%s">keep the rates</a> or <a href="%s">delete them</a>.',
-					'simplesalestax'
+					'simple-sales-tax'
 				),
 				$keep_url,
 				$delete_url
@@ -230,7 +230,7 @@ class SST_Install {
 	public static function add_roles() {
 		add_role(
 			'exempt-customer',
-			__( 'Exempt Customer', 'simplesalestax' ),
+			__( 'Exempt Customer', 'simple-sales-tax' ),
 			[
 				'read'         => true,
 				'edit_posts'   => false,
@@ -247,7 +247,7 @@ class SST_Install {
 	 * @return array
 	 */
 	public static function add_action_links( $links ) {
-		$link_text     = __( 'Settings', 'simplesalestax' );
+		$link_text     = __( 'Settings', 'simple-sales-tax' );
 		$settings_link = '<a href="admin.php?page=wc-settings&tab=integration&section=wootax">' . $link_text . '</a>';
 		array_unshift( $links, $settings_link );
 
@@ -336,7 +336,7 @@ class SST_Install {
 	 */
 	public static function get_rate_label( $label, $key ) {
 		if ( $key == SST_RATE_ID ) {
-			return apply_filters( 'wootax_rate_label', __( 'Sales Tax', 'simplesalestax' ) );
+			return apply_filters( 'wootax_rate_label', __( 'Sales Tax', 'simple-sales-tax' ) );
 		} else {
 			return $label;
 		}

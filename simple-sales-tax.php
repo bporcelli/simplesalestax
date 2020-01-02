@@ -7,7 +7,7 @@
  * Author URI:           https://taxcloud.com
  * GitHub Plugin URI:    https://github.com/bporcelli/simplesalestax
  * Version:              6.0.11
- * Text Domain:          simplesalestax
+ * Text Domain:          simple-sales-tax
  * Domain Path:          /languages/
  *
  * Requires at least:    4.5.0

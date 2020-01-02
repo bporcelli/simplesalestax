@@ -76,7 +76,7 @@ abstract class SST_Abstract_Cart {
 			} else {
 				$this->handle_error(
 					sprintf(
-						__( "Failed to calculate sales tax: %s", 'simplesalestax' ),
+						__( "Failed to calculate sales tax: %s", 'simple-sales-tax' ),
 						$response->get_error_message()
 					)
 				);
@@ -278,7 +278,7 @@ abstract class SST_Abstract_Cart {
 			if ( ! $origin ) {
 				$this->handle_error(
 					sprintf(
-						__( "Failed to calculate sales tax: no origin address for product %d.", 'simplesalestax' ),
+						__( "Failed to calculate sales tax: no origin address for product %d.", 'simple-sales-tax' ),
 						$item['product_id']
 					)
 				);

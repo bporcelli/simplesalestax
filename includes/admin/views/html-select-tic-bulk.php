@@ -4,12 +4,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 } ?>
 
     <label class="alignleft">
-        <span class="title"><?php _e( 'TIC', 'simplesalestax' ); ?></span>
+        <span class="title"><?php _e( 'TIC', 'simple-sales-tax' ); ?></span>
         <span class="input-text-wrap">
-            <span class="sst-selected-tic"><?php esc_html_e( 'Using site default', 'simplesalestax' ); ?></span>
+            <span class="sst-selected-tic"><?php esc_html_e( 'Using site default', 'simple-sales-tax' ); ?></span>
             <input type="hidden" name="wootax_tic" class="sst-tic-input" value="">
             <button type="button" class="button sst-select-tic">
-                <?php esc_html_e( 'Select', 'simplesalestax' ); ?>
+                <?php esc_html_e( 'Select', 'simple-sales-tax' ); ?>
             </button>
         </span>
     </label>
