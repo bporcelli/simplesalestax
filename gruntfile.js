@@ -75,7 +75,7 @@ module.exports = function (grunt) {
                     plugin_slug: 'simplesalestax',
                     build_dir: 'build',
                     assets_dir: '.wordpress',
-                    svn_user: 'taxcloud'
+                    svn_user: 'bporcelli'
                 }
             }
         }
