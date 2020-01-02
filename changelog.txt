@@ -2,6 +2,16 @@ Changelog for Simple Sales Tax
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+= [6.0.11] - 2020-01-02 =
+
+First release through WordPress.org.
+
+Fixed:
+- Guzzle IDN conversion bug #40
+
+Changed:
+- Declare support for WooCommerce 3.9
+
 = [6.0.10] - 2019-12-15 =
 
 Fixed:
