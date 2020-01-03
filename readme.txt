@@ -1,4 +1,4 @@
-=== Marketplace Taxes ===
+=== Simple Sales Tax ===
 Contributors: taxcloud, bporcelli
 Tags: woocommerce, taxcloud, tax, taxes, sales tax, tax calculation, sales tax compliance, sales tax filing, sales tax reporting
 Requires at least: 4.5
