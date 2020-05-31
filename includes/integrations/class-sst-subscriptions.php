@@ -225,23 +225,33 @@ class SST_Subscriptions {
 	 * @since 5.0
 	 */
 	public function set_signup_fee_tic( $tic, $product_id, $variation_id = 0 ) {
-		$initial_order = 'none' == WC_Subscriptions_Cart::get_calculation_type();
-
-		/* On backend, can't use WC_Subscriptions_Cart to determine whether this
-		 * is the initial order. */
-		if ( isset( $_POST['order_id'] ) ) {
-			$order_id      = absint( $_POST['order_id'] );
-			$initial_order = 'shop_order' == get_post_type( $order_id );
+		if ( ! $this->is_initial_subscription_order() ) {
+			return $tic;
 		}
 
 		$has_free_trial = WC_Subscriptions_Product::get_trial_length( $product_id ) > 0;
 		$has_fee        = WC_Subscriptions_Product::get_sign_up_fee( $product_id );
 
-		if ( $initial_order && $has_free_trial && $has_fee ) {
+		if ( $has_free_trial && $has_fee ) {
 			return apply_filters( 'wootax_sign_up_fee_tic', 91070 ); // Default is "Membership fees" (91070)
 		}
 
 		return $tic;
+	}
+
+	/**
+	 * Checks whether we're calculating the tax for an initial subscription order.
+	 *
+	 * @return bool
+	 */
+	private function is_initial_subscription_order() {
+		if ( isset( $_REQUEST['order_id'] ) ) {  // Re-calculating totals in WP admin
+			return ! wcs_order_contains_renewal( absint( $_REQUEST['order_id'] ) );
+		} elseif ( doing_filter( 'wcs_renewal_order_created' ) ) {
+			return false;
+		}
+
+		return 'none' === WC_Subscriptions_Cart::get_calculation_type();
 	}
 
 	/**
