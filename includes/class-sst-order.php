@@ -132,24 +132,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	protected function transform_items( $cart_items ) {
-		$new_items = [];
-
-		foreach ( $cart_items as $item_id => $item ) {
-			$product_id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
-
-			if ( ( $product = wc_get_product( $product_id ) ) ) {
-				$new_items[ $item_id ] = [
-					'product_id'    => $item['product_id'],
-					'variation_id'  => $item['variation_id'],
-					'quantity'      => $item['qty'],
-					'line_total'    => $item['line_total'],
-					'line_subtotal' => $item['line_subtotal'],
-					'data'          => $product,
-				];
-			}
-		}
-
-		return $new_items;
+		return sst_format_order_items( $cart_items );
 	}
 
 	/**

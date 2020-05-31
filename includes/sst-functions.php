@@ -236,3 +236,32 @@ function sst_order_calculate_taxes( $order ) {
 
 	return true;
 }
+
+/**
+ * Transforms a list of WooCommerce order items into a format that the SST tax
+ * calculation logic can understand.
+ *
+ * @param WC_Order_Item[] $items Order items
+ *
+ * @return array Order items formatted for tax calculations
+ */
+function sst_format_order_items( $items ) {
+	$new_items = [];
+
+	foreach ( $items as $item_id => $item ) {
+		$product_id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
+
+		if ( ( $product = wc_get_product( $product_id ) ) ) {
+			$new_items[ $item_id ] = [
+				'product_id'    => $item['product_id'],
+				'variation_id'  => $item['variation_id'],
+				'quantity'      => $item['qty'],
+				'line_total'    => $item['line_total'],
+				'line_subtotal' => $item['line_subtotal'],
+				'data'          => $product,
+			];
+		}
+	}
+
+	return $new_items;
+}

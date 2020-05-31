@@ -23,6 +23,7 @@ class SST_Subscriptions {
 	public function __construct() {
 		add_filter( 'wootax_add_fees', [ $this, 'exclude_fees' ] );
 		add_filter( 'wootax_cart_packages_before_split', [ $this, 'add_package_for_no_ship_subs' ], 10, 2 );
+		add_filter( 'wootax_order_packages_before_split', [ $this, 'add_order_package_for_no_ship_subs' ], 10, 2 );
 		add_filter( 'wootax_product_tic', [ $this, 'set_signup_fee_tic' ], 10, 3 );
 		add_filter( 'woocommerce_calculated_total', [ $this, 'save_shipping_taxes' ], 1200, 2 );
 		add_action( 'woocommerce_cart_updated', [ $this, 'restore_shipping_taxes' ] );
@@ -203,6 +204,56 @@ class SST_Subscriptions {
 						'city'      => WC()->customer->get_billing_city(),
 						'state'     => WC()->customer->get_billing_state(),
 						'postcode'  => WC()->customer->get_billing_postcode(),
+					],
+				]
+			);
+		}
+
+		return $packages;
+	}
+
+	/**
+	 * Same as add_package_for_no_ship_subs, but for when we're calculating the
+	 * tax for an order from the Edit Order screen.
+	 *
+	 * @param array   $packages
+	 * @param WC_Order $order
+	 *
+	 * @return array
+	 * @since 6.0.13
+	 */
+	public function add_order_package_for_no_ship_subs( $packages, $order ) {
+		$contents  = [];
+
+		/** @var WC_Order_Item_Product $item */
+		if ( ! wcs_order_contains_renewal( $order ) ) {
+			foreach ( $order->get_items() as $item_id => $item ) {
+				if ( WC_Subscriptions_Product::get_trial_length( $item->get_product() ) > 0 ) {
+					$contents[ $item_id ] = $item;
+				}
+			}
+		} else {
+			foreach ( $order->get_items() as $item_id => $item ) {
+				if ( WC_Subscriptions_Product::needs_one_time_shipping( $item->get_product() ) ) {
+					$contents[ $item_id ] = $item;
+				}
+			}
+		}
+
+		if ( ! empty( $contents ) ) {   /* Add package */
+			$contents   = sst_format_order_items( $contents );
+			$packages[] = sst_create_package(
+				[
+					'contents'    => $contents,
+					'user'        => [
+						'ID' => get_current_user_id(),
+					],
+					'destination' => [
+						'address'   => $order->get_billing_address_1(),
+						'address_2' => $order->get_billing_address_2(),
+						'city'      => $order->get_billing_city(),
+						'state'     => $order->get_billing_state(),
+						'postcode'  => $order->get_billing_postcode(),
 					],
 				]
 			);
