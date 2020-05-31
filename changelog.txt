@@ -2,6 +2,16 @@ Changelog for Simple Sales Tax
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+= [6.0.13] - 2020-03-15 =
+
+Fixed:
+- Subscription fees are not discounted in TaxCloud when a coupon is applied
+- Subscription renewals are not taxed when the subscription has a free trial
+- No-ship subscriptions are not taxed when calculating taxes from the Edit Order screen
+
+Changed:
+- Declare support for WooCommerce 4.2
+
 = [6.0.12] - 2020-03-15 =
 
 Changed:
