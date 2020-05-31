@@ -21,8 +21,6 @@ class SST_Subscriptions {
 	 * @since 5.0
 	 */
 	public function __construct() {
-		add_filter( 'wootax_product_price', [ $this, 'change_product_price' ], 100, 2 );
-		add_filter( 'wootax_shipping_price', [ $this, 'change_shipping_price' ], 10, 2 );
 		add_filter( 'wootax_add_fees', [ $this, 'exclude_fees' ] );
 		add_filter( 'wootax_cart_packages_before_split', [ $this, 'add_package_for_no_ship_subs' ], 10, 2 );
 		add_filter( 'wootax_product_tic', [ $this, 'set_signup_fee_tic' ], 10, 3 );
@@ -31,52 +29,6 @@ class SST_Subscriptions {
 		add_action( 'woocommerce_checkout_update_order_meta', [ $this, 'destroy_session' ] );
 		add_filter( 'wcs_renewal_order_created', [ $this, 'recalc_taxes_for_renewal' ], 1, 2 );
 		add_filter( 'wootax_save_packages_for_capture', [ $this, 'should_save_packages_for_capture' ] );
-	}
-
-	/**
-	 * Set product prices based on the current calculation type. If the tax for
-	 * an order is being recalculated, leave prices unchanged.
-	 *
-	 * Needed because Subscriptions removes its price filter before we calculate
-	 * the tax due.
-	 *
-	 * @param float      $price
-	 * @param WC_Product $product
-	 *
-	 * @return float
-	 * @since 5.0
-	 */
-	public function change_product_price( $price, $product ) {
-		if ( ! did_action( 'woocommerce_calculate_totals' ) ) {
-			return $price; /* Recalculating taxes */
-		} else {
-			return WC_Subscriptions_Cart::set_subscription_prices_for_calculation( $price, $product );
-		}
-	}
-
-	/**
-	 * If we are calculating tax for an initial subscription order, we must set the taxable
-	 * shipping price to zero if WC_Subscriptions_Cart::charge_shipping_up_front() is true.
-	 * This function hooks wootax_shipping_price to take care of this.
-	 *
-	 * @param float  $price         Taxable price.
-	 * @param string $shipping_rate Product ID.
-	 *
-	 * @return float
-	 * @since 5.0
-	 */
-	public function change_shipping_price( $price, $shipping_rate ) {
-		if ( ! did_action( 'woocommerce_calculate_totals' ) ) {
-			return $price; /* In backend; no concept of charging up-front */
-		} else {
-			$calc_type = WC_Subscriptions_Cart::get_calculation_type();
-
-			if ( $calc_type != 'recurring_total' && ! WC_Subscriptions_Cart::charge_shipping_up_front() ) {
-				return 0;
-			}
-		}
-
-		return $price;
 	}
 
 	/**
