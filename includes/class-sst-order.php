@@ -201,6 +201,24 @@ class SST_Order extends SST_Abstract_Cart {
 
 				next( $ship_methods );
 			}
+		} elseif ( $items ) {
+			// If there are no shipping lines added to the order, we assume that
+			// there is a single shipment with all products that need shipping.
+			$shippable_items = [];
+			foreach ( $items as $item_id => $item ) {
+				if ( isset( $item['data'] ) && $item['data']->needs_shipping() ) {
+					$shippable_items[ $item_id ] = $item;
+				}
+			}
+			$packages[] = sst_create_package(
+				[
+					'contents'    => $shippable_items,
+					'destination' => $this->get_shipping_address(),
+					'user'        => [
+						'ID' => $this->order->get_user_id(),
+					],
+				]
+			);
 		}
 
 		return $packages;
