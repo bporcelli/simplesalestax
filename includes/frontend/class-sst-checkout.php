@@ -70,13 +70,12 @@ class SST_Checkout extends SST_Abstract_Cart {
 		if ( apply_filters( 'sst_calculate_tax_totals', is_checkout() ) ) {
 			$this->calculate_taxes();
 
-			if ( sst_woocommerce_gte_32() ) {
-				$total += $this->cart->get_cart_contents_tax();
-				$total += $this->cart->get_fee_tax();
-				$total += $this->cart->get_shipping_tax();
-			} else {
-				$total += $this->cart->tax_total;
-				$total += $this->cart->shipping_tax_total;
+			// Woo won't include the taxes calculated by SST in the total so
+			// we add them in here
+			foreach ( $this->cart->get_taxes() as $rate_id => $tax ) {
+				if ( (int) SST_RATE_ID === $rate_id ) {
+					$total += $tax;
+				}
 			}
 		}
 
