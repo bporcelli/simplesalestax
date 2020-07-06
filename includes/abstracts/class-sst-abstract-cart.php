@@ -339,6 +339,9 @@ abstract class SST_Abstract_Cart {
 			];
 		}
 
+		// Exclude user ID from hash - does not change calculated tax amount
+		unset( $package['user'] );
+
 		return 'sst_pack_' . md5( json_encode( $package ) . WC_Cache_Helper::get_transient_version( 'shipping' ) );
 	}
 
