@@ -2,9 +2,9 @@
 # This file is distributed under the same license as the Simple Sales Tax package.
 msgid ""
 msgstr ""
-"Project-Id-Version: Simple Sales Tax 6.0.14\n"
+"Project-Id-Version: Simple Sales Tax 6.1.0\n"
 "Report-Msgid-Bugs-To: https://github.com/bporcelli/simplesalestax/issues\n"
-"POT-Creation-Date: 2020-06-09 11:33:11+00:00\n"
+"POT-Creation-Date: 2020-07-06 15:33:33+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -36,44 +36,48 @@ msgstr ""
 msgid "Simple Sales Tax"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:144
+#: includes/admin/class-sst-admin.php:145
 msgid "Go to TaxCloud Reports Page"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:160
+#: includes/admin/class-sst-admin.php:161
 msgid "Taxes"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:163
+#: includes/admin/class-sst-admin.php:164
 msgid "Overview"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:190
-msgid "There are no cached rates to remove."
-msgstr ""
-
 #: includes/admin/class-sst-admin.php:201
-msgid "%d cached tax rates removed."
-msgstr ""
-
-#: includes/admin/class-sst-admin.php:223
 msgid "Delete cached tax rates"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:224
-msgid "Clear cache"
+#: includes/admin/class-sst-admin.php:202
+msgid "Clear tax rate cache"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:225
+#: includes/admin/class-sst-admin.php:203
 msgid "This tool will remove any tax rates cached by WooCommerce."
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:253
+#: includes/admin/class-sst-admin.php:222
+msgid "Tax rate cache cleared."
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:246
 #: includes/admin/views/html-select-tic-bulk.php:9
 #: includes/admin/views/html-select-tic-category.php:18
 #: includes/admin/views/html-select-tic.php:21
 #: includes/class-sst-product.php:180
 msgid "Using site default"
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:281
+msgid ""
+"<strong>Heads up!</strong> The WooCommerce \"Calculate tax based on\" "
+"setting is not respected by Simple Sales Tax. The customer billing address "
+"will <em>only</em> be used for tax calculations when the shipping address "
+"is not provided (e.g. for sales of digital goods)."
 msgstr ""
 
 #: includes/admin/class-sst-integration.php:26
@@ -257,19 +261,46 @@ msgstr ""
 msgid "Start typing to search"
 msgstr ""
 
-#: includes/class-simple-sales-tax.php:245
+#: includes/class-simple-sales-tax.php:272
+msgid ""
+"<strong>Simple Sales Tax is inactive.</strong> Simple Sales Tax cannot be "
+"used alongside the <a "
+"href=\"https://wordpress.org/plugins/taxjar-simplified-taxes-for-"
+"woocommerce/\" target=\"_blank\">TaxJar</a> plugin. Please deactivate "
+"TaxJar to use Simple Sales Tax."
+msgstr ""
+
+#: includes/class-simple-sales-tax.php:285
+msgid ""
+"<strong>Simple Sales Tax is inactive.</strong> Simple Sales Tax cannot be "
+"used alongside the <a "
+"href=\"https://woocommerce.com/products/woocommerce-avatax/\" "
+"target=\"_blank\">WooCommerce AvaTax</a> plugin. Please deactivate "
+"WooCommerce AvaTax to use Simple Sales Tax."
+msgstr ""
+
+#: includes/class-simple-sales-tax.php:299
+msgid ""
+"<strong>Simple Sales Tax is inactive.</strong> Simple Sales Tax cannot be "
+"used alongside <a "
+"href=\"https://docs.woocommerce.com/document/woocommerce-services/#section-1"
+"0\" target=\"_blank\">WooCommerce Services Automated Taxes</a>. Please "
+"disable automated taxes to use Simple Sales Tax."
+msgstr ""
+
+#: includes/class-simple-sales-tax.php:312
 msgid ""
 "<strong>PHP needs to be updated.</strong> Simple Sales Tax requires PHP "
 "5.5+."
 msgstr ""
 
-#: includes/class-simple-sales-tax.php:255
+#: includes/class-simple-sales-tax.php:322
 msgid ""
 "<strong>WooCommerce not detected.</strong> Please install or activate "
 "WooCommerce to use Simple Sales Tax."
 msgstr ""
 
-#: includes/class-simple-sales-tax.php:268
+#: includes/class-simple-sales-tax.php:335
 msgid ""
 "<strong>WooCommerce needs to be updated.</strong> Simple Sales Tax requires "
 "WooCommerce 3.0.0+."
@@ -311,40 +342,40 @@ msgid ""
 "href=\"%s\">keep the rates</a> or <a href=\"%s\">delete them</a>."
 msgstr ""
 
-#: includes/class-sst-install.php:233
+#: includes/class-sst-install.php:236
 msgid "Exempt Customer"
 msgstr ""
 
-#: includes/class-sst-install.php:250
+#: includes/class-sst-install.php:253
 msgid "Settings"
 msgstr ""
 
-#: includes/class-sst-install.php:339
+#: includes/class-sst-install.php:342
 msgid "Sales Tax"
 msgstr ""
 
-#: includes/class-sst-order.php:286 includes/class-sst-order.php:785
+#: includes/class-sst-order.php:286 includes/class-sst-order.php:781
 #: includes/sst-update-functions.php:557
 msgid "Fee"
 msgstr ""
 
-#: includes/class-sst-order.php:568
+#: includes/class-sst-order.php:564
 msgid "Failed to capture order %d: already captured."
 msgstr ""
 
-#: includes/class-sst-order.php:579
+#: includes/class-sst-order.php:575
 msgid "Failed to capture order %d: order was refunded."
 msgstr ""
 
-#: includes/class-sst-order.php:607
+#: includes/class-sst-order.php:603
 msgid "Failed to capture order %d: %s."
 msgstr ""
 
-#: includes/class-sst-order.php:637
+#: includes/class-sst-order.php:633
 msgid "Can't refund order %d: order must be completed first."
 msgstr ""
 
-#: includes/class-sst-order.php:709
+#: includes/class-sst-order.php:705
 msgid "Failed to refund order %d: %s."
 msgstr ""
 

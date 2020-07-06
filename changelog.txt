@@ -2,6 +2,19 @@ Changelog for Simple Sales Tax
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+= [6.1.0] - 2020-07-06 =
+
+Added:
+- Calculate tax totals on the WooCommerce cart page
+- Show a warning when other tax calculation plugins are installed
+- Clear cached tax rates after user deletes existing tax rates
+
+Fixed:
+- Duplicate lookups are sent when a customer logs in or creates an account during checkout
+
+Changed:
+- Declare support for WooCommerce 4.3
+
 = [6.0.14] - 2020-06-09 =
 
 Fixed:
