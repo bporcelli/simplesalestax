@@ -158,7 +158,7 @@ final class SimpleSalesTax {
 		register_activation_hook( SST_FILE, [ $this, 'activate' ] );
 		register_deactivation_hook( SST_FILE, [ $this, 'deactivate' ] );
 	}
-	
+
 	/**
 	 * Loads integrations with third party extensions as needed.
 	 */
@@ -233,7 +233,74 @@ final class SimpleSalesTax {
 			return false;
 		}
 
+		if ( $this->detect_plugin_conflicts() ) {
+			return false;
+		}
+
 		return true;
+	}
+
+	/**
+	 * Checks for plugins that conflict with Simple Sales Tax.
+	 *
+	 * @return bool Were any conflicting plugins detected?
+	 */
+	private function detect_plugin_conflicts() {
+		if ( class_exists( 'WC_TaxJar' ) ) {
+			// TaxJar
+			add_action( 'admin_notices', [ $this, 'taxjar_conflict_notice' ] );
+			return true;
+		} elseif ( class_exists( 'WC_AvaTax_Loader' ) ) {
+			// WooCommerce AvaTax
+			add_action( 'admin_notices', [ $this, 'avatax_conflict_notice' ] );
+			return true;
+		} elseif ( class_exists( 'WC_Connect_Loader' ) && 'yes' === get_option( 'wc_connect_taxes_enabled' ) ) {
+			// WooCommerce Services Automated Taxes
+			add_action( 'admin_notices', [ $this, 'woocommerce_services_notice' ] );
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Notice displayed when the TaxJar plugin is activated.
+	 */
+	public function taxjar_conflict_notice() {
+		printf(
+			'<div class="notice notice-error"><p>%s</p></div>',
+			__(
+				'<strong>Simple Sales Tax is inactive.</strong> Simple Sales Tax cannot be used alongside the <a href="https://wordpress.org/plugins/taxjar-simplified-taxes-for-woocommerce/" target="_blank">TaxJar</a> plugin. Please deactivate TaxJar to use Simple Sales Tax.',
+				'simple-sales-tax'
+			)
+		);
+	}
+
+	/**
+	 * Notice displayed when the WooCommerce AvaTax plugin is activated.
+	 */
+	public function avatax_conflict_notice() {
+		printf(
+			'<div class="notice notice-error"><p>%s</p></div>',
+			__(
+				'<strong>Simple Sales Tax is inactive.</strong> Simple Sales Tax cannot be used alongside the <a href="https://woocommerce.com/products/woocommerce-avatax/" target="_blank">WooCommerce AvaTax</a> plugin. Please deactivate WooCommerce AvaTax to use Simple Sales Tax.',
+				'simple-sales-tax'
+			)
+		);
+	}
+
+	/**
+	 * Notice displayed when the WooCommerce Services Automated Tax service
+	 * is enabled.
+	 */
+	public function woocommerce_services_notice() {
+		printf(
+			'<div class="notice notice-error"><p>%s</p></div>',
+			__(
+				'<strong>Simple Sales Tax is inactive.</strong> Simple Sales Tax cannot be used alongside <a href="https://docs.woocommerce.com/document/woocommerce-services/#section-10" target="_blank">WooCommerce Services Automated Taxes</a>. Please disable automated taxes to use Simple Sales Tax.',
+				'simple-sales-tax'
+			)
+		);
 	}
 
 	/**
