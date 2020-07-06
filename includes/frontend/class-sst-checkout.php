@@ -67,7 +67,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	public function calculate_tax_totals( $total, $cart ) {
 		$this->cart = new SST_Cart_Proxy( $cart );
 
-		if ( apply_filters( 'sst_calculate_tax_totals', is_checkout() ) ) {
+		if ( apply_filters( 'sst_calculate_tax_totals', is_cart() || is_checkout() ) ) {
 			$this->calculate_taxes();
 
 			// Woo won't include the taxes calculated by SST in the total so
