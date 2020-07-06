@@ -177,31 +177,8 @@ class SST_Admin {
 	 * @since 4.5
 	 */
 	public static function remove_rate_transients() {
-		global $wpdb;
-
-		if ( ! empty( $_REQUEST['_wpnonce'] ) && wp_verify_nonce( $_REQUEST['_wpnonce'], 'debug_action' ) ) {
-			$prefix = "wc_tax_rates";
-
-			$rate_transients = $wpdb->get_results(
-				"SELECT option_name as name FROM $wpdb->options WHERE option_name LIKE '_transient_{$prefix}_%'"
-			);
-
-			if ( ! $rate_transients ) {
-				sst_add_message( __( 'There are no cached rates to remove.', 'simple-sales-tax' ), 'updated' );
-
-				return;
-			}
-
-			foreach ( $rate_transients as $transient ) {
-				$trans_key = substr( $transient->name, strpos( $transient->name, 'wc' ) );
-				delete_transient( $trans_key );
-			}
-
-			sst_add_message(
-				sprintf( __( '%d cached tax rates removed.', 'simple-sales-tax' ), count( $rate_transients ) ),
-				'updated'
-			);
-		}
+		wc_deprecated_function( __METHOD__, '6.1', __CLASS__ . '::invalidate_wc_tax_rates_cache' );
+		self::invalidate_wc_tax_rates_cache();
 	}
 
 	/**
@@ -221,12 +198,27 @@ class SST_Admin {
 	public static function register_debug_tool( $tools ) {
 		$tools['wootax_rate_tool'] = [
 			'name'     => __( 'Delete cached tax rates', 'simple-sales-tax' ),
-			'button'   => __( 'Clear cache', 'simple-sales-tax' ),
+			'button'   => __( 'Clear tax rate cache', 'simple-sales-tax' ),
 			'desc'     => __( 'This tool will remove any tax rates cached by WooCommerce.', 'simple-sales-tax' ),
-			'callback' => [ __CLASS__, 'remove_rate_transients' ],
+			'callback' => [ __CLASS__, 'invalidate_wc_tax_rates_cache' ],
 		];
 
 		return $tools;
+	}
+
+	/**
+	 * Invalidates the WooCommerce tax rate cache.
+     *
+     * @return string Output from debug tool
+	 */
+	public static function invalidate_wc_tax_rates_cache() {
+		if ( method_exists( 'WC_Cache_Helper', 'invalidate_cache_group' ) ) {  // WC 3.9+
+			WC_Cache_Helper::invalidate_cache_group( 'taxes' );
+		} else {
+			WC_Cache_Helper::incr_cache_prefix( 'taxes' );
+		}
+
+		return  __( 'Tax rate cache cleared.', 'simple-sales-tax' );
 	}
 
 	/**
