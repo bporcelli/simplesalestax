@@ -208,8 +208,8 @@ class SST_Admin {
 
 	/**
 	 * Invalidates the WooCommerce tax rate cache.
-     *
-     * @return string Output from debug tool
+	 *
+	 * @return string Output from debug tool
 	 */
 	public static function invalidate_wc_tax_rates_cache() {
 		if ( method_exists( 'WC_Cache_Helper', 'invalidate_cache_group' ) ) {  // WC 3.9+
@@ -218,7 +218,7 @@ class SST_Admin {
 			WC_Cache_Helper::incr_cache_prefix( 'taxes' );
 		}
 
-		return  __( 'Tax rate cache cleared.', 'simple-sales-tax' );
+		return __( 'Tax rate cache cleared.', 'simple-sales-tax' );
 	}
 
 	/**
