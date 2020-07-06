@@ -200,13 +200,12 @@ class SST_Ajax {
 			wp_die( -1 );
 		}
 
-		$items        = [];
-		$order_id     = absint( $_POST['order_id'] );
-		$tax_based_on = get_option( 'woocommerce_tax_based_on' );
-		$country      = strtoupper( sanitize_text_field( $_POST['country'] ) );
-		$state        = strtoupper( sanitize_text_field( $_POST['state'] ) );
-		$postcode     = strtoupper( sanitize_text_field( $_POST['postcode'] ) );
-		$city         = sanitize_text_field( $_POST['city'] );
+		$items    = [];
+		$order_id = absint( $_POST['order_id'] );
+		$country  = strtoupper( sanitize_text_field( $_POST['country'] ) );
+		$state    = strtoupper( sanitize_text_field( $_POST['state'] ) );
+		$postcode = strtoupper( sanitize_text_field( $_POST['postcode'] ) );
+		$city     = sanitize_text_field( $_POST['city'] );
 
 		// Let Woo take the reins if the customer is international
 		if ( 'US' !== $country ) {
@@ -223,7 +222,7 @@ class SST_Ajax {
 
 		$order = wc_get_order( $order_id );
 
-		self::ensure_order_address( $order, $tax_based_on, compact( 'country', 'state', 'city', 'postcode' ) );
+		self::ensure_order_shipping_address( $order, compact( 'country', 'state', 'city', 'postcode' ) );
 
 		$result = sst_order_calculate_taxes( $order );
 
@@ -237,32 +236,21 @@ class SST_Ajax {
 	}
 
 	/**
-	 * Ensures that the order billing or shipping address is set before taxes
-	 * are calculated.
+	 * Ensures that the order shipping address is set before taxes are calculated.
 	 *
 	 * @param WC_Order $order   Order object.
-	 * @param string   $type    Type of address - can be 'billing' or 'shipping'.
 	 * @param array    $address POSTed address data.
 	 */
-	protected static function ensure_order_address( $order, $type, $address ) {
-		if ( ! in_array( $type, [ 'billing', 'shipping' ] ) ) {
-			return;
-		}
-
+	protected static function ensure_order_shipping_address( $order, $address ) {
 		try {
 			foreach ( $address as $field => $value ) {
-				if ( empty( $order->{"get_{$type}_{$field}"}() ) ) {
-					$order->{"set_{$type}_{$field}"}( $value );
+				if ( empty( $order->{"get_shipping_{$field}"}() ) ) {
+					$order->{"set_shipping_{$field}"}( $value );
 				}
 			}
 		} catch ( WC_Data_Exception $ex ) {
 			wc_get_logger()->error(
-				sprintf(
-					"Failed to set %s address for order #%d: %s",
-					$type,
-					$order->get_id(),
-					$ex->getMessage()
-				)
+				sprintf( 'Failed to set shipping address for order #%d: %s', $order->get_id(), $ex->getMessage() )
 			);
 		}
 	}

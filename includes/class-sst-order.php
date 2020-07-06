@@ -510,11 +510,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	public function get_destination_address() {
-		if ( 'billing' === get_option( 'woocommerce_tax_based_on' ) ) {
-			$raw_address = $this->get_billing_address();
-		} else {
-			$raw_address = $this->get_shipping_address();
-		}
+		$raw_address = $this->get_shipping_address();
 
 		try {
 			$address = new TaxCloud\Address(

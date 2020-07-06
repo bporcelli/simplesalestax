@@ -40,6 +40,7 @@ class SST_Admin {
 		add_action( 'product_cat_edit_form_fields', [ __CLASS__, 'output_category_tic_select' ] );
 		add_action( 'create_product_cat', [ __CLASS__, 'save_category_tic' ] );
 		add_action( 'edited_product_cat', [ __CLASS__, 'save_category_tic' ] );
+		add_action( 'woocommerce_before_settings_tax', [ __CLASS__, 'tax_based_on_notice' ] );
 	}
 
 	/**
@@ -263,6 +264,29 @@ class SST_Admin {
 	    $tic = isset( $_REQUEST['wootax_tic'] ) ? sanitize_text_field( $_REQUEST['wootax_tic'] ) : '';
 
 		update_term_meta( $term_id, 'tic', $tic );
+	}
+
+	/**
+	 * Outputs a notice under WooCommerce > Settings > Tax to indicate that the
+	 * WooCommerce "Calculate tax based on" setting is not respected.
+	 */
+	public static function tax_based_on_notice() {
+		$section = isset( $_GET['section'] ) ? $_GET['section'] : '';
+
+		if ( in_array( $section, [ '', 'tax' ] ) ) {
+			?>
+            <div class="notice notice-warning">
+                <p>
+					<?php
+					_e(
+						'<strong>Heads up!</strong> The WooCommerce "Calculate tax based on" setting is not respected by Simple Sales Tax. The customer billing address will <em>only</em> be used for tax calculations when the shipping address is not provided (e.g. for sales of digital goods).',
+						'simple-sales-tax'
+					);
+					?>
+                </p>
+            </div>
+			<?php
+		}
 	}
 
 }
