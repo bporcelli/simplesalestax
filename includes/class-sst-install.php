@@ -172,6 +172,9 @@ class SST_Install {
 						SST_RATE_ID
 					)
 				);
+				// Clear tax rate cache
+				$tools_controller = new WC_REST_System_Status_Tools_Controller();
+				$tools_controller->execute_tool( 'wootax_rate_tool' );
 			} else {
 				update_option( 'wootax_keep_rates', 'yes' );
 			}
