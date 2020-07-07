@@ -45,6 +45,6 @@
     "wc-e2e-page-objects": "0.10.0"
   },
   "dependencies": {
-    "npm": "^6.13.4"
+    "npm": "^6.14.6"
   }
 }
