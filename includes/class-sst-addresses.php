@@ -163,31 +163,56 @@ class SST_Addresses {
 	/**
 	 * Get all business addresses configured by the admin.
 	 *
+	 * @param bool $fetch Set to fetch addresses from TaxCloud account.
+	 *
 	 * @return SST_Origin_Address[] Array of SST_Origin_Address.
 	 * @since 5.0
 	 */
-	public static function get_origin_addresses() {
-		$raw_addresses = SST_Settings::get( 'addresses' );
+	public static function get_origin_addresses( $fetch = false ) {
+		$addresses       = [];
+		$saved_addresses = array_map( 'json_decode', (array) SST_Settings::get( 'addresses', array() ) );
 
-		if ( ! is_array( $raw_addresses ) ) {
-			return [];
-		}
-
-		$addresses = [];
-
-		foreach ( $raw_addresses as $raw_address ) {
-			$address = json_decode( $raw_address, true );
-
-			$addresses[] = new SST_Origin_Address(
-				$address['ID'],
-				$address['Default'],
-				$address['Address1'],
-				$address['Address2'],
-				$address['City'],
-				$address['State'],
-				$address['Zip5'],
-				$address['Zip4']
-			);
+		if ( $fetch ) {
+			$api_id  = SST_Settings::get( 'tc_id' );
+			$api_key = SST_Settings::get( 'tc_key' );
+			if ( $api_id && $api_key ) {
+				try {
+					$request   = new \TaxCloud\Request\GetLocations( $api_id, $api_key );
+					$locations = TaxCloud()->GetLocations( $request );
+					foreach ( $locations as $location ) {
+						$location_id = $location->getLocationID();
+						$is_default  = false;
+						if ( isset( $saved_addresses[ $location_id ] ) ) {
+							$is_default = $saved_addresses[ $location_id ]->Default;
+						}
+						$addresses[ $location_id ] = new SST_Origin_Address(
+							$location_id,
+							$is_default,
+							$location->GetAddress1(),
+							$location->getAddress2(),
+							$location->getCity(),
+							$location->getState(),
+							$location->getZip5(),
+							$location->getZip4()
+						);
+					}
+				} catch ( \TaxCloud\GetLocationsException $ex ) {
+					SST_Logger::add( 'GetLocations request failed. Error was: ' . $ex->getMessage() );
+				}
+			}
+		} else {
+			foreach ( $saved_addresses as $address ) {
+				$addresses[ $address->ID ] = new SST_Origin_Address(
+					$address->ID,
+					$address->Default,
+					$address->Address1,
+					$address->Address2,
+					$address->City,
+					$address->State,
+					$address->Zip5,
+					$address->Zip4
+				);
+			}
 		}
 
 		return $addresses;

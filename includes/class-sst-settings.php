@@ -82,17 +82,23 @@ class SST_Settings {
 				'desc_tip'    => true,
 				'id'          => 'verifySettings',
 			],
-			'business_addresses_settings' => [
-				'title'       => __( 'Business Addresses', 'simple-sales-tax' ),
+			'address_settings'            => [
+				'title'       => __( 'Address Settings', 'simple-sales-tax' ),
 				'type'        => 'title',
 				'description' => __(
-					'You must enter at least one business address for Simple Sales Tax to work properly. <strong>Important:</strong> Any addresses you enter here should also be registered as <a href="https://simplesalestax.com/taxcloud/locations/" target="_blank">locations</a> in TaxCloud.',
+					'To accurately determine the sales tax for an order, Simple Sales Tax needs to know the locations you ship your products from.<br>You can select from the addresses entered on the <a href="https://simplesalestax.com/taxcloud/locations/" target="_blank">Locations</a> page in TaxCloud.',
 					'simple-sales-tax'
 				),
 			],
-			'addresses'                   => [
-				'type'    => 'address_table',
-				'default' => [],
+			'default_origin_addresses'      => [
+				'title'       => __( 'Shipping Origin Addresses', 'simple-sales-tax' ),
+				'type'        => 'origin_address_select',
+				'description' => __(
+					'Select the addresses you ship your products from. You can choose a different set of origin addresses for a specific product under the Shipping tab on the Edit Product screen.',
+					'simple-sales-tax',
+				),
+				'desc_tip'    => true,
+				'default'     => [],
 			],
 			'exemption_settings'          => [
 				'title'       => __( 'Exemption Settings', 'simple-sales-tax' ),

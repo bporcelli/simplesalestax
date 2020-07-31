@@ -34,6 +34,7 @@ class SST_Integration extends WC_Integration {
 		// Register action hooks.
 		add_action( 'woocommerce_update_options_integration_' . $this->id, [ $this, 'process_admin_options' ] );
 		add_action( 'admin_init', [ $this, 'maybe_download_log_file' ] );
+		add_action( 'admin_init', [ $this, 'maybe_dismiss_address_notice' ] );
 	}
 
 	/**
@@ -121,150 +122,107 @@ class SST_Integration extends WC_Integration {
 	}
 
 	/**
-	 * Output HTML for 'address_table' field.
+	 * Output HTML for field of type 'origin_address_select'.
 	 *
-	 * @since 4.5
+	 * @since 6.2
 	 */
-	public function generate_address_table_html( $key, $data ) {
-		wp_enqueue_script( 'sst-address-table' );
-
-		wp_localize_script(
-			'sst-address-table',
-			'addressesLocalizeScript',
-			[
-				'addresses'       => $this->get_addresses(),
-				'strings'         => [
-					'one_default_required' => __( 'At least one default address is required.', 'simple-sales-tax' ),
-				],
-				'default_address' => [
-					'ID'       => '',
-					'Address1' => '',
-					'Address2' => '',
-					'City'     => '',
-					'State'    => '',
-					'Zip5'     => '',
-					'Zip4'     => '',
-					'Default'  => false,
-				],
-			]
-		);
+	public function generate_origin_address_select_html( $key, $data ) {
+		$field            = "{$this->plugin_id}{$this->id}_{$key}";
+		$origin_addresses = SST_Addresses::get_origin_addresses();
+		$api_id           = SST_Settings::get( 'tc_id' );
+		$api_key          = SST_Settings::get( 'tc_key' );
 
 		ob_start();
-		include dirname( __FILE__ ) . '/views/html-address-table.php';
+		?>
+		<tr valign="top">
+			<th scope="row" class="titledesc">
+				<label for="<?php echo esc_attr( $field ); ?>">
+					<?php echo wp_kses_post( $data['title'] ); ?><?php echo $this->get_tooltip_html( $data ); ?>
+				</label>
+			</th>
+			<td class="forminp">
+				<fieldset>
+					<legend class="screen-reader-text">
+						<span><?php echo wp_kses_post( $data['title'] ); ?></span>
+					</legend>
+					<?php if ( ! empty( $origin_addresses ) ): ?>
+						<select id="<?php echo esc_attr( $field ); ?>" name="<?php echo esc_attr( $field ); ?>[]"
+							    class="wc-enhanced-select origin-address-select" multiple="multiple"
+							    data-placeholder="<?php esc_attr_e( 'Select origin addresses', 'simple-sales-tax' ); ?>">
+							<?php
+							foreach ( $origin_addresses as $origin_address ) {
+								printf(
+									'<option value="%1$s"%2$s>%3$s</option>',
+									esc_attr( $origin_address->getID() ),
+									selected( $origin_address->getDefault(), true, false ),
+									esc_html( SST_Addresses::format( $origin_address ) )
+								);
+							}
+							?>
+						</select>
+					<?php elseif ( empty( $api_id ) || empty( $api_key ) ): ?>
+						<div class="notice notice-info inline sst-settings-notice">
+							<p>
+								<?php
+								_e(
+									'Enter your TaxCloud API credentials and click <strong>Save changes</strong> to configure your Origin Addresses.',
+									'simple-sales-tax'
+								);
+								?>
+							</p>
+						</div>
+					<?php else: ?>
+						<div class="notice notice-warning inline sst-settings-notice">
+							<p>
+								<?php
+								_e(
+									'Oops! It appears there are no addresses in your TaxCloud account. Please add at least one address on the <a href="https://simplesalestax.com/taxcloud/locations/" target="_blank">Locations</a> page in TaxCloud and then save your settings to refresh the address list.',
+									'simple-sales-tax'
+								);
+								?>
+							</p>
+						</div>
+					<?php endif; ?>
+					<?php echo $this->get_description_html( $data ); ?>
+				</fieldset>
+			</td>
+		</tr>
+		<?php
 
 		return ob_get_clean();
 	}
 
 	/**
-	 * Get addresses formatted for output.
+	 * Validate and save default origin addresses when options are saved.
 	 *
-	 * @since 5.0
-	 */
-	private function get_addresses() {
-		$addresses     = [];
-		$raw_addresses = $this->get_option( 'addresses', [] );
-
-		foreach ( $raw_addresses as $raw_address ) {
-			$addresses[] = json_decode( $raw_address, true );
-		}
-
-		return $addresses;
-	}
-
-	/**
-	 * Validate addresses when options are saved.
-	 *
-	 * @param string $key
-	 * @param string $value
+	 * @param string $key Settings field key.
+	 * @param array $value Selected origin address IDs.
 	 *
 	 * @return array
-	 * @since 5.0
+	 * @since 6.2
+	 * @throws Exception
 	 */
-	public function validate_addresses_field( $key, $value ) {
-		if ( ! isset( $_POST['addresses'] ) || ! is_array( $_POST['addresses'] ) ) {
-			return [];
+	public function validate_default_origin_addresses_field( $key, $value ) {
+		$addresses = SST_Addresses::get_origin_addresses();
+
+		// You need addresses to have default addresses
+		if ( empty( $addresses ) ) {
+			return array();
 		}
 
-		$taxcloud_id  = sanitize_text_field( $_POST['woocommerce_wootax_tc_id'] );
-		$taxcloud_key = sanitize_text_field( $_POST['woocommerce_wootax_tc_key'] );
-
-		$default_address = [
-			'Address1' => '',
-			'Address2' => '',
-			'City'     => '',
-			'State'    => '',
-			'Zip5'     => '',
-			'Zip4'     => '',
-			'ID'       => '',
-			'Default'  => 'no',
-		];
-
-		$has_default = false;
-		$addresses   = [];
-
-		foreach ( $_POST['addresses'] as $raw_address ) {
-			// Use defaults for missing fields
-			$raw_address = array_map( 'sanitize_text_field', array_merge( $default_address, $raw_address ) );
-
-			try {
-				$address = new TaxCloud\Address(
-					$raw_address['Address1'],
-					$raw_address['Address2'],
-					$raw_address['City'],
-					$raw_address['State'],
-					$raw_address['Zip5'],
-					$raw_address['Zip4']
-				);
-			} catch ( Exception $ex ) {
-				// Leave out address with error
-				$this->add_error(
-					sprintf(
-						__( 'Failed to save address <em>%s</em>: %s', 'simple-sales-tax' ),
-						$raw_address['Address1'],
-						$ex->getMessage()
-					)
-				);
-				continue;
-			}
-
-			try {
-				$request = new TaxCloud\Request\VerifyAddress( $taxcloud_id, $taxcloud_key, $address );
-				$address = TaxCloud()->VerifyAddress( $request );
-			} catch ( Exception $ex ) {
-				// Use original address
-				SST_Logger::add(
-					sprintf( __( 'Failed to validate address: %s.', 'simple-sales-tax' ), $ex->getMessage() )
-				);
-			}
-
-			// Convert verified address to SST_Origin_Address
-			$is_default = 'yes' == $raw_address['Default'];
-
-			$addresses[] = new SST_Origin_Address(
-				count( $addresses ),        // ID
-				$is_default,                // Default
-				$address->getAddress1(),
-				$address->getAddress2(),
-				$address->getCity(),
-				$address->getState(),
-				$address->getZip5(),
-				$address->getZip4()
-			);
-
-			$has_default = $has_default | $is_default;
+		if ( empty( $value ) ) {
+			throw new Exception( __( 'Please select at least one origin address.', 'simple-sales-tax' ) );
 		}
 
-		// Ensure that a default address is configured
-		if ( ! $has_default && ! empty( $addresses ) ) {
-			$addresses[0]->setDefault( true );
+		$selected_addresses = array_map( 'sanitize_title', (array) $value );
+
+		foreach ( $addresses as $address ) {
+			$address->setDefault( in_array( $address->getID(), $selected_addresses ) );
 		}
 
-		// JSON serialize for storage in DB
-		foreach ( $addresses as $key => $address ) {
-			$addresses[ $key ] = json_encode( $address );
-		}
+		SST_Settings::set( 'addresses', array_map( 'json_encode', $addresses ) );
 
-		return $addresses;
+		return $selected_addresses;
 	}
 
 	/**
@@ -296,6 +254,42 @@ class SST_Integration extends WC_Integration {
 
 		readfile( $log_path );
 		exit;
+	}
+
+	/**
+	 * Processes and saves options, refreshing the origin address list in the process.
+	 *
+	 * If there is an error thrown, will continue to save and validate fields, but will leave the erroring field out.
+	 *
+	 * @return bool was anything saved?
+	 */
+	public function process_admin_options() {
+		$result = parent::process_admin_options();
+
+		/**
+		 * Refresh the origin address list.
+		 *
+		 * Hold on refreshing if the user hasn't applied the 6.2 data update yet,
+		 * since refreshing under these conditions can break sales tax calcs for
+		 * products that have their origin addresses set with the old address keys.
+		 */
+		if ( version_compare( get_option( 'wootax_version' ), '6.2', '>=' ) ) {
+			SST_Settings::set(
+				'addresses',
+				array_map( 'json_encode', SST_Addresses::get_origin_addresses( true ) )
+			);
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Dismisses the 6.2 update address mismatch notice if the appropriate query var is set.
+	 */
+	public function maybe_dismiss_address_notice() {
+		if ( isset( $_GET['dismiss_sst_address_notice'] ) ) {
+			WC_Admin_Notices::remove_notice( 'sst_address_mismatch' );
+		}
 	}
 
 }

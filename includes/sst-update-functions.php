@@ -825,3 +825,528 @@ function _sst_update_606_get_address( $address ) {
 		'zip'       => $address->getZip(),
 	];
 }
+
+/**
+ * Import shipping origin addresses from TaxCloud when updating to 6.2.
+ */
+function sst_update_620_import_origin_addresses() {
+	$taxcloud_addresses = SST_Addresses::get_origin_addresses( true );
+	$saved_addresses    = SST_Settings::get( 'addresses', array() );
+
+	if ( empty( $saved_addresses ) ) {
+		// Easy case: Just save the new addresses
+		SST_Settings::set( 'addresses', array_map( 'json_encode', $taxcloud_addresses ) );
+		return false;
+	}
+
+	// Reset Default flag for all addresses. May be incorrect.
+	foreach ( $taxcloud_addresses as $taxcloud_address ) {
+		$taxcloud_address->setDefault( false );
+	}
+
+	// Set Default flag for addresses as appropriate.
+	$address_mismatch_detected = false;
+	$address_id_map            = array();
+	foreach ( $saved_addresses as $old_index => $saved_address ) {
+		$saved_address      = json_decode( $saved_address, true );
+		$normalized_address = _sst_update_620_normalize_address( $saved_address['Address1'] );
+		$matching_address   = null;
+		foreach ( $taxcloud_addresses as $new_index => $taxcloud_address ) {
+			if ( _sst_update_620_normalize_address( $taxcloud_address->getAddress1() ) === $normalized_address ) {
+				$matching_address             = $taxcloud_address;
+				$address_id_map[ $old_index ] = $taxcloud_address->getID();
+				break;
+			}
+		}
+		if ( $matching_address ) {
+			$matching_address->setDefault( $saved_address['Default'] );
+		} else {
+			$address_mismatch_detected = true;
+		}
+	}
+
+	// Warn the admin if an address mismatch was detected.
+	if ( $address_mismatch_detected ) {
+		if ( ! class_exists( 'WC_Admin_Notices' ) ) {
+			require WC()->plugin_path() . '/admin/class-wc-admin-notices.php';
+		}
+		$dismiss_args = array(
+			'page'                       => 'wc-settings',
+			'tab'                        => 'integration',
+			'section'                    => 'wootax',
+			'dismiss_sst_address_notice' => 1
+		);
+		WC_Admin_Notices::add_custom_notice(
+			'sst_address_mismatch',
+			sprintf(
+				__(
+					'<strong>IMPORTANT: Your Simple Sales Tax settings may have changed.</strong> We made some improvements to the way we save your business addresses and we think your settings may have changed as a result. Please <a href="%1$s">check the value of the Shipping Origin Addresses setting</a> and review the origin addresses for any products that have custom origin addresses set ASAP. Sorry for the inconvenience!',
+					'simple-sales-tax'
+				),
+				add_query_arg( $dismiss_args, admin_url( 'admin.php' ) )
+			)
+		);
+	}
+
+	SST_Settings::set( 'addresses', array_map( 'json_encode', $taxcloud_addresses ) );
+
+	// Save the address ID map so we can use it to update product origin addresses
+	update_option( '_sst_update_620_address_id_map', $address_id_map );
+
+	// This will queue the sst_update_620_fix_product_origin_addresses task
+	return 'sst_update_620_fix_product_origin_addresses';
+}
+
+/**
+ * Helper function to normalize a street address. Replaces street suffixes
+ * like Avenue and Road with their abbreviations and converts everything to
+ * uppercase.
+ *
+ * Abbreviations taken from https://pe.usps.com/text/pub28/28apc_002.htm
+ *
+ * @param string $address A street address like 123 Easy Street.
+ *
+ * @return string Normalized street address.
+ */
+function _sst_update_620_normalize_address( $address ) {
+	$address      = strtoupper( $address );
+	$replacements = array(
+		'ALLEE'      => 'ALY',
+		'ALLEY'      => 'ALY',
+		'ALLY'       => 'ALY',
+		'ANEX'       => 'ANX',
+		'ANNEX'      => 'ANX',
+		'ANNX'       => 'ANX',
+		'ARCADE'     => 'ARC',
+		'AV'         => 'AVE',
+		'AVEN'       => 'AVE',
+		'AVENU'      => 'AVE',
+		'AVENUE'     => 'AVE',
+		'AVN'        => 'AVE',
+		'AVNUE'      => 'AVE',
+		'BAYOO'      => 'BYU',
+		'BAYOU'      => 'BYU',
+		'BEACH'      => 'BCH',
+		'BEND'       => 'BND',
+		'BLUF'       => 'BLF',
+		'BLUFF'      => 'BLF',
+		'BOT'        => 'BTM',
+		'BOTTM'      => 'BTM',
+		'BOTTOM'     => 'BTM',
+		'BOUL'       => 'BLVD',
+		'BOULEVARD'  => 'BLVD',
+		'BOULV'      => 'BLVD',
+		'BRNCH'      => 'BR',
+		'BRANCH'     => 'BR',
+		'BRDGE'      => 'BRG',
+		'BRIDGE'     => 'BRG',
+		'BROOK'      => 'BRK',
+		'BROOKS'     => 'BRKS',
+		'BURG'       => 'BG',
+		'BURGS'      => 'BGS',
+		'BYPA'       => 'BYP',
+		'BYPAS'      => 'BYP',
+		'BYPASS'     => 'BYP',
+		'BYPS'       => 'BYP',
+		'CAMP'       => 'CP',
+		'CMP'        => 'CP',
+		'CANYN'      => 'CYN',
+		'CANYON'     => 'CYN',
+		'CNYN'       => 'CYN',
+		'CAPE'       => 'CPE',
+		'CAUSEWAY'   => 'CSWY',
+		'CAUSWA'     => 'CSWY',
+		'CEN'        => 'CTR',
+		'CENT'       => 'CTR',
+		'CENTER'     => 'CTR',
+		'CENTR'      => 'CTR',
+		'CENTRE'     => 'CTR',
+		'CNTER'      => 'CTR',
+		'CNTR'       => 'CTR',
+		'CENTERS'    => 'CTRS',
+		'CIRC'       => 'CIR',
+		'CIRCL'      => 'CIR',
+		'CIRCLE'     => 'CIR',
+		'CRCL'       => 'CIR',
+		'CRCLE'      => 'CIR',
+		'CIRCLES'    => 'CIRS',
+		'CLIFF'      => 'CLF',
+		'CLIFFS'     => 'CLFS',
+		'CLUB'       => 'CLB',
+		'COMMON'     => 'CMN',
+		'COMMONS'    => 'CMNS',
+		'CORNER'     => 'COR',
+		'CORNERS'    => 'CORS',
+		'COURSE'     => 'CRSE',
+		'COURT'      => 'CT',
+		'COURTS'     => 'CTS',
+		'COVE'       => 'CV',
+		'COVES'      => 'CVS',
+		'CREEK'      => 'CRK',
+		'CRESCENT'   => 'CRES',
+		'CRSENT'     => 'CRES',
+		'CRSNT'      => 'CRES',
+		'CREST'      => 'CRST',
+		'CROSSING'   => 'XING',
+		'CRSSNG'     => 'XING',
+		'CROSSROAD'  => 'XRD',
+		'CROSSROADS' => 'XRDS',
+		'CURVE'      => 'CURV',
+		'DALE'       => 'DL',
+		'DAM'        => 'DM',
+		'DIV'        => 'DV',
+		'DIVIDE'     => 'DV',
+		'DVD'        => 'DV',
+		'DRIV'       => 'DR',
+		'DRIVE'      => 'DR',
+		'DRV'        => 'DR',
+		'DRIVES'     => 'DRS',
+		'ESTATE'     => 'EST',
+		'ESTATES'    => 'ESTS',
+		'EXP'        => 'EXPY',
+		'EXPR'       => 'EXPY',
+		'EXPRESS'    => 'EXPY',
+		'EXPRESSWAY' => 'EXPY',
+		'EXPW'       => 'EXPY',
+		'EXTENSION'  => 'EXT',
+		'EXTN'       => 'EXT',
+		'EXTNSN'     => 'EXT',
+		'EXTENSIONS' => 'EXTS',
+		'FALLS'      => 'FLS',
+		'FERRY'      => 'FRY',
+		'FRRY'       => 'FRY',
+		'FIELD'      => 'FLD',
+		'FIELDS'     => 'FLDS',
+		'FLAT'       => 'FLT',
+		'FLATS'      => 'FLTS',
+		'FORD'       => 'FRD',
+		'FORDS'      => 'FRDS',
+		'FOREST'     => 'FRST',
+		'FORESTS'    => 'FRST',
+		'FORG'       => 'FRG',
+		'FORGE'      => 'FRG',
+		'FORGES'     => 'FRGS',
+		'FORK'       => 'FRK',
+		'FORKS'      => 'FRKS',
+		'FORT'       => 'FT',
+		'FRT'        => 'FT',
+		'FREEWAY'    => 'FWY',
+		'FREEWY'     => 'FWY',
+		'FRWAY'      => 'FWY',
+		'FRWY'       => 'FWY',
+		'GARDEN'     => 'GDN',
+		'GARDN'      => 'GDN',
+		'GRDEN'      => 'GDN',
+		'GRDN'       => 'GDN',
+		'GARDENS'    => 'GDNS',
+		'GRDNS'      => 'GDNS',
+		'GATEWAY'    => 'GTWY',
+		'GATEWY'     => 'GTWY',
+		'GATWAY'     => 'GTWY',
+		'GTWAY'      => 'GTWY',
+		'GLEN'       => 'GLN',
+		'GLENS'      => 'GLNS',
+		'GREEN'      => 'GRN',
+		'GREENS'     => 'GRNS',
+		'GROV'       => 'GRV',
+		'GROVE'      => 'GRV',
+		'GROVES'     => 'GRVS',
+		'HARB'       => 'HBR',
+		'HARBOR'     => 'HBR',
+		'HARBR'      => 'HBR',
+		'HRBOR'      => 'HBR',
+		'HARBORS'    => 'HBRS',
+		'HAVEN'      => 'HVN',
+		'HEIGHTS'    => 'HTS',
+		'HT'         => 'HTS',
+		'HIGHWAY'    => 'HWY',
+		'HIGHWY'     => 'HWY',
+		'HIWAY'      => 'HWY',
+		'HIWY'       => 'HWY',
+		'HWAY'       => 'HWY',
+		'HILL'       => 'HL',
+		'HILLS'      => 'HLS',
+		'HLLW'       => 'HOLW',
+		'HOLLOW'     => 'HOLW',
+		'HOLLOWS'    => 'HOLW',
+		'HOLWS'      => 'HOLW',
+		'INLET'      => 'INLT',
+		'ISLAND'     => 'IS',
+		'ISLND'      => 'IS',
+		'ISLANDS'    => 'ISS',
+		'ISLNDS'     => 'ISS',
+		'ISLES'      => 'ISLE',
+		'JCTION'     => 'JCT',
+		'JCTN'       => 'JCT',
+		'JUNCTION'   => 'JCT',
+		'JUNCTN'     => 'JCT',
+		'JUNCTON'    => 'JCT',
+		'JCTNS'      => 'JCTS',
+		'JUNCTIONS'  => 'JCTS',
+		'KEY'        => 'KY',
+		'KEYS'       => 'KYS',
+		'KNOL'       => 'KNL',
+		'KNOLL'      => 'KNL',
+		'KNOLLS'     => 'KNLS',
+		'LAKE'       => 'LK',
+		'LAKES'      => 'LKS',
+		'LANDING'    => 'LNDG',
+		'LNDNG'      => 'LNDG',
+		'LANE'       => 'LN',
+		'LIGHT'      => 'LGT',
+		'LIGHTS'     => 'LGTS',
+		'LOAF'       => 'LF',
+		'LOCK'       => 'LCK',
+		'LOCKS'      => 'LCKS',
+		'LDGE'       => 'LDG',
+		'LODG'       => 'LDG',
+		'LODGE'      => 'LDG',
+		'LOOPS'      => 'LOOP',
+		'MANOR'      => 'MNR',
+		'MANORS'     => 'MNRS',
+		'MDW'        => 'MDWS',
+		'MEADOWS'    => 'MDWS',
+		'MEDOWS'     => 'MDWS',
+		'MILL'       => 'ML',
+		'MILLS'      => 'MLS',
+		'MISSION'    => 'MSN',
+		'MISSN'      => 'MSN',
+		'MSSN'       => 'MSN',
+		'MOTORWAY'   => 'MTWY',
+		'MOUNT'      => 'MT',
+		'MNT'        => 'MT',
+		'MNTAIN'     => 'MTN',
+		'MNTN'       => 'MTN',
+		'MOUNTAIN'   => 'MTN',
+		'MOUNTIN'    => 'MTN',
+		'MTIN'       => 'MTN',
+		'MNTNS'      => 'MTNS',
+		'MOUNTAINS'  => 'MTNS',
+		'NECK'       => 'NCK',
+		'ORCHARD'    => 'ORCH',
+		'ORCHRD'     => 'ORCH',
+		'OVL'        => 'OVAL',
+		'OVERPASS'   => 'OPAS',
+		'PRK'        => 'PARK',
+		'PARKS'      => 'PARK',
+		'PARKWAY'    => 'PKWY',
+		'PARKWY'     => 'PKWY',
+		'PKWAY'      => 'PKWY',
+		'PKY'        => 'PKWY',
+		'PARKWAYS'   => 'PKWY',
+		'PKWYS'      => 'PKWY',
+		'PASSAGE'    => 'PSGE',
+		'PATHS'      => 'PATH',
+		'PIKES'      => 'PIKE',
+		'PINE'       => 'PNE',
+		'PINES'      => 'PNES',
+		'PLACE'      => 'PL',
+		'PLAIN'      => 'PLN',
+		'PLAINS'     => 'PLNS',
+		'PLAZA'      => 'PLZ',
+		'PLZA'       => 'PLZ',
+		'POINT'      => 'PT',
+		'POINTS'     => 'PTS',
+		'PORT'       => 'PRT',
+		'PORTS'      => 'PRTS',
+		'PRAIRIE'    => 'PR',
+		'PRR'        => 'PR',
+		'RAD'        => 'RADL',
+		'RADIAL'     => 'RADL',
+		'RADIEL'     => 'RADL',
+		'RANCH'      => 'RNCH',
+		'RANCHES'    => 'RNCH',
+		'RNCHS'      => 'RNCH',
+		'RAPID'      => 'RPD',
+		'RAPIDS'     => 'RPDS',
+		'REST'       => 'RST',
+		'RDGE'       => 'RDG',
+		'RIDGE'      => 'RDG',
+		'RIDGES'     => 'RDGS',
+		'RIVER'      => 'RIV',
+		'RVR'        => 'RIV',
+		'RIVR'       => 'RIV',
+		'ROAD'       => 'RD',
+		'ROADS'      => 'RDS',
+		'ROUTE'      => 'RTE',
+		'SHOAL'      => 'SHL',
+		'SHOALS'     => 'SHLS',
+		'SHOAR'      => 'SHR',
+		'SHORE'      => 'SHR',
+		'SHOARS'     => 'SHRS',
+		'SHORES'     => 'SHRS',
+		'SKYWAY'     => 'SKWY',
+		'SPNG'       => 'SPG',
+		'SPRING'     => 'SPG',
+		'SPRNG'      => 'SPG',
+		'SPNGS'      => 'SPGS',
+		'SPRINGS'    => 'SPGS',
+		'SPRNGS'     => 'SPGS',
+		'SPURS'      => 'SPUR',
+		'SQR'        => 'SQ',
+		'SQRE'       => 'SQ',
+		'SQU'        => 'SQ',
+		'SQUARE'     => 'SQ',
+		'SQRS'       => 'SQS',
+		'SQUARES'    => 'SQS',
+		'STATION'    => 'STA',
+		'STATN'      => 'STA',
+		'STN'        => 'STA',
+		'STRAV'      => 'STRA',
+		'STRAVEN'    => 'STRA',
+		'STRAVENUE'  => 'STRA',
+		'STRAVN'     => 'STRA',
+		'STRVN'      => 'STRA',
+		'STRVNUE'    => 'STRA',
+		'STREAM'     => 'STRM',
+		'STREME'     => 'STREME',
+		'STREET'     => 'ST',
+		'STRT'       => 'ST',
+		'STR'        => 'ST',
+		'STREETS'    => 'STS',
+		'SUMIT'      => 'SMT',
+		'SUMITT'     => 'SMT',
+		'SUMMIT'     => 'SMT',
+		'TERR'       => 'TER',
+		'TERRACE'    => 'TER',
+		'THROUGHWAY' => 'TRWY',
+		'TRACE'      => 'TRCE',
+		'TRACES'     => 'TRCE',
+		'TRACK'      => 'TRAK',
+		'TRACKS'     => 'TRAK',
+		'TRK'        => 'TRAK',
+		'TRKS'       => 'TRAK',
+		'TRAFFICWAY' => 'TRFY',
+		'TRAIL'      => 'TRL',
+		'TRAILS'     => 'TRL',
+		'TRLS'       => 'TRL',
+		'TRAILER'    => 'TRLR',
+		'TRLRS'      => 'TRLR',
+		'TUNEL'      => 'TUNL',
+		'TUNLS'      => 'TUNL',
+		'TUNNEL'     => 'TUNL',
+		'TUNNELS'    => 'TUNL',
+		'TUNNL'      => 'TUNL',
+		'TRNPK'      => 'TPKE',
+		'TURNPIKE'   => 'TPKE',
+		'TURNPK'     => 'TPKE',
+		'UNDERPASS'  => 'UPAS',
+		'UNION'      => 'UN',
+		'UNIONS'     => 'UNS',
+		'VALLEY'     => 'VLY',
+		'VALLY'      => 'VLY',
+		'VLLY'       => 'VLY',
+		'VALLEYS'    => 'VLYS',
+		'VDCT'       => 'VIA',
+		'VIADCT'     => 'VIA',
+		'VIADUCT'    => 'VIA',
+		'VIEW'       => 'VW',
+		'VIEWS'      => 'VWS',
+		'VILL'       => 'VLG',
+		'VILLAG'     => 'VLG',
+		'VILLAGE'    => 'VLG',
+		'VILLG'      => 'VLG',
+		'VILLIAGE'   => 'VLG',
+		'VILLAGES'   => 'VLGS',
+		'VILLE'      => 'VL',
+		'VIST'       => 'VIS',
+		'VISTA'      => 'VIS',
+		'VST'        => 'VIS',
+		'VSTA'       => 'VIS',
+		'WALKS'      => 'WALK',
+		'WY'         => 'WAY',
+		'WELL'       => 'WL',
+		'WELLS'      => 'WLS',
+		'NORTH'      => 'N',
+		'NORTHEAST'  => 'NE',
+		'NORTHWEST'  => 'NW',
+		'EAST'       => 'E',
+		'SOUTH'      => 'SW',
+		'SOUTHEAST'  => 'SE',
+		'SOUTHWEST'  => 'SW',
+		'WEST'       => 'W',
+	);
+
+	$find    = array();
+	$replace = array();
+	foreach ( $replacements as $str_to_replace => $replacement ) {
+		$find[]    = " {$str_to_replace} ";
+		$replace[] = " {$replacement} ";
+	}
+
+	// Add space after address so finding word boundaries is easier
+	$address .= ' ';
+
+	return trim( str_replace( $find, $replace, $address ) );
+}
+
+/**
+ * Update the saved origin addresses for each product after importing the
+ * addresses from the user's TaxCloud account.
+ */
+function sst_update_620_fix_product_origin_addresses() {
+	global $wpdb;
+
+	$product_ids = $wpdb->get_col(
+		"SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wootax_origin_addresses' AND meta_value != ''"
+	);
+
+	if ( empty( $product_ids ) ) {
+		// Nothing to process. Return false to bail.
+		return false;
+	}
+
+	// Kick off batch processing of products.
+	update_option( '_sst_update_620_products_list', $product_ids );
+	update_option( '_sst_update_620_batch_offset', 0 );
+
+	return 'sst_update_620_fix_product_origin_addresses_batch';
+}
+
+/**
+ * Updates the origin addresses for a batch of 100 products.
+ *
+ * We used to save the index of the product origin addresses, now we save
+ * TaxCloud Location IDs.
+ */
+function sst_update_620_fix_product_origin_addresses_batch() {
+	$address_id_map = get_option( '_sst_update_620_address_id_map', array() );
+
+	// If we don't have the address ID map we can't do anything, so bail.
+	if ( ! $address_id_map ) {
+		delete_option( '_sst_update_620_products_list' );
+		delete_option( '_sst_update_620_batch_offset' );
+
+		return false;
+	}
+
+	$all_product_ids   = get_option( '_sst_update_620_products_list', array() );
+	$offset            = get_option( '_sst_update_620_batch_offset', 0 );
+	$batch_size        = 2;
+	$batch_product_ids = array_slice( $all_product_ids, $offset, $batch_size );
+
+	foreach ( $batch_product_ids as $product_id ) {
+		$saved_origin_addresses = get_post_meta( $product_id, '_wootax_origin_addresses', true );
+		$new_origin_addresses   = array();
+		foreach ( $saved_origin_addresses as $address_index ) {
+			if ( isset( $address_id_map[ $address_index ] ) ) {
+				$new_origin_addresses[] = $address_id_map[ $address_index ];
+			}
+		}
+		update_post_meta( $product_id, '_wootax_origin_addresses', $new_origin_addresses );
+		update_post_meta( $product_id, '_wootax_origin_addresses_pre_62', $saved_origin_addresses );
+	}
+
+	if ( count( $batch_product_ids ) < $batch_size ) {
+		// Reached end. Clean up.
+		delete_option( '_sst_update_620_products_list' );
+		delete_option( '_sst_update_620_batch_offset' );
+
+		return false;
+	}
+
+	// Continue processing next batch.
+	update_option( '_sst_update_620_batch_offset', $offset + $batch_size );
+
+	return 'sst_update_620_fix_product_origin_addresses_batch';
+}

@@ -18,7 +18,7 @@ use TaxCloud\Address;
 class SST_Origin_Address extends Address {
 
 	/**
-	 * @var int Address ID.
+	 * @var string Address ID.
 	 */
 	protected $ID;
 
@@ -42,7 +42,7 @@ class SST_Origin_Address extends Address {
 	/**
 	 * Set ID.
 	 *
-	 * @param int $ID
+	 * @param string $ID
 	 *
 	 * @since 5.0
 	 */
@@ -53,7 +53,7 @@ class SST_Origin_Address extends Address {
 	/**
 	 * Get ID.
 	 *
-	 * @return int
+	 * @return string
 	 * @since 5.0
 	 */
 	public function getID() {

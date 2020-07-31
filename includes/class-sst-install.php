@@ -45,6 +45,9 @@ class SST_Install {
 		'6.0.6' => [
 			'sst_update_606_fix_duplicate_transactions',
 		],
+		'6.2.0' => [
+			'sst_update_620_import_origin_addresses',
+		],
 	];
 
 	/**

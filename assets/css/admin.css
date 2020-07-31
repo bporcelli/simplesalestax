@@ -16,6 +16,11 @@
     vertical-align: middle;
 }
 
+.sst-settings-notice {
+    margin: 0 !important;
+    max-width: 771px;
+}
+
 /**
  * Hide Tax Status/Tax Class fields
  */

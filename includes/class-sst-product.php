@@ -229,7 +229,7 @@ class SST_Product {
 		$origins = [];
 
 		if ( isset( $_REQUEST['_wootax_origin_addresses'] ) ) {
-			$origins = array_map( 'absint', $_REQUEST['_wootax_origin_addresses'] );
+			$origins = array_map( 'sanitize_title', $_REQUEST['_wootax_origin_addresses'] );
 		}
 
 		update_post_meta( $product_id, '_wootax_origin_addresses', $origins );
