@@ -1,7 +1,7 @@
 <?php
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit; // Exit if accessed directly.
 }
 
 /**
@@ -16,7 +16,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SST_Ajax {
 
 	/**
-	 * @var array Hooks.
+	 * AJAX Hooks.
+	 *
+	 * @var array
 	 * @since 5.0
 	 */
 	private static $hooks = array(
@@ -56,8 +58,15 @@ class SST_Ajax {
 	 * @since 5.0
 	 */
 	public static function verify_taxcloud() {
-		$taxcloud_id  = sanitize_text_field( $_POST['wootax_tc_id'] );
-		$taxcloud_key = sanitize_text_field( $_POST['wootax_tc_key'] );
+		$taxcloud_id  = '';
+		$taxcloud_key = '';
+
+		if ( isset( $_POST['wootax_tc_id'] ) ) {
+			$taxcloud_id = sanitize_text_field( wp_unslash( $_POST['wootax_tc_id'] ) ); // phpcs:ignore WordPress.CSRF.NonceVerification
+		}
+		if ( isset( $_POST['wootax_tc_key'] ) ) {
+			$taxcloud_key = sanitize_text_field( wp_unslash( $_POST['wootax_tc_key'] ) ); // phpcs:ignore WordPress.CSRF.NonceVerification
+		}
 
 		if ( empty( $taxcloud_id ) || empty( $taxcloud_key ) ) {
 			wp_send_json_error();
@@ -77,11 +86,17 @@ class SST_Ajax {
 	 * @since 5.0
 	 */
 	public static function delete_certificate() {
-		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'sst_delete_certificate' ) ) {
+		$nonce = isset( $_POST['nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) ) : '';
+
+		if ( ! wp_verify_nonce( $nonce, 'sst_delete_certificate' ) ) {
 			return;
 		}
 
-		$certificate_id = sanitize_text_field( $_POST['certificate_id'] );
+		$certificate_id = '';
+
+		if ( isset( $_POST['certificate_id'] ) ) {
+			$certificate_id = sanitize_text_field( wp_unslash( $_POST['certificate_id'] ) );
+		}
 
 		try {
 			$request = new TaxCloud\Request\DeleteExemptCertificate(
@@ -92,7 +107,7 @@ class SST_Ajax {
 
 			TaxCloud()->DeleteExemptCertificate( $request );
 
-			// Invalidate cached certificates
+			// Invalidate cached certificates.
 			SST_Certificates::delete_certificates();
 
 			wp_send_json_success(
@@ -114,8 +129,10 @@ class SST_Ajax {
 	 * @since 5.0
 	 */
 	public static function add_certificate() {
-		// Handle invalid requests
-		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'sst_add_certificate' ) ) {
+		$nonce = isset( $_POST['nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) ) : '';
+
+		// Handle invalid requests.
+		if ( ! wp_verify_nonce( $nonce, 'sst_add_certificate' ) ) {
 			return;
 		}
 
@@ -123,12 +140,14 @@ class SST_Ajax {
 			wp_send_json_error( __( 'Invalid request.', 'simple-sales-tax' ) );
 		}
 
-		// Get data
-		$form_data = array();
-		parse_str( $_POST['form_data'], $form_data );
-		$form_data = array_map( 'sanitize_text_field', array_merge( $_POST['certificate'], $form_data ) );
+		$raw_form_data = sanitize_text_field( wp_unslash( $_POST['form_data'] ) );
+		$certificate   = array_map( 'sanitize_text_field', wp_unslash( $_POST['certificate'] ) );
 
-		// Construct certificate
+		// Get data.
+		$form_data = array();
+		parse_str( $raw_form_data, $form_data );
+
+		// Construct certificate.
 		$exempt_state = new TaxCloud\ExemptState(
 			$form_data['ExemptState'],
 			$form_data['PurchaserExemptionReason'],
@@ -160,7 +179,7 @@ class SST_Ajax {
 			$form_data['PurchaserExemptionReasonValue']
 		);
 
-		// Add certificate
+		// Add certificate.
 		$user = wp_get_current_user();
 
 		$certificate_id = '';
@@ -175,7 +194,7 @@ class SST_Ajax {
 
 			$certificate_id = TaxCloud()->AddExemptCertificate( $request );
 
-			SST_Certificates::delete_certificates();  // Invalidate cache
+			SST_Certificates::delete_certificates();  // Invalidate cache.
 		} catch ( Exception $ex ) {
 			wp_send_json_error( $ex->getMessage() );
 		}
@@ -200,24 +219,29 @@ class SST_Ajax {
 			wp_die( -1 );
 		}
 
+		if ( ! isset( $_POST['order_id'], $_POST['country'], $_POST['state'], $_POST['postcode'], $_POST['city'], $_POST['items'] ) ) {
+			wp_die( -1 );
+		}
+
 		$items    = array();
 		$order_id = absint( $_POST['order_id'] );
-		$country  = strtoupper( sanitize_text_field( $_POST['country'] ) );
-		$state    = strtoupper( sanitize_text_field( $_POST['state'] ) );
-		$postcode = strtoupper( sanitize_text_field( $_POST['postcode'] ) );
-		$city     = sanitize_text_field( $_POST['city'] );
+		$country  = strtoupper( sanitize_text_field( wp_unslash( $_POST['country'] ) ) );
+		$state    = strtoupper( sanitize_text_field( wp_unslash( $_POST['state'] ) ) );
+		$postcode = strtoupper( sanitize_text_field( wp_unslash( $_POST['postcode'] ) ) );
+		$city     = sanitize_text_field( wp_unslash( $_POST['city'] ) );
 
-		// Let Woo take the reins if the customer is international
+		// Let Woo take the reins if the customer is international.
 		if ( 'US' !== $country ) {
 			return;
 		}
 
-		// Parse jQuery serialized items
-		parse_str( $_POST['items'], $items );
+		// Parse jQuery serialized items.
+		$raw_items = sanitize_text_field( wp_unslash( $_POST['items'] ) );
+		parse_str( $raw_items, $items );
 
 		$items = wc_clean( $items );
 
-		// Save items and recalc taxes
+		// Save items and recalc taxes.
 		wc_save_order_items( $order_id, $items );
 
 		$order = wc_get_order( $order_id );
@@ -227,7 +251,7 @@ class SST_Ajax {
 		$result = sst_order_calculate_taxes( $order );
 
 		if ( is_wp_error( $result ) ) {
-			wp_die( $result->get_error_message() );
+			wp_die( $result->get_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput
 		}
 
 		include WC()->plugin_path() . '/includes/admin/meta-boxes/views/html-order-items.php';

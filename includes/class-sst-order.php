@@ -1,7 +1,7 @@
 <?php
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit; // Exit if accessed directly.
 }
 
 /**
@@ -16,13 +16,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SST_Order extends SST_Abstract_Cart {
 
 	/**
-	 * @var string Prefix for meta keys.
+	 * Prefix for meta keys.
+	 *
+	 * @var string
 	 * @since 5.0
 	 */
 	protected static $prefix = '_wootax_';
 
 	/**
-	 * @var array Default values for order meta fields.
+	 * Default values for order meta fields.
+	 *
+	 * @var array
 	 * @since 4.4
 	 */
 	protected static $defaults = array(
@@ -33,7 +37,9 @@ class SST_Order extends SST_Abstract_Cart {
 	);
 
 	/**
-	 * @var WC_Order WooCommerce order.
+	 * WooCommerce order.
+	 *
+	 * @var WC_Order
 	 * @since 5.0
 	 */
 	protected $order = null;
@@ -60,8 +66,8 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Forward method calls to the encapsulated WC_Order instance.
 	 *
-	 * @param string $name
-	 * @param array  $args
+	 * @param string $name Method name.
+	 * @param array  $args Method arguments.
 	 *
 	 * @return mixed
 	 * @since 5.0
@@ -77,7 +83,7 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Can we perform a lookup for the given package?
 	 *
-	 * @param array $package
+	 * @param array $package Shipping package.
 	 *
 	 * @return bool
 	 * @since 5.0
@@ -97,7 +103,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	public function get_packages() {
-		// use array_values so package keys are integers (we want nice order IDs like 9004_0, 9004_1,... in TaxCloud)
+		// use array_values so package keys are integers (we want nice order IDs like 9004_0, 9004_1,... in TaxCloud).
 		$packages = $this->get_meta( 'packages' );
 
 		if ( ! is_array( $packages ) ) {
@@ -110,7 +116,7 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Set saved packages for this order.
 	 *
-	 * @param $packages array (default: array())
+	 * @param array $packages Packages to save for order (default: array()).
 	 *
 	 * @since 5.0
 	 */
@@ -126,7 +132,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 * Transform an array of cart items to match the format expected during
 	 * checkout.
 	 *
-	 * @param array $cart_items
+	 * @param WC_Order_Item[] $cart_items WooCommerce order items.
 	 *
 	 * @return array
 	 * @since 5.0
@@ -146,7 +152,8 @@ class SST_Order extends SST_Abstract_Cart {
 		$items    = $this->transform_items( $this->order->get_items() );
 
 		/* Create a virtual package for all items that don't need shipping */
-		if ( ( $virtual_package = $this->create_virtual_package( $items ) ) ) {
+		$virtual_package = $this->create_virtual_package( $items );
+		if ( $virtual_package ) {
 			$packages[] = $virtual_package;
 		}
 
@@ -165,11 +172,11 @@ class SST_Order extends SST_Abstract_Cart {
 					array(
 						'contents' => $contents,
 						'shipping' => new WC_Shipping_Rate(
-							key( $ship_methods ),   // id
-							'',               // name
-							$method['cost'],        // cost
-							array(),                     // taxes
-							$method['method_id']    // method id
+							key( $ship_methods ),
+							'',
+							$method['cost'],
+							array(),
+							$method['method_id']
 						),
 						'user'     => array(
 							'ID' => $this->order->get_user_id(),
@@ -202,8 +209,10 @@ class SST_Order extends SST_Abstract_Cart {
 				next( $ship_methods );
 			}
 		} elseif ( $items ) {
-			// If there are no shipping lines added to the order, we assume that
-			// there is a single shipment with all products that need shipping.
+			/**
+			 * If there are no shipping lines added to the order, we assume that
+			 * there is a single shipment with all products that need shipping.
+			 */
 			$shippable_items = array();
 			foreach ( $items as $item_id => $item ) {
 				if ( isset( $item['data'] ) && $item['data']->needs_shipping() ) {
@@ -375,7 +384,7 @@ class SST_Order extends SST_Abstract_Cart {
 		$item->set_taxes( $tax_data );
 		$item->save();
 
-		// Add the modified item to the order so the changes take effect
+		// Add the modified item to the order so the changes take effect.
 		$this->order->add_item( $item );
 	}
 
@@ -422,7 +431,7 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Sets the exemption certificate for the order.
 	 *
-	 * @param TaxCloud\ExemptionCertificateBase $certificate
+	 * @param TaxCloud\ExemptionCertificateBase $certificate Exemption certificate object.
 	 *
 	 * @since 6.0.7
 	 */
@@ -439,7 +448,6 @@ class SST_Order extends SST_Abstract_Cart {
 	 *
 	 * @param string $message Message describing the error.
 	 *
-	 * @throws Exception
 	 * @since 5.0
 	 */
 	protected function handle_error( $message ) {
@@ -453,7 +461,7 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Get TaxCloud status.
 	 *
-	 * @param string $context (default: 'edit')
+	 * @param string $context The context to format the status for. Can be 'edit' or 'view' (default: 'edit').
 	 *
 	 * @return string
 	 * @since 5.0
@@ -461,7 +469,7 @@ class SST_Order extends SST_Abstract_Cart {
 	public function get_taxcloud_status( $context = 'edit' ) {
 		$status = $this->get_meta( 'status' );
 
-		if ( 'view' == $context ) {
+		if ( 'view' === $context ) {
 			$status = ucfirst( $status );
 		}
 
@@ -533,8 +541,8 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Get order id for given package.
 	 *
-	 * @param string $package_key
-	 * @param array  $package (default: array())
+	 * @param string $package_key Package key.
+	 * @param array  $package     Package (default: array()).
 	 *
 	 * @return string
 	 * @since 5.0
@@ -552,18 +560,18 @@ class SST_Order extends SST_Abstract_Cart {
 	 *
 	 * @return bool true on success, false on failure.
 	 *
-	 * @throws Exception
 	 * @since 5.0
 	 */
 	public function do_capture() {
 		$taxcloud_status = $this->get_taxcloud_status();
 		$packages        = $this->get_packages();
 
-		// Handle error cases
-		if ( 'captured' == $taxcloud_status ) {
-			if ( 'no' == SST_Settings::get( 'capture_immediately' ) ) {
+		// Handle error cases.
+		if ( 'captured' === $taxcloud_status ) {
+			if ( 'no' === SST_Settings::get( 'capture_immediately' ) ) {
 				$this->handle_error(
 					sprintf(
+						/* translators: WooCommerce order ID */
 						__( 'Failed to capture order %d: already captured.', 'simple-sales-tax' ),
 						$this->order->get_id()
 					)
@@ -572,9 +580,10 @@ class SST_Order extends SST_Abstract_Cart {
 
 			return false;
 		} else {
-			if ( 'refunded' == $taxcloud_status ) {
+			if ( 'refunded' === $taxcloud_status ) {
 				$this->handle_error(
 					sprintf(
+						/* translators: WooCommerce order ID */
 						__( 'Failed to capture order %d: order was refunded.', 'simple-sales-tax' ),
 						$this->order->get_id()
 					)
@@ -584,7 +593,7 @@ class SST_Order extends SST_Abstract_Cart {
 			}
 		}
 
-		// Send AuthorizedWithCapture for all packages
+		// Send AuthorizedWithCapture for all packages.
 		foreach ( $packages as $key => $package ) {
 			$now = date( 'c' );
 
@@ -603,6 +612,7 @@ class SST_Order extends SST_Abstract_Cart {
 			} catch ( Exception $ex ) {
 				$this->handle_error(
 					sprintf(
+						/* translators: 1 - WooCommerce order ID, 2 - Error message from TaxCloud */
 						__( 'Failed to capture order %1$d: %2$s.', 'simple-sales-tax' ),
 						$this->order->get_id(),
 						$ex->getMessage()
@@ -622,17 +632,17 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Send Returned request to fully or partially refund an order.
 	 *
-	 * @param array $items Array of items to refund (default: array())
+	 * @param array $items Array of items to refund (default: array()).
 	 *
 	 * @return bool True on success, false on failure.
 	 *
-	 * @throws Exception
 	 * @since 5.0
 	 */
 	public function do_refund( $items = array() ) {
 		if ( 'captured' !== $this->get_taxcloud_status() ) {
 			$this->handle_error(
 				sprintf(
+					/* translators: WooCommerce order ID */
 					__( "Can't refund order %d: order must be completed first.", 'simple-sales-tax' ),
 					$this->order->get_id()
 				)
@@ -641,14 +651,14 @@ class SST_Order extends SST_Abstract_Cart {
 			return false;
 		}
 
-		// For full refunds, refund all fees, line items, and shipping charges
+		// For full refunds, refund all fees, line items, and shipping charges.
 		if ( empty( $items ) ) {
 			$items = $this->order->get_items( array( 'fee', 'shipping', 'line_item' ) );
 		}
 
 		$this->prepare_refund_items( $items );
 
-		// Process refunds while items remain
+		// Process refunds while items remain.
 		$packages = $this->get_packages();
 
 		while ( ! empty( $items ) ) {
@@ -664,19 +674,19 @@ class SST_Order extends SST_Abstract_Cart {
 			foreach ( $cart_items as $cart_item_key => $pitem ) {
 				$to_match = $package['map'][ $cart_item_key ];
 
-				if ( 'shipping' == $to_match['type'] ) {
+				if ( 'shipping' === $to_match['type'] ) {
 					$to_match['id'] = $this->process_method_id( $package['shipping']->method_id );
 				}
 
 				foreach ( $items as $item_key => $item ) {
-					if ( $item['id'] != $to_match['id'] ) {
-						continue; // No match
+					if ( $item['id'] !== $to_match['id'] ) {
+						continue; // No match.
 					}
 
 					$qty = min( $item['qty'], $pitem->getQty() );
 
 					$refund_items[] = new TaxCloud\CartItem(
-						sizeof( $refund_items ),
+						count( $refund_items ),
 						$pitem->getItemID(),
 						$pitem->getTIC(),
 						$item['price'],
@@ -685,7 +695,7 @@ class SST_Order extends SST_Abstract_Cart {
 
 					$item['qty'] -= $qty;
 
-					if ( $item['qty'] == 0 ) {
+					if ( 0 === (int) $item['qty'] ) {
 						unset( $items[ $item_key ] );
 					}
 				}
@@ -705,6 +715,7 @@ class SST_Order extends SST_Abstract_Cart {
 				} catch ( Exception $ex ) {
 					$this->handle_error(
 						sprintf(
+							/* translators: 1 - WooCommerce order ID, 2 - Error message from TaxCloud */
 							__( 'Failed to refund order %1$d: %2$s.', 'simple-sales-tax' ),
 							$this->order->get_id(),
 							$ex->getMessage()
@@ -718,7 +729,7 @@ class SST_Order extends SST_Abstract_Cart {
 			next( $packages );
 		}
 
-		// If order was fully refunded, set status accordingly
+		// If order was fully refunded, set status accordingly.
 		if ( 0 >= $this->order->get_remaining_refund_amount() ) {
 			$this->update_meta( 'status', 'refunded' );
 			$this->order->save();
@@ -732,7 +743,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 * method IDs. This method converts those nonstandard IDs into the standard
 	 * format.
 	 *
-	 * @param string $method_id
+	 * @param string $method_id WooCommerce shipping method ID.
 	 *
 	 * @return string
 	 * @since 5.3
@@ -765,7 +776,7 @@ class SST_Order extends SST_Abstract_Cart {
 			$unit_price = round( $line_total / $quantity, wc_get_price_decimals() );
 
 			/* Set quantity and price according to 'Tax Based On' setting */
-			if ( 'line-subtotal' == $tax_based_on ) {
+			if ( 'line-subtotal' === $tax_based_on ) {
 				$quantity = 1;
 				$price    = $line_total;
 			} else {
@@ -777,7 +788,7 @@ class SST_Order extends SST_Abstract_Cart {
 				case 'line_item':
 					$id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
 					break;
-				case 'shipping':  // TODO: handle packages w/ same method
+				case 'shipping':  // TODO: handle packages w/ same method.
 					$id = $this->process_method_id( $item['method_id'] );
 					break;
 				case 'fee':
@@ -818,9 +829,9 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Get meta value.
 	 *
-	 * @param string $key
-	 * @param bool   $single
-	 * @param string $context
+	 * @param string $key     Meta key.
+	 * @param bool   $single  Return first found meta with key, or all with $key.
+	 * @param string $context What the value is for. Valid values are view and edit.
 	 *
 	 * @return mixed empty string if key doesn't exist, otherwise value.
 	 * @since 5.0
@@ -842,7 +853,7 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Gets a saved package by its package hash.
 	 *
-	 * @param string $hash
+	 * @param string $hash Package hash.
 	 *
 	 * @return array|bool The saved package with the given hash, or false if no such package exists.
 	 */
@@ -859,8 +870,8 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Saves a package.
 	 *
-	 * @param string $hash
-	 * @param array  $package
+	 * @param string $hash    Package hash.
+	 * @param array  $package Package.
 	 */
 	protected function save_package( $hash, $package ) {
 		$saved_packages = $this->get_meta( 'package_cache' );

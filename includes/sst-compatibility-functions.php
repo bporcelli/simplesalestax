@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Compatibility functions.
  *
@@ -11,7 +10,7 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit; // Exit if accessed directly.
 }
 
 /**
@@ -32,7 +31,7 @@ function sst_woocommerce_active() {
 	}
 
 	return (
-		in_array( 'woocommerce/woocommerce.php', $active_plugins ) ||
+		in_array( 'woocommerce/woocommerce.php', $active_plugins, true ) ||
 		array_key_exists( 'woocommerce/woocommmerce.php', $active_plugins )
 	);
 }
@@ -86,5 +85,5 @@ function sst_storefront_active() {
 		$theme_name = $theme->name;
 	}
 
-	return 'storefront' == strtolower( $theme_name );
+	return 'storefront' === strtolower( $theme_name );
 }

@@ -1,5 +1,4 @@
 <?php
-
 /**
  * SST functions.
  *
@@ -23,24 +22,24 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function sst_tip( $tip ) {
 	if ( function_exists( 'wc_help_tip' ) ) {
-		echo wc_help_tip( $tip );
+		echo wc_help_tip( $tip ); // phpcs:ignore WordPress.Security.EscapeOutput
 	} else {
 		$img_path = WC()->plugin_url() . '/assets/images/help.png';
 		$format   = '<img class="help_tip" data-tip="%s" src="%s" height="16" width="16" />';
-		printf( $format, esc_attr( $tip ), esc_url( $img_path ) );
+		printf( $format, esc_attr( $tip ), esc_url( $img_path ) ); // phpcs:ignore WordPress.Security.EscapeOutput
 	}
 }
 
 /**
  * Given an "ugly" string, return the corresponding "pretty" string.
  *
- * @param string $ugly
+ * @param string $ugly Ugly string to get pretty equivalent for.
  *
  * @return string Pretty string if found, otherwise original string.
  * @since 5.0
  */
 function sst_prettify( $ugly ) {
-	// Map from ugly string to pretty strings
+	// Map from ugly string to pretty strings.
 	$ugly_strings = array(
 		'AccommodationAndFoodServices'            => 'Accommodation and Food Services',
 		'Agricultural_Forestry_Fishing_Hunting'   => 'Agricultural/Forestry/Fishing/Hunting',
@@ -130,7 +129,7 @@ function sst_prettify( $ugly ) {
  * Create a new shipping package from the given array, using default values
  * for all keys that are omitted.
  *
- * @param array $package
+ * @param array $package Initial values for package.
  *
  * @return array
  * @since 5.0
@@ -155,7 +154,7 @@ function sst_create_package( $package = array() ) {
 /**
  * Strip all slashes from a given value.
  *
- * @param string $value
+ * @param string $value Value to strip slashes from.
  *
  * @return string
  * @since 5.4
@@ -241,7 +240,7 @@ function sst_order_calculate_taxes( $order ) {
  * Transforms a list of WooCommerce order items into a format that the SST tax
  * calculation logic can understand.
  *
- * @param WC_Order_Item[] $items Order items
+ * @param WC_Order_Item[] $items Order items.
  *
  * @return array Order items formatted for tax calculations
  */
@@ -250,8 +249,8 @@ function sst_format_order_items( $items ) {
 
 	foreach ( $items as $item_id => $item ) {
 		$product_id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
-
-		if ( ( $product = wc_get_product( $product_id ) ) ) {
+		$product    = wc_get_product( $product_id );
+		if ( $product ) {
 			$new_items[ $item_id ] = array(
 				'product_id'    => $item['product_id'],
 				'variation_id'  => $item['variation_id'],

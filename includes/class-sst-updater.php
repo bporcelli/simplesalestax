@@ -1,7 +1,7 @@
 <?php
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit; // Exit if accessed directly.
 }
 
 if ( ! class_exists( 'WP_Async_Request', false ) ) {
@@ -25,6 +25,8 @@ if ( ! class_exists( 'WP_Background_Process', false ) ) {
 class SST_Updater extends WP_Background_Process {
 
 	/**
+	 * Action for background process.
+	 *
 	 * @var string
 	 */
 	protected $action = 'sst_updater';
@@ -94,7 +96,7 @@ class SST_Updater extends WP_Background_Process {
 	 * in the next pass through. Or, return false to remove the
 	 * item from the queue.
 	 *
-	 * @param string $callback Update callback function
+	 * @param string $callback Update callback function.
 	 *
 	 * @return mixed
 	 */

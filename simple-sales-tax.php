@@ -39,7 +39,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require __DIR__ . '/includes/vendor/autoload.php';
-require __DIR__ . '/includes/class-simple-sales-tax.php';
+require __DIR__ . '/includes/class-simplesalestax.php';
 
 /**
  * Get the singleton SST instance.

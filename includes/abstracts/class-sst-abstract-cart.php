@@ -1,7 +1,7 @@
 <?php
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit; // Exit if accessed directly.
 }
 
 /**
@@ -17,12 +17,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 abstract class SST_Abstract_Cart {
 
 	/**
-	 * @var string TaxCloud API ID.
+	 * TaxCloud API ID.
+	 *
+	 * @var string
 	 */
 	protected $api_id;
 
 	/**
-	 * @var string TaxCloud API Key.
+	 * TaxCloud API Key.
+	 *
+	 * @var string
 	 */
 	protected $api_key;
 
@@ -52,7 +56,7 @@ abstract class SST_Abstract_Cart {
 			return false;
 		}
 
-		// Perform tax lookup(s)
+		// Perform tax lookup(s).
 		foreach ( $this->do_lookup() as $package ) {
 			$response = $package['response'];
 
@@ -76,6 +80,7 @@ abstract class SST_Abstract_Cart {
 			} else {
 				$this->handle_error(
 					sprintf(
+						/* translators: error message from TaxCloud API response. */
 						__( 'Failed to calculate sales tax: %s', 'simple-sales-tax' ),
 						$response->get_error_message()
 					)
@@ -85,7 +90,7 @@ abstract class SST_Abstract_Cart {
 			}
 		}
 
-		// Update tax totals
+		// Update tax totals.
 		$this->update_taxes();
 
 		return true;
@@ -127,7 +132,7 @@ abstract class SST_Abstract_Cart {
 	/**
 	 * Perform a tax lookup for a shipping package.
 	 *
-	 * @param array $package
+	 * @param array $package Package to perform tax lookup for.
 	 *
 	 * @return bool|array False if the package is not ready for lookup, or the updated package otherwise.
 	 */
@@ -150,7 +155,7 @@ abstract class SST_Abstract_Cart {
 	/**
 	 * Generate a Lookup request for a given package.
 	 *
-	 * @param $package array
+	 * @param array $package Package to construct Lookup request for.
 	 *
 	 * @return TaxCloud\Request\Lookup
 	 * @since 5.0
@@ -166,7 +171,7 @@ abstract class SST_Abstract_Cart {
 			$discounted_price = round( $line_total / $item['quantity'], wc_get_price_decimals() );
 
 			/* Set quantity and price according to 'Tax Based On' setting. */
-			if ( 'line-subtotal' == $based_on ) {
+			if ( 'line-subtotal' === $based_on ) {
 				$quantity = 1;
 				$price    = $line_total;
 			} else {
@@ -178,7 +183,7 @@ abstract class SST_Abstract_Cart {
 			$price = apply_filters( 'wootax_product_price', $price, $item['data'] );
 
 			$cart_items[]     = new TaxCloud\CartItem(
-				sizeof( $cart_items ),
+				count( $cart_items ),
 				$item['variation_id'] ? $item['variation_id'] : $item['product_id'],
 				SST_Product::get_tic( $item['product_id'], $item['variation_id'] ),
 				$price,
@@ -194,7 +199,7 @@ abstract class SST_Abstract_Cart {
 		/* Add fees */
 		foreach ( $package['fees'] as $cart_id => $fee ) {
 			$cart_items[]     = new TaxCloud\CartItem(
-				sizeof( $cart_items ),
+				count( $cart_items ),
 				$fee->id,
 				apply_filters( 'wootax_fee_tic', SST_DEFAULT_FEE_TIC ),
 				apply_filters( 'wootax_fee_price', $fee->amount, $fee ),
@@ -215,7 +220,7 @@ abstract class SST_Abstract_Cart {
 			$local_delivery = SST_Shipping::is_local_delivery( $shipping_rate->method_id );
 
 			$cart_items[]     = new TaxCloud\CartItem(
-				sizeof( $cart_items ),
+				count( $cart_items ),
 				SST_SHIPPING_ITEM,
 				apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC ),
 				apply_filters( 'wootax_shipping_price', $shipping_rate->cost, $shipping_rate ),
@@ -248,7 +253,7 @@ abstract class SST_Abstract_Cart {
 	 * Split package into one or more subpackages, one for each product
 	 * origin address.
 	 *
-	 * @param array Package.
+	 * @param array $package Package.
 	 *
 	 * @return array Subpackages (empty on error).
 	 * @since 5.0
@@ -278,6 +283,7 @@ abstract class SST_Abstract_Cart {
 			if ( ! $origin ) {
 				$this->handle_error(
 					sprintf(
+						/* translators: WooCommerce product ID. */
 						__( 'Failed to calculate sales tax: no origin address for product %d.', 'simple-sales-tax' ),
 						$item['product_id']
 					)
@@ -318,18 +324,18 @@ abstract class SST_Abstract_Cart {
 	/**
 	 * Get the hash of a shipping package.
 	 *
-	 * @param array $package
+	 * @param array $package WooCommerce cart shipping package.
 	 *
 	 * @return string
 	 * @since 5.0
 	 */
 	private function get_package_hash( $package ) {
-		// Remove data objects so hashes are consistent
+		// Remove data objects so hashes are consistent.
 		foreach ( $package['contents'] as $item_id => $item ) {
 			unset( $package['contents'][ $item_id ]['data'] );
 		}
 
-		// Convert WC_Shipping_Rate to array (shipping will be excluded from hash o.w.)
+		// Convert WC_Shipping_Rate to array (shipping will be excluded from hash o.w.).
 		if ( is_a( $package['shipping'], 'WC_Shipping_Rate' ) ) {
 			$package['shipping'] = array(
 				'id'        => $package['shipping']->id,
@@ -339,10 +345,10 @@ abstract class SST_Abstract_Cart {
 			);
 		}
 
-		// Exclude user ID from hash - does not change calculated tax amount
+		// Exclude user ID from hash - does not change calculated tax amount.
 		unset( $package['user'] );
 
-		return 'sst_pack_' . md5( json_encode( $package ) . WC_Cache_Helper::get_transient_version( 'shipping' ) );
+		return 'sst_pack_' . md5( wp_json_encode( $package ) . WC_Cache_Helper::get_transient_version( 'shipping' ) );
 	}
 
 	/**
@@ -355,8 +361,8 @@ abstract class SST_Abstract_Cart {
 	 *  2) If there are multiple shipment origins, use one in the customer's state.
 	 *  3) If there are no origins in the customers state, use the first  origin.
 	 *
-	 * @param array            $item
-	 * @param TaxCloud\Address $destination
+	 * @param array            $item        Associative array with details about product.
+	 * @param TaxCloud\Address $destination Shipping destination address.
 	 *
 	 * @return SST_Origin_Address
 	 * @since 5.0
@@ -369,7 +375,7 @@ abstract class SST_Abstract_Cart {
 			$origin = current( $origins );
 
 			foreach ( $origins as $candidate ) {
-				if ( $candidate->getState() == $destination->getState() ) {
+				if ( $candidate->getState() === $destination->getState() ) {
 					$origin = $candidate;
 					break;
 				}
@@ -382,7 +388,7 @@ abstract class SST_Abstract_Cart {
 	/**
 	 * Can we perform a lookup for the given package?
 	 *
-	 * @param array $package
+	 * @param array $package WooCommerce shipping package.
 	 *
 	 * @return bool
 	 * @since 5.0
@@ -425,7 +431,7 @@ abstract class SST_Abstract_Cart {
 	/**
 	 * Set saved packages for this cart.
 	 *
-	 * @param $packages array (default: array())
+	 * @param array $packages Packages to save (default: array()).
 	 *
 	 * @since 5.0
 	 */
@@ -503,7 +509,7 @@ abstract class SST_Abstract_Cart {
 	/**
 	 * Gets a saved package by its package hash.
 	 *
-	 * @param string $hash
+	 * @param string $hash Package hash.
 	 *
 	 * @return array|bool The saved package with the given hash, or false if no such package exists.
 	 */
@@ -512,8 +518,8 @@ abstract class SST_Abstract_Cart {
 	/**
 	 * Saves a package.
 	 *
-	 * @param string $hash
-	 * @param array  $package
+	 * @param string $hash    Package hash.
+	 * @param array  $package Package to save.
 	 */
 	abstract protected function save_package( $hash, $package );
 

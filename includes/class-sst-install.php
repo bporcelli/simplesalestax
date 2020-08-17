@@ -1,7 +1,7 @@
 <?php
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit; // Exit if accessed directly.
 }
 
 /**
@@ -108,19 +108,19 @@ class SST_Install {
 	 * Install Simple Sales Tax.
 	 */
 	public static function install() {
-		// Include required classes
+		// Include required classes.
 		if ( ! class_exists( 'WC_Admin_Notices' ) ) {
 			require WC()->plugin_path() . '/admin/class-wc-admin-notices.php';
 		}
 
-		// Install
+		// Install.
 		self::add_roles();
 		self::add_tax_rate();
 
-		// Remove existing notices, if any
+		// Remove existing notices, if any.
 		self::remove_notices();
 
-		// Queue updates if needed
+		// Queue updates if needed.
 		$db_version = get_option( 'wootax_version' );
 
 		if ( false !== $db_version && version_compare( $db_version, max( array_keys( self::$update_hooks ) ), '<' ) ) {
@@ -129,11 +129,12 @@ class SST_Install {
 			update_option( 'wootax_version', SST()->version );
 		}
 
-		// Prompt user to remove rates if any are present
+		// Prompt user to remove rates if any are present.
 		if ( 'yes' !== get_option( 'wootax_keep_rates' ) && self::has_other_rates() ) {
 			$keep_url   = esc_url( admin_url( '?sst_keep_rates=yes' ) );
 			$delete_url = esc_url( admin_url( '?sst_keep_rates=no' ) );
 			$notice     = sprintf(
+				/* translators: 1 - URL to keep found rates, 2 - URL to delete found rates */
 				__(
 					'Simple Sales Tax found extra rates in your tax tables. Please choose to <a href="%1$s">keep the rates</a> or <a href="%2$s">delete them</a>.',
 					'simple-sales-tax'
@@ -149,10 +150,10 @@ class SST_Install {
 	 * Start update when a user clicks the "Update" button in the dashboard.
 	 */
 	public static function trigger_update() {
-		if ( ! empty( $_GET['do_sst_update'] ) ) {
+		if ( ! empty( $_GET['do_sst_update'] ) ) { // phpcs:ignore WordPress.CSRF.NonceVerification
 			self::update();
 
-			// Update notice content
+			// Update notice content.
 			WC_Admin_Notices::remove_notice( 'sst_update' );
 			WC_Admin_Notices::add_custom_notice( 'sst_update', self::update_notice() );
 		}
@@ -164,15 +165,17 @@ class SST_Install {
 	public static function trigger_rate_removal() {
 		global $wpdb;
 
-		if ( ! empty( $_GET['sst_keep_rates'] ) ) {
-			if ( 'no' === $_GET['sst_keep_rates'] ) {
+		$keep_rates = ! empty( $_GET['sst_keep_rates'] ) ? sanitize_text_field( wp_unslash( $_GET['sst_keep_rates'] ) ) : ''; // phpcs:ignore WordPress.CSRF.NonceVerification
+
+		if ( ! empty( $keep_rates ) ) {
+			if ( 'no' === $keep_rates ) {
 				$wpdb->query(
 					$wpdb->prepare(
 						"DELETE FROM {$wpdb->prefix}woocommerce_tax_rates WHERE tax_rate_id != %d",
 						SST_RATE_ID
 					)
 				);
-				// Clear tax rate cache
+				// Clear tax rate cache.
 				$tools_controller = new WC_REST_System_Status_Tools_Controller();
 				$tools_controller->execute_tool( 'wootax_rate_tool' );
 			} else {
@@ -193,7 +196,7 @@ class SST_Install {
 		ob_start();
 
 		if ( version_compare( $db_version, max( array_keys( self::$update_hooks ) ), '<' ) ) {
-			if ( self::$background_updater->is_updating() || ! empty( $_GET['do_sst_update'] ) ) {
+			if ( self::$background_updater->is_updating() || ! empty( $_GET['do_sst_update'] ) ) { // phpcs:ignore WordPress.CSRF.NonceVerification
 				require __DIR__ . '/admin/views/html-notice-updating.php';
 			} else {
 				require __DIR__ . '/admin/views/html-notice-update.php';
@@ -265,7 +268,7 @@ class SST_Install {
 
 		$tax_rates_table = $wpdb->prefix . 'woocommerce_tax_rates';
 
-		// Get existing rate, if any
+		// Get existing rate, if any.
 		$rate_id  = get_option( 'wootax_rate_id', 0 );
 		$existing = $wpdb->get_row(
 			$wpdb->prepare(
@@ -274,7 +277,7 @@ class SST_Install {
 			)
 		);
 
-		// Add or update tax rate
+		// Add or update tax rate.
 		$_tax_rate = array(
 			'tax_rate_country'  => 'WT',
 			'tax_rate_state'    => 'RATE',
@@ -322,7 +325,7 @@ class SST_Install {
 	 * @return string
 	 */
 	public static function get_rate_code( $code, $key ) {
-		if ( $key == SST_RATE_ID ) {
+		if ( (int) SST_RATE_ID === (int) $key ) {
 			return apply_filters( 'wootax_rate_code', 'SALES-TAX' );
 		} else {
 			return $code;
@@ -338,7 +341,7 @@ class SST_Install {
 	 * @return string
 	 */
 	public static function get_rate_label( $label, $key ) {
-		if ( $key == SST_RATE_ID ) {
+		if ( (int) SST_RATE_ID === (int) $key ) {
 			return apply_filters( 'wootax_rate_label', __( 'Sales Tax', 'simple-sales-tax' ) );
 		} else {
 			return $label;

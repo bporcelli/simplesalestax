@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Message functions.
  *
@@ -11,14 +10,14 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Do not all direct access
+	exit; // Do not all direct access.
 }
 
 /**
  * Queue a message for display.
  *
  * @param string $content Message content.
- * @param string $type    'error' or 'updated' (default: 'error')
+ * @param string $type    Type of message. Can be 'error' or 'updated' (default: 'error').
  *
  * @since 5.0
  */
@@ -50,7 +49,7 @@ function sst_print_messages() {
 	}
 
 	foreach ( $all_messages as $message ) {
-		printf( "<div class='%s'><p>%s</p></div>", $message['type'], $message['content'] );
+		printf( "<div class='%s'><p>%s</p></div>", esc_attr( $message['type'] ), esc_html( $message['content'] ) );
 	}
 
 	update_option( 'sst_messages', array() );

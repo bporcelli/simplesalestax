@@ -1,7 +1,7 @@
 <?php
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit; // Exit if accessed directly.
 }
 
 /**
@@ -56,10 +56,10 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Perform a tax lookup and update the sales tax for all items.
 	 *
-	 * IMPORTANT: This hook needs to run after WC_Subscriptions_Cart::calculate_subscription_totals()
+	 * IMPORTANT: This hook needs to run after WC_Subscriptions_Cart::calculate_subscription_totals().
 	 *
-	 * @param float   $total
-	 * @param WC_Cart $cart
+	 * @param float   $total Calculated total for cart.
+	 * @param WC_Cart $cart  Cart object.
 	 *
 	 * @return float
 	 * @since 5.0
@@ -70,8 +70,10 @@ class SST_Checkout extends SST_Abstract_Cart {
 		if ( apply_filters( 'sst_calculate_tax_totals', is_cart() || is_checkout() ) ) {
 			$this->calculate_taxes();
 
-			// Woo won't include the taxes calculated by SST in the total so
-			// we add them in here
+			/**
+			 * Woo won't include the taxes calculated by SST in the total so
+			 * we add them in here.
+			 */
 			foreach ( $this->cart->get_taxes() as $rate_id => $tax ) {
 				if ( (int) SST_RATE_ID === $rate_id ) {
 					$total += $tax;
@@ -98,7 +100,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	public function hide_zero_taxes() {
-		return SST_Settings::get( 'show_zero_tax' ) != 'true';
+		return 'true' !== SST_Settings::get( 'show_zero_tax' );
 	}
 
 	/**
@@ -114,7 +116,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Set saved packages for this cart.
 	 *
-	 * @param $packages array (default: array())
+	 * @param array $packages Packages to save for cart (default: array()).
 	 *
 	 * @since 5.0
 	 */
@@ -125,7 +127,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Filter items not needing shipping callback.
 	 *
-	 * @param array $item
+	 * @param array $item WooCommerce cart item.
 	 *
 	 * @return bool
 	 * @since 5.0
@@ -147,8 +149,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Get the shipping rate for a package.
 	 *
-	 * @param int   $key
-	 * @param array $package
+	 * @param int   $key     Package key.
+	 * @param array $package Package.
 	 *
 	 * @return WC_Shipping_Rate | NULL
 	 * @since 5.0
@@ -187,7 +189,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 		 * from shipping packages. To ensure that these products are taxed, we
 		 * create a special package for them.
 		 */
-		if ( ( $virtual_package = $this->create_virtual_package() ) ) {
+		$virtual_package = $this->create_virtual_package();
+		if ( $virtual_package ) {
 			$packages[] = $virtual_package;
 		}
 
@@ -375,15 +378,15 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	public function get_certificate() {
-		if ( ! isset( $_POST['post_data'] ) ) {
-			$post_data = $_POST;
+		if ( ! isset( $_POST['post_data'] ) ) { // phpcs:ignore WordPress.CSRF.NonceVerification
+			$post_data = $_POST; // phpcs:ignore WordPress.CSRF.NonceVerification
 		} else {
 			$post_data = array();
-			parse_str( $_POST['post_data'], $post_data );
+			parse_str( $_POST['post_data'], $post_data ); // phpcs:ignore WordPress.CSRF.NonceVerification, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 		}
 
 		if ( isset( $post_data['tax_exempt'] ) && isset( $post_data['certificate_id'] ) ) {
-			$certificate_id = sanitize_text_field( $post_data['certificate_id'] );
+			$certificate_id = sanitize_text_field( wp_unslash( $post_data['certificate_id'] ) );
 
 			return new TaxCloud\ExemptionCertificateBase( $certificate_id );
 		}
@@ -448,16 +451,16 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @since 4.2
 	 */
 	public function add_order_meta( $order_id ) {
-		// Make sure we're saving the data from the 'main' cart
+		// Make sure we're saving the data from the 'main' cart.
 		$this->cart = new SST_Cart_Proxy( WC()->cart );
 
-		// Save the packages from the last lookup and the applied exemption certificate (if any)
+		// Save the packages from the last lookup and the applied exemption certificate (if any).
 		$order = new SST_Order( $order_id );
 
 		$order->set_packages( $this->get_packages() );
 		$order->set_certificate( $this->get_certificate() );
 
-		// Save cached packages as metadata to avoid duplicate lookups from the backend
+		// Save cached packages as metadata to avoid duplicate lookups from the backend.
 		$cached_packages = WC()->session->get( 'sst_package_cache', array() );
 
 		foreach ( $cached_packages as $hash => $package ) {
@@ -470,7 +473,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Given a package key, return the shipping tax for the package.
 	 *
-	 * @param string $package_key
+	 * @param string $package_key Package key.
 	 *
 	 * @return float -1 if no shipping tax, otherwise shipping tax.
 	 * @since 5.0
@@ -483,7 +486,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 		if ( sst_subs_active() ) {
 			$last_underscore_i = strrpos( $package_key, '_' );
 
-			if ( $last_underscore_i !== false ) {
+			if ( false !== $last_underscore_i ) {
 				$cart_key      = substr( $package_key, 0, $last_underscore_i );
 				$package_index = substr( $package_key, $last_underscore_i + 1 );
 			}
@@ -503,11 +506,11 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Add shipping meta for newly created shipping items.
 	 *
-	 * @param WC_Order_Item_Shipping $item
-	 * @param int                    $package_key
-	 * @param array                  $package
+	 * @param WC_Order_Item_Shipping $item        The shipping item that was just created.
+	 * @param int                    $package_key Cart shipping package key.
+	 * @param array                  $package     Cart shipping package.
 	 *
-	 * @throws WC_Data_Exception
+	 * @throws WC_Data_Exception If the tax data passed to WooCommerce is invalid.
 	 * @since 5.0
 	 */
 	public function add_shipping_meta( $item, $package_key, $package ) {
@@ -550,8 +553,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	protected function show_exemption_form() {
-		$restricted = SST_Settings::get( 'restrict_exempt' ) == 'yes';
-		$enabled    = SST_Settings::get( 'show_exempt' ) == 'true';
+		$restricted = 'yes' === SST_Settings::get( 'restrict_exempt' );
+		$enabled    = 'true' === SST_Settings::get( 'show_exempt' );
 
 		return $enabled && ( ! $restricted || $this->is_user_exempt() );
 	}
@@ -568,11 +571,23 @@ class SST_Checkout extends SST_Abstract_Cart {
 
 		wp_enqueue_script( 'sst-checkout' );
 
+		// phpcs:disable
+		$checked = (
+			( ! $_POST && $this->is_user_exempt() )        // User is already marked as exempt in session.
+			|| ( $_POST && isset( $_POST['tax_exempt'] ) ) // User just ticked the "Tax Exempt?" checkbox.
+		);
+		// phpcs:enable
+
+		$selected = '';
+		if ( isset( $_POST['certificate_id'] ) ) { // phpcs:ignore WordPress.CSRF.NonceVerification
+			$selected = sanitize_text_field( wp_unslash( $_POST['certificate_id'] ) ); // phpcs:ignore WordPress.CSRF.NonceVerification
+		}
+
 		wc_get_template(
 			'html-certificate-table.php',
 			array(
-				'checked'  => ( ! $_POST && $this->is_user_exempt() ) || ( $_POST && isset( $_POST['tax_exempt'] ) ),
-				'selected' => isset( $_POST['certificate_id'] ) ? sanitize_text_field( $_POST['certificate_id'] ) : '',
+				'checked'  => $checked,
+				'selected' => $selected,
 			),
 			'sst/checkout/',
 			SST()->path( 'includes/frontend/views/' )
@@ -604,7 +619,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Gets a saved package by its package hash.
 	 *
-	 * @param string $hash
+	 * @param string $hash Package hash.
 	 *
 	 * @return array|bool The saved package with the given hash, or false if no such package exists.
 	 */
@@ -621,8 +636,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 	/**
 	 * Saves a package.
 	 *
-	 * @param string $hash
-	 * @param array  $package
+	 * @param string $hash    Package hash.
+	 * @param array  $package Package.
 	 */
 	protected function save_package( $hash, $package ) {
 		$saved_packages          = WC()->session->get( 'sst_package_cache', array() );

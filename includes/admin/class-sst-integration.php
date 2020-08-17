@@ -58,6 +58,9 @@ class SST_Integration extends WC_Integration {
 	/**
 	 * Output HTML for field of type 'button.'
 	 *
+	 * @param string $key  Field key.
+	 * @param array  $data Field data.
+	 *
 	 * @since 4.5
 	 */
 	public function generate_button_html( $key, $data ) {
@@ -89,6 +92,9 @@ class SST_Integration extends WC_Integration {
 
 	/**
 	 * Output HTML for field of type 'anchor.'
+	 *
+	 * @param string $key  Field key.
+	 * @param array  $data Field data.
 	 *
 	 * @since 5.0
 	 */
@@ -122,6 +128,9 @@ class SST_Integration extends WC_Integration {
 
 	/**
 	 * Output HTML for 'address_table' field.
+	 *
+	 * @param string $key  Field key.
+	 * @param array  $data Field data.
 	 *
 	 * @since 4.5
 	 */
@@ -174,19 +183,26 @@ class SST_Integration extends WC_Integration {
 	/**
 	 * Validate addresses when options are saved.
 	 *
-	 * @param string $key
-	 * @param string $value
+	 * @param string $key   Key for addresses field.
+	 * @param string $value Value for addresses field.
 	 *
 	 * @return array
 	 * @since 5.0
 	 */
 	public function validate_addresses_field( $key, $value ) {
-		if ( ! isset( $_POST['addresses'] ) || ! is_array( $_POST['addresses'] ) ) {
+		if ( ! isset( $_POST['addresses'] ) || ! is_array( $_POST['addresses'] ) ) { // phpcs:ignore WordPress.CSRF.NonceVerification
 			return array();
 		}
 
-		$taxcloud_id  = sanitize_text_field( $_POST['woocommerce_wootax_tc_id'] );
-		$taxcloud_key = sanitize_text_field( $_POST['woocommerce_wootax_tc_key'] );
+		$taxcloud_id  = '';
+		$taxcloud_key = '';
+
+		if ( isset( $_POST['woocommerce_wootax_tc_id'] ) ) {
+			$taxcloud_id = sanitize_text_field( wp_unslash( $_POST['woocommerce_wootax_tc_id'] ) ); // phpcs:ignore WordPress.CSRF.NonceVerification
+		}
+		if ( isset( $_POST['woocommerce_wootax_tc_key'] ) ) {
+			$taxcloud_key = sanitize_text_field( wp_unslash( $_POST['woocommerce_wootax_tc_key'] ) ); // phpcs:ignore WordPress.CSRF.NonceVerification
+		}
 
 		$default_address = array(
 			'Address1' => '',
@@ -199,11 +215,12 @@ class SST_Integration extends WC_Integration {
 			'Default'  => 'no',
 		);
 
-		$has_default = false;
-		$addresses   = array();
+		$has_default   = false;
+		$addresses     = array();
+		$raw_addresses = isset( $_POST['addresses'] ) ? wc_clean( $_POST['addresses'] ) : array(); // phpcs:ignore WordPress.Security
 
-		foreach ( $_POST['addresses'] as $raw_address ) {
-			// Use defaults for missing fields
+		foreach ( $raw_addresses as $raw_address ) {
+			// Use defaults for missing fields.
 			$raw_address = array_map( 'sanitize_text_field', array_merge( $default_address, $raw_address ) );
 
 			try {
@@ -216,9 +233,10 @@ class SST_Integration extends WC_Integration {
 					$raw_address['Zip4']
 				);
 			} catch ( Exception $ex ) {
-				// Leave out address with error
+				// Leave out address with error.
 				$this->add_error(
 					sprintf(
+						/* translators: 1 - street address, 2 - error message */
 						__( 'Failed to save address <em>%1$s</em>: %2$s', 'simple-sales-tax' ),
 						$raw_address['Address1'],
 						$ex->getMessage()
@@ -231,18 +249,19 @@ class SST_Integration extends WC_Integration {
 				$request = new TaxCloud\Request\VerifyAddress( $taxcloud_id, $taxcloud_key, $address );
 				$address = TaxCloud()->VerifyAddress( $request );
 			} catch ( Exception $ex ) {
-				// Use original address
+				// Use original address.
 				SST_Logger::add(
+					/* translators: street address that failed validation */
 					sprintf( __( 'Failed to validate address: %s.', 'simple-sales-tax' ), $ex->getMessage() )
 				);
 			}
 
-			// Convert verified address to SST_Origin_Address
-			$is_default = 'yes' == $raw_address['Default'];
+			// Convert verified address to SST_Origin_Address.
+			$is_default = 'yes' === $raw_address['Default'];
 
 			$addresses[] = new SST_Origin_Address(
-				count( $addresses ),        // ID
-				$is_default,                // Default
+				count( $addresses ), // ID.
+				$is_default,
 				$address->getAddress1(),
 				$address->getAddress2(),
 				$address->getCity(),
@@ -254,14 +273,14 @@ class SST_Integration extends WC_Integration {
 			$has_default = $has_default | $is_default;
 		}
 
-		// Ensure that a default address is configured
+		// Ensure that a default address is configured.
 		if ( ! $has_default && ! empty( $addresses ) ) {
 			$addresses[0]->setDefault( true );
 		}
 
-		// JSON serialize for storage in DB
+		// JSON serialize for storage in DB.
 		foreach ( $addresses as $key => $address ) {
-			$addresses[ $key ] = json_encode( $address );
+			$addresses[ $key ] = wp_json_encode( $address );
 		}
 
 		return $addresses;
@@ -273,11 +292,11 @@ class SST_Integration extends WC_Integration {
 	 * @since 5.0
 	 */
 	public function maybe_download_log_file() {
-		if ( ! isset( $_GET['download_log'] ) ) {
+		if ( ! isset( $_GET['download_log'] ) ) { // phpcs:ignore WordPress.CSRF.NonceVerification
 			return;
 		}
 
-		// If file doesn't exist, create it
+		// If file doesn't exist, create it.
 		$log_path = SST_Logger::get_log_path();
 
 		if ( ! file_exists( $log_path ) ) {
@@ -285,7 +304,7 @@ class SST_Integration extends WC_Integration {
 			fclose( $fh );
 		}
 
-		// Force download
+		// Force download.
 		header( 'Content-Description: File Transfer' );
 		header( 'Content-Type: application/octet-stream' );
 		header( 'Content-Disposition: attachment; filename=' . basename( $log_path ) );

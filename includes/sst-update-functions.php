@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Update functions.
  *
@@ -11,7 +10,7 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit; // Exit if accessed directly.
 }
 
 /**
@@ -33,7 +32,7 @@ function sst_update_26_remove_shipping_taxable_option() {
  * @since 5.0
  */
 function sst_update_38_update_addresses() {
-	// Set new address array
+	// Set new address array.
 	$address = new TaxCloud\Address(
 		get_option( 'wootax_address1' ),
 		get_option( 'wootax_address2' ),
@@ -43,9 +42,9 @@ function sst_update_38_update_addresses() {
 		get_option( 'wootax_zip4' )
 	);
 
-	SST_Settings::set( 'addresses', array( json_encode( $address ) ) );
+	SST_Settings::set( 'addresses', array( wp_json_encode( $address ) ) );
 
-	// Delete old options
+	// Delete old options.
 	delete_option( 'wootax_address1' );
 	delete_option( 'wootax_address2' );
 	delete_option( 'wootax_state' );
@@ -79,12 +78,12 @@ function sst_update_42_migrate_settings() {
 		'wootax_default_address',
 	);
 
-	// Get old options
+	// Get old options.
 	$existing = $wpdb->get_results(
 		"SELECT * FROM {$wpdb->options} WHERE option_name IN ( " . implode( ',', $options ) . ' );'
 	);
 
-	// Migrate
+	// Migrate.
 	$new_options = get_option( 'woocommerce_wootax_settings', array() );
 
 	foreach ( $existing as $old_option ) {
@@ -93,7 +92,7 @@ function sst_update_42_migrate_settings() {
 
 	update_option( 'woocommerce_wootax_settings', $new_options );
 
-	// Delete old options
+	// Delete old options.
 	$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name IN ( " . implode( ',', $options ) . ' );' );
 
 	return false;
@@ -113,8 +112,10 @@ function sst_update_42_migrate_settings() {
 function sst_update_42_migrate_order_data() {
 	global $wpdb;
 
-	// Associate all existing metadata for wootax_order posts with the
-	// corresponding WooCommerce order.
+	/**
+	 * Associate all existing metadata for wootax_order posts with the
+	 * corresponding WooCommerce order.
+	 */
 	$meta_keys = array(
 		'_wootax_tax_total',
 		'_wootax_shipping_tax_total',
@@ -141,8 +142,10 @@ function sst_update_42_migrate_order_data() {
     '
 	);
 
-	// Process WooCommerce orders. Add new order and item metadata introduced
-	// in 4.2
+	/**
+	 * Process WooCommerce orders. Add new order and item metadata introduced
+	 * in 4.2.
+	 */
 	$orders = $wpdb->get_results(
 		"
         SELECT p.ID as wt_oid, pm.meta_value AS wc_oid
@@ -157,32 +160,32 @@ function sst_update_42_migrate_order_data() {
 		$lookup_data = get_post_meta( $order->wt_oid, '_wootax_lookup_data', true );
 		$cart_taxes  = get_post_meta( $order->wt_oid, '_wootax_cart_taxes', true );
 
-		// No need to update order if lookup_data not set
+		// No need to update order if lookup_data not set.
 		if ( ! is_array( $lookup_data ) ) {
 			continue;
 		}
 
 		foreach ( $lookup_data as $location_key => $items ) {
-			// Skip cart_id/order_id
+			// Skip cart_id/order_id.
 			if ( ! is_array( $items ) ) {
 				continue;
 			}
 
 			foreach ( $items as $index => $item ) {
-				// Get sales tax for item
+				// Get sales tax for item.
 				if ( isset( $cart_taxes[ $location_key ][ $index ] ) ) {
 					$tax_amount = $cart_taxes[ $location_key ][ $index ];
 				} else {
 					$tax_amount = 0;
 				}
 
-				// Update item metadata
+				// Update item metadata.
 				$item_id   = $item['ItemID'];
 				$item_type = sst_update_42_get_item_type( $item_id );
 
 				switch ( $item_type ) {
 					case 'product':
-						if ( 'product_variation' == get_post_type( $item_id ) ) {
+						if ( 'product_variation' === get_post_type( $item_id ) ) {
 							$meta_key = '_variation_id';
 						} else {
 							$meta_key = '_product_id';
@@ -214,7 +217,7 @@ function sst_update_42_migrate_order_data() {
 							update_post_meta( $order->wc_oid, '_wootax_first_found', $location_key );
 							update_post_meta( $order->wc_oid, '_wootax_shipping_index', $index );
 						} else {
-							// NOTE: This assumes one shipping method per order
+							// NOTE: This assumes one shipping method per order.
 							$shipping_id = $wpdb->get_var(
 								$wpdb->prepare(
 									"
@@ -260,7 +263,7 @@ function sst_update_42_migrate_order_data() {
 		}
 	}
 
-	// Remove all wootax_order posts and the corresponding metadata
+	// Remove all wootax_order posts and the corresponding metadata.
 	$wpdb->query(
 		"
         DELETE FROM {$wpdb->posts} p, {$wpdb->postmeta} pm
@@ -275,7 +278,7 @@ function sst_update_42_migrate_order_data() {
 /**
  * Helper for 4.2 update: Get item type given item ID.
  *
- * @param int $item_id
+ * @param int $item_id Item ID.
  *
  * @return string "shipping," "cart," or "fee"
  * @since 5.0
@@ -283,9 +286,9 @@ function sst_update_42_migrate_order_data() {
 function sst_update_42_get_item_type( $item_id ) {
 	global $wpdb;
 
-	if ( $item_id == 99999 ) {
+	if ( 99999 === (int) $item_id ) {
 		return 'shipping';
-	} elseif ( in_array( get_post_type( $item_id ), array( 'product', 'product_variation' ) ) ) {
+	} elseif ( in_array( get_post_type( $item_id ), array( 'product', 'product_variation' ), true ) ) {
 		return 'product';
 	} else {
 		return 'fee';
@@ -320,7 +323,7 @@ function sst_update_50_origin_addresses() {
 		try {
 			$new_address = new SST_Origin_Address(
 				$key,
-				$key == $default_address,
+				(int) $key === (int) $default_address,
 				isset( $address['address_1'] ) ? $address['address_1'] : '',
 				isset( $address['address_2'] ) ? $address['address_2'] : '',
 				isset( $address['city'] ) ? $address['city'] : '',
@@ -329,9 +332,9 @@ function sst_update_50_origin_addresses() {
 				isset( $address['zip4'] ) ? $address['zip4'] : ''
 			);
 
-			$addresses[ $key ] = json_encode( $new_address );
+			$addresses[ $key ] = wp_json_encode( $new_address );
 		} catch ( Exception $ex ) {
-			// Address was invalid -- not much we can do
+			// Address was invalid -- not much we can do.
 			unset( $addresses[ $key ] );
 		}
 	}
@@ -401,6 +404,8 @@ function sst_update_50_category_tics() {
  * was eliminated. The boolean flags 'captured' and 'refunded' have also been merged
  * into a single 'status' field. This function updates all existing orders to use the
  * new data structures.
+ *
+ * @throws Exception When order processing fails.
  */
 function sst_update_50_order_data() {
 	global $wpdb;
@@ -468,7 +473,7 @@ function sst_update_50_order_data() {
 				 * recalculate the taxes. Orders with a status other than pending
 				 * were very likely placed before SST was installed.
 				 */
-				if ( in_array( $_order->get_status(), array( 'pending', 'processing', 'on-hold' ) ) ) {
+				if ( in_array( $_order->get_status(), array( 'pending', 'processing', 'on-hold' ), true ) ) {
 					$_order->calculate_taxes();
 					$_order->calculate_totals( false );
 				}
@@ -504,7 +509,6 @@ function sst_update_50_order_data() {
 				$packages = array();
 
 				foreach ( $mappings as $address_key => $items ) {
-
 					/*
 					 * Create a base package with just the cart id, order id, and
 					 * addresses set. We will copy this package to create others.
@@ -525,7 +529,7 @@ function sst_update_50_order_data() {
 					$new_packages = array();
 
 					foreach ( $items as $item_id => $item ) {
-						if ( 'shipping' != $item['type'] ) {
+						if ( 'shipping' !== $item['type'] ) {
 							continue;
 						}
 
@@ -564,7 +568,7 @@ function sst_update_50_order_data() {
 					}
 
 					foreach ( $items as $item_id => $item ) {
-						if ( 'fee' == $item['type'] ) {
+						if ( 'fee' === $item['type'] ) {
 							$taxcloud_id = sanitize_title(
 								empty( $item['name'] ) ? __( 'Fee', 'woocommerce' ) : $item['name']
 							);
@@ -588,8 +592,8 @@ function sst_update_50_order_data() {
 								count( $new_packages[0]['contents'] ),
 								isset( $identifiers[ $taxcloud_id ] ) ? $identifiers[ $taxcloud_id ] : $item_id,
 								SST_Product::get_tic( $item['product_id'], $item['variation_id'] ),
-								'item-price' == $based_on ? $item['line_subtotal'] / $item['qty'] : $item['line_subtotal'],
-								'item-price' == $based_on ? $item['qty'] : 1
+								'item-price' === $based_on ? $item['line_subtotal'] / $item['qty'] : $item['line_subtotal'],
+								'item-price' === $based_on ? $item['qty'] : 1
 							);
 							$new_packages[0]['map'][]      = array(
 								'type'    => 'line_item',
@@ -636,7 +640,7 @@ function sst_update_50_order_data() {
 	 * If more orders need processing, keep this function in the background
 	 * processing queue.
 	 */
-	if ( count( $orders ) == 50 ) {
+	if ( 50 === count( $orders ) ) {
 		return 'sst_update_50_order_data';
 	}
 
@@ -687,7 +691,7 @@ function sst_update_606_fix_duplicate_transactions() {
 				$package_order_id = sprintf( '%d_%s', $order_id, $key );
 				$cart_items       = $package['request']->getCartItems();
 
-				// Try to return the extraneous package
+				// Try to return the extraneous package.
 				try {
 					$request = new TaxCloud\Request\Returned(
 						$api_id,
@@ -701,6 +705,7 @@ function sst_update_606_fix_duplicate_transactions() {
 				} catch ( Exception $ex ) {
 					wc_get_logger()->debug(
 						sprintf(
+							/* translators: 1 - WooCommerce order ID, 2 - Error message */
 							__( 'Failed to refund extraneous package for order #%1$d: %2$s.', 'simple-sales-tax' ),
 							$order_id,
 							$ex->getMessage()
@@ -713,7 +718,7 @@ function sst_update_606_fix_duplicate_transactions() {
 			}
 		}
 
-		if ( sizeof( $removed ) > 0 ) {
+		if ( count( $removed ) > 0 ) {
 			$order->update_meta( 'removed_packages', $removed );
 		}
 
@@ -723,8 +728,8 @@ function sst_update_606_fix_duplicate_transactions() {
 		$order->save();
 	}
 
-	if ( sizeof( $order_ids ) === $batch_size ) {
-		// More orders remain to be processed
+	if ( count( $order_ids ) === $batch_size ) {
+		// More orders remain to be processed.
 		return 'sst_update_606_fix_duplicate_transactions';
 	}
 
@@ -744,11 +749,11 @@ function sst_update_606_fix_duplicate_transactions() {
  */
 function _sst_update_606_find_matching_package( $needle, $haystack ) {
 	$needle      = _sst_update_606_normalize_package( $needle );
-	$needle_hash = md5( json_encode( $needle ) );
+	$needle_hash = md5( wp_json_encode( $needle ) );
 
 	foreach ( $haystack as $package ) {
 		$normalized_package = _sst_update_606_normalize_package( $package );
-		$package_hash       = md5( json_encode( $normalized_package ) );
+		$package_hash       = md5( wp_json_encode( $normalized_package ) );
 
 		if ( $needle_hash === $package_hash ) {
 			return $package;
@@ -761,14 +766,14 @@ function _sst_update_606_find_matching_package( $needle, $haystack ) {
 /**
  * Normalizes packages to ensure that the hashes of two identical packages are the same.
  *
- * @param array $package
+ * @param array $package Package to normalize.
  *
  * @return array
  */
 function _sst_update_606_normalize_package( $package ) {
 	$new_package = array();
 
-	// Items
+	// Items.
 	$contents = array();
 
 	foreach ( $package['contents'] as $item ) {
@@ -783,7 +788,7 @@ function _sst_update_606_normalize_package( $package ) {
 
 	$new_package['contents'] = wp_list_sort( $contents, 'product_id' );
 
-	// Fees
+	// Fees.
 	$fees = array();
 
 	foreach ( $package['fees'] as $fee ) {
@@ -795,7 +800,7 @@ function _sst_update_606_normalize_package( $package ) {
 
 	$new_package['fees'] = wp_list_sort( $fees, 'id' );
 
-	// Shipping
+	// Shipping.
 	$shipping = null;
 
 	if ( ! empty( $package['shipping'] ) ) {
@@ -807,11 +812,11 @@ function _sst_update_606_normalize_package( $package ) {
 
 	$new_package['shipping'] = $shipping;
 
-	// Origin and destination addresses
+	// Origin and destination addresses.
 	$new_package['origin']      = _sst_update_606_get_address( $package['origin'] );
 	$new_package['destination'] = _sst_update_606_get_address( $package['destination'] );
 
-	// Certificate - use ID for comparison
+	// Certificate - use ID for comparison.
 	$new_package['certificate'] = $package['certificate'];
 
 	if ( ! empty( $new_package['certificate'] ) ) {
@@ -824,7 +829,7 @@ function _sst_update_606_normalize_package( $package ) {
 /**
  * Gets a TaxCloud Address as an array.
  *
- * @param TaxCloud\Address $address
+ * @param TaxCloud\Address $address Address to format as array.
  *
  * @return array|null Address, or NULL if $address is null.
  */

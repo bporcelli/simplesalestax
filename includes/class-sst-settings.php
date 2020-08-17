@@ -16,13 +16,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SST_Settings {
 
 	/**
-	 * @var string Options key.
+	 * Options key.
+	 *
+	 * @var string
 	 * @since 5.0
 	 */
 	private static $options_key = 'woocommerce_wootax_settings';
 
 	/**
-	 * @var array Plugin settings.
+	 * Plugin settings.
+	 *
+	 * @var array
 	 * @since 5.0
 	 */
 	private static $settings = array();
@@ -239,12 +243,12 @@ class SST_Settings {
 	}
 
 	/**
-	 * get function.
+	 * Get function.
 	 *
 	 * Gets an option from the settings API, using defaults if necessary to prevent undefined notices.
 	 *
-	 * @param string $key
-	 * @param mixed  $empty_value
+	 * @param string $key         Option key.
+	 * @param mixed  $empty_value Value to return when option value is not set.
 	 *
 	 * @return string The value specified for the option or a default value for the option.
 	 */
@@ -267,10 +271,12 @@ class SST_Settings {
 	}
 
 	/**
-	 * set function. Sets an option.
+	 * Set function.
 	 *
-	 * @param string $key
-	 * @param mixed  $value
+	 * Sets an option.
+	 *
+	 * @param string $key   Option key.
+	 * @param mixed  $value Option value.
 	 */
 	public static function set( $key, $value ) {
 		if ( empty( self::$settings ) ) {

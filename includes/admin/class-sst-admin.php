@@ -1,7 +1,7 @@
 <?php
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit; // Exit if accessed directly.
 }
 
 /**
@@ -56,6 +56,8 @@ class SST_Admin {
 	/**
 	 * Register our WooCommerce integration.
 	 *
+	 * @param array $integrations Registered WooCommerce integrations.
+	 *
 	 * @since 4.2
 	 */
 	public static function add_integration( $integrations ) {
@@ -70,10 +72,10 @@ class SST_Admin {
 	 * @since 4.2
 	 */
 	public static function enqueue_scripts_and_styles() {
-		// Admin JS
+		// Admin JS.
 		wp_enqueue_script( 'sst-admin-js' );
 
-		// Admin CSS
+		// Admin CSS.
 		wp_enqueue_style( 'sst-admin-css' );
 		wp_enqueue_style( 'sst-certificate-modal-css' );
 	}
@@ -142,7 +144,7 @@ class SST_Admin {
 		<div id="poststuff" class="wootax-reports-page">
 			<a target="_blank" href="https://simplesalestax.com/taxcloud/reports/"
 			   class="wp-core-ui button button-primary">
-				<?php _e( 'Go to TaxCloud Reports Page', 'simple-sales-tax' ); ?>
+				<?php esc_html_e( 'Go to TaxCloud Reports Page', 'simple-sales-tax' ); ?>
 			</a>
 		</div>
 		<?php
@@ -213,7 +215,7 @@ class SST_Admin {
 	 * @return string Output from debug tool
 	 */
 	public static function invalidate_wc_tax_rates_cache() {
-		if ( method_exists( 'WC_Cache_Helper', 'invalidate_cache_group' ) ) {  // WC 3.9+
+		if ( method_exists( 'WC_Cache_Helper', 'invalidate_cache_group' ) ) {  // WC 3.9+.
 			WC_Cache_Helper::invalidate_cache_group( 'taxes' );
 		} else {
 			WC_Cache_Helper::incr_cache_prefix( 'taxes' );
@@ -261,7 +263,7 @@ class SST_Admin {
 	 * @since 4.5
 	 */
 	public static function save_category_tic( $term_id ) {
-		$tic = isset( $_REQUEST['wootax_tic'] ) ? sanitize_text_field( $_REQUEST['wootax_tic'] ) : '';
+		$tic = isset( $_REQUEST['wootax_tic'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['wootax_tic'] ) ) : ''; // phpcs:ignore WordPress.CSRF.NonceVerification
 
 		update_term_meta( $term_id, 'tic', $tic );
 	}
@@ -271,16 +273,20 @@ class SST_Admin {
 	 * WooCommerce "Calculate tax based on" setting is not respected.
 	 */
 	public static function tax_based_on_notice() {
-		$section = isset( $_GET['section'] ) ? $_GET['section'] : '';
+		$section = isset( $_GET['section'] ) ? sanitize_text_field( wp_unslash( $_GET['section'] ) ) : ''; // phpcs:ignore WordPress.CSRF.NonceVerification
 
-		if ( in_array( $section, array( '', 'tax' ) ) ) {
+		if ( in_array( $section, array( '', 'tax' ), true ) ) {
 			?>
 			<div class="notice notice-warning">
 				<p>
 					<?php
-					_e(
-						'<strong>Heads up!</strong> The WooCommerce "Calculate tax based on" setting is not respected by Simple Sales Tax. The customer billing address will <em>only</em> be used for tax calculations when the shipping address is not provided (e.g. for sales of digital goods).',
-						'simple-sales-tax'
+					printf(
+						'<strong>%1$s</strong> %2$s',
+						esc_html__( 'Heads up!', 'simple-sales-tax' ),
+						esc_html__(
+							'The WooCommerce "Calculate tax based on" setting is not respected by Simple Sales Tax. The customer billing address will only be used for tax calculations when the shipping address is not provided (e.g. for sales of digital goods).',
+							'simple-sales-tax'
+						)
 					);
 					?>
 				</p>

@@ -1,8 +1,9 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
-} ?>
+	exit; // Exit if accessed directly.
+}
 
+?>
 <script type="text/html" id="tmpl-sst-tic-row">
 	<tr class="tic-row" data-id="{{ data.id }}">
 		<td>
@@ -11,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</td>
 		<td width="1%">
 			<button type="button" class="button button-primary sst-select-done">
-				<?php _e( 'Select', 'simple-sales-tax' ); ?>
+				<?php esc_html_e( 'Select', 'simple-sales-tax' ); ?>
 			</button>
 		</td>
 	</tr>
@@ -22,15 +23,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<div class="wc-backbone-modal-content sst-select-tic-modal-content woocommerce">
 			<section class="wc-backbone-modal-main" role="main">
 				<header class="wc-backbone-modal-header">
-					<h1><?php _e( 'Select TIC', 'simple-sales-tax' ); ?></h1>
+					<h1><?php esc_html_e( 'Select TIC', 'simple-sales-tax' ); ?></h1>
 					<button class="modal-close modal-close-link dashicons dashicons-no-alt">
-						<span class="screen-reader-text"><?php _e( 'Close modal panel', 'simple-sales-tax' ); ?></span>
+						<span class="screen-reader-text">
+							<?php esc_html_e( 'Close modal panel', 'simple-sales-tax' ); ?>
+						</span>
 					</button>
 				</header>
 				<article>
 					<form action="" method="post">
 						<input name="search" class="sst-tic-search"
-							   placeholder="<?php _e( 'Start typing to search', 'simple-sales-tax' ); ?>" type="text"
+							   placeholder="<?php esc_attr_e( 'Start typing to search', 'simple-sales-tax' ); ?>" type="text"
 							   data-list=".sst-tic-list">
 						<table>
 							<tbody class="sst-tic-list"></tbody>

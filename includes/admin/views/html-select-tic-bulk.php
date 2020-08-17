@@ -1,10 +1,11 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
-} ?>
+	exit; // Exit if accessed directly.
+}
+?>
 
 	<label class="alignleft">
-		<span class="title"><?php _e( 'TIC', 'simple-sales-tax' ); ?></span>
+		<span class="title"><?php esc_html_e( 'TIC', 'simple-sales-tax' ); ?></span>
 		<span class="input-text-wrap">
 			<span class="sst-selected-tic"><?php esc_html_e( 'Using site default', 'simple-sales-tax' ); ?></span>
 			<input type="hidden" name="wootax_tic" class="sst-tic-input" value="">

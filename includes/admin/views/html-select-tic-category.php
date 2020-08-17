@@ -1,17 +1,15 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit; // Exit if accessed directly.
 }
-
-$label = esc_html__( 'Taxability Information Code', 'simple-sales-tax' );
 
 if ( $is_edit ) : ?>
 	<tr class="form-field">
-	<th><?php echo $label; ?></th>
+	<th><?php esc_html_e( 'Taxability Information Code', 'simple-sales-tax' ); ?></th>
 	<td>
 <?php else : ?>
 	<div class="form-field">
-	<label><?php echo $label; ?></label>
+	<label><?php esc_html_e( 'Taxability Information Code', 'simple-sales-tax' ); ?></label>
 <?php endif; ?>
 
 	<div class="sst-tic-select-wrap">

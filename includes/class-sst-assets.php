@@ -12,7 +12,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SST_Assets {
 
 	/**
-	 * @var array Plugin assets.
+	 * Plugin assets.
+	 *
+	 * @var array
 	 */
 	protected $assets = array();
 
@@ -163,22 +165,22 @@ class SST_Assets {
 	 * Registers frontend assets.
 	 */
 	public function register_assets() {
-		$this->_register_assets( 'frontend' );
+		$this->register_assets_for_context( 'frontend' );
 	}
 
 	/**
 	 * Registers admin assets.
 	 */
 	public function register_admin_assets() {
-		$this->_register_assets( 'admin' );
+		$this->register_assets_for_context( 'admin' );
 	}
 
 	/**
 	 * Helper for registering assets.
 	 *
-	 * @param string $context 'admin' or 'frontend'
+	 * @param string $context Context to register assets for. Can be 'admin' or 'frontend'.
 	 */
-	private function _register_assets( $context ) {
+	private function register_assets_for_context( $context ) {
 		$js_base_url   = SST()->url( 'assets/js/' );
 		$css_base_url  = SST()->url( 'assets/css/' );
 		$load_minified = ! defined( 'SCRIPT_DEBUG' ) || ! SCRIPT_DEBUG;
@@ -208,7 +210,7 @@ class SST_Assets {
 						$src = str_replace( '.js', '.min.js', $src );
 					}
 
-					wp_register_script( $handle, $src, $deps, $ver );
+					wp_register_script( $handle, $src, $deps, $ver, true );
 
 					if ( isset( $options['localize'] ) ) {
 						foreach ( $options['localize'] as $object_name => $data ) {

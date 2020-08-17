@@ -1,7 +1,7 @@
 <?php
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit; // Exit if accessed directly.
 }
 
 /**
@@ -18,7 +18,7 @@ class SST_Addresses {
 	/**
 	 * Converts an Address to a formatted string.
 	 *
-	 * @param TaxCloud\Address $address
+	 * @param TaxCloud\Address $address Address to format.
 	 *
 	 * @return string
 	 * @since 5.0
@@ -37,7 +37,7 @@ class SST_Addresses {
 	 * Determines whether an address is "valid." An address is considered to be
 	 * valid if a city, state, address, and ZIP code are provided.
 	 *
-	 * @param TaxCloud\Address $address
+	 * @param TaxCloud\Address $address Address to check for validity.
 	 *
 	 * @return bool
 	 * @since 5.0
@@ -79,7 +79,7 @@ class SST_Addresses {
 	/**
 	 * Verify an address.
 	 *
-	 * @param TaxCloud\Address $address
+	 * @param TaxCloud\Address $address Address to verify with TaxCloud VerifyAddress API.
 	 *
 	 * @return TaxCloud\Address
 	 * @since 5.0
@@ -91,7 +91,7 @@ class SST_Addresses {
 			$addresses = array();
 		}
 
-		$md5_hash = md5( json_encode( $address ) );
+		$md5_hash = md5( wp_json_encode( $address ) );
 
 		if ( array_key_exists( $md5_hash, $addresses ) ) {
 			$decoded = json_decode( $addresses[ $md5_hash ], true );
@@ -112,13 +112,13 @@ class SST_Addresses {
 					$address
 				);
 				$address = TaxCloud()->VerifyAddress( $request );
-			} catch ( Exception $ex ) {
-				// Leave address as-is
+			} catch ( Exception $ex ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+				// Leave address as-is.
 			}
 
-			$addresses[ $md5_hash ] = json_encode( $address );
+			$addresses[ $md5_hash ] = wp_json_encode( $address );
 
-			// Cache validated addresses for 3 days
+			// Cache validated addresses for 3 days.
 			set_transient( 'sst_verified_addresses', $addresses, 2 * DAY_IN_SECONDS );
 		}
 
@@ -196,7 +196,7 @@ class SST_Addresses {
 	/**
 	 * Convert an SST_Origin_Address object to an Address object.
 	 *
-	 * @param SST_Origin_Address $address
+	 * @param SST_Origin_Address $address Origin address to convert to Address object.
 	 *
 	 * @return TaxCloud\Address
 	 * @since 5.0

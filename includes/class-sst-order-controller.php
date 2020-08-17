@@ -1,7 +1,7 @@
 <?php
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit; // Exit if accessed directly.
 }
 
 /**
@@ -42,7 +42,7 @@ class SST_Order_Controller {
 	 *
 	 * @return bool True on success, false on failure.
 	 *
-	 * @throws Exception
+	 * @throws Exception If capture fails.
 	 * @since 5.0
 	 */
 	public function capture_order( $order_id ) {
@@ -59,7 +59,7 @@ class SST_Order_Controller {
 	 *
 	 * @return bool True on success, false on failure.
 	 *
-	 * @throws Exception
+	 * @throws Exception If refund fails.
 	 * @since 5.0
 	 */
 	public function refund_order( $refund_id, $args ) {
@@ -75,14 +75,14 @@ class SST_Order_Controller {
 					$item_type = $all_items[ $item_id ]['type'];
 
 					/* Match line total with value entered by user */
-					if ( 'shipping' == $item_type ) {
+					if ( 'shipping' === $item_type ) {
 						$all_items[ $item_id ]['cost'] = $data['refund_total'];
 					} else {
 						$all_items[ $item_id ]['line_total'] = $data['refund_total'];
 					}
 
 					/* Match quantity with value entered by user */
-					if ( 'line_item' == $item_type ) {
+					if ( 'line_item' === $item_type ) {
 						$all_items[ $item_id ]['qty'] = isset( $data['qty'] ) ? $data['qty'] : 1;
 					}
 
@@ -113,13 +113,13 @@ class SST_Order_Controller {
 	 * If the "Capture Orders Immediately" option is enabled, capture orders
 	 * when payment is received.
 	 *
-	 * @param int $order_id
+	 * @param int $order_id ID of order for which payment was just received.
 	 *
-	 * @throws Exception
+	 * @throws Exception If attempt to capture order fails.
 	 * @since 5.0
 	 */
 	public function maybe_capture_order( $order_id ) {
-		if ( 'yes' == SST_Settings::get( 'capture_immediately' ) ) {
+		if ( 'yes' === SST_Settings::get( 'capture_immediately' ) ) {
 			$order = new SST_Order( $order_id );
 
 			$order->do_capture();
@@ -146,14 +146,14 @@ class SST_Order_Controller {
 	 * Temporary fix for #50. Ensures that tax data for shipping items is
 	 * correctly formatted.
 	 *
-	 * @param array         $taxes
-	 * @param WC_Order_Item $item
+	 * @param array         $taxes Tax data for WooCommerce order item.
+	 * @param WC_Order_Item $item  WooCommerce order item object.
 	 *
 	 * @return array
 	 * @since 5.0
 	 */
 	public function fix_shipping_tax_issue( $taxes, $item ) {
-		if ( 'shipping' == $item->get_type() ) {
+		if ( 'shipping' === $item->get_type() ) {
 			if ( isset( $taxes['total'], $taxes['total']['total'] ) ) {
 				unset( $taxes['total']['total'] );
 			}
@@ -168,11 +168,11 @@ class SST_Order_Controller {
 	 * Calculates the tax for the order if it was created via the REST API and
 	 * ensures that the order DB version is set.
 	 *
-	 * @param WC_Order $order
+	 * @param WC_Order $order The WooCommerce order that is about to be saved.
 	 */
 	public function on_order_saved( $order ) {
 		if ( 'rest-api' === $order->get_created_via() ) {
-			// Remove hook temporarily to prevent infinite loop
+			// Remove hook temporarily to prevent infinite loop.
 			remove_action( 'woocommerce_before_order_object_save', array( $this, 'on_order_saved' ) );
 
 			sst_order_calculate_taxes( $order );

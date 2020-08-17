@@ -24,8 +24,8 @@ class SST_Composite_Products {
 	 * If this is not done, tax will be calculated for each of the individual products that comprise the composite
 	 * product AND for the composite product itself.
 	 *
-	 * @param float      $price
-	 * @param WC_Product $product
+	 * @param float      $price   Taxable price for product.
+	 * @param WC_Product $product WooCommerce product instance.
 	 *
 	 * @return float
 	 */

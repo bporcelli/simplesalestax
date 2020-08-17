@@ -1,7 +1,7 @@
 <?php
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit; // Exit if accessed directly.
 }
 
 /**
@@ -16,7 +16,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SST_Certificates {
 
 	/**
-	 * @var string Transient prefix.
+	 * Prefix for certificate transients.
+	 *
+	 * @var string
 	 * @since 5.0
 	 */
 	const TRANS_PREFIX = '_sst_certificates_';
@@ -24,17 +26,21 @@ class SST_Certificates {
 	/**
 	 * Get saved exemption certificates for the current customer.
 	 *
-	 * @param int $user_id (default: 0)
+	 * @param int $user_id WordPress user ID for customer (default: 0).
 	 *
 	 * @return TaxCloud\ExemptionCertificate[]
 	 * @since 5.0
 	 */
 	public static function get_certificates( $user_id = 0 ) {
-		if ( ! $user_id && ! ( $user_id = get_current_user_id() ) ) {
+		if ( ! $user_id ) {
+			$user_id = get_current_user_id();
+		}
+
+		if ( ! $user_id ) {
 			return array();
 		}
 
-		// Get certificates, using cached certificates if possible
+		// Get certificates, using cached certificates if possible.
 		$trans_key    = self::get_transient_name( $user_id );
 		$raw_certs    = get_transient( $trans_key );
 		$certificates = array();
@@ -57,7 +63,7 @@ class SST_Certificates {
 	 * Get a certificate by ID.
 	 *
 	 * @param string $id      Certificate ID.
-	 * @param int    $user_id (default: 0)
+	 * @param int    $user_id WordPress user ID (default: 0).
 	 *
 	 * @return TaxCloud\ExemptionCertificate|NULL
 	 * @since 5.0
@@ -76,7 +82,7 @@ class SST_Certificates {
 	 * Get a certificate and return it formatted for display.
 	 *
 	 * @param string $id      Certificate ID.
-	 * @param int    $user_id (default: 0)
+	 * @param int    $user_id WordPress user ID (default: 0).
 	 *
 	 * @return array|NULL
 	 * @since 5.0
@@ -94,7 +100,7 @@ class SST_Certificates {
 	/**
 	 * Format a certificate for display.
 	 *
-	 * @param TaxCloud\ExemptionCertificate $certificate
+	 * @param TaxCloud\ExemptionCertificate $certificate Exemption certificate to display.
 	 *
 	 * @return array
 	 * @since 5.0
@@ -122,7 +128,7 @@ class SST_Certificates {
 	 * Get saved exemption certificates for a customer, formatted for display
 	 * in the certificate table.
 	 *
-	 * @param int $user_id (default: 0)
+	 * @param int $user_id WordPress user ID for customer (default: 0).
 	 *
 	 * @return array
 	 * @since 5.0
@@ -139,19 +145,19 @@ class SST_Certificates {
 	/**
 	 * Set saved exemption certificates for a customer.
 	 *
-	 * @param int                             $user_id      (default: 0)
-	 * @param TaxCloud\ExemptionCertificate[] $certificates (default: array()).
+	 * @param int                             $user_id      WordPress user ID (default: 0).
+	 * @param TaxCloud\ExemptionCertificate[] $certificates Saved certificates for user (default: array()).
 	 *
 	 * @since 5.0
 	 */
 	public static function set_certificates( $user_id = 0, $certificates = array() ) {
-		set_transient( self::get_transient_name( $user_id ), json_encode( $certificates ), 3 * DAY_IN_SECONDS );
+		set_transient( self::get_transient_name( $user_id ), wp_json_encode( $certificates ), 3 * DAY_IN_SECONDS );
 	}
 
 	/**
 	 * Get the customer's saved exemption certificates from TaxCloud.
 	 *
-	 * @param int $user_id (default: 0)
+	 * @param int $user_id WordPress user ID (default: 0).
 	 *
 	 * @return array
 	 * @since 5.0
@@ -194,7 +200,7 @@ class SST_Certificates {
 	/**
 	 * Delete the customer's cached certificates.
 	 *
-	 * @param int $user_id (default: 0)
+	 * @param int $user_id WordPress user ID (default: 0).
 	 *
 	 * @since 5.0
 	 */
@@ -209,7 +215,7 @@ class SST_Certificates {
 	/**
 	 * Get name of transient where certificates are stored.
 	 *
-	 * @param int $user_id
+	 * @param int $user_id WordPress user ID.
 	 *
 	 * @return string
 	 * @since 5.0

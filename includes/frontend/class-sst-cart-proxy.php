@@ -11,11 +11,17 @@
  */
 class SST_Cart_Proxy {
 
-	// the WC_Cart object being wrapped
+	/**
+	 * The WC_Cart object being wrapped.
+	 *
+	 * @var WC_Cart
+	 */
 	private $cart = null;
 
 	/**
 	 * Constructor.
+	 *
+	 * @param WC_Cart $cart WC_Cart object to wrap.
 	 *
 	 * @since 5.6
 	 */
@@ -87,8 +93,8 @@ class SST_Cart_Proxy {
 	/**
 	 * Set the tax for a particular cart item.
 	 *
-	 * @param mixed $key cart item key.
-	 * @param float $tax sales tax for cart item.
+	 * @param mixed $key Cart item key.
+	 * @param float $tax Sales tax for cart item.
 	 *
 	 * @since 5.0
 	 */
@@ -118,8 +124,8 @@ class SST_Cart_Proxy {
 	/**
 	 * Set the tax for a particular fee.
 	 *
-	 * @param mixed $id  fee ID.
-	 * @param float $tax sales tax for fee.
+	 * @param mixed $id  Fee ID.
+	 * @param float $tax Sales tax for fee.
 	 *
 	 * @since 5.0
 	 */
@@ -143,8 +149,8 @@ class SST_Cart_Proxy {
 	/**
 	 * Set the tax for a shipping package.
 	 *
-	 * @param mixed $key package key.
-	 * @param float $tax sales tax for package.
+	 * @param mixed $key Package key.
+	 * @param float $tax Sales tax for package.
 	 *
 	 * @since 5.6
 	 */
@@ -156,7 +162,7 @@ class SST_Cart_Proxy {
 	 * Set the tax amount for a given tax rate.
 	 *
 	 * @param string $tax_rate_id ID of the tax rate to set taxes for.
-	 * @param float  $amount
+	 * @param float  $amount      Tax amount for tax rate.
 	 *
 	 * @since 5.6
 	 */
@@ -174,7 +180,7 @@ class SST_Cart_Proxy {
 	 * Set the shipping tax amount for a given tax rate.
 	 *
 	 * @param string $tax_rate_id ID of the tax rate to set shipping taxes for.
-	 * @param float  $amount
+	 * @param float  $amount      Tax amount for tax rate.
 	 *
 	 * @since 5.6
 	 */
@@ -210,8 +216,8 @@ class SST_Cart_Proxy {
 	/**
 	 * Forward calls to inaccessible methods to the underlying cart object.
 	 *
-	 * @param string $name name of method being called.
-	 * @param array  $args parameters of method.
+	 * @param string $name Name of method being called.
+	 * @param array  $args Parameters of method.
 	 *
 	 * @return mixed
 	 * @since 5.6
@@ -223,7 +229,7 @@ class SST_Cart_Proxy {
 	/**
 	 * Forward read requests for inaccessible properties to the underlying cart object.
 	 *
-	 * @param string $name name of property being read.
+	 * @param string $name Name of property being read.
 	 *
 	 * @return mixed
 	 * @since 5.6
@@ -235,8 +241,8 @@ class SST_Cart_Proxy {
 	/**
 	 * Forward write requests for inaccessible properties to the underlying cart object.
 	 *
-	 * @param string $name  name of property being written to.
-	 * @param mixed  $value value being written.
+	 * @param string $name  Name of property being written to.
+	 * @param mixed  $value Value being written.
 	 *
 	 * @since 5.6
 	 */

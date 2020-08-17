@@ -1,7 +1,7 @@
 <?php
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit; // Exit if accessed directly.
 }
 
 /**
@@ -32,8 +32,8 @@ class SST_TIC implements JsonSerializable {
 	/**
 	 * Constructor.
 	 *
-	 * @param string $id
-	 * @param string $description
+	 * @param string $id          TIC ID.
+	 * @param string $description TIC description.
 	 */
 	public function __construct( $id, $description ) {
 		$this->id          = str_pad( $id, 5, '0' );
