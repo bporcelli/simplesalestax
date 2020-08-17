@@ -43,7 +43,7 @@ function sst_update_38_update_addresses() {
 		get_option( 'wootax_zip4' )
 	);
 
-	SST_Settings::set( 'addresses', [ json_encode( $address ) ] );
+	SST_Settings::set( 'addresses', array( json_encode( $address ) ) );
 
 	// Delete old options
 	delete_option( 'wootax_address1' );
@@ -66,7 +66,7 @@ function sst_update_38_update_addresses() {
 function sst_update_42_migrate_settings() {
 	global $wpdb;
 
-	$options = [
+	$options = array(
 		'wootax_tc_id',
 		'wootax_tc_key',
 		'wootax_usps_id',
@@ -77,15 +77,15 @@ function sst_update_42_migrate_settings() {
 		'wootax_tax_based_on',
 		'wootax_addresses',
 		'wootax_default_address',
-	];
+	);
 
 	// Get old options
 	$existing = $wpdb->get_results(
-		"SELECT * FROM {$wpdb->options} WHERE option_name IN ( " . implode( ',', $options ) . " );"
+		"SELECT * FROM {$wpdb->options} WHERE option_name IN ( " . implode( ',', $options ) . ' );'
 	);
 
 	// Migrate
-	$new_options = get_option( 'woocommerce_wootax_settings', [] );
+	$new_options = get_option( 'woocommerce_wootax_settings', array() );
 
 	foreach ( $existing as $old_option ) {
 		$new_options[ $old_option->option_name ] = maybe_unserialize( $old_option->option_value );
@@ -94,7 +94,7 @@ function sst_update_42_migrate_settings() {
 	update_option( 'woocommerce_wootax_settings', $new_options );
 
 	// Delete old options
-	$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name IN ( " . implode( ',', $options ) . " );" );
+	$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name IN ( " . implode( ',', $options ) . ' );' );
 
 	return false;
 }
@@ -115,7 +115,7 @@ function sst_update_42_migrate_order_data() {
 
 	// Associate all existing metadata for wootax_order posts with the
 	// corresponding WooCommerce order.
-	$meta_keys = [
+	$meta_keys = array(
 		'_wootax_tax_total',
 		'_wootax_shipping_tax_total',
 		'_wootax_captured',
@@ -125,7 +125,7 @@ function sst_update_42_migrate_order_data() {
 		'_wootax_exemption_applied',
 		'_wootax_lookup_data',
 		'_wootax_cart_taxes',
-	];
+	);
 
 	$wpdb->query(
 		"
@@ -137,8 +137,8 @@ function sst_update_42_migrate_order_data() {
         SET wt.post_id = wc.meta_value
         WHERE wt.post_id = wc.post_id
         AND wt.meta_key <> 0
-        AND wt.meta_key IN ( " . implode( ',', $meta_keys ) . " );
-    "
+        AND wt.meta_key IN ( " . implode( ',', $meta_keys ) . ' );
+    '
 	);
 
 	// Process WooCommerce orders. Add new order and item metadata introduced
@@ -284,11 +284,11 @@ function sst_update_42_get_item_type( $item_id ) {
 	global $wpdb;
 
 	if ( $item_id == 99999 ) {
-		return "shipping";
-	} else if ( in_array( get_post_type( $item_id ), [ 'product', 'product_variation' ] ) ) {
-		return "product";
+		return 'shipping';
+	} elseif ( in_array( get_post_type( $item_id ), array( 'product', 'product_variation' ) ) ) {
+		return 'product';
 	} else {
-		return "fee";
+		return 'fee';
 	}
 
 	return false;
@@ -350,10 +350,10 @@ function sst_update_50_origin_addresses() {
  */
 function sst_update_50_category_tics() {
 	$terms = get_terms(
-		[
+		array(
 			'taxonomy'   => 'product_cat',
 			'hide_empty' => false,
-		]
+		)
 	);
 
 	foreach ( $terms as $term ) {
@@ -439,9 +439,11 @@ function sst_update_50_order_data() {
 				throw new Exception( 'No destination address is available for order ' . $order->ID . '. Skipping.' );
 			}
 
-			/* Exemption certificates previously stored under key 'exemption_applied'.
+			/*
+			 * Exemption certificates previously stored under key 'exemption_applied'.
 			 * In 5.0, we move them to key 'exempt_cert' and store them in a different
-			 * format. */
+			 * format.
+			 */
 			$old_certificate = $_order->get_meta( 'exemption_applied' );
 
 			if ( is_array( $old_certificate ) && isset( $old_certificate['CertificateID'] ) ) {
@@ -452,23 +454,27 @@ function sst_update_50_order_data() {
 				$_order->set_certificate( $new_certificate );
 			}
 
-			/* Actions we take from here will depend on the order status (pending,
-			 * captured, refunded). */
+			/*
+			 * Actions we take from here will depend on the order status (pending,
+			 * captured, refunded).
+			 */
 			$captured = $_order->get_meta( 'captured' );
 			$refunded = $_order->get_meta( 'refunded' );
 
 			if ( ! $captured && ! $refunded ) {         /* Pending */
 
-				/* If order is not actually pending, update the status, but don't
+				/*
+				 * If order is not actually pending, update the status, but don't
 				 * recalculate the taxes. Orders with a status other than pending
-				 * were very likely placed before SST was installed. */
-				if ( in_array( $_order->get_status(), [ 'pending', 'processing', 'on-hold' ] ) ) {
+				 * were very likely placed before SST was installed.
+				 */
+				if ( in_array( $_order->get_status(), array( 'pending', 'processing', 'on-hold' ) ) ) {
 					$_order->calculate_taxes();
 					$_order->calculate_totals( false );
 				}
 
 				$_order->update_meta( 'status', 'pending' );
-			} else if ( $captured && ! $refunded ) {    /* Captured */
+			} elseif ( $captured && ! $refunded ) {    /* Captured */
 
 				$taxcloud_ids = $_order->get_meta( 'taxcloud_ids' );
 				$identifiers  = $_order->get_meta( 'identifiers' );
@@ -478,29 +484,31 @@ function sst_update_50_order_data() {
 				}
 
 				/* Build map from address keys to items */
-				$mappings = [];
+				$mappings = array();
 
-				foreach ( $_order->get_items( [ 'line_item', 'fee', 'shipping' ] ) as $item_id => $item ) {
+				foreach ( $_order->get_items( array( 'line_item', 'fee', 'shipping' ) ) as $item_id => $item ) {
 					$location_id = wc_get_order_item_meta( $item_id, '_wootax_location_id' );
 
-					if ( empty( $location_id ) ) /* Very old order (pre 4.2) */ {
+					if ( empty( $location_id ) ) { /* Very old order (pre 4.2) */
 						continue;
 					}
 
 					if ( ! isset( $mappings[ $location_id ] ) ) {
-						$mappings[ $location_id ] = [];
+						$mappings[ $location_id ] = array();
 					}
 
 					$mappings[ $location_id ][ $item_id ] = $item;
 				}
 
 				/* For each address key, create one or more new packages. */
-				$packages = [];
+				$packages = array();
 
 				foreach ( $mappings as $address_key => $items ) {
 
-					/* Create a base package with just the cart id, order id,
-					 * and addresses set. We will copy this package to create others. */
+					/*
+					 * Create a base package with just the cart id, order id, and
+					 * addresses set. We will copy this package to create others.
+					 */
 					$base_package = sst_create_package();
 
 					$base_package['cart_id']     = $taxcloud_ids[ $address_key ]['cart_id'];
@@ -510,9 +518,11 @@ function sst_update_50_order_data() {
 					);
 					$base_package['destination'] = $destination;
 
-					/* Create a package for every shipping method that falls under
-					 * this address key. */
-					$new_packages = [];
+					/*
+					 * Create a package for every shipping method that falls under
+					 * this address key.
+					 */
+					$new_packages = array();
 
 					foreach ( $items as $item_id => $item ) {
 						if ( 'shipping' != $item['type'] ) {
@@ -525,7 +535,7 @@ function sst_update_50_order_data() {
 						$method_id = wc_get_order_item_meta( $item_id, 'method_id' );
 						$total     = wc_get_order_item_meta( $item_id, $woo_3_0 ? 'total' : 'cost' );
 
-						$new_package['shipping'] = new WC_Shipping_Rate( $item_id, '', $total, [], $method_id );
+						$new_package['shipping'] = new WC_Shipping_Rate( $item_id, '', $total, array(), $method_id );
 
 						/* Add cart item and map entry for shipping */
 						$new_package['contents'][] = new TaxCloud\CartItem(
@@ -535,18 +545,20 @@ function sst_update_50_order_data() {
 							$total,
 							1
 						);
-						$new_package['map'][]      = [
+						$new_package['map'][]      = array(
 							'type'    => 'shipping',
 							'id'      => SST_SHIPPING_ITEM,
 							'cart_id' => $item_id,
-						];
+						);
 
 						$new_packages[] = $new_package;
 						unset( $items[ $item_id ] );
 					}
 
-					/* Add all fees and line items to the first package. If no
-					 * packages were created, create one. */
+					/*
+					 * Add all fees and line items to the first package. If no
+					 * packages were created, create one.
+					 */
 					if ( empty( $new_packages ) ) {
 						$new_packages[] = $base_package;
 					}
@@ -564,11 +576,11 @@ function sst_update_50_order_data() {
 								$item['line_total'],
 								1
 							);
-							$new_packages[0]['map'][]      = [
+							$new_packages[0]['map'][]      = array(
 								'type'    => 'fee',
 								'id'      => $taxcloud_id,
 								'cart_id' => $item_id,
-							];
+							);
 						} else {
 							$taxcloud_id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
 
@@ -579,19 +591,21 @@ function sst_update_50_order_data() {
 								'item-price' == $based_on ? $item['line_subtotal'] / $item['qty'] : $item['line_subtotal'],
 								'item-price' == $based_on ? $item['qty'] : 1
 							);
-							$new_packages[0]['map'][]      = [
+							$new_packages[0]['map'][]      = array(
 								'type'    => 'line_item',
 								'id'      => $taxcloud_id,
 								'cart_id' => $item_id,
-							];
+							);
 						}
 					}
 
 					$packages = array_merge( $packages, $new_packages );
 				}
 
-				/* Generate lookup request for each package (cartItems is the only
-				 * required field). */
+				/*
+				 * Generate lookup request for each package (cartItems is the only
+				 * required field).
+				 */
 				foreach ( $packages as &$package ) {
 					$package['request'] = new TaxCloud\Request\Lookup(
 						SST_Settings::get( 'tc_id' ),
@@ -606,7 +620,7 @@ function sst_update_50_order_data() {
 
 				$_order->set_packages( $packages );
 				$_order->update_meta( 'status', 'captured' );
-			} else if ( $refunded ) {                   /* Refunded */
+			} elseif ( $refunded ) {                   /* Refunded */
 
 				$_order->update_meta( 'status', 'refunded' );
 			}
@@ -618,8 +632,10 @@ function sst_update_50_order_data() {
 		}
 	}
 
-	/* If more orders need processing, keep this function in the background
-	 * processing queue. */
+	/*
+	 * If more orders need processing, keep this function in the background
+	 * processing queue.
+	 */
 	if ( count( $orders ) == 50 ) {
 		return 'sst_update_50_order_data';
 	}
@@ -642,13 +658,13 @@ function sst_update_59_tic_table() {
  */
 function sst_update_606_fix_duplicate_transactions() {
 	$batch_size = 25;
-	$args       = [
+	$args       = array(
 		'type'           => 'shop_order',
 		'return'         => 'ids',
 		'limit'          => $batch_size,
 		'wootax_version' => '6.0.5',
 		'wootax_status'  => 'captured',
-	];
+	);
 
 	$order_ids = wc_get_orders( $args );
 
@@ -659,8 +675,8 @@ function sst_update_606_fix_duplicate_transactions() {
 		$order          = new SST_Order( $order_id );
 		$old_packages   = $order->get_packages();
 		$order_packages = $order->create_packages();
-		$new_packages   = [];
-		$removed        = [];
+		$new_packages   = array();
+		$removed        = array();
 
 		foreach ( $old_packages as $key => $package ) {
 			$matching_package = _sst_update_606_find_matching_package( $package, $order_packages );
@@ -685,11 +701,11 @@ function sst_update_606_fix_duplicate_transactions() {
 				} catch ( Exception $ex ) {
 					wc_get_logger()->debug(
 						sprintf(
-							__( 'Failed to refund extraneous package for order #%d: %s.', 'simple-sales-tax' ),
+							__( 'Failed to refund extraneous package for order #%1$d: %2$s.', 'simple-sales-tax' ),
 							$order_id,
 							$ex->getMessage()
 						),
-						[ 'source' => 'sst_db_updates' ]
+						array( 'source' => 'sst_db_updates' )
 					);
 				}
 
@@ -750,31 +766,31 @@ function _sst_update_606_find_matching_package( $needle, $haystack ) {
  * @return array
  */
 function _sst_update_606_normalize_package( $package ) {
-	$new_package = [];
+	$new_package = array();
 
 	// Items
-	$contents = [];
+	$contents = array();
 
 	foreach ( $package['contents'] as $item ) {
-		$contents[] = [
+		$contents[] = array(
 			'product_id'    => (int) $item['product_id'],
 			'variation_id'  => (int) $item['variation_id'],
 			'quantity'      => (int) $item['quantity'],
 			'line_total'    => (float) $item['line_total'],
 			'line_subtotal' => (float) $item['line_subtotal'],
-		];
+		);
 	}
 
 	$new_package['contents'] = wp_list_sort( $contents, 'product_id' );
 
 	// Fees
-	$fees = [];
+	$fees = array();
 
 	foreach ( $package['fees'] as $fee ) {
-		$fees[] = [
+		$fees[] = array(
 			'id'     => $fee->id,
 			'amount' => $fee->amount,
-		];
+		);
 	}
 
 	$new_package['fees'] = wp_list_sort( $fees, 'id' );
@@ -783,10 +799,10 @@ function _sst_update_606_normalize_package( $package ) {
 	$shipping = null;
 
 	if ( ! empty( $package['shipping'] ) ) {
-		$shipping = [
+		$shipping = array(
 			'method_id' => $package['shipping']->method_id,
 			'cost'      => $package['shipping']->cost,
-		];
+		);
 	}
 
 	$new_package['shipping'] = $shipping;
@@ -817,11 +833,11 @@ function _sst_update_606_get_address( $address ) {
 		return null;
 	}
 
-	return [
+	return array(
 		'address_1' => $address->getAddress1(),
 		'address_2' => $address->getAddress2(),
 		'city'      => $address->getCity(),
 		'state'     => $address->getState(),
 		'zip'       => $address->getZip(),
-	];
+	);
 }

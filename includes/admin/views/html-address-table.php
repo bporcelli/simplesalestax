@@ -31,12 +31,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</th>
 		<th>
 			<?php _e( 'Default?', 'simple-sales-tax' ); ?>
-			<?php sst_tip(
+			<?php
+			sst_tip(
 				__(
 					'Check this if you want this address to be used as a default "Shipment Origin Address" for your products. You must have at least one default address.',
 					'simple-sales-tax'
 				)
-			); ?>
+			);
+			?>
 		</th>
 	</tr>
 	</thead>
@@ -64,14 +66,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<tr data-id="{{ data.ID }}">
 		<td>
 			<input type="text" name="addresses[{{ data.ID }}][Address1]" data-attribute="Address1"
-			       value="{{ data.Address1 }}">
+				   value="{{ data.Address1 }}">
 			<div class="row-actions">
 				<a href="#" class="sst-address-delete"><?php _e( 'Remove', 'simple-sales-tax' ); ?></a>
 			</div>
 		</td>
 		<td>
 			<input type="text" name="addresses[{{ data.ID }}][Address2]" data-attribute="Address2"
-			       value="{{ data.Address2 }}" placeholder="(Optional)">
+				   value="{{ data.Address2 }}" placeholder="(Optional)">
 		</td>
 		<td>
 			<input type="text" name="addresses[{{ data.ID }}][City]" data-attribute="City" value="{{ data.City }}">
@@ -80,9 +82,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<select name="addresses[{{ data.ID }}][State]" data-attribute="State">
 				<?php
 				$options = array_merge(
-					[
+					array(
 						'' => __( 'Select One', 'simple-sales-tax' ),
-					],
+					),
 					WC()->countries->get_states( 'US' )
 				);
 

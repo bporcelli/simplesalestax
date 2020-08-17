@@ -25,10 +25,10 @@ function sst_woocommerce_active() {
 		return woocommerce_active_check();
 	}
 
-	$active_plugins = get_option( 'active_plugins', [] );
+	$active_plugins = get_option( 'active_plugins', array() );
 
 	if ( is_multisite() ) {
-		$active_plugins = array_merge( $active_plugins, get_site_option( 'active_sitewide_plugins', [] ) );
+		$active_plugins = array_merge( $active_plugins, get_site_option( 'active_sitewide_plugins', array() ) );
 	}
 
 	return (

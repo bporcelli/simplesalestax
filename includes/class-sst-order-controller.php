@@ -21,15 +21,15 @@ class SST_Order_Controller {
 	 * @since 5.0
 	 */
 	public function __construct() {
-		add_action( 'woocommerce_order_status_completed', [ $this, 'capture_order' ] );
-		add_action( 'woocommerce_refund_created', [ $this, 'refund_order' ], 10, 2 );
-		add_action( 'woocommerce_payment_complete', [ $this, 'maybe_capture_order' ] );
-		add_filter( 'woocommerce_hidden_order_itemmeta', [ $this, 'hide_order_item_meta' ] );
-		add_filter( 'woocommerce_order_item_get_taxes', [ $this, 'fix_shipping_tax_issue' ], 10, 2 );
-		add_action( 'woocommerce_before_order_object_save', [ $this, 'on_order_saved' ] );
+		add_action( 'woocommerce_order_status_completed', array( $this, 'capture_order' ) );
+		add_action( 'woocommerce_refund_created', array( $this, 'refund_order' ), 10, 2 );
+		add_action( 'woocommerce_payment_complete', array( $this, 'maybe_capture_order' ) );
+		add_filter( 'woocommerce_hidden_order_itemmeta', array( $this, 'hide_order_item_meta' ) );
+		add_filter( 'woocommerce_order_item_get_taxes', array( $this, 'fix_shipping_tax_issue' ), 10, 2 );
+		add_action( 'woocommerce_before_order_object_save', array( $this, 'on_order_saved' ) );
 		add_filter(
 			'woocommerce_order_data_store_cpt_get_orders_query',
-			[ $this, 'handle_version_query_var' ],
+			array( $this, 'handle_version_query_var' ),
 			10,
 			2
 		);
@@ -63,12 +63,12 @@ class SST_Order_Controller {
 	 * @since 5.0
 	 */
 	public function refund_order( $refund_id, $args ) {
-		$items = isset( $args['line_items'] ) ? $args['line_items'] : [];
+		$items = isset( $args['line_items'] ) ? $args['line_items'] : array();
 		$order = new SST_Order( $args['order_id'] );
 
 		/* If items specified, convert to format expected by do_refund() */
 		if ( ! empty( $items ) ) {
-			$all_items = $order->get_items( [ 'line_item', 'shipping', 'fee' ] );
+			$all_items = $order->get_items( array( 'line_item', 'shipping', 'fee' ) );
 
 			foreach ( $items as $item_id => $data ) {
 				if ( $data['refund_total'] > 0 && isset( $all_items[ $item_id ] ) ) {
@@ -173,11 +173,11 @@ class SST_Order_Controller {
 	public function on_order_saved( $order ) {
 		if ( 'rest-api' === $order->get_created_via() ) {
 			// Remove hook temporarily to prevent infinite loop
-			remove_action( 'woocommerce_before_order_object_save', [ $this, 'on_order_saved' ] );
+			remove_action( 'woocommerce_before_order_object_save', array( $this, 'on_order_saved' ) );
 
 			sst_order_calculate_taxes( $order );
 
-			add_action( 'woocommerce_before_order_object_save', [ $this, 'on_order_saved' ] );
+			add_action( 'woocommerce_before_order_object_save', array( $this, 'on_order_saved' ) );
 		}
 
 		$db_version = $order->get_meta( '_wootax_db_version', true );
@@ -197,21 +197,21 @@ class SST_Order_Controller {
 	 */
 	public function handle_version_query_var( $query, $query_vars ) {
 		if ( ! is_array( $query['meta_query'] ) ) {
-			$query['meta_query'] = [];
+			$query['meta_query'] = array();
 		}
 
 		if ( ! empty( $query_vars['wootax_version'] ) ) {
-			$query['meta_query'][] = [
+			$query['meta_query'][] = array(
 				'key'   => '_wootax_db_version',
 				'value' => esc_attr( $query_vars['wootax_version'] ),
-			];
+			);
 		}
 
 		if ( ! empty( $query_vars['wootax_status'] ) ) {
-			$query['meta_query'][] = [
+			$query['meta_query'][] = array(
 				'key'   => '_wootax_status',
 				'value' => esc_attr( $query_vars['wootax_status'] ),
-			];
+			);
 		}
 
 		return $query;

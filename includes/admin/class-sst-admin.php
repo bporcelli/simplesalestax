@@ -31,16 +31,16 @@ class SST_Admin {
 	 * @since 4.7
 	 */
 	private function hooks() {
-		add_filter( 'woocommerce_integrations', [ __CLASS__, 'add_integration' ] );
-		add_action( 'admin_enqueue_scripts', [ __CLASS__, 'enqueue_scripts_and_styles' ] );
-		add_action( 'add_meta_boxes', [ __CLASS__, 'add_metaboxes' ] );
-		add_action( 'woocommerce_reports_charts', [ __CLASS__, 'add_reports_tab' ] );
-		add_filter( 'woocommerce_debug_tools', [ __CLASS__, 'register_debug_tool' ] );
-		add_action( 'product_cat_add_form_fields', [ __CLASS__, 'output_category_tic_select' ] );
-		add_action( 'product_cat_edit_form_fields', [ __CLASS__, 'output_category_tic_select' ] );
-		add_action( 'create_product_cat', [ __CLASS__, 'save_category_tic' ] );
-		add_action( 'edited_product_cat', [ __CLASS__, 'save_category_tic' ] );
-		add_action( 'woocommerce_before_settings_tax', [ __CLASS__, 'tax_based_on_notice' ] );
+		add_filter( 'woocommerce_integrations', array( __CLASS__, 'add_integration' ) );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_scripts_and_styles' ) );
+		add_action( 'add_meta_boxes', array( __CLASS__, 'add_metaboxes' ) );
+		add_action( 'woocommerce_reports_charts', array( __CLASS__, 'add_reports_tab' ) );
+		add_filter( 'woocommerce_debug_tools', array( __CLASS__, 'register_debug_tool' ) );
+		add_action( 'product_cat_add_form_fields', array( __CLASS__, 'output_category_tic_select' ) );
+		add_action( 'product_cat_edit_form_fields', array( __CLASS__, 'output_category_tic_select' ) );
+		add_action( 'create_product_cat', array( __CLASS__, 'save_category_tic' ) );
+		add_action( 'edited_product_cat', array( __CLASS__, 'save_category_tic' ) );
+		add_action( 'woocommerce_before_settings_tax', array( __CLASS__, 'tax_based_on_notice' ) );
 	}
 
 	/**
@@ -87,7 +87,7 @@ class SST_Admin {
 		add_meta_box(
 			'sales_tax_meta',
 			__( 'Simple Sales Tax', 'simple-sales-tax' ),
-			[ __CLASS__, 'output_tax_metabox' ],
+			array( __CLASS__, 'output_tax_metabox' ),
 			'shop_order',
 			'side',
 			'high'
@@ -118,14 +118,14 @@ class SST_Admin {
 		wp_localize_script(
 			'sst-view-certificate',
 			'SSTCertData',
-			[
+			array(
 				'certificate' => $certificate,
 				'seller_name' => SST_Settings::get( 'company_name' ),
-				'images'      => [
+				'images'      => array(
 					'single_cert'  => SST()->url( 'assets/img/sp_exemption_certificate750x600.png' ),
 					'blanket_cert' => SST()->url( 'assets/img/exemption_certificate750x600.png' ),
-				],
-			]
+				),
+			)
 		);
 
 		include __DIR__ . '/views/html-meta-box.php';
@@ -139,12 +139,12 @@ class SST_Admin {
 	 */
 	public static function output_tax_report_button() {
 		?>
-        <div id="poststuff" class="wootax-reports-page">
-            <a target="_blank" href="https://simplesalestax.com/taxcloud/reports/"
-               class="wp-core-ui button button-primary">
+		<div id="poststuff" class="wootax-reports-page">
+			<a target="_blank" href="https://simplesalestax.com/taxcloud/reports/"
+			   class="wp-core-ui button button-primary">
 				<?php _e( 'Go to TaxCloud Reports Page', 'simple-sales-tax' ); ?>
-            </a>
-        </div>
+			</a>
+		</div>
 		<?php
 	}
 
@@ -157,17 +157,17 @@ class SST_Admin {
 	 * @since 4.2
 	 */
 	public static function add_reports_tab( $charts ) {
-		$charts['taxes'] = [
+		$charts['taxes'] = array(
 			'title'  => __( 'Taxes', 'simple-sales-tax' ),
-			'charts' => [
-				'overview' => [
+			'charts' => array(
+				'overview' => array(
 					'title'       => __( 'Overview', 'simple-sales-tax' ),
 					'description' => '',
 					'hide_title'  => true,
-					'function'    => [ __CLASS__, 'output_tax_report_button' ],
-				],
-			],
-		];
+					'function'    => array( __CLASS__, 'output_tax_report_button' ),
+				),
+			),
+		);
 
 		return $charts;
 	}
@@ -197,12 +197,12 @@ class SST_Admin {
 	 * @since 4.4
 	 */
 	public static function register_debug_tool( $tools ) {
-		$tools['wootax_rate_tool'] = [
+		$tools['wootax_rate_tool'] = array(
 			'name'     => __( 'Delete cached tax rates', 'simple-sales-tax' ),
 			'button'   => __( 'Clear tax rate cache', 'simple-sales-tax' ),
 			'desc'     => __( 'This tool will remove any tax rates cached by WooCommerce.', 'simple-sales-tax' ),
-			'callback' => [ __CLASS__, 'invalidate_wc_tax_rates_cache' ],
-		];
+			'callback' => array( __CLASS__, 'invalidate_wc_tax_rates_cache' ),
+		);
 
 		return $tools;
 	}
@@ -240,12 +240,12 @@ class SST_Admin {
 		wp_localize_script(
 			'sst-tic-select',
 			'ticSelectLocalizeScript',
-			[
+			array(
 				'tic_list' => sst_get_tics(),
-				'strings'  => [
+				'strings'  => array(
 					'default' => __( 'Using site default', 'simple-sales-tax' ),
-				],
-			]
+				),
+			)
 		);
 
 		wp_enqueue_script( 'sst-tic-select' );
@@ -261,7 +261,7 @@ class SST_Admin {
 	 * @since 4.5
 	 */
 	public static function save_category_tic( $term_id ) {
-	    $tic = isset( $_REQUEST['wootax_tic'] ) ? sanitize_text_field( $_REQUEST['wootax_tic'] ) : '';
+		$tic = isset( $_REQUEST['wootax_tic'] ) ? sanitize_text_field( $_REQUEST['wootax_tic'] ) : '';
 
 		update_term_meta( $term_id, 'tic', $tic );
 	}
@@ -273,18 +273,18 @@ class SST_Admin {
 	public static function tax_based_on_notice() {
 		$section = isset( $_GET['section'] ) ? $_GET['section'] : '';
 
-		if ( in_array( $section, [ '', 'tax' ] ) ) {
+		if ( in_array( $section, array( '', 'tax' ) ) ) {
 			?>
-            <div class="notice notice-warning">
-                <p>
+			<div class="notice notice-warning">
+				<p>
 					<?php
 					_e(
 						'<strong>Heads up!</strong> The WooCommerce "Calculate tax based on" setting is not respected by Simple Sales Tax. The customer billing address will <em>only</em> be used for tax calculations when the shipping address is not provided (e.g. for sales of digital goods).',
 						'simple-sales-tax'
 					);
 					?>
-                </p>
-            </div>
+				</p>
+			</div>
 			<?php
 		}
 	}

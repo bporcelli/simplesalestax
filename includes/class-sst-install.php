@@ -20,32 +20,32 @@ class SST_Install {
 	 *
 	 * @var array
 	 */
-	private static $update_hooks = [
-		'2.6'   => [
+	private static $update_hooks = array(
+		'2.6'   => array(
 			'sst_update_26_remove_shipping_taxable_option',
-		],
-		'3.8'   => [
+		),
+		'3.8'   => array(
 			'sst_update_38_update_addresses',
-		],
-		'4.2'   => [
+		),
+		'4.2'   => array(
 			'sst_update_42_migrate_settings',
 			'sst_update_42_migrate_order_data',
-		],
-		'4.5'   => [
+		),
+		'4.5'   => array(
 			'sst_update_45_remove_license_option',
-		],
-		'5.0'   => [
+		),
+		'5.0'   => array(
 			'sst_update_50_origin_addresses',
 			'sst_update_50_category_tics',
 			'sst_update_50_order_data',
-		],
-		'5.9'   => [
+		),
+		'5.9'   => array(
 			'sst_update_59_tic_table',
-		],
-		'6.0.6' => [
+		),
+		'6.0.6' => array(
 			'sst_update_606_fix_duplicate_transactions',
-		],
-	];
+		),
+	);
 
 	/**
 	 * Background updater.
@@ -58,14 +58,14 @@ class SST_Install {
 	 * Initialize installer.
 	 */
 	public static function init() {
-		add_action( 'init', [ __CLASS__, 'init_background_updater' ], 5 );
-		add_action( 'init', [ __CLASS__, 'check_version' ], 5 );
-		add_action( 'admin_init', [ __CLASS__, 'trigger_update' ] );
-		add_action( 'admin_init', [ __CLASS__, 'trigger_rate_removal' ] );
-		add_filter( 'plugin_action_links_' . SST_PLUGIN_BASENAME, [ __CLASS__, 'add_action_links' ] );
-		add_filter( 'woocommerce_rate_code', [ __CLASS__, 'get_rate_code' ], 10, 2 );
-		add_filter( 'woocommerce_rate_label', [ __CLASS__, 'get_rate_label' ], 10, 2 );
-		add_action( 'plugins_loaded', [ __CLASS__, 'disable_wcms_order_items_hook' ], 100 );
+		add_action( 'init', array( __CLASS__, 'init_background_updater' ), 5 );
+		add_action( 'init', array( __CLASS__, 'check_version' ), 5 );
+		add_action( 'admin_init', array( __CLASS__, 'trigger_update' ) );
+		add_action( 'admin_init', array( __CLASS__, 'trigger_rate_removal' ) );
+		add_filter( 'plugin_action_links_' . SST_PLUGIN_BASENAME, array( __CLASS__, 'add_action_links' ) );
+		add_filter( 'woocommerce_rate_code', array( __CLASS__, 'get_rate_code' ), 10, 2 );
+		add_filter( 'woocommerce_rate_label', array( __CLASS__, 'get_rate_label' ), 10, 2 );
+		add_action( 'plugins_loaded', array( __CLASS__, 'disable_wcms_order_items_hook' ), 100 );
 	}
 
 	/**
@@ -135,7 +135,7 @@ class SST_Install {
 			$delete_url = esc_url( admin_url( '?sst_keep_rates=no' ) );
 			$notice     = sprintf(
 				__(
-					'Simple Sales Tax found extra rates in your tax tables. Please choose to <a href="%s">keep the rates</a> or <a href="%s">delete them</a>.',
+					'Simple Sales Tax found extra rates in your tax tables. Please choose to <a href="%1$s">keep the rates</a> or <a href="%2$s">delete them</a>.',
 					'simple-sales-tax'
 				),
 				$keep_url,
@@ -234,11 +234,11 @@ class SST_Install {
 		add_role(
 			'exempt-customer',
 			__( 'Exempt Customer', 'simple-sales-tax' ),
-			[
+			array(
 				'read'         => true,
 				'edit_posts'   => false,
 				'delete_posts' => false,
-			]
+			)
 		);
 	}
 
@@ -275,7 +275,7 @@ class SST_Install {
 		);
 
 		// Add or update tax rate
-		$_tax_rate = [
+		$_tax_rate = array(
 			'tax_rate_country'  => 'WT',
 			'tax_rate_state'    => 'RATE',
 			'tax_rate'          => 0,
@@ -285,13 +285,13 @@ class SST_Install {
 			'tax_rate_shipping' => 1,
 			'tax_rate_order'    => 0,
 			'tax_rate_class'    => 'standard',
-		];
+		);
 
 		if ( is_null( $existing ) ) {
 			$wpdb->insert( $tax_rates_table, $_tax_rate );
 			update_option( 'wootax_rate_id', $wpdb->insert_id );
 		} else {
-			$where = [ 'tax_rate_id' => $rate_id ];
+			$where = array( 'tax_rate_id' => $rate_id );
 			$wpdb->update( $tax_rates_table, $_tax_rate, $where );
 		}
 	}
@@ -352,7 +352,7 @@ class SST_Install {
 	 */
 	public static function disable_wcms_order_items_hook() {
 		if ( sst_wcms_active() ) {
-			remove_filter( 'woocommerce_order_get_items', [ $GLOBALS['wcms']->order, 'order_item_taxes' ], 30 );
+			remove_filter( 'woocommerce_order_get_items', array( $GLOBALS['wcms']->order, 'order_item_taxes' ), 30 );
 		}
 	}
 }

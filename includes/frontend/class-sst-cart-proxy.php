@@ -204,7 +204,7 @@ class SST_Cart_Proxy {
 	 * @since 5.6
 	 */
 	public function reset_shipping_taxes() {
-		$this->cart->sst_shipping_taxes = [];
+		$this->cart->sst_shipping_taxes = array();
 	}
 
 	/**
@@ -217,7 +217,7 @@ class SST_Cart_Proxy {
 	 * @since 5.6
 	 */
 	public function __call( $name, $args ) {
-		return call_user_func_array( [ $this->cart, $name ], $args );
+		return call_user_func_array( array( $this->cart, $name ), $args );
 	}
 
 	/**

@@ -19,12 +19,12 @@ class SST_Ajax {
 	 * @var array Hooks.
 	 * @since 5.0
 	 */
-	private static $hooks = [
+	private static $hooks = array(
 		'sst_verify_taxcloud'         => false,
 		'sst_delete_certificate'      => false,
 		'sst_add_certificate'         => false,
 		'woocommerce_calc_line_taxes' => false,
-	];
+	);
 
 	/**
 	 * Initialize hooks.
@@ -33,7 +33,7 @@ class SST_Ajax {
 	 */
 	public static function init() {
 		foreach ( self::$hooks as $hook => $nopriv ) {
-			$function = str_replace( [ 'woocommerce_', 'sst_' ], '', $hook );
+			$function = str_replace( array( 'woocommerce_', 'sst_' ), '', $hook );
 
 			/* If we are overriding a woo hook, give ours higher priority */
 			if ( 0 === strpos( $hook, 'woocommerce_' ) ) {
@@ -42,10 +42,10 @@ class SST_Ajax {
 				$priority = 10;
 			}
 
-			add_action( "wp_ajax_$hook", [ __CLASS__, $function ], $priority );
+			add_action( "wp_ajax_$hook", array( __CLASS__, $function ), $priority );
 
 			if ( $nopriv ) {
-				add_action( "wp_ajax_nopriv_$hook", [ __CLASS__, $function ], $priority );
+				add_action( "wp_ajax_nopriv_$hook", array( __CLASS__, $function ), $priority );
 			}
 		}
 	}
@@ -96,9 +96,9 @@ class SST_Ajax {
 			SST_Certificates::delete_certificates();
 
 			wp_send_json_success(
-				[
+				array(
 					'certificates' => SST_Certificates::get_certificates_formatted(),
-				]
+				)
 			);
 		} catch ( Exception $ex ) { /* Failed to delete */
 			wp_send_json_error( $ex->getMessage() );
@@ -124,7 +124,7 @@ class SST_Ajax {
 		}
 
 		// Get data
-		$form_data = [];
+		$form_data = array();
 		parse_str( $_POST['form_data'], $form_data );
 		$form_data = array_map( 'sanitize_text_field', array_merge( $_POST['certificate'], $form_data ) );
 
@@ -142,7 +142,7 @@ class SST_Ajax {
 		);
 
 		$certificate = new TaxCloud\ExemptionCertificate(
-			[ $exempt_state ],
+			array( $exempt_state ),
 			false,
 			'',
 			$form_data['billing_first_name'],
@@ -180,10 +180,10 @@ class SST_Ajax {
 			wp_send_json_error( $ex->getMessage() );
 		}
 
-		$data = [
+		$data = array(
 			'certificate_id' => $certificate_id,
 			'certificates'   => SST_Certificates::get_certificates_formatted(),
-		];
+		);
 
 		wp_send_json_success( $data );
 	}
@@ -200,7 +200,7 @@ class SST_Ajax {
 			wp_die( -1 );
 		}
 
-		$items    = [];
+		$items    = array();
 		$order_id = absint( $_POST['order_id'] );
 		$country  = strtoupper( sanitize_text_field( $_POST['country'] ) );
 		$state    = strtoupper( sanitize_text_field( $_POST['state'] ) );

@@ -41,7 +41,7 @@ function sst_tip( $tip ) {
  */
 function sst_prettify( $ugly ) {
 	// Map from ugly string to pretty strings
-	$ugly_strings = [
+	$ugly_strings = array(
 		'AccommodationAndFoodServices'            => 'Accommodation and Food Services',
 		'Agricultural_Forestry_Fishing_Hunting'   => 'Agricultural/Forestry/Fishing/Hunting',
 		'FinanceAndInsurance'                     => 'Finance and Insurance',
@@ -117,7 +117,7 @@ function sst_prettify( $ugly ) {
 		'WV'                                      => 'West Virginia',
 		'WI'                                      => 'Wisconsin',
 		'WY'                                      => 'Wyoming',
-	];
+	);
 
 	if ( array_key_exists( $ugly, $ugly_strings ) ) {
 		return $ugly_strings[ $ugly ];
@@ -135,19 +135,19 @@ function sst_prettify( $ugly ) {
  * @return array
  * @since 5.0
  */
-function sst_create_package( $package = [] ) {
-	$defaults = [
-		'contents'    => [],
-		'fees'        => [],
+function sst_create_package( $package = array() ) {
+	$defaults = array(
+		'contents'    => array(),
+		'fees'        => array(),
 		'shipping'    => null,
-		'map'         => [],
-		'user'        => [],
+		'map'         => array(),
+		'user'        => array(),
 		'request'     => null,
 		'response'    => null,
 		'origin'      => null,
 		'destination' => null,
 		'certificate' => null,
-	];
+	);
 
 	return wp_parse_args( $package, $defaults );
 }
@@ -189,7 +189,7 @@ function sst_get_tics() {
 	$tics = get_transient( 'sst_tics' );
 
 	if ( false === $tics ) {
-		$tics = [];
+		$tics = array();
 
 		try {
 			$tics = TaxCloud()->GetTICs(
@@ -246,20 +246,20 @@ function sst_order_calculate_taxes( $order ) {
  * @return array Order items formatted for tax calculations
  */
 function sst_format_order_items( $items ) {
-	$new_items = [];
+	$new_items = array();
 
 	foreach ( $items as $item_id => $item ) {
 		$product_id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
 
 		if ( ( $product = wc_get_product( $product_id ) ) ) {
-			$new_items[ $item_id ] = [
+			$new_items[ $item_id ] = array(
 				'product_id'    => $item['product_id'],
 				'variation_id'  => $item['variation_id'],
 				'quantity'      => $item['qty'],
 				'line_total'    => $item['line_total'],
 				'line_subtotal' => $item['line_subtotal'],
 				'data'          => $product,
-			];
+			);
 		}
 	}
 

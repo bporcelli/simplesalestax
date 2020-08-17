@@ -17,33 +17,35 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h3>
 		<?php esc_html_e( 'Tax exempt?', 'simple-sales-tax' ); ?>
-		<input type="checkbox" name="tax_exempt" id="tax_exempt_checkbox" class="input-checkbox" value="1"<?php checked(
-			$checked
-		); ?>>
+		<input type="checkbox" name="tax_exempt" id="tax_exempt_checkbox" class="input-checkbox" value="1" <?php checked( $checked ); ?>>
 	</h3>
 
 	<div id="tax_details">
 
 		<noscript>
 			<p>
-				<?php printf(
+				<?php
+				printf(
 					'<strong>%s</strong> %s',
 					__( 'Warning:', 'simple-sales-tax' ),
 					__(
 						'This interface will not function properly with JavaScript disabled. Please enable JavaScript to continue.',
 						'simple-sales-tax'
 					)
-				); ?>
+				);
+				?>
 			</p>
 		</noscript>
 
-		<?php if ( is_user_logged_in() ): ?>
+		<?php if ( is_user_logged_in() ) : ?>
 
 			<p>
-				<?php esc_html_e(
+				<?php
+				esc_html_e(
 					'Select an exemption certificate from the table below, or click "Add Certificate" and fill out the provided form.',
 					'simple-sales-tax'
-				); ?>
+				);
+				?>
 			</p>
 
 			<table id="sst-certificates" class="shop_table">
@@ -68,7 +70,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tbody></tbody>
 			</table>
 
-		<?php else: ?>
+		<?php else : ?>
 			<p><?php esc_html_e( 'Please log in or register.' ); ?></p>
 		<?php endif; ?>
 
@@ -77,12 +79,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<script type="text/html" id="tmpl-sst-certificate-row-blank">
 		<tr>
 			<td colspan="5">
-                <span>
-                    <?php _e(
-	                    "There are no certificates to display. Click 'Add Certificate' to add one.",
-	                    'simple-sales-tax'
-                    ); ?>
-                </span>
+				<span>
+					<?php
+					_e(
+						"There are no certificates to display. Click 'Add Certificate' to add one.",
+						'simple-sales-tax'
+					);
+					?>
+				</span>
 			</td>
 		</tr>
 	</script>
@@ -97,7 +101,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<td>{{ data.CreatedDate }}</td>
 			<td>
 				<a href="#" class="sst-certificate-view">View</a> | <a href="#"
-				                                                       class="sst-certificate-delete">Delete</a>
+																	   class="sst-certificate-delete">Delete</a>
 			</td>
 		</tr>
 	</script>
@@ -109,96 +113,107 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<header class="wc-backbone-modal-header">
 						<h1><?php _e( 'Add certificate', 'simple-sales-tax' ); ?></h1>
 						<button class="modal-close modal-close-link dashicons dashicons-no-alt">
-                            <span class="screen-reader-text">
-                                <?php _e( 'Close modal panel', 'simple-sales-tax' ); ?></span>
+							<span class="screen-reader-text">
+								<?php _e( 'Close modal panel', 'simple-sales-tax' ); ?></span>
 						</button>
 					</header>
 					<article>
 						<form action="" method="post">
-							<?php printf(
+							<?php
+							printf(
 								'<strong>%s</strong> %s',
 								esc_html__( 'Warning', 'simple-sales-tax' ),
 								esc_html__(
 									'You are responsible for knowing if you qualify to claim exemption from tax in the state that is due tax on this sale. You  will be held liable for any tax and interest, as well as civil and criminal penalties imposed by the member state, if you are not eligible to claim this exemption.',
 									'simple-sales-tax'
 								)
-							); ?>
+							);
+							?>
 
-							<?php woocommerce_form_field(
+							<?php
+							woocommerce_form_field(
 								'ExemptState',
-								[
+								array(
 									'type'     => 'state',
 									'label'    => __( 'Where does this exemption apply?', 'simple-sales-tax' ),
 									'required' => true,
-									'class'    => [ 'sst-input' ],
-								]
-							); ?>
+									'class'    => array( 'sst-input' ),
+								)
+							);
+							?>
 
-							<?php woocommerce_form_field(
+							<?php
+							woocommerce_form_field(
 								'TaxType',
-								[
+								array(
 									'type'     => 'select',
 									'label'    => __( 'Tax ID Type', 'simple-sales-tax' ),
 									'required' => true,
-									'class'    => [ 'sst-input' ],
-									'options'  => [
+									'class'    => array( 'sst-input' ),
+									'options'  => array(
 										''            => __( 'Select one', 'simple-sales-tax' ),
 										'FEIN'        => __( 'Federal Employer ID', 'simple-sales-tax' ),
 										'StateIssued' => __(
 											'State Issued Exemption ID or Drivers License',
 											'simple-sales-tax'
 										),
-									],
-								]
-							); ?>
+									),
+								)
+							);
+							?>
 
-							<?php woocommerce_form_field(
+							<?php
+							woocommerce_form_field(
 								'IDNumber',
-								[
+								array(
 									'type'        => 'text',
 									'label'       => __( 'Tax ID', 'simple-sales-tax' ),
 									'placeholder' => '123-4567-89',
 									'required'    => true,
-									'class'       => [ 'sst-input' ],
-								]
-							); ?>
+									'class'       => array( 'sst-input' ),
+								)
+							);
+							?>
 
-							<?php woocommerce_form_field(
+							<?php
+							woocommerce_form_field(
 								'StateOfIssue',
-								[
+								array(
 									'type'        => 'state',
 									'label'       => __( 'ID issued by...', 'simple-sales-tax' ),
 									'placeholder' => __( 'Select if your ID is state issued.', 'simple-sales-tax' ),
 									'id'          => 'issuing-state',
-									'class'       => [ 'sst-hidden-field', 'sst-input' ],
-								]
-							); ?>
+									'class'       => array( 'sst-hidden-field', 'sst-input' ),
+								)
+							);
+							?>
 
-							<?php woocommerce_form_field(
+							<?php
+							woocommerce_form_field(
 								'PurchaserBusinessType',
-								[
+								array(
 									'type'     => 'select',
 									'label'    => __( 'Business Type', 'simple-sales-tax' ),
 									'required' => true,
-									'class'    => [ 'sst-input' ],
-									'options'  => [
-										''                                        => __(
+									'class'    => array( 'sst-input' ),
+									'options'  => array(
+										''                 => __(
 											'Select one',
 											'simple-sales-tax'
 										),
-										'AccommodationAndFoodServices'            => __(
+										'AccommodationAndFoodServices' => __(
 											'Accommodation And Food Services',
 											'simple-sales-tax'
 										),
-										'Agricultural_Forestry_Fishing_Hunting'   => __(
+										'Agricultural_Forestry_Fishing_Hunting' => __(
 											'Agricultural/Forestry/Fishing/Hunting',
 											'simple-sales-tax'
 										),
-										'Construction'                            => __(
+										'Construction'     => __(
 											'Construction',
 											'simple-sales-tax'
 										),
-										'FinanceAndInsurance'                     => __(
+										'FinanceAndInsurance' => __(
 											'Finance or Insurance',
 											'simple-sales-tax'
 										),
@@ -206,110 +221,114 @@ if ( ! defined( 'ABSPATH' ) ) {
 											'Information Publishing and Communications',
 											'simple-sales-tax'
 										),
-										'Manufacturing'                           => __(
+										'Manufacturing'    => __(
 											'Manufacturing',
 											'simple-sales-tax'
 										),
-										'Mining'                                  => __( 'Mining', 'simple-sales-tax' ),
-										'RealEstate'                              => __(
+										'Mining'           => __( 'Mining', 'simple-sales-tax' ),
+										'RealEstate'       => __(
 											'Real Estate',
 											'simple-sales-tax'
 										),
-										'RentalAndLeasing'                        => __(
+										'RentalAndLeasing' => __(
 											'Rental and Leasing',
 											'simple-sales-tax'
 										),
-										'RetailTrade'                             => __(
+										'RetailTrade'      => __(
 											'Retail Trade',
 											'simple-sales-tax'
 										),
-										'TransportationAndWarehousing'            => __(
+										'TransportationAndWarehousing' => __(
 											'Transportation and Warehousing',
 											'simple-sales-tax'
 										),
-										'Utilities'                               => __(
+										'Utilities'        => __(
 											'Utilities',
 											'simple-sales-tax'
 										),
-										'WholesaleTrade'                          => __(
+										'WholesaleTrade'   => __(
 											'Wholesale Trade',
 											'simple-sales-tax'
 										),
-										'BusinessServices'                        => __(
+										'BusinessServices' => __(
 											'Business Services',
 											'simple-sales-tax'
 										),
-										'ProfessionalServices'                    => __(
+										'ProfessionalServices' => __(
 											'Professional Services',
 											'simple-sales-tax'
 										),
-										'EducationAndHealthCareServices'          => __(
+										'EducationAndHealthCareServices' => __(
 											'Education and Health Care Services',
 											'simple-sales-tax'
 										),
-										'NonprofitOrganization'                   => __(
+										'NonprofitOrganization' => __(
 											'Nonprofit Organization',
 											'simple-sales-tax'
 										),
-										'Government'                              => __(
+										'Government'       => __(
 											'Government',
 											'simple-sales-tax'
 										),
-										'NotABusiness'                            => __(
+										'NotABusiness'     => __(
 											'Not a Business',
 											'simple-sales-tax'
 										),
-										'Other'                                   => __( 'Other', 'simple-sales-tax' ),
-									],
-								]
-							); ?>
+										'Other'            => __( 'Other', 'simple-sales-tax' ),
+									),
+								)
+							);
+							?>
 
-							<?php woocommerce_form_field(
+							<?php
+							woocommerce_form_field(
 								'PurchaserBusinessTypeOtherValue',
-								[
+								array(
 									'type'        => 'text',
 									'label'       => __( 'Please explain', 'simple-sales-tax' ),
 									'placeholder' => __( 'Explain the nature of your business.', 'simple-sales-tax' ),
 									'id'          => 'business-type-other',
-									'class'       => [ 'sst-hidden-field', 'sst-input' ],
-								]
-							); ?>
+									'class'       => array( 'sst-hidden-field', 'sst-input' ),
+								)
+							);
+							?>
 
-							<?php woocommerce_form_field(
+							<?php
+							woocommerce_form_field(
 								'PurchaserExemptionReason',
-								[
+								array(
 									'type'     => 'select',
 									'label'    => __( 'Reason for Exemption', 'simple-sales-tax' ),
 									'required' => true,
-									'class'    => [ 'sst-input' ],
-									'options'  => [
-										''                                    => __( 'Select one', 'simple-sales-tax' ),
-										'FederalGovernmentDepartment'         => __(
+									'class'    => array( 'sst-input' ),
+									'options'  => array(
+										''                => __( 'Select one', 'simple-sales-tax' ),
+										'FederalGovernmentDepartment' => __(
 											'Federal Government Department',
 											'simple-sales-tax'
 										),
-										'StateOrLocalGovernmentName'          => __(
+										'StateOrLocalGovernmentName' => __(
 											'State Or Local Government',
 											'simple-sales-tax'
 										),
-										'TribalGovernmentName'                => __(
+										'TribalGovernmentName' => __(
 											'Tribal Government',
 											'simple-sales-tax'
 										),
-										'ForeignDiplomat'                     => __(
+										'ForeignDiplomat' => __(
 											'Foreign Diplomat',
 											'simple-sales-tax'
 										),
-										'CharitableOrganization'              => __(
+										'CharitableOrganization' => __(
 											'Charitable Organization',
 											'simple-sales-tax'
 										),
-										'ReligiousOrEducationalOrganization'  => __(
+										'ReligiousOrEducationalOrganization' => __(
 											'Religious or Educational Organization',
 											'simple-sales-tax'
 										),
-										'Resale'                              => __( 'Resale', 'simple-sales-tax' ),
-										'AgriculturalProduction'              => __(
+										'Resale'          => __( 'Resale', 'simple-sales-tax' ),
+										'AgriculturalProduction' => __(
 											'Agricultural Production',
 											'simple-sales-tax'
 										),
@@ -317,25 +336,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 											'Industrial Production or Manufacturing',
 											'simple-sales-tax'
 										),
-										'DirectPayPermit'                     => __(
+										'DirectPayPermit' => __(
 											'Direct Pay Permit',
 											'simple-sales-tax'
 										),
-										'DirectMail'                          => __( 'Direct Mail', 'simple-sales-tax' ),
-										'Other'                               => __( 'Other', 'simple-sales-tax' ),
-									],
-								]
-							); ?>
+										'DirectMail'      => __( 'Direct Mail', 'simple-sales-tax' ),
+										'Other'           => __( 'Other', 'simple-sales-tax' ),
+									),
+								)
+							);
+							?>
 
-							<?php woocommerce_form_field(
+							<?php
+							woocommerce_form_field(
 								'PurchaserExemptionReasonValue',
-								[
+								array(
 									'type'  => 'text',
 									'label' => __( 'Please explain', 'simple-sales-tax' ),
 									'id'    => 'exempt-other-reason',
-									'class' => [ 'sst-hidden-field', 'sst-input' ],
-								]
-							); ?>
+									'class' => array( 'sst-hidden-field', 'sst-input' ),
+								)
+							);
+							?>
 
 							<input type="hidden" name="CertificateID" value="{{{ data.CertificateID }}}">
 						</form>
@@ -353,4 +375,4 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<div class="wc-backbone-modal-backdrop modal-close"></div>
 	</script>
 
-<?php include __DIR__ . '/html-view-certificate.php'; ?>
+<?php require __DIR__ . '/html-view-certificate.php'; ?>

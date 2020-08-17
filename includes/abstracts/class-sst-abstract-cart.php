@@ -76,7 +76,7 @@ abstract class SST_Abstract_Cart {
 			} else {
 				$this->handle_error(
 					sprintf(
-						__( "Failed to calculate sales tax: %s", 'simple-sales-tax' ),
+						__( 'Failed to calculate sales tax: %s', 'simple-sales-tax' ),
 						$response->get_error_message()
 					)
 				);
@@ -98,7 +98,7 @@ abstract class SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	protected function do_lookup() {
-		$packages = [];
+		$packages = array();
 
 		foreach ( $this->create_packages() as $package ) {
 			$hash          = $this->get_package_hash( $package );
@@ -156,7 +156,7 @@ abstract class SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	protected function get_lookup_for_package( &$package ) {
-		$cart_items = [];
+		$cart_items = array();
 		$based_on   = SST_Settings::get( 'tax_based_on' );
 
 		/* Add products */
@@ -184,11 +184,11 @@ abstract class SST_Abstract_Cart {
 				$price,
 				$quantity
 			);
-			$package['map'][] = [
+			$package['map'][] = array(
 				'type'    => 'line_item',
 				'id'      => $item['data']->get_id(),
 				'cart_id' => isset( $item['shipping_item_key'] ) ? $item['shipping_item_key'] : $cart_id,
-			];
+			);
 		}
 
 		/* Add fees */
@@ -200,11 +200,11 @@ abstract class SST_Abstract_Cart {
 				apply_filters( 'wootax_fee_price', $fee->amount, $fee ),
 				1
 			);
-			$package['map'][] = [
+			$package['map'][] = array(
 				'type'    => 'fee',
 				'id'      => $fee->id,
 				'cart_id' => $cart_id,
-			];
+			);
 		}
 
 		/* Add shipping */
@@ -221,11 +221,11 @@ abstract class SST_Abstract_Cart {
 				apply_filters( 'wootax_shipping_price', $shipping_rate->cost, $shipping_rate ),
 				1
 			);
-			$package['map'][] = [
+			$package['map'][] = array(
 				'type'    => 'shipping',
 				'id'      => SST_SHIPPING_ITEM,
 				'cart_id' => $shipping_rate->id,
-			];
+			);
 		}
 
 		/* Build Lookup */
@@ -254,7 +254,7 @@ abstract class SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	protected function split_package( $package ) {
-		$packages = [];
+		$packages = array();
 
 		/* Convert destination address to Address object */
 		try {
@@ -268,7 +268,7 @@ abstract class SST_Abstract_Cart {
 
 			$package['destination'] = SST_Addresses::verify_address( $destination );
 		} catch ( Exception $ex ) {
-			return [];
+			return array();
 		}
 
 		/* Split package into subpackages */
@@ -278,12 +278,12 @@ abstract class SST_Abstract_Cart {
 			if ( ! $origin ) {
 				$this->handle_error(
 					sprintf(
-						__( "Failed to calculate sales tax: no origin address for product %d.", 'simple-sales-tax' ),
+						__( 'Failed to calculate sales tax: no origin address for product %d.', 'simple-sales-tax' ),
 						$item['product_id']
 					)
 				);
 
-				return [];
+				return array();
 			}
 
 			$origin_id = $origin->getID();
@@ -291,14 +291,14 @@ abstract class SST_Abstract_Cart {
 			/* Create subpackage for origin if need be */
 			if ( ! array_key_exists( $origin_id, $packages ) ) {
 				$packages[ $origin_id ] = sst_create_package(
-					[
+					array(
 						'origin'      => SST_Addresses::to_address( $origin ),
 						'destination' => $package['destination'],
 						'certificate' => $this->get_certificate(),
-						'user'        => isset( $package['user'] ) ? $package['user'] : [
+						'user'        => isset( $package['user'] ) ? $package['user'] : array(
 							'ID' => get_current_user_id(),
-						],
-					]
+						),
+					)
 				);
 
 				/* Associate shipping with first subpackage */
@@ -331,12 +331,12 @@ abstract class SST_Abstract_Cart {
 
 		// Convert WC_Shipping_Rate to array (shipping will be excluded from hash o.w.)
 		if ( is_a( $package['shipping'], 'WC_Shipping_Rate' ) ) {
-			$package['shipping'] = [
+			$package['shipping'] = array(
 				'id'        => $package['shipping']->id,
 				'label'     => $package['shipping']->label,
 				'cost'      => $package['shipping']->cost,
 				'method_id' => $package['shipping']->method_id,
-			];
+			);
 		}
 
 		// Exclude user ID from hash - does not change calculated tax amount
@@ -429,7 +429,7 @@ abstract class SST_Abstract_Cart {
 	 *
 	 * @since 5.0
 	 */
-	abstract protected function set_packages( $packages = [] );
+	abstract protected function set_packages( $packages = array() );
 
 	/**
 	 * Get the base packages for the cart. The base packages are split by origin

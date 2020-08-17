@@ -6,9 +6,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 </div> <!-- close "shipping class" options group -->
 
 <div class="options_group">
-    <p class="form-field" id="shipping_origin_field">
-        <label for="_wootax_origin_addresses[]"><?php _e( 'Origin addresses', 'simple-sales-tax' ); ?></label>
-        <select class="wc-enhanced-select" name="_wootax_origin_addresses[]" multiple="multiple">
+	<p class="form-field" id="shipping_origin_field">
+		<label for="_wootax_origin_addresses[]"><?php _e( 'Origin addresses', 'simple-sales-tax' ); ?></label>
+		<select class="wc-enhanced-select" name="_wootax_origin_addresses[]" multiple="multiple">
 			<?php
 			// Output select box
 			$origin_addresses = SST_Product::get_origin_addresses( $post->ID );
@@ -27,11 +27,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 				printf( '<option value="">%s</option>', __( 'There are no addresses to select.', 'simple-sales-tax' ) );
 			}
 			?>
-        </select>
-		<?php sst_tip(
+		</select>
+		<?php
+		sst_tip(
 			__(
 				'Used by Simple Sales Tax for tax calculations. These are the addresses from which this product will be shipped.',
 				'simple-sales-tax'
 			)
-		); ?>
-    </p>
+		);
+		?>
+	</p>

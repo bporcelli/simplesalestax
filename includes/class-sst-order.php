@@ -25,12 +25,12 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @var array Default values for order meta fields.
 	 * @since 4.4
 	 */
-	protected static $defaults = [
-		'packages'      => [],
-		'package_cache' => [],
+	protected static $defaults = array(
+		'packages'      => array(),
+		'package_cache' => array(),
 		'exempt_cert'   => null,
 		'status'        => 'pending',
-	];
+	);
 
 	/**
 	 * @var WC_Order WooCommerce order.
@@ -66,9 +66,9 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @return mixed
 	 * @since 5.0
 	 */
-	public function __call( $name, $args = [] ) {
-		if ( is_callable( [ $this->order, $name ] ) ) {
-			return call_user_func_array( [ $this->order, $name ], $args );
+	public function __call( $name, $args = array() ) {
+		if ( is_callable( array( $this->order, $name ) ) ) {
+			return call_user_func_array( array( $this->order, $name ), $args );
 		}
 
 		return null;
@@ -101,7 +101,7 @@ class SST_Order extends SST_Abstract_Cart {
 		$packages = $this->get_meta( 'packages' );
 
 		if ( ! is_array( $packages ) ) {
-			return [];
+			return array();
 		}
 
 		return array_values( $packages );
@@ -114,9 +114,9 @@ class SST_Order extends SST_Abstract_Cart {
 	 *
 	 * @since 5.0
 	 */
-	public function set_packages( $packages = [] ) {
+	public function set_packages( $packages = array() ) {
 		if ( ! is_array( $packages ) ) {
-			$packages = [];
+			$packages = array();
 		}
 
 		$this->update_meta( 'packages', $packages );
@@ -142,7 +142,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 5.5
 	 */
 	protected function get_base_packages() {
-		$packages = [];
+		$packages = array();
 		$items    = $this->transform_items( $this->order->get_items() );
 
 		/* Create a virtual package for all items that don't need shipping */
@@ -162,37 +162,37 @@ class SST_Order extends SST_Abstract_Cart {
 
 				/* Assign shipping method to package. */
 				$package = sst_create_package(
-					[
+					array(
 						'contents' => $contents,
 						'shipping' => new WC_Shipping_Rate(
 							key( $ship_methods ),   // id
 							'',               // name
 							$method['cost'],        // cost
-							[],                     // taxes
+							array(),                     // taxes
 							$method['method_id']    // method id
 						),
-						'user'     => [
+						'user'     => array(
 							'ID' => $this->order->get_user_id(),
-						],
-					]
+						),
+					)
 				);
 
 				/* Set destination based on shipping method. */
-				if ( SST_Shipping::is_local_pickup( [ $package['shipping']->method_id ] ) ) {
+				if ( SST_Shipping::is_local_pickup( array( $package['shipping']->method_id ) ) ) {
 					$pickup_address = apply_filters(
 						'wootax_pickup_address',
 						SST_Addresses::get_default_address(),
 						$this->order
 					);
 
-					$package['destination'] = [
+					$package['destination'] = array(
 						'country'   => 'US',
 						'address'   => $pickup_address->getAddress1(),
 						'address_2' => $pickup_address->getAddress2(),
 						'city'      => $pickup_address->getCity(),
 						'state'     => $pickup_address->getState(),
 						'postcode'  => $pickup_address->getZip5(),
-					];
+					);
 				} else {
 					$package['destination'] = $this->get_shipping_address();
 				}
@@ -204,20 +204,20 @@ class SST_Order extends SST_Abstract_Cart {
 		} elseif ( $items ) {
 			// If there are no shipping lines added to the order, we assume that
 			// there is a single shipment with all products that need shipping.
-			$shippable_items = [];
+			$shippable_items = array();
 			foreach ( $items as $item_id => $item ) {
 				if ( isset( $item['data'] ) && $item['data']->needs_shipping() ) {
 					$shippable_items[ $item_id ] = $item;
 				}
 			}
 			$packages[] = sst_create_package(
-				[
+				array(
 					'contents'    => $shippable_items,
 					'destination' => $this->get_shipping_address(),
-					'user'        => [
+					'user'        => array(
 						'ID' => $this->order->get_user_id(),
-					],
-				]
+					),
+				)
 			);
 		}
 
@@ -233,7 +233,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @return array|false Package, or false if all items need shipping.
 	 */
 	protected function create_virtual_package( &$items ) {
-		$virtual_items = [];
+		$virtual_items = array();
 
 		foreach ( $items as $key => $item ) {
 			if ( isset( $item['data'] ) && ! $item['data']->needs_shipping() ) {
@@ -244,17 +244,17 @@ class SST_Order extends SST_Abstract_Cart {
 
 		if ( ! empty( $virtual_items ) ) {
 			return sst_create_package(
-				[
+				array(
 					'contents'    => $virtual_items,
 					'destination' => $this->get_billing_address(),
-					'user'        => [
+					'user'        => array(
 						'ID' => $this->order->get_user_id(),
-					],
-				]
+					),
+				)
 			);
 		}
 
-		return [];
+		return array();
 	}
 
 	/**
@@ -264,7 +264,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	public function create_packages() {
-		$packages = [];
+		$packages = array();
 
 		/* Let devs change the packages before we split them. */
 		$raw_packages = apply_filters(
@@ -280,16 +280,16 @@ class SST_Order extends SST_Abstract_Cart {
 
 		/* Add fees to first package. */
 		if ( apply_filters( 'wootax_add_fees', true ) ) {
-			$fees = [];
+			$fees = array();
 
 			foreach ( $this->order->get_fees() as $item_id => $fee ) {
 				$name   = empty( $fee['name'] ) ? __( 'Fee', 'simple-sales-tax' ) : $fee['name'];
 				$fee_id = sanitize_title( $name );
 
-				$fees[ $item_id ] = (object) [
+				$fees[ $item_id ] = (object) array(
 					'id'     => $fee_id,
 					'amount' => $fee['line_total'],
-				];
+				);
 			}
 
 			$packages[ key( $packages ) ]['fees'] = $fees;
@@ -305,7 +305,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 */
 	protected function reset_taxes() {
 		/* Remove tax from products and fees */
-		foreach ( $this->order->get_items( [ 'line_item', 'fee' ] ) as $item_id => $item ) {
+		foreach ( $this->order->get_items( array( 'line_item', 'fee' ) ) as $item_id => $item ) {
 			$tax_data = $item['line_tax_data'];
 
 			if ( isset( $tax_data['total'][ SST_RATE_ID ] ) ) {
@@ -363,7 +363,10 @@ class SST_Order extends SST_Abstract_Cart {
 		$tax_data = $item->get_taxes( 'edit' );
 
 		if ( ! is_array( $tax_data ) ) {
-			$tax_data = [ 'total' => [], 'subtotal' => [] ];
+			$tax_data = array(
+				'total'    => array(),
+				'subtotal' => array(),
+			);
 		}
 
 		$tax_data['total'][ SST_RATE_ID ]    = $tax;
@@ -472,14 +475,14 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 5.5
 	 */
 	protected function get_billing_address() {
-		return [
+		return array(
 			'country'   => $this->order->get_billing_country(),
 			'address'   => $this->order->get_billing_address_1(),
 			'address_2' => $this->order->get_billing_address_2(),
 			'city'      => $this->order->get_billing_city(),
 			'state'     => $this->order->get_billing_state(),
 			'postcode'  => $this->order->get_billing_postcode(),
-		];
+		);
 	}
 
 	/**
@@ -489,14 +492,14 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 5.5
 	 */
 	protected function get_shipping_address() {
-		return [
+		return array(
 			'country'   => $this->order->get_shipping_country(),
 			'address'   => $this->order->get_shipping_address_1(),
 			'address_2' => $this->order->get_shipping_address_2(),
 			'city'      => $this->order->get_shipping_city(),
 			'state'     => $this->order->get_shipping_state(),
 			'postcode'  => $this->order->get_shipping_postcode(),
-		];
+		);
 	}
 
 	/**
@@ -536,7 +539,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @return string
 	 * @since 5.0
 	 */
-	protected function get_package_order_id( $package_key, $package = [] ) {
+	protected function get_package_order_id( $package_key, $package = array() ) {
 		if ( isset( $package['order_id'] ) ) { /* Legacy (pre 5.0) order */
 			return $package['order_id'];
 		}
@@ -561,7 +564,7 @@ class SST_Order extends SST_Abstract_Cart {
 			if ( 'no' == SST_Settings::get( 'capture_immediately' ) ) {
 				$this->handle_error(
 					sprintf(
-						__( "Failed to capture order %d: already captured.", 'simple-sales-tax' ),
+						__( 'Failed to capture order %d: already captured.', 'simple-sales-tax' ),
 						$this->order->get_id()
 					)
 				);
@@ -572,7 +575,7 @@ class SST_Order extends SST_Abstract_Cart {
 			if ( 'refunded' == $taxcloud_status ) {
 				$this->handle_error(
 					sprintf(
-						__( "Failed to capture order %d: order was refunded.", 'simple-sales-tax' ),
+						__( 'Failed to capture order %d: order was refunded.', 'simple-sales-tax' ),
 						$this->order->get_id()
 					)
 				);
@@ -600,7 +603,7 @@ class SST_Order extends SST_Abstract_Cart {
 			} catch ( Exception $ex ) {
 				$this->handle_error(
 					sprintf(
-						__( "Failed to capture order %d: %s.", 'simple-sales-tax' ),
+						__( 'Failed to capture order %1$d: %2$s.', 'simple-sales-tax' ),
 						$this->order->get_id(),
 						$ex->getMessage()
 					)
@@ -626,7 +629,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @throws Exception
 	 * @since 5.0
 	 */
-	public function do_refund( $items = [] ) {
+	public function do_refund( $items = array() ) {
 		if ( 'captured' !== $this->get_taxcloud_status() ) {
 			$this->handle_error(
 				sprintf(
@@ -640,7 +643,7 @@ class SST_Order extends SST_Abstract_Cart {
 
 		// For full refunds, refund all fees, line items, and shipping charges
 		if ( empty( $items ) ) {
-			$items = $this->order->get_items( [ 'fee', 'shipping', 'line_item' ] );
+			$items = $this->order->get_items( array( 'fee', 'shipping', 'line_item' ) );
 		}
 
 		$this->prepare_refund_items( $items );
@@ -656,7 +659,7 @@ class SST_Order extends SST_Abstract_Cart {
 			}
 
 			$cart_items   = $package['request']->getCartItems();
-			$refund_items = [];
+			$refund_items = array();
 
 			foreach ( $cart_items as $cart_item_key => $pitem ) {
 				$to_match = $package['map'][ $cart_item_key ];
@@ -702,7 +705,7 @@ class SST_Order extends SST_Abstract_Cart {
 				} catch ( Exception $ex ) {
 					$this->handle_error(
 						sprintf(
-							__( "Failed to refund order %d: %s.", 'simple-sales-tax' ),
+							__( 'Failed to refund order %1$d: %2$s.', 'simple-sales-tax' ),
 							$this->order->get_id(),
 							$ex->getMessage()
 						)
@@ -782,11 +785,11 @@ class SST_Order extends SST_Abstract_Cart {
 					$id   = sanitize_title( $name );
 			}
 
-			$items[ $item_id ] = [
+			$items[ $item_id ] = array(
 				'qty'   => $quantity,
 				'price' => $price,
 				'id'    => $id,
-			];
+			);
 		}
 	}
 
@@ -863,7 +866,7 @@ class SST_Order extends SST_Abstract_Cart {
 		$saved_packages = $this->get_meta( 'package_cache' );
 
 		if ( ! is_array( $saved_packages ) ) {
-			$saved_packages = [];
+			$saved_packages = array();
 		}
 
 		$saved_packages[ $hash ] = $package;

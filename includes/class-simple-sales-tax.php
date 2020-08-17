@@ -47,7 +47,7 @@ final class SimpleSalesTax {
 		$this->define_constants();
 		$this->load_text_domain();
 
-		add_action( 'plugins_loaded', [ $this, 'init' ] );
+		add_action( 'plugins_loaded', array( $this, 'init' ) );
 	}
 
 	/**
@@ -155,8 +155,8 @@ final class SimpleSalesTax {
 	 * Registers the plugin activation and deactivation hooks.
 	 */
 	private function add_hooks() {
-		register_activation_hook( SST_FILE, [ $this, 'activate' ] );
-		register_deactivation_hook( SST_FILE, [ $this, 'deactivate' ] );
+		register_activation_hook( SST_FILE, array( $this, 'activate' ) );
+		register_deactivation_hook( SST_FILE, array( $this, 'deactivate' ) );
 	}
 
 	/**
@@ -186,13 +186,13 @@ final class SimpleSalesTax {
 	 */
 	private function is_request( $type ) {
 		switch ( $type ) {
-			case 'admin' :
+			case 'admin':
 				return is_admin();
-			case 'ajax' :
+			case 'ajax':
 				return defined( 'DOING_AJAX' );
-			case 'cron' :
+			case 'cron':
 				return defined( 'DOING_CRON' );
-			case 'frontend' :
+			case 'frontend':
 				return ( ! is_admin() || defined( 'DOING_AJAX' ) ) && ! defined( 'DOING_CRON' );
 		}
 
@@ -217,18 +217,18 @@ final class SimpleSalesTax {
 
 		// Check PHP version
 		if ( version_compare( phpversion(), '5.5', '<' ) ) {
-			add_action( 'admin_notices', [ $this, 'php_version_notice' ] );
+			add_action( 'admin_notices', array( $this, 'php_version_notice' ) );
 
 			return false;
 		}
 
 		// Check WooCommerce version
 		if ( ! is_plugin_active( 'woocommerce/woocommerce.php' ) ) {
-			add_action( 'admin_notices', [ $this, 'woocommerce_required_notice' ] );
+			add_action( 'admin_notices', array( $this, 'woocommerce_required_notice' ) );
 
 			return false;
 		} elseif ( ! defined( 'WC_VERSION' ) || version_compare( WC_VERSION, '3.0', '<' ) ) {
-			add_action( 'admin_notices', [ $this, 'woocommerce_version_notice' ] );
+			add_action( 'admin_notices', array( $this, 'woocommerce_version_notice' ) );
 
 			return false;
 		}
@@ -248,15 +248,15 @@ final class SimpleSalesTax {
 	private function detect_plugin_conflicts() {
 		if ( class_exists( 'WC_TaxJar' ) ) {
 			// TaxJar
-			add_action( 'admin_notices', [ $this, 'taxjar_conflict_notice' ] );
+			add_action( 'admin_notices', array( $this, 'taxjar_conflict_notice' ) );
 			return true;
 		} elseif ( class_exists( 'WC_AvaTax_Loader' ) ) {
 			// WooCommerce AvaTax
-			add_action( 'admin_notices', [ $this, 'avatax_conflict_notice' ] );
+			add_action( 'admin_notices', array( $this, 'avatax_conflict_notice' ) );
 			return true;
 		} elseif ( class_exists( 'WC_Connect_Loader' ) && 'yes' === get_option( 'wc_connect_taxes_enabled' ) ) {
 			// WooCommerce Services Automated Taxes
-			add_action( 'admin_notices', [ $this, 'woocommerce_services_notice' ] );
+			add_action( 'admin_notices', array( $this, 'woocommerce_services_notice' ) );
 			return true;
 		}
 

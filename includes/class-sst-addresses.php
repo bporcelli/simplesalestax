@@ -47,7 +47,7 @@ class SST_Addresses {
 			return false;
 		}
 
-		$required = [ $address->getCity(), $address->getState(), $address->getZip5() ];
+		$required = array( $address->getCity(), $address->getState(), $address->getZip5() );
 
 		foreach ( $required as $value ) {
 			if ( empty( $value ) ) {
@@ -88,7 +88,7 @@ class SST_Addresses {
 		$addresses = get_transient( 'sst_verified_addresses' );
 
 		if ( ! is_array( $addresses ) ) {
-			$addresses = [];
+			$addresses = array();
 		}
 
 		$md5_hash = md5( json_encode( $address ) );
@@ -132,7 +132,7 @@ class SST_Addresses {
 	 * @since 5.0
 	 */
 	public static function get_default_addresses() {
-		$return    = [];
+		$return    = array();
 		$addresses = self::get_origin_addresses();
 
 		foreach ( $addresses as $address ) {
@@ -170,10 +170,10 @@ class SST_Addresses {
 		$raw_addresses = SST_Settings::get( 'addresses' );
 
 		if ( ! is_array( $raw_addresses ) ) {
-			return [];
+			return array();
 		}
 
-		$addresses = [];
+		$addresses = array();
 
 		foreach ( $raw_addresses as $raw_address ) {
 			$address = json_decode( $raw_address, true );

@@ -79,6 +79,7 @@ class SST_Updater extends WP_Background_Process {
 
 	/**
 	 * Is the updater running?
+	 *
 	 * @return boolean
 	 */
 	public function is_updating() {

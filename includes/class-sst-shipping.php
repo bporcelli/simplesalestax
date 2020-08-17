@@ -30,7 +30,7 @@ class SST_Shipping {
 
 		$local_pickup_methods = apply_filters(
 			'woocommerce_local_pickup_methods',
-			[ 'legacy_local_pickup', 'local_pickup' ]
+			array( 'legacy_local_pickup', 'local_pickup' )
 		);
 
 		return sizeof( array_intersect( $method_ids, $local_pickup_methods ) ) > 0;
@@ -49,7 +49,7 @@ class SST_Shipping {
 			$method_id,
 			apply_filters(
 				'wootax_local_delivery_methods',
-				[ 'local_delivery', 'legacy_local_delivery' ]
+				array( 'local_delivery', 'legacy_local_delivery' )
 			)
 		);
 	}

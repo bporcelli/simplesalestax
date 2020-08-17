@@ -32,8 +32,8 @@ class SST_Integration extends WC_Integration {
 		$this->init_form_fields();
 
 		// Register action hooks.
-		add_action( 'woocommerce_update_options_integration_' . $this->id, [ $this, 'process_admin_options' ] );
-		add_action( 'admin_init', [ $this, 'maybe_download_log_file' ] );
+		add_action( 'woocommerce_update_options_integration_' . $this->id, array( $this, 'process_admin_options' ) );
+		add_action( 'admin_init', array( $this, 'maybe_download_log_file' ) );
 	}
 
 	/**
@@ -131,12 +131,12 @@ class SST_Integration extends WC_Integration {
 		wp_localize_script(
 			'sst-address-table',
 			'addressesLocalizeScript',
-			[
+			array(
 				'addresses'       => $this->get_addresses(),
-				'strings'         => [
+				'strings'         => array(
 					'one_default_required' => __( 'At least one default address is required.', 'simple-sales-tax' ),
-				],
-				'default_address' => [
+				),
+				'default_address' => array(
 					'ID'       => '',
 					'Address1' => '',
 					'Address2' => '',
@@ -145,8 +145,8 @@ class SST_Integration extends WC_Integration {
 					'Zip5'     => '',
 					'Zip4'     => '',
 					'Default'  => false,
-				],
-			]
+				),
+			)
 		);
 
 		ob_start();
@@ -161,8 +161,8 @@ class SST_Integration extends WC_Integration {
 	 * @since 5.0
 	 */
 	private function get_addresses() {
-		$addresses     = [];
-		$raw_addresses = $this->get_option( 'addresses', [] );
+		$addresses     = array();
+		$raw_addresses = $this->get_option( 'addresses', array() );
 
 		foreach ( $raw_addresses as $raw_address ) {
 			$addresses[] = json_decode( $raw_address, true );
@@ -182,13 +182,13 @@ class SST_Integration extends WC_Integration {
 	 */
 	public function validate_addresses_field( $key, $value ) {
 		if ( ! isset( $_POST['addresses'] ) || ! is_array( $_POST['addresses'] ) ) {
-			return [];
+			return array();
 		}
 
 		$taxcloud_id  = sanitize_text_field( $_POST['woocommerce_wootax_tc_id'] );
 		$taxcloud_key = sanitize_text_field( $_POST['woocommerce_wootax_tc_key'] );
 
-		$default_address = [
+		$default_address = array(
 			'Address1' => '',
 			'Address2' => '',
 			'City'     => '',
@@ -197,10 +197,10 @@ class SST_Integration extends WC_Integration {
 			'Zip4'     => '',
 			'ID'       => '',
 			'Default'  => 'no',
-		];
+		);
 
 		$has_default = false;
-		$addresses   = [];
+		$addresses   = array();
 
 		foreach ( $_POST['addresses'] as $raw_address ) {
 			// Use defaults for missing fields
@@ -219,7 +219,7 @@ class SST_Integration extends WC_Integration {
 				// Leave out address with error
 				$this->add_error(
 					sprintf(
-						__( 'Failed to save address <em>%s</em>: %s', 'simple-sales-tax' ),
+						__( 'Failed to save address <em>%1$s</em>: %2$s', 'simple-sales-tax' ),
 						$raw_address['Address1'],
 						$ex->getMessage()
 					)

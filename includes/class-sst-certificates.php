@@ -31,13 +31,13 @@ class SST_Certificates {
 	 */
 	public static function get_certificates( $user_id = 0 ) {
 		if ( ! $user_id && ! ( $user_id = get_current_user_id() ) ) {
-			return [];
+			return array();
 		}
 
 		// Get certificates, using cached certificates if possible
 		$trans_key    = self::get_transient_name( $user_id );
 		$raw_certs    = get_transient( $trans_key );
-		$certificates = [];
+		$certificates = array();
 
 		if ( false !== $raw_certs ) {
 			$certificates = json_decode( $raw_certs, true );
@@ -101,7 +101,7 @@ class SST_Certificates {
 	 */
 	protected static function format_certificate( $certificate ) {
 		$detail    = $certificate->getDetail();
-		$formatted = [
+		$formatted = array(
 			'CertificateID'              => $certificate->getCertificateID(),
 			'PurchaserName'              => $detail->getPurchaserFirstName() . ' ' . $detail->getPurchaserLastName(),
 			'CreatedDate'                => date( 'm/d/Y', strtotime( $detail->getCreatedDate() ) ),
@@ -113,7 +113,7 @@ class SST_Certificates {
 			'TaxType'                    => sst_prettify( $detail->getPurchaserTaxID()->getTaxType() ),
 			'IDNumber'                   => $detail->getPurchaserTaxID()->getIDNumber(),
 			'PurchaserBusinessType'      => sst_prettify( $detail->getPurchaserBusinessType() ),
-		];
+		);
 
 		return $formatted;
 	}
@@ -128,7 +128,7 @@ class SST_Certificates {
 	 * @since 5.0
 	 */
 	public static function get_certificates_formatted( $user_id = 0 ) {
-		$certificates = [];
+		$certificates = array();
 		foreach ( self::get_certificates( $user_id ) as $id => $raw_cert ) {
 			$certificates[ $id ] = self::format_certificate( $raw_cert );
 		}
@@ -144,7 +144,7 @@ class SST_Certificates {
 	 *
 	 * @since 5.0
 	 */
-	public static function set_certificates( $user_id = 0, $certificates = [] ) {
+	public static function set_certificates( $user_id = 0, $certificates = array() ) {
 		set_transient( self::get_transient_name( $user_id ), json_encode( $certificates ), 3 * DAY_IN_SECONDS );
 	}
 
@@ -164,7 +164,7 @@ class SST_Certificates {
 		}
 
 		if ( ! isset( $user->ID ) ) {
-			return []; /* Invalid user ID. */
+			return array(); /* Invalid user ID. */
 		}
 
 		try {
@@ -176,7 +176,7 @@ class SST_Certificates {
 
 			$certificates = TaxCloud()->GetExemptCertificates( $request );
 
-			$final_certs = [];
+			$final_certs = array();
 
 			foreach ( $certificates as $certificate ) {
 				$detail = $certificate->getDetail();
@@ -187,7 +187,7 @@ class SST_Certificates {
 
 			return $final_certs;
 		} catch ( Exception $ex ) {
-			return [];
+			return array();
 		}
 	}
 

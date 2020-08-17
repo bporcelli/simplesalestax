@@ -36,7 +36,7 @@ class SST_TIC implements JsonSerializable {
 	 * @param string $description
 	 */
 	public function __construct( $id, $description ) {
-		$this->id          = str_pad( $id, 5, "0" );
+		$this->id          = str_pad( $id, 5, '0' );
 		$this->description = $description;
 	}
 

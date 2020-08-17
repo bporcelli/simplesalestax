@@ -26,13 +26,13 @@ function sst_add_message( $content, $type = 'error' ) {
 	$all_messages = get_option( 'sst_messages' );
 
 	if ( ! is_array( $all_messages ) ) {
-		$all_messages = [];
+		$all_messages = array();
 	}
 
-	$all_messages[] = [
+	$all_messages[] = array(
 		'content' => $content,
 		'type'    => $type,
-	];
+	);
 
 	update_option( 'sst_messages', $all_messages );
 }
@@ -53,7 +53,7 @@ function sst_print_messages() {
 		printf( "<div class='%s'><p>%s</p></div>", $message['type'], $message['content'] );
 	}
 
-	update_option( 'sst_messages', [] );
+	update_option( 'sst_messages', array() );
 }
 
 add_action( 'admin_notices', 'sst_print_messages' );
