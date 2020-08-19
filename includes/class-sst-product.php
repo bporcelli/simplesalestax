@@ -1,7 +1,7 @@
 <?php
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit; // Exit if accessed directly.
 }
 
 /**
@@ -16,25 +16,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SST_Product {
 
 	/**
-	 * Register action hooks/
+	 * Register action hooks.
 	 *
 	 * @since 5.0
 	 */
 	public static function init() {
-		add_action( 'woocommerce_product_options_shipping', [ __CLASS__, 'output_origin_select_box' ] );
-		add_action( 'woocommerce_product_bulk_edit_start', [ __CLASS__, 'output_bulk_edit_fields' ] );
-		add_action( 'woocommerce_product_bulk_edit_save', [ __CLASS__, 'save_bulk_edit_fields' ] );
-		add_action( 'woocommerce_product_options_tax', [ __CLASS__, 'display_tic_field' ] );
-		add_action( 'woocommerce_product_after_variable_attributes', [ __CLASS__, 'display_tic_field' ], 10, 3 );
-		add_action( 'woocommerce_ajax_save_product_variations', [ __CLASS__, 'ajax_save_variation_tics' ] );
-		add_action( 'save_post_product', [ __CLASS__, 'save_product_meta' ] );
+		add_action( 'woocommerce_product_options_shipping', array( __CLASS__, 'output_origin_select_box' ) );
+		add_action( 'woocommerce_product_bulk_edit_start', array( __CLASS__, 'output_bulk_edit_fields' ) );
+		add_action( 'woocommerce_product_bulk_edit_save', array( __CLASS__, 'save_bulk_edit_fields' ) );
+		add_action( 'woocommerce_product_options_tax', array( __CLASS__, 'display_tic_field' ) );
+		add_action( 'woocommerce_product_after_variable_attributes', array( __CLASS__, 'display_tic_field' ), 10, 3 );
+		add_action( 'woocommerce_ajax_save_product_variations', array( __CLASS__, 'ajax_save_variation_tics' ) );
+		add_action( 'save_post_product', array( __CLASS__, 'save_product_meta' ) );
 	}
 
 	/**
 	 * Returns an array of origin addresses for a given product. If no origin
 	 * addresses have been configured, returns set of default origin addresses.
 	 *
-	 * @param int $product_id
+	 * @param int $product_id WooCommerce product ID.
 	 *
 	 * @return SST_Origin_Address[]
 	 * @since 5.0
@@ -47,7 +47,7 @@ class SST_Product {
 		}
 
 		$addresses = SST_Addresses::get_origin_addresses();
-		$return    = [];
+		$return    = array();
 
 		foreach ( $raw_addresses as $address_id ) {
 			if ( isset( $addresses[ $address_id ] ) ) {
@@ -61,8 +61,8 @@ class SST_Product {
 	/**
 	 * Get the TIC for a product.
 	 *
-	 * @param int $product_id
-	 * @param int $variation_id (default: 0)
+	 * @param int $product_id   WooCommerce product ID.
+	 * @param int $variation_id WooCommerce product variation ID (default: 0).
 	 *
 	 * @return mixed TIC for product, or null if none set.
 	 * @since 5.0
@@ -103,7 +103,7 @@ class SST_Product {
 
 		$addresses = SST_Addresses::get_origin_addresses();
 
-		// Do not display if there is less than 2 origin addresses to select from
+		// Do not display if there is less than 2 origin addresses to select from.
 		if ( ! is_array( $addresses ) || count( $addresses ) < 2 ) {
 			return;
 		}
@@ -120,12 +120,12 @@ class SST_Product {
 		wp_localize_script(
 			'sst-tic-select',
 			'ticSelectLocalizeScript',
-			[
+			array(
 				'tic_list' => sst_get_tics(),
-				'strings'  => [
+				'strings'  => array(
 					'default' => __( 'No Change', 'simple-sales-tax' ),
-				],
-			]
+				),
+			)
 		);
 
 		wp_enqueue_script( 'sst-tic-select' );
@@ -141,7 +141,11 @@ class SST_Product {
 	 * @since 4.2
 	 */
 	public static function save_bulk_edit_fields( $product ) {
-		$tic = sanitize_text_field( $_REQUEST['wootax_tic'] );
+		$tic = '';
+
+		if ( isset( $_REQUEST['wootax_tic'] ) ) {
+			$tic = sanitize_text_field( wp_unslash( $_REQUEST['wootax_tic'] ) ); // phpcs:ignore WordPress.CSRF.NonceVerification
+		}
 
 		if ( '' !== $tic ) {
 			update_post_meta( $product->get_id(), 'wootax_tic', $tic );
@@ -174,15 +178,15 @@ class SST_Product {
 		wp_localize_script(
 			'sst-tic-select',
 			'ticSelectLocalizeScript',
-			[
+			array(
 				'tic_list' => sst_get_tics(),
-				'strings'  => [
+				'strings'  => array(
 					'default' => $is_variation ? __( 'Same as parent', 'simple-sales-tax' ) : __(
 						'Using site default',
 						'simple-sales-tax'
 					),
-				],
-			]
+				),
+			)
 		);
 
 		wp_enqueue_script( 'sst-tic-select' );
@@ -196,8 +200,12 @@ class SST_Product {
 	 * @since 4.6
 	 */
 	public static function ajax_save_variation_tics() {
-		$variable_post_id = array_map( 'absint', $_POST['variable_post_id'] );
-		$tic_selections   = array_map( 'sanitize_text_field', $_POST['wootax_tic'] );
+		if ( ! isset( $_POST['variable_post_id'], $_POST['wootax_tic'] ) ) { // phpcs:ignore WordPress.CSRF.NonceVerification
+			return;
+		}
+
+		$variable_post_id = array_map( 'absint', $_POST['variable_post_id'] ); // phpcs:ignore WordPress.CSRF.NonceVerification
+		$tic_selections   = array_map( 'sanitize_text_field', wp_unslash( $_POST['wootax_tic'] ) ); // phpcs:ignore WordPress.CSRF.NonceVerification
 		$max_loop         = max( array_keys( $variable_post_id ) );
 
 		for ( $i = 0; $i <= $max_loop; $i++ ) {
@@ -221,24 +229,24 @@ class SST_Product {
 	 * @since 4.2
 	 */
 	public static function save_product_meta( $product_id ) {
-		if ( isset( $_REQUEST['_inline_edit'] ) || isset( $_REQUEST['bulk_edit'] ) ) {
+		if ( isset( $_REQUEST['_inline_edit'] ) || isset( $_REQUEST['bulk_edit'] ) ) { // phpcs:ignore WordPress.CSRF.NonceVerification
 			return;
 		}
 
-		// Save product origin addresses
-		$origins = [];
+		// Save product origin addresses.
+		$origins = array();
 
-		if ( isset( $_REQUEST['_wootax_origin_addresses'] ) ) {
-			$origins = array_map( 'sanitize_title', $_REQUEST['_wootax_origin_addresses'] );
+		if ( isset( $_REQUEST['_wootax_origin_addresses'] ) ) { // phpcs:ignore WordPress.CSRF.NonceVerification
+			$origins = array_map( 'sanitize_title', wp_unslash( $_REQUEST['_wootax_origin_addresses'] ) ); // phpcs:ignore WordPress.CSRF.NonceVerification
 		}
 
 		update_post_meta( $product_id, '_wootax_origin_addresses', $origins );
 
-		// Save product and variation TICs
-		$selected_tics = [];
+		// Save product and variation TICs.
+		$selected_tics = array();
 
-		if ( isset( $_REQUEST['wootax_tic'] ) ) {
-			$selected_tics = array_map( 'sanitize_text_field', $_REQUEST['wootax_tic'] );
+		if ( isset( $_REQUEST['wootax_tic'] ) ) { // phpcs:ignore WordPress.CSRF.NonceVerification
+			$selected_tics = array_map( 'sanitize_text_field', wp_unslash( $_REQUEST['wootax_tic'] ) ); // phpcs:ignore WordPress.CSRF.NonceVerification
 		}
 
 		foreach ( $selected_tics as $product_id => $tic ) {

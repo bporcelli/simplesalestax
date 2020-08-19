@@ -1,7 +1,7 @@
 <?php
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit; // Exit if accessed directly.
 }
 
 use TaxCloud\Address;
@@ -18,17 +18,30 @@ use TaxCloud\Address;
 class SST_Origin_Address extends Address {
 
 	/**
-	 * @var string Address ID.
+	 * Address ID.
+	 *
+	 * @var string
 	 */
 	protected $ID;
 
 	/**
-	 * @var bool Is this a default address?
+	 * Is this a default address?
+	 *
+	 * @var bool
 	 */
 	protected $Default;
 
 	/**
 	 * Constructor.
+	 *
+	 * @param string $ID       Address ID.
+	 * @param bool   $Default  Whether this is a default address.
+	 * @param string $Address1 Street address 1.
+	 * @param string $Address2 Street address 2.
+	 * @param string $City     City.
+	 * @param string $State    State.
+	 * @param string $Zip5     5 digit component of ZIP code.
+	 * @param string $Zip4     Optional 4 digit component of ZIP code.
 	 *
 	 * @since 5.0
 	 */
@@ -42,7 +55,7 @@ class SST_Origin_Address extends Address {
 	/**
 	 * Set ID.
 	 *
-	 * @param string $ID
+	 * @param string $ID Address ID.
 	 *
 	 * @since 5.0
 	 */
@@ -63,7 +76,7 @@ class SST_Origin_Address extends Address {
 	/**
 	 * Set Default.
 	 *
-	 * @param bool $Default
+	 * @param bool $Default Whether the address is a default origin address.
 	 *
 	 * @since 5.0
 	 */

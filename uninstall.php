@@ -14,7 +14,7 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
-// Remove data, but only if "Remove Data on Delete" option is enabled 
+// Remove data, but only if "Remove Data on Delete" option is enabled
 $settings    = get_option( 'woocommerce_wootax_settings' );
 $remove_data = isset( $settings['remove_all_data'] ) ? 'yes' === $settings['remove_all_data'] : false;
 

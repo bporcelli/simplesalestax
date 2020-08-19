@@ -1,7 +1,7 @@
 <?php
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit; // Exit if accessed directly.
 }
 
 /**
@@ -18,7 +18,7 @@ class SST_Shipping {
 	/**
 	 * Is one of the given shipping methods a local pickup method?
 	 *
-	 * @param array $method_ids
+	 * @param array $method_ids IDs of shipping methods to check.
 	 *
 	 * @return bool
 	 * @since 5.0
@@ -30,16 +30,16 @@ class SST_Shipping {
 
 		$local_pickup_methods = apply_filters(
 			'woocommerce_local_pickup_methods',
-			[ 'legacy_local_pickup', 'local_pickup' ]
+			array( 'legacy_local_pickup', 'local_pickup' )
 		);
 
-		return sizeof( array_intersect( $method_ids, $local_pickup_methods ) ) > 0;
+		return count( array_intersect( $method_ids, $local_pickup_methods ) ) > 0;
 	}
 
 	/**
 	 * Is the provided shipping method a local delivery method?
 	 *
-	 * @param string $method_id Method ID (default '')
+	 * @param string $method_id Method ID (default '').
 	 *
 	 * @return bool
 	 * @since 5.0
@@ -49,8 +49,9 @@ class SST_Shipping {
 			$method_id,
 			apply_filters(
 				'wootax_local_delivery_methods',
-				[ 'local_delivery', 'legacy_local_delivery' ]
-			)
+				array( 'local_delivery', 'legacy_local_delivery' )
+			),
+			true
 		);
 	}
 

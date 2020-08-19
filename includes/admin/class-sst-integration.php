@@ -32,9 +32,9 @@ class SST_Integration extends WC_Integration {
 		$this->init_form_fields();
 
 		// Register action hooks.
-		add_action( 'woocommerce_update_options_integration_' . $this->id, [ $this, 'process_admin_options' ] );
-		add_action( 'admin_init', [ $this, 'maybe_download_log_file' ] );
-		add_action( 'admin_init', [ $this, 'maybe_dismiss_address_notice' ] );
+		add_action( 'woocommerce_update_options_integration_' . $this->id, array( $this, 'process_admin_options' ) );
+		add_action( 'admin_init', array( $this, 'maybe_download_log_file' ) );
+		add_action( 'admin_init', array( $this, 'maybe_dismiss_address_notice' ) );
 	}
 
 	/**
@@ -58,6 +58,9 @@ class SST_Integration extends WC_Integration {
 
 	/**
 	 * Output HTML for field of type 'button.'
+	 *
+	 * @param string $key  Field key.
+	 * @param array  $data Field data.
 	 *
 	 * @since 4.5
 	 */
@@ -91,6 +94,9 @@ class SST_Integration extends WC_Integration {
 	/**
 	 * Output HTML for field of type 'anchor.'
 	 *
+	 * @param string $key  Field key.
+	 * @param array  $data Field data.
+	 *
 	 * @since 5.0
 	 */
 	public function generate_anchor_html( $key, $data ) {
@@ -123,6 +129,9 @@ class SST_Integration extends WC_Integration {
 
 	/**
 	 * Output HTML for field of type 'origin_address_select'.
+	 *
+	 * @param string $key  Field key.
+	 * @param array  $data Field data.
 	 *
 	 * @since 6.2
 	 */
@@ -231,11 +240,11 @@ class SST_Integration extends WC_Integration {
 	 * @since 5.0
 	 */
 	public function maybe_download_log_file() {
-		if ( ! isset( $_GET['download_log'] ) ) {
+		if ( ! isset( $_GET['download_log'] ) ) { // phpcs:ignore WordPress.CSRF.NonceVerification
 			return;
 		}
 
-		// If file doesn't exist, create it
+		// If file doesn't exist, create it.
 		$log_path = SST_Logger::get_log_path();
 
 		if ( ! file_exists( $log_path ) ) {
@@ -243,7 +252,7 @@ class SST_Integration extends WC_Integration {
 			fclose( $fh );
 		}
 
-		// Force download
+		// Force download.
 		header( 'Content-Description: File Transfer' );
 		header( 'Content-Type: application/octet-stream' );
 		header( 'Content-Disposition: attachment; filename=' . basename( $log_path ) );

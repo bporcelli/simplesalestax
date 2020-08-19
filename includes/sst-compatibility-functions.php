@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Compatibility functions.
  *
@@ -11,7 +10,7 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit; // Exit if accessed directly.
 }
 
 /**
@@ -25,14 +24,14 @@ function sst_woocommerce_active() {
 		return woocommerce_active_check();
 	}
 
-	$active_plugins = get_option( 'active_plugins', [] );
+	$active_plugins = get_option( 'active_plugins', array() );
 
 	if ( is_multisite() ) {
-		$active_plugins = array_merge( $active_plugins, get_site_option( 'active_sitewide_plugins', [] ) );
+		$active_plugins = array_merge( $active_plugins, get_site_option( 'active_sitewide_plugins', array() ) );
 	}
 
 	return (
-		in_array( 'woocommerce/woocommerce.php', $active_plugins ) ||
+		in_array( 'woocommerce/woocommerce.php', $active_plugins, true ) ||
 		array_key_exists( 'woocommerce/woocommmerce.php', $active_plugins )
 	);
 }
@@ -86,5 +85,5 @@ function sst_storefront_active() {
 		$theme_name = $theme->name;
 	}
 
-	return 'storefront' == strtolower( $theme_name );
+	return 'storefront' === strtolower( $theme_name );
 }

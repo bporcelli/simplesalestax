@@ -1,7 +1,7 @@
 <?php
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit; // Exit if accessed directly.
 }
 
 /**
@@ -16,13 +16,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SST_Logger {
 
 	/**
-	 * @var string Log handle.
+	 * Log handle.
+	 *
+	 * @var string
 	 * @since 5.0
 	 */
 	protected static $handle = 'wootax';
 
 	/**
-	 * @var WC_Logger Logger instance.
+	 * Logger instance.
+	 *
+	 * @var WC_Logger
 	 * @since 5.0
 	 */
 	protected static $logger = null;
@@ -33,7 +37,7 @@ class SST_Logger {
 	 * @since 5.0
 	 */
 	public static function init() {
-		if ( 'yes' == SST_Settings::get( 'log_requests' ) ) {
+		if ( 'yes' === SST_Settings::get( 'log_requests' ) ) {
 			self::$logger = function_exists( 'wc_get_logger' ) ? wc_get_logger() : new WC_Logger();
 		}
 	}
