@@ -41,6 +41,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'add_order_meta' ) );
 		add_action( 'woocommerce_cart_emptied', array( $this, 'clear_package_cache' ) );
 		add_action( 'woocommerce_after_checkout_validation', array( $this, 'validate_checkout' ), 10, 2 );
+		add_filter( 'woocommerce_add_cart_item', array( $this, 'set_key_for_cart_item' ), 10, 2 );
 
 		if ( sst_storefront_active() ) {
 			add_action( 'woocommerce_checkout_shipping', array( $this, 'output_exemption_form' ), 15 );
@@ -644,6 +645,22 @@ class SST_Checkout extends SST_Abstract_Cart {
 		$saved_packages[ $hash ] = $package;
 
 		WC()->session->set( 'sst_package_cache', $saved_packages );
+	}
+
+	/**
+	 * Ensures that the 'key' property is set for all WooCommerce cart items.
+	 *
+	 * @param array  $cart_item_data Data for cart item being added.
+	 * @param string $cart_item_key  Cart item key.
+	 *
+	 * @return array
+	 */
+	public function set_key_for_cart_item( $cart_item_data, $cart_item_key ) {
+		if ( ! isset( $cart_item_data['key'] ) ) {
+			$cart_item_data['key'] = $cart_item_key;
+		}
+
+		return $cart_item_data;
 	}
 
 }

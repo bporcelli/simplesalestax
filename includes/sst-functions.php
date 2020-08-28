@@ -252,6 +252,7 @@ function sst_format_order_items( $items ) {
 		$product    = wc_get_product( $product_id );
 		if ( $product ) {
 			$new_items[ $item_id ] = array(
+				'key'           => $item_id,
 				'product_id'    => $item['product_id'],
 				'variation_id'  => $item['variation_id'],
 				'quantity'      => $item['qty'],
