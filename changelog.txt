@@ -2,6 +2,14 @@ Changelog for Simple Sales Tax
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+= [6.1.2] - 2020-08-28 =
+
+Fixed:
+- 409 error when adding exemption certificates during checkout
+
+Changed:
+- Use 'key' attribute to identify cart items to maximize compatibility with third parties that re-index the 'contents' array in the WC shipping packages
+
 = [6.1.1] - 2020-08-18 =
 
 Changed:
