@@ -140,12 +140,12 @@ class SST_Ajax {
 			wp_send_json_error( __( 'Invalid request.', 'simple-sales-tax' ) );
 		}
 
-		$raw_form_data = sanitize_text_field( wp_unslash( $_POST['form_data'] ) );
-		$certificate   = array_map( 'sanitize_text_field', wp_unslash( $_POST['certificate'] ) );
-
 		// Get data.
-		$form_data = array();
-		parse_str( $raw_form_data, $form_data );
+		parse_str( wp_unslash( $_POST['form_data'] ), $form_data ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$form_data = array_map(
+			'sanitize_text_field',
+			array_merge( wp_unslash( $_POST['certificate'] ), $form_data ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		);
 
 		// Construct certificate.
 		$exempt_state = new TaxCloud\ExemptState(
