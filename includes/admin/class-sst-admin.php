@@ -49,8 +49,8 @@ class SST_Admin {
 	 * @since 5.0
 	 */
 	public function includes() {
-		include_once dirname( __DIR__ ) . '/sst-message-functions.php';
-		include_once __DIR__ . '/class-sst-integration.php';
+		require_once dirname( __DIR__ ) . '/sst-message-functions.php';
+		require_once __DIR__ . '/class-sst-integration.php';
 	}
 
 	/**

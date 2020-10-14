@@ -5,11 +5,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! class_exists( 'WP_Async_Request', false ) ) {
-	include_once WC()->plugin_path() . '/includes/libraries/wp-async-request.php';
+	require_once WC()->plugin_path() . '/includes/libraries/wp-async-request.php';
 }
 
 if ( ! class_exists( 'WP_Background_Process', false ) ) {
-	include_once WC()->plugin_path() . '/includes/libraries/wp-background-process.php';
+	require_once WC()->plugin_path() . '/includes/libraries/wp-background-process.php';
 }
 
 /**
@@ -107,7 +107,7 @@ class SST_Updater extends WP_Background_Process {
 
 		$logger = new WC_Logger();
 
-		include_once 'sst-update-functions.php';
+		require_once 'sst-update-functions.php';
 
 		$return = false;
 

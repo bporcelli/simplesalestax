@@ -82,7 +82,7 @@ class SST_Install {
 	 * Initialize the background updater.
 	 */
 	public static function init_background_updater() {
-		include_once 'class-sst-updater.php';
+		require_once 'class-sst-updater.php';
 		self::$background_updater = new SST_Updater();
 	}
 

@@ -111,26 +111,26 @@ final class SimpleSalesTax {
 		/**
 		 * Abstract classes.
 		 */
-		include_once __DIR__ . '/abstracts/class-sst-abstract-cart.php';
+		require_once __DIR__ . '/abstracts/class-sst-abstract-cart.php';
 
 		/**
 		 * Core classes.
 		 */
-		include_once __DIR__ . '/sst-functions.php';
-		include_once __DIR__ . '/sst-compatibility-functions.php';
-		include_once __DIR__ . '/class-sst-install.php';
-		include_once __DIR__ . '/class-sst-settings.php';
-		include_once __DIR__ . '/class-sst-logger.php';
-		include_once __DIR__ . '/class-sst-ajax.php';
-		include_once __DIR__ . '/class-sst-tic.php';
-		include_once __DIR__ . '/class-sst-product.php';
-		include_once __DIR__ . '/class-sst-shipping.php';
-		include_once __DIR__ . '/class-sst-addresses.php';
-		include_once __DIR__ . '/class-sst-origin-address.php';
-		include_once __DIR__ . '/class-sst-certificates.php';
-		include_once __DIR__ . '/class-sst-order.php';
-		include_once __DIR__ . '/class-sst-order-controller.php';
-		include_once __DIR__ . '/class-sst-assets.php';
+		require_once __DIR__ . '/sst-functions.php';
+		require_once __DIR__ . '/sst-compatibility-functions.php';
+		require_once __DIR__ . '/class-sst-install.php';
+		require_once __DIR__ . '/class-sst-settings.php';
+		require_once __DIR__ . '/class-sst-logger.php';
+		require_once __DIR__ . '/class-sst-ajax.php';
+		require_once __DIR__ . '/class-sst-tic.php';
+		require_once __DIR__ . '/class-sst-product.php';
+		require_once __DIR__ . '/class-sst-shipping.php';
+		require_once __DIR__ . '/class-sst-addresses.php';
+		require_once __DIR__ . '/class-sst-origin-address.php';
+		require_once __DIR__ . '/class-sst-certificates.php';
+		require_once __DIR__ . '/class-sst-order.php';
+		require_once __DIR__ . '/class-sst-order-controller.php';
+		require_once __DIR__ . '/class-sst-assets.php';
 
 		/**
 		 * Third party integrations.
@@ -141,15 +141,15 @@ final class SimpleSalesTax {
 		 * Admin only.
 		 */
 		if ( $this->is_request( 'admin' ) ) {
-			include_once __DIR__ . '/admin/class-sst-admin.php';
+			require_once __DIR__ . '/admin/class-sst-admin.php';
 		}
 
 		/**
 		 * Frontend only.
 		 */
 		if ( $this->is_request( 'frontend' ) ) {
-			include_once __DIR__ . '/frontend/class-sst-cart-proxy.php';
-			include_once __DIR__ . '/frontend/class-sst-checkout.php';
+			require_once __DIR__ . '/frontend/class-sst-cart-proxy.php';
+			require_once __DIR__ . '/frontend/class-sst-checkout.php';
 		}
 	}
 
@@ -169,12 +169,12 @@ final class SimpleSalesTax {
 
 		// WooCommerce Subscriptions by Prospress.
 		if ( sst_subs_active() ) {
-			include_once $integrations_dir . '/class-sst-subscriptions.php';
+			require_once $integrations_dir . '/class-sst-subscriptions.php';
 		}
 
 		// WooCommerce Composite Products.
 		if ( is_plugin_active( 'woocommerce-composite-products/woocommerce-composite-products.php' ) ) {
-			include_once $integrations_dir . '/class-sst-composite-products.php';
+			require_once $integrations_dir . '/class-sst-composite-products.php';
 		}
 	}
 
