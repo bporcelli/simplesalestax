@@ -176,6 +176,11 @@ final class SimpleSalesTax {
 		if ( is_plugin_active( 'woocommerce-composite-products/woocommerce-composite-products.php' ) ) {
 			require_once $integrations_dir . '/class-sst-composite-products.php';
 		}
+
+		// WC Vendors Pro.
+		if ( defined( 'WCV_PRO_VERSION' ) ) {
+			require_once $integrations_dir . '/class-sst-wc-vendors.php';
+		}
 	}
 
 	/**

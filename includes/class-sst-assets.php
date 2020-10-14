@@ -35,7 +35,7 @@ class SST_Assets {
 			'sst-hideseek'              => array(
 				'type'       => 'script',
 				'file'       => 'jquery.hideseek.min.js',
-				'context'    => 'admin',
+				'context'    => 'both',
 				'compressed' => true,
 				'options'    => array(
 					'deps' => array( 'jquery' ),
@@ -51,13 +51,21 @@ class SST_Assets {
 			'sst-tic-select'            => array(
 				'type'    => 'script',
 				'file'    => 'tic-select.js',
-				'context' => 'admin',
+				'context' => 'both',
 				'options' => array(
 					'deps' => array(
 						'jquery',
 						'sst-hideseek',
 						'sst-backbone-modal',
 					),
+				),
+			),
+			'sst-tic-select-css'            => array(
+				'type'    => 'style',
+				'file'    => 'tic-select.css',
+				'context' => 'frontend',
+				'options' => array(
+					'deps' => array( 'sst-modal-css' ),
 				),
 			),
 			'sst-admin-js'              => array(

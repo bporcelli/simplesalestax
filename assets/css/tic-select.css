@@ -1,0 +1,34 @@
+.wc-backbone-modal .wc-backbone-modal-content.sst-select-tic-modal-content {
+    width: 100%;
+    min-height: 100%;
+    top: 0;
+    transform: none;
+    left: 0;
+}
+
+@media ( min-width: 768px ) {
+    .wc-backbone-modal .wc-backbone-modal-content.sst-select-tic-modal-content {
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 70%;
+        max-width: 800px;
+    }
+}
+
+.sst-tic-search {
+    width: 100%;
+}
+
+.sst-tic-select-wrap button, .sst-tic-select-wrap .sst-selected-tic {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.sst-tic-select-wrap button {
+    margin-left: 8px;
+}
+
+.wc-backbone-modal-main article .sst-tic-list p {
+    margin: 0;
+}

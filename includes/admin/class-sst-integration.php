@@ -184,6 +184,7 @@ class SST_Integration extends WC_Integration {
 						<div class="notice notice-warning inline sst-settings-notice">
 							<p>
 								<?php
+								// todo: fix redirect location. appears to be broken.
 								_e(
 									'Oops! It appears there are no addresses in your TaxCloud account. Please add at least one address on the <a href="https://simplesalestax.com/taxcloud/locations/" target="_blank">Locations</a> page in TaxCloud and then save your settings to refresh the address list.',
 									'simple-sales-tax'
@@ -282,7 +283,8 @@ class SST_Integration extends WC_Integration {
 		 * since refreshing under these conditions can break sales tax calcs for
 		 * products that have their origin addresses set with the old address keys.
 		 */
-		if ( version_compare( get_option( 'wootax_version' ), '6.2', '>=' ) ) {
+		// todo: revert
+		if ( true ) {//version_compare( get_option( 'wootax_version' ), '6.2', '>=' ) ) {
 			SST_Settings::set(
 				'addresses',
 				array_map( 'json_encode', SST_Addresses::get_origin_addresses( true ) )

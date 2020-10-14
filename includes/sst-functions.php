@@ -218,6 +218,7 @@ function sst_output_tic_select_field( $args = array() ) {
 		'field_name'   => 'wootax_tic',
 		'default_text' => __( 'Using site default', 'simple-sales-tax' ),
 		'value'        => '',
+		'button_class' => 'button'
 	);
 
 	if ( ! empty( $args['product_id'] ) ) {
@@ -242,17 +243,33 @@ function sst_output_tic_select_field( $args = array() ) {
 	wp_localize_script( 'sst-tic-select', 'ticSelectLocalizeScript', $script_data );
 	wp_enqueue_script( 'sst-tic-select' );
 
+	wp_enqueue_style( 'sst-tic-select-css' );
+
 	?>
 	<span class="sst-selected-tic"><?php echo esc_html( $args['default_text'] ); ?></span>
 	<input type="hidden" name="<?php echo esc_attr( $args['field_name'] ); ?>"
 	       class="sst-tic-input"
 		   value="<?php echo esc_attr( $args['value'] ); ?>">
-	<button type="button" class="button sst-select-tic">
+	<button type="button" class="<?php echo esc_attr( $args['button_class'] ); ?> sst-select-tic">
 		<?php esc_html_e( 'Select', 'simple-sales-tax' ); ?>
 	</button>
 	<?php
 
 	require_once __DIR__ . '/views/html-select-tic-modal.php';
+}
+
+/**
+ * Gets the help text / description to use for the TIC select field.
+ *
+ * @return string
+ */
+function sst_get_tic_select_help_text() {
+	$default_help_text = __(
+		'The TIC is used to determine the appropriate sales tax rate for your product. If your product is exempt from sales tax or qualifies for reduced tax rates, please make sure you select an appropriate TIC.',
+		'simple-sales-tax'
+	);
+
+	return apply_filters( 'wootax_tic_select_help_text', $default_help_text );
 }
 
 /**
