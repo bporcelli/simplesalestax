@@ -45,7 +45,7 @@ class SST_Install {
 		'6.0.6' => array(
 			'sst_update_606_fix_duplicate_transactions',
 		),
-		'6.2.0' => (
+		'6.2.0' => array(
 			'sst_update_620_import_origin_addresses',
 		),
 	);
