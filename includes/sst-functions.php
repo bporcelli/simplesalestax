@@ -209,6 +209,53 @@ function sst_get_tics() {
 }
 
 /**
+ * Outputs the TIC select field.
+ *
+ * @param array $args Optional field args.
+ */
+function sst_output_tic_select_field( $args = array() ) {
+	$defaults = array(
+		'field_name'   => 'wootax_tic',
+		'default_text' => __( 'Using site default', 'simple-sales-tax' ),
+		'value'        => '',
+	);
+
+	if ( ! empty( $args['product_id'] ) ) {
+		$product_id = $args['product_id'];
+
+		$defaults['field_name'] = sprintf( 'wootax_tic[%d]', $product_id );
+		$defaults['value']      = get_post_meta( $product_id, 'wootax_tic', true );
+
+		if ( 'product_variation' === get_post_type( $product_id ) ) {
+			$defaults['default_text'] = __( 'Same as parent', 'simple-sales-tax' );
+		}
+	}
+
+	$args = wp_parse_args( $args, $defaults );
+
+	$script_data = array(
+		'tic_list' => sst_get_tics(),
+		'strings'  => array(
+			'default' => $args['default_text'],
+		),
+	);
+	wp_localize_script( 'sst-tic-select', 'ticSelectLocalizeScript', $script_data );
+	wp_enqueue_script( 'sst-tic-select' );
+
+	?>
+	<span class="sst-selected-tic"><?php echo esc_html( $args['default_text'] ); ?></span>
+	<input type="hidden" name="<?php echo esc_attr( $args['field_name'] ); ?>"
+	       class="sst-tic-input"
+		   value="<?php echo esc_attr( $args['value'] ); ?>">
+	<button type="button" class="button sst-select-tic">
+		<?php esc_html_e( 'Select', 'simple-sales-tax' ); ?>
+	</button>
+	<?php
+
+	require_once __DIR__ . '/views/html-select-tic-modal.php';
+}
+
+/**
  * Calculates the taxes for an order using the TaxCloud API.
  *
  * @param WC_Order|int $order Order object or order ID.

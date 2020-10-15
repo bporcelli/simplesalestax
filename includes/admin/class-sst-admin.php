@@ -232,27 +232,39 @@ class SST_Admin {
 	 * @since 5.0
 	 */
 	public static function output_category_tic_select( $term_or_taxonomy = null ) {
-		$is_edit     = is_a( $term_or_taxonomy, 'WP_Term' );
-		$current_tic = '';
+		$wrapper_el       = 'div';
+		$label_el         = 'label';
+		$field_wrapper_el = 'div';
+		$value            = '';
+		$is_edit          = is_a( $term_or_taxonomy, 'WP_Term' );
 
 		if ( $is_edit ) {
-			$current_tic = get_term_meta( $term_or_taxonomy->term_id, 'tic', true );
+			$wrapper_el       = 'tr';
+			$label_el         = 'th';
+			$field_wrapper_el = 'td';
+			$value            = get_term_meta( $term_or_taxonomy->term_id, 'tic', true );
 		}
 
-		wp_localize_script(
-			'sst-tic-select',
-			'ticSelectLocalizeScript',
-			array(
-				'tic_list' => sst_get_tics(),
-				'strings'  => array(
-					'default' => __( 'Using site default', 'simple-sales-tax' ),
-				),
+		printf( '<%s class="form-field">', $wrapper_el );
+		printf(
+			'<%1$s>%2$s</%1$s>',
+			$label_el,
+			esc_html__( 'Taxability Information Code', 'simple-sales-tax' )
+		);
+		printf( '<%s class="sst-tic-select-wrap">', $field_wrapper_el );
+
+		sst_output_tic_select_field( compact( 'value' ) );
+
+		printf(
+			'<p class="description">%s</p>',
+			esc_html__(
+				'This TIC will be used as the default for all products in this category.',
+				'simple-sales-tax'
 			)
 		);
 
-		wp_enqueue_script( 'sst-tic-select' );
-
-		include __DIR__ . '/views/html-select-tic-category.php';
+		printf( '</%s>', $field_wrapper_el );
+		printf( '</%s>', $wrapper_el );
 	}
 
 	/**

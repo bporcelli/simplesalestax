@@ -117,20 +117,18 @@ class SST_Product {
 	 * @since 5.0
 	 */
 	public static function output_bulk_edit_fields() {
-		wp_localize_script(
-			'sst-tic-select',
-			'ticSelectLocalizeScript',
-			array(
-				'tic_list' => sst_get_tics(),
-				'strings'  => array(
-					'default' => __( 'No Change', 'simple-sales-tax' ),
-				),
-			)
+		$field_args = array(
+			'default_text' => __( 'No Change', 'simple-sales-tax' ),
 		);
 
-		wp_enqueue_script( 'sst-tic-select' );
-
-		require_once __DIR__ . '/admin/views/html-select-tic-bulk.php';
+		?>
+		<label class="alignleft">
+			<span class="title"><?php esc_html_e( 'TIC', 'simple-sales-tax' ); ?></span>
+			<span class="input-text-wrap">
+				<?php sst_output_tic_select_field( $field_args ); ?>
+			</span>
+		</label>
+		<?php
 	}
 
 	/**
@@ -169,29 +167,23 @@ class SST_Product {
 
 		if ( $is_variation ) {
 			$product_id = $variation->ID;
+			$class      = 'form-row form-field form-row-full';
 		} else {
 			$product_id = $post->ID;
+			$class      = 'form-field';
 		}
 
-		$current_tic = get_post_meta( $product_id, 'wootax_tic', true );
-
-		wp_localize_script(
-			'sst-tic-select',
-			'ticSelectLocalizeScript',
-			array(
-				'tic_list' => sst_get_tics(),
-				'strings'  => array(
-					'default' => $is_variation ? __( 'Same as parent', 'simple-sales-tax' ) : __(
-						'Using site default',
-						'simple-sales-tax'
-					),
-				),
-			)
-		);
-
-		wp_enqueue_script( 'sst-tic-select' );
-
-		require __DIR__ . '/admin/views/html-select-tic.php';
+		?>
+		<p class="<?php echo esc_attr( $class ); ?> wootax_tic">
+			<label for="wootax_tic[<?php echo esc_attr( $product_id ); ?>]">
+				<?php esc_html_e( 'TIC', 'simple-sales-tax' ); ?>
+			</label>
+			<?php if ( $is_variation ): ?>
+				<br>
+			<?php endif; ?>
+			<?php sst_output_tic_select_field( compact( 'product_id' ) ); ?>
+		</p>
+		<?php
 	}
 
 	/**
