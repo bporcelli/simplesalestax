@@ -26,11 +26,9 @@ class SST_WC_Vendors {
 	/**
 	 * Minimum supported version of WC Vendors Pro.
 	 *
-	 * @todo confirm support down to min version, document in readme
-	 *
 	 * @var string
 	 */
-	protected $min_version = '1.5.0';
+	protected $min_version = '1.5.8';
 
 	/**
 	 * Returns the singleton instance of this class.
@@ -55,7 +53,7 @@ class SST_WC_Vendors {
 		}
 
 		// Print an error if the WC Vendors Pro version is not supported.
-		if ( version_compare( WCV_PRO_VERSION, '1.5.0', '<' ) ) {
+		if ( version_compare( WCV_PRO_VERSION, $this->min_version, '<' ) ) {
 			add_action( 'admin_notices', array( $this, 'wcv_pro_version_notice' ) );
 			return;
 		}
