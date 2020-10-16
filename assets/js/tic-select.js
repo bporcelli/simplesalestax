@@ -1,5 +1,5 @@
-/* global jQuery, SST, ticSelectLocalizeScript */
-(function($, SST, data) {
+/* global jQuery, ticSelectLocalizeScript */
+(function($, data) {
     $(function() {
         var $row_template = wp.template( 'sst-tic-row' ),
             SelectView    = Backbone.View.extend( {
@@ -86,4 +86,4 @@
 
         $( '#woocommerce-product-data' ).on( 'woocommerce_variations_loaded', initialize );
     });
-})(jQuery, SST, ticSelectLocalizeScript);
+})(jQuery, ticSelectLocalizeScript);
