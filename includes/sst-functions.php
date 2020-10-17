@@ -221,7 +221,7 @@ function sst_output_tic_select_field( $args = array() ) {
 		'button_class' => 'button'
 	);
 
-	if ( ! empty( $args['product_id'] ) ) {
+	if ( isset( $args['product_id'] ) ) {
 		$product_id = $args['product_id'];
 
 		$defaults['field_name'] = sprintf( 'wootax_tic[%d]', $product_id );
