@@ -21,6 +21,10 @@ class SST_Product {
 	 * @since 5.0
 	 */
 	public static function init() {
+		if ( ! is_admin() ) {
+			return;
+		}
+
 		add_action( 'woocommerce_product_options_shipping', array( __CLASS__, 'output_origin_select_box' ) );
 		add_action( 'woocommerce_product_bulk_edit_start', array( __CLASS__, 'output_bulk_edit_fields' ) );
 		add_action( 'woocommerce_product_bulk_edit_save', array( __CLASS__, 'save_bulk_edit_fields' ) );
