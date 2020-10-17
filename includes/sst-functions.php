@@ -235,10 +235,11 @@ function sst_output_tic_select_field( $args = array() ) {
 	$args = wp_parse_args( $args, $defaults );
 
 	$script_data = array(
-		'tic_list' => sst_get_tics(),
-		'strings'  => array(
+		'tic_list'               => sst_get_tics(),
+		'strings'                => array(
 			'default' => $args['default_text'],
 		),
+		'tic_select_init_events' => sst_get_tic_select_init_events(),
 	);
 	wp_localize_script( 'sst-tic-select', 'ticSelectLocalizeScript', $script_data );
 	wp_enqueue_script( 'sst-tic-select' );
@@ -256,6 +257,15 @@ function sst_output_tic_select_field( $args = array() ) {
 	<?php
 
 	require_once __DIR__ . '/views/html-select-tic-modal.php';
+}
+
+/**
+ * Gets a list of JavaScript events that trigger initialization of TIC selects.
+ *
+ * @return string Space separated list of JS events to trigger TIC select init.
+ */
+function sst_get_tic_select_init_events() {
+	return apply_filters( 'wootax_tic_select_init_events', 'woocommerce_variations_loaded' );
 }
 
 /**

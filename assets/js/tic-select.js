@@ -84,6 +84,6 @@
 
         initialize();
 
-        $( '#woocommerce-product-data' ).on( 'woocommerce_variations_loaded', initialize );
+        $( document.body ).on( data.tic_select_init_events, initialize );
     });
 })(jQuery, ticSelectLocalizeScript);
