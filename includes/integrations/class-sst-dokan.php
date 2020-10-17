@@ -11,12 +11,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once dirname( SST_FILE ) . '/includes/abstracts/class-sst-marketplace-integration.php';
+
 use TaxCloud\Address;
 
 /**
  * Class SST_Dokan
  */
-class SST_Dokan {
+class SST_Dokan extends SST_Marketplace_Integration {
 
 	/**
 	 * Singleton instance.
@@ -84,10 +86,7 @@ class SST_Dokan {
 		add_action( 'wp_footer', array( $this, 'print_styles_to_hide_tax_class_field' ) );
 		add_filter( 'wootax_tic_select_init_events', array( $this, 'filter_tic_select_init_events' ) );
 
-		// We only want to split the order by seller for lookups if Dokan is.
-		if ( has_filter( 'woocommerce_cart_shipping_packages', 'dokan_custom_split_shipping_packages' ) ) {
-			add_filter( 'wootax_origin_address', array( $this, 'filter_origin_address' ), 10, 2 );
-		}
+		parent::__construct();
 	}
 
 	/**
@@ -165,27 +164,6 @@ class SST_Dokan {
 	}
 
 	/**
-	 * Saves the TIC for a product or variation.
-	 *
-	 * @param int $product_id Product ID.
-	 */
-	public function save_tic( $product_id ) {
-		$tic = null;
-
-		// phpcs:disable
-		if ( isset( $_REQUEST['wootax_tic'][0] ) ) { // New product
-			$tic = $_REQUEST['wootax_tic'][0];
-		} elseif ( isset( $_REQUEST['wootax_tic'][ $product_id ] ) ) {
-			$tic = $_REQUEST['wootax_tic'][ $product_id ];
-		}
-		// phpcs:enable
-
-		if ( ! is_null( $tic ) ) {
-			update_post_meta( $product_id, 'wootax_tic', sanitize_text_field( $tic ) );
-		}
-	}
-
-	/**
 	 * Print an inline style rule to hide Dokan's Tax Class and Tax Status fields.
 	 */
 	public function print_styles_to_hide_tax_class_field() {
@@ -217,43 +195,6 @@ class SST_Dokan {
 	}
 
 	/**
-	 * Filters the product origin address to append the seller's user ID
-	 * to the origin address ID. This is required for Simple Sales Tax to
-	 * split the cart packages into shipments in the same way that Dokan
-	 * does.
-	 *
-	 * @todo check with john to see whether seller origin address should be used 
-	 * @todo figure out a better way to handle this
-	 *
-	 * @param SST_Origin_Address $origin Origin address for product.
-	 * @param array              $item   Array with info about cart item.
-	 *
-	 * @return SST_Origin_Address
-	 */
-	public function filter_origin_address( $origin, $item ) {
-		if ( ! isset( $item['product_id'] ) ) {
-			return $origin;
-		}
-
-		$origin_id = $origin->getID();
-		$seller_id = get_post_field( 'post_author', $item['product_id'] );
-		
-		if ( ! dokan_is_user_seller( $seller_id ) ) {
-			$seller_id = 0;
-		}
-
-		return new SST_Origin_Address(
-			"{$origin_id}-{$seller_id}",
-			false,
-			$origin->getAddress1(),
-			$origin->getAddress2(),
-			$origin->getCity(),
-			$origin->getState(),
-			$origin->getZip5()
-		);
-	}
-
-	/**
 	 * Adds dokan_variations_loaded and dokan_variation_added to the list of
 	 * JS events that trigger TIC select initialization.
 	 *
@@ -263,6 +204,27 @@ class SST_Dokan {
 	 */
 	public function filter_tic_select_init_events( $events ) {
 		return trim( "{$events} dokan_variations_loaded dokan_variation_added" );
+	}
+
+	/**
+	 * Returns a boolean indicating whether SST should split the order by
+	 * seller ID.
+	 *
+	 * @return bool
+	 */
+	public function should_split_packages_by_seller_id() {
+		return has_filter( 'woocommerce_cart_shipping_packages', 'dokan_custom_split_shipping_packages' );
+	}
+
+	/**
+	 * Checks whether a user is a seller.
+	 *
+	 * @param int $user_id User ID.
+	 *
+	 * @return bool
+	 */
+	public function is_user_seller( $user_id ) {
+		return dokan_is_user_seller( $user_id );
 	}
 
 }
