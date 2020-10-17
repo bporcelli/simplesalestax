@@ -181,6 +181,11 @@ final class SimpleSalesTax {
 		if ( defined( 'WCV_PRO_VERSION' ) ) {
 			require_once $integrations_dir . '/class-sst-wc-vendors.php';
 		}
+
+		// Dokan.
+		if ( defined( 'DOKAN_PLUGIN_VERSION' ) ) {
+			require_once $integrations_dir . '/class-sst-dokan.php';
+		}
 	}
 
 	/**
