@@ -52,6 +52,11 @@ class SST_WC_Vendors {
 			return;
 		}
 
+		// Allow developers to disable this integration.
+		if ( ! apply_filters( 'wootax_wc_vendors_integration_enabled', true ) ) {
+			return;
+		}
+
 		// Print an error if the WC Vendors Pro version is not supported.
 		if ( version_compare( WCV_PRO_VERSION, $this->min_version, '<' ) ) {
 			add_action( 'admin_notices', array( $this, 'wcv_pro_version_notice' ) );
