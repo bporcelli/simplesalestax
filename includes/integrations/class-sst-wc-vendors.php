@@ -11,10 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once dirname( SST_FILE ) . '/includes/abstracts/class-sst-marketplace-integration.php';
+
 /**
  * Class SST_WC_Vendors
  */
-class SST_WC_Vendors {
+class SST_WC_Vendors extends SST_Marketplace_Integration {
 
 	/**
 	 * Singleton instance.
@@ -68,6 +70,8 @@ class SST_WC_Vendors {
 		add_action( 'wcvendors_before_product_form', array( $this, 'hide_tax_fields' ) );
 		add_action( 'wcv_save_product', array( $this, 'save_tic' ) );
 		add_action( 'wcv_save_product_variation', array( $this, 'save_tic' ) );
+
+		parent::__construct();
 	}
 
 	/**
@@ -120,6 +124,8 @@ class SST_WC_Vendors {
 			'product_id'   => $product_id,
 		);
 
+		wp_enqueue_script( 'sst-wcv-tic-select' );
+
 		?>
 		<div class="control-group sst-tic-select-wrap">
 			<label for="wootax_tic[<?php echo esc_attr( $product_id ); ?>]">
@@ -155,15 +161,35 @@ class SST_WC_Vendors {
 	}
 
 	/**
-	 * Saves the TIC for a product or variation.
+	 * Returns a boolean indicating whether SST should split the order by
+	 * seller ID.
 	 *
-	 * @param int $product_id Product ID.
+	 * @return bool
 	 */
-	public function save_tic( $product_id ) {
-		if ( isset( $_REQUEST['wootax_tic'][ $product_id ] ) ) { // phpcs:ignore WordPress.CSRF.NonceVerification
-			$tic = sanitize_text_field( $_REQUEST['wootax_tic'][ $product_id ] ); // phpcs:ignore WordPress.CSRF.NonceVerification
-			update_post_meta( $product_id, 'wootax_tic', $tic );
+	public function should_split_packages_by_seller_id() {
+		global $wcvendors_pro;
+
+		if ( ! isset( $wcvendors_pro->wcvendors_pro_shipping_controller ) ) {
+			return false;
 		}
+
+		$controller = $wcvendors_pro->wcvendors_pro_shipping_controller;
+
+		return has_filter(
+			'woocommerce_cart_shipping_packages',
+			array( $controller, 'vendor_split_woocommerce_cart_shipping_packages' )
+		);
+	}
+
+	/**
+	 * Checks whether a user is a seller.
+	 *
+	 * @param int $user_id User ID.
+	 *
+	 * @return bool
+	 */
+	public function is_user_seller( $user_id ) {
+		return WCV_Vendors::is_vendor( $user_id );
 	}
 
 }

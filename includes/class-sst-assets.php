@@ -60,6 +60,16 @@ class SST_Assets {
 					),
 				),
 			),
+			'sst-wcv-tic-select'        => array(
+				'type'    => 'script',
+				'file'    => 'wcv-tic-select.js',
+				'context' => 'frontend',
+				'options' => array(
+					'deps' => array(
+						'jquery',
+					),
+				),
+			),
 			'sst-tic-select-css'            => array(
 				'type'    => 'style',
 				'file'    => 'tic-select.css',
