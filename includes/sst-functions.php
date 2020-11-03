@@ -218,7 +218,8 @@ function sst_output_tic_select_field( $args = array() ) {
 		'field_name'   => 'wootax_tic',
 		'default_text' => __( 'Using site default', 'simple-sales-tax' ),
 		'value'        => '',
-		'button_class' => 'button'
+		'button_class' => 'button',
+		'field_class'  => '',
 	);
 
 	if ( isset( $args['product_id'] ) ) {
@@ -236,9 +237,6 @@ function sst_output_tic_select_field( $args = array() ) {
 
 	$script_data = array(
 		'tic_list'               => sst_get_tics(),
-		'strings'                => array(
-			'default' => $args['default_text'],
-		),
 		'tic_select_init_events' => sst_get_tic_select_init_events(),
 	);
 	wp_localize_script( 'sst-tic-select', 'ticSelectLocalizeScript', $script_data );
@@ -247,9 +245,11 @@ function sst_output_tic_select_field( $args = array() ) {
 	wp_enqueue_style( 'sst-tic-select-css' );
 
 	?>
-	<span class="sst-selected-tic"><?php echo esc_html( $args['default_text'] ); ?></span>
+	<span class="sst-selected-tic" data-default="<?php echo esc_attr( $args['default_text'] ); ?>">
+		<?php echo esc_html( $args['default_text'] ); ?>
+	</span>
 	<input type="hidden" name="<?php echo esc_attr( $args['field_name'] ); ?>"
-	       class="sst-tic-input"
+	       class="sst-tic-input <?php echo esc_attr( $args['field_class'] ); ?>"
 		   value="<?php echo esc_attr( $args['value'] ); ?>">
 	<button type="button" class="<?php echo esc_attr( $args['button_class'] ); ?> sst-select-tic">
 		<?php esc_html_e( 'Select', 'simple-sales-tax' ); ?>

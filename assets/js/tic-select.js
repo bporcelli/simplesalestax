@@ -7,9 +7,13 @@
                 input: null,
                 readout: null,
                 initialize: function() {
-                    this.input   = this.$el.siblings( '.sst-tic-input' );
-                    this.readout = this.$el.siblings( '.sst-selected-tic' );
+                    this.input             = this.$el.siblings( '.sst-tic-input' );
+                    this.readout           = this.$el.siblings( '.sst-selected-tic' );
+                    this.handleInputChange = this.handleInputChange.bind( this );
+
+                    // todo: refactor so we can use backbone.view.events.
                     this.$el.click( { view: this }, this.openModal );
+                    this.input.on( 'change', this.handleInputChange );
                 },
                 render: function() {
                     this.selectTIC( this.input.val() );
@@ -60,13 +64,21 @@
                     }
                 },
                 selectTIC: function( tic_id ) {
+                    this.input.val( tic_id ).trigger( 'change' );
+                },
+                handleInputChange: function() {
+                    var tic_id = this.input.val();
+
                     if ( '' == tic_id ) {
-                        this.readout.text( data.strings.default );
+                        this.readout.text( this.readout.data( 'default' ) );
                     } else {
                         var tic = data.tic_list[ parseInt( tic_id ) ];
                         this.readout.text( tic['description'] + ' (' + tic['id'] + ')' );
-                        this.input.val( tic_id ).trigger( 'change' );
                     }
+                },
+                remove: function() {
+                    Backbone.View.prototype.remove.call(this);
+                    this.input.off( 'change' );
                 },
             } );
 
