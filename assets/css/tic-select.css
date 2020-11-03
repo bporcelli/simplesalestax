@@ -33,3 +33,27 @@
 .wc-backbone-modal-main article .sst-tic-list p {
     margin: 0;
 }
+
+#wcfm-main-contentainer button.wcfm_submit_button.sst-select-tic {
+    float: none;
+    margin-top: 0;
+}
+
+.wcfm-sst-html {
+    display: inline-block;
+    width: 60%;
+}
+
+#variations .wcfm-sst-html {
+    width: 100%;
+}
+
+.wcfm-sst-html select.wcfm-select, .wcfm-sst-html input[type="text"].wcfm-text {
+    width: 100%;
+}
+
+@media only screen and ( max-width: 640px ) {
+    .wcfm-sst-html {
+        width: 100%;
+    }
+}

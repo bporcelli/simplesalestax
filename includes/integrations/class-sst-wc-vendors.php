@@ -70,6 +70,7 @@ class SST_WC_Vendors extends SST_Marketplace_Integration {
 		add_action( 'wcvendors_before_product_form', array( $this, 'hide_tax_fields' ) );
 		add_action( 'wcv_save_product', array( $this, 'save_tic' ) );
 		add_action( 'wcv_save_product_variation', array( $this, 'save_tic' ) );
+		add_filter( 'wootax_marketplace_is_user_seller', array( $this, 'is_user_seller' ) );
 
 		parent::__construct();
 	}
@@ -158,27 +159,6 @@ class SST_WC_Vendors extends SST_Marketplace_Integration {
 	 */
 	public function return_yes() {
 		return 'yes';
-	}
-
-	/**
-	 * Returns a boolean indicating whether SST should split the order by
-	 * seller ID.
-	 *
-	 * @return bool
-	 */
-	public function should_split_packages_by_seller_id() {
-		global $wcvendors_pro;
-
-		if ( ! isset( $wcvendors_pro->wcvendors_pro_shipping_controller ) ) {
-			return false;
-		}
-
-		$controller = $wcvendors_pro->wcvendors_pro_shipping_controller;
-
-		return has_filter(
-			'woocommerce_cart_shipping_packages',
-			array( $controller, 'vendor_split_woocommerce_cart_shipping_packages' )
-		);
 	}
 
 	/**

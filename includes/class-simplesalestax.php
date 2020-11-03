@@ -131,6 +131,7 @@ final class SimpleSalesTax {
 		require_once __DIR__ . '/class-sst-order.php';
 		require_once __DIR__ . '/class-sst-order-controller.php';
 		require_once __DIR__ . '/class-sst-assets.php';
+		require_once __DIR__ . '/class-sst-marketplaces.php';
 
 		/**
 		 * Third party integrations.
@@ -175,16 +176,6 @@ final class SimpleSalesTax {
 		// WooCommerce Composite Products.
 		if ( is_plugin_active( 'woocommerce-composite-products/woocommerce-composite-products.php' ) ) {
 			require_once $integrations_dir . '/class-sst-composite-products.php';
-		}
-
-		// WC Vendors Pro.
-		if ( defined( 'WCV_PRO_VERSION' ) ) {
-			require_once $integrations_dir . '/class-sst-wc-vendors.php';
-		}
-
-		// Dokan.
-		if ( defined( 'DOKAN_PLUGIN_VERSION' ) ) {
-			require_once $integrations_dir . '/class-sst-dokan.php';
 		}
 	}
 

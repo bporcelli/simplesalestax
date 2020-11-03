@@ -500,14 +500,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 5.5
 	 */
 	protected function get_shipping_address() {
-		return array(
-			'country'   => $this->order->get_shipping_country(),
-			'address'   => $this->order->get_shipping_address_1(),
-			'address_2' => $this->order->get_shipping_address_2(),
-			'city'      => $this->order->get_shipping_city(),
-			'state'     => $this->order->get_shipping_state(),
-			'postcode'  => $this->order->get_shipping_postcode(),
-		);
+		return sst_get_order_shipping_address( $this->order );
 	}
 
 	/**

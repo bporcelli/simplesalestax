@@ -70,6 +70,16 @@ class SST_Assets {
 					),
 				),
 			),
+			'sst-wcfm-tic-select'       => array(
+				'type'    => 'script',
+				'file'    => 'wcfm-tic-select.js',
+				'context' => 'frontend',
+				'options' => array(
+					'deps' => array(
+						'jquery',
+					),
+				),
+			),
 			'sst-tic-select-css'            => array(
 				'type'    => 'style',
 				'file'    => 'tic-select.css',

@@ -339,3 +339,29 @@ function sst_format_order_items( $items ) {
 
 	return $new_items;
 }
+
+/**
+ * Gets the shipping address for an order.
+ *
+ * @param int|WC_Order $order Order ID or order object.
+ *
+ * @return array
+ */
+function sst_get_order_shipping_address( $order ) {
+	if ( ! is_object( $order ) ) {
+		$order = wc_get_order( $order );
+	}
+
+	if ( ! $order ) {
+		return array();
+	}
+
+	return array(
+		'country'   => $order->get_shipping_country(),
+		'address'   => $order->get_shipping_address_1(),
+		'address_2' => $order->get_shipping_address_2(),
+		'city'      => $order->get_shipping_city(),
+		'state'     => $order->get_shipping_state(),
+		'postcode'  => $order->get_shipping_postcode(),
+	);
+}

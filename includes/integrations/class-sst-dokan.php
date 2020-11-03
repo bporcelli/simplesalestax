@@ -85,6 +85,7 @@ class SST_Dokan extends SST_Marketplace_Integration {
 		add_action( 'dokan_product_after_variable_attributes', array( $this, 'reenable_wc_taxes' ) );
 		add_action( 'wp_footer', array( $this, 'print_styles_to_hide_tax_class_field' ) );
 		add_filter( 'wootax_tic_select_init_events', array( $this, 'filter_tic_select_init_events' ) );
+		add_filter( 'wootax_marketplace_is_user_seller', array( $this, 'is_user_seller' ) );
 
 		parent::__construct();
 	}
@@ -204,16 +205,6 @@ class SST_Dokan extends SST_Marketplace_Integration {
 	 */
 	public function filter_tic_select_init_events( $events ) {
 		return trim( "{$events} dokan_variations_loaded dokan_variation_added" );
-	}
-
-	/**
-	 * Returns a boolean indicating whether SST should split the order by
-	 * seller ID.
-	 *
-	 * @return bool
-	 */
-	public function should_split_packages_by_seller_id() {
-		return has_filter( 'woocommerce_cart_shipping_packages', 'dokan_custom_split_shipping_packages' );
 	}
 
 	/**
