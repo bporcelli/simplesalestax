@@ -556,6 +556,15 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	public function do_capture() {
+		$order = $this->order;
+
+		// Let devs control whether the order is captured in TaxCloud.
+		if ( ! apply_filters( 'sst_should_capture_order', true, $order, $this ) ) {
+			// Note: This is considered a success for consistency with do_refund.
+			// We should change this sooner than later.
+			return true;
+		}
+
 		$taxcloud_status = $this->get_taxcloud_status();
 		$packages        = $this->get_packages();
 
@@ -566,7 +575,7 @@ class SST_Order extends SST_Abstract_Cart {
 					sprintf(
 						/* translators: WooCommerce order ID */
 						__( 'Failed to capture order %d: already captured.', 'simple-sales-tax' ),
-						$this->order->get_id()
+						$order->get_id()
 					)
 				);
 			}
@@ -578,7 +587,7 @@ class SST_Order extends SST_Abstract_Cart {
 					sprintf(
 						/* translators: WooCommerce order ID */
 						__( 'Failed to capture order %d: order was refunded.', 'simple-sales-tax' ),
-						$this->order->get_id()
+						$order->get_id()
 					)
 				);
 
@@ -607,7 +616,7 @@ class SST_Order extends SST_Abstract_Cart {
 					sprintf(
 						/* translators: 1 - WooCommerce order ID, 2 - Error message from TaxCloud */
 						__( 'Failed to capture order %1$d: %2$s.', 'simple-sales-tax' ),
-						$this->order->get_id(),
+						$order->get_id(),
 						$ex->getMessage()
 					)
 				);
@@ -617,7 +626,7 @@ class SST_Order extends SST_Abstract_Cart {
 		}
 
 		$this->update_meta( 'status', 'captured' );
-		$this->order->save();
+		$order->save();
 
 		return true;
 	}
@@ -632,12 +641,23 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	public function do_refund( $items = array() ) {
+		$order = $this->order;
+
+		// Let devs control whether the order is refunded in TaxCloud.
+		if ( ! apply_filters( 'sst_should_refund_order', true, $order, $this ) ) {
+			// Note: This condition needs to be considered a success or SST
+			// will delete the refund created by WooCommerce. We should find
+			// a better way to communicate what's happening in this scenario
+			// to the caller.
+			return true;
+		}
+
 		if ( 'captured' !== $this->get_taxcloud_status() ) {
 			$this->handle_error(
 				sprintf(
 					/* translators: WooCommerce order ID */
 					__( "Can't refund order %d: order must be completed first.", 'simple-sales-tax' ),
-					$this->order->get_id()
+					$order->get_id()
 				)
 			);
 
@@ -646,7 +666,7 @@ class SST_Order extends SST_Abstract_Cart {
 
 		// For full refunds, refund all fees, line items, and shipping charges.
 		if ( empty( $items ) ) {
-			$items = $this->order->get_items( array( 'fee', 'shipping', 'line_item' ) );
+			$items = $order->get_items( array( 'fee', 'shipping', 'line_item' ) );
 		}
 
 		$this->prepare_refund_items( $items );
@@ -710,7 +730,7 @@ class SST_Order extends SST_Abstract_Cart {
 						sprintf(
 							/* translators: 1 - WooCommerce order ID, 2 - Error message from TaxCloud */
 							__( 'Failed to refund order %1$d: %2$s.', 'simple-sales-tax' ),
-							$this->order->get_id(),
+							$order->get_id(),
 							$ex->getMessage()
 						)
 					);
@@ -723,9 +743,9 @@ class SST_Order extends SST_Abstract_Cart {
 		}
 
 		// If order was fully refunded, set status accordingly.
-		if ( 0 >= $this->order->get_remaining_refund_amount() ) {
+		if ( 0 >= $order->get_remaining_refund_amount() ) {
 			$this->update_meta( 'status', 'refunded' );
-			$this->order->save();
+			$order->save();
 		}
 
 		return true;
