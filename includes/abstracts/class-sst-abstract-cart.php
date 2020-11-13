@@ -253,6 +253,8 @@ abstract class SST_Abstract_Cart {
 	 * Split package into one or more subpackages, one for each product
 	 * origin address.
 	 *
+	 * @todo This method is doing too much and should be split into smaller methods.
+	 *
 	 * @param array $package Package.
 	 *
 	 * @return array Subpackages (empty on error).
@@ -261,7 +263,7 @@ abstract class SST_Abstract_Cart {
 	protected function split_package( $package ) {
 		$packages = array();
 
-		/* Convert destination address to Address object */
+		// Convert destination address to Address object.
 		try {
 			$destination = new TaxCloud\Address(
 				isset( $package['destination']['address_1'] ) ? $package['destination']['address_1'] : $package['destination']['address'],
@@ -276,7 +278,18 @@ abstract class SST_Abstract_Cart {
 			return array();
 		}
 
-		/* Split package into subpackages */
+		// If the 'origin' key is already set, we can assume that some upstream
+		// code (e.g. a marketplace integration) already split the packages by
+		// origin address. In this case, we just make sure all required keys are
+		// set and return the package as-is.
+		if ( isset( $package['origin'] ) && $package['origin'] instanceof SST_Origin_Address ) {
+			$origin_id              = $package['origin']->getID();
+			$packages[ $origin_id ] = $this->format_package( $package );
+
+			return $packages;
+		}
+
+		// Split package into subpackages.
 		foreach ( $package['contents'] as $cart_key => $item ) {
 			$origin = $this->get_origin_for_product( $item, $package['destination'] );
 
@@ -294,31 +307,56 @@ abstract class SST_Abstract_Cart {
 
 			$origin_id = $origin->getID();
 
-			/* Create subpackage for origin if need be */
+			// Create subpackage for origin if need be and associate any
+			// shipping charges with the first subpackage.
 			if ( ! array_key_exists( $origin_id, $packages ) ) {
-				$packages[ $origin_id ] = sst_create_package(
-					array(
-						'origin'      => SST_Addresses::to_address( $origin ),
-						'destination' => $package['destination'],
-						'certificate' => $this->get_certificate(),
-						'user'        => isset( $package['user'] ) ? $package['user'] : array(
-							'ID' => get_current_user_id(),
-						),
-					)
+				$subpackage = array(
+					'origin'      => $origin,
+					'destination' => $package['destination'],
 				);
 
-				/* Associate shipping with first subpackage */
 				if ( isset( $package['shipping'] ) ) {
-					$packages[ $origin_id ]['shipping'] = $package['shipping'];
+					$subpackage['shipping'] = $package['shipping'];
 					unset( $package['shipping'] );
 				}
+
+				$packages[ $origin_id ] = $this->format_package( $subpackage );
 			}
 
-			/* Update package contents */
+			// Add item to package.
 			$packages[ $origin_id ]['contents'][ $cart_key ] = $item;
 		}
 
 		return $packages;
+	}
+
+	/**
+	 * Formats a SST cart package, ensuring that all required fields are set
+	 * and have the correct type.
+	 *
+	 * @param array $package Cart package.
+	 *
+	 * @return array
+	 */
+	protected function format_package( $package ) {
+		if ( isset( $package['origin'] ) && $package['origin'] instanceof SST_Origin_Address ) {
+			$origin_address = $package['origin'];
+		} else {
+			$origin_address = SST_Addresses::get_default_address();
+		}
+
+		// SST_Origin_Address must be converted to TaxCloud\Address.
+		$package['origin'] = SST_Addresses::to_address( $origin_address );
+
+		if ( ! isset( $package['certificate'] ) ) {
+			$package['certificate'] = $this->get_certificate();
+		}
+
+		if ( ! isset( $package['user'] ) ) {
+			$package['user'] = array( 'ID' => get_current_user_id() );
+		}
+
+		return sst_create_package( $package );
 	}
 
 	/**

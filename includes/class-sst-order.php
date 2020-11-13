@@ -184,26 +184,6 @@ class SST_Order extends SST_Abstract_Cart {
 					)
 				);
 
-				/* Set destination based on shipping method. */
-				if ( SST_Shipping::is_local_pickup( array( $package['shipping']->method_id ) ) ) {
-					$pickup_address = apply_filters(
-						'wootax_pickup_address',
-						SST_Addresses::get_default_address(),
-						$this->order
-					);
-
-					$package['destination'] = array(
-						'country'   => 'US',
-						'address'   => $pickup_address->getAddress1(),
-						'address_2' => $pickup_address->getAddress2(),
-						'city'      => $pickup_address->getCity(),
-						'state'     => $pickup_address->getState(),
-						'postcode'  => $pickup_address->getZip5(),
-					);
-				} else {
-					$package['destination'] = $this->get_shipping_address();
-				}
-
 				$packages[] = $package;
 
 				next( $ship_methods );
@@ -221,9 +201,8 @@ class SST_Order extends SST_Abstract_Cart {
 			}
 			$packages[] = sst_create_package(
 				array(
-					'contents'    => $shippable_items,
-					'destination' => $this->get_shipping_address(),
-					'user'        => array(
+					'contents' => $shippable_items,
+					'user'     => array(
 						'ID' => $this->order->get_user_id(),
 					),
 				)
@@ -275,19 +254,47 @@ class SST_Order extends SST_Abstract_Cart {
 	public function create_packages() {
 		$packages = array();
 
-		/* Let devs change the packages before we split them. */
+		// Let devs change the packages before we split them.
 		$raw_packages = apply_filters(
 			'wootax_order_packages_before_split',
 			$this->get_filtered_packages(),
 			$this->order
 		);
 
-		/* Split packages by origin address. */
+		// Set the destination address for each package, changing the destination
+		// address to the pickup address if the shipping method is Local Pickup.
+		foreach ( $raw_packages as $key => $package ) {
+			$is_local_pickup_package = (
+				! empty( $package['shipping'] )
+				&& SST_Shipping::is_local_pickup( array( $package['shipping']->method_id ) )
+			);
+
+			if ( $is_local_pickup_package ) {
+				$pickup_address = apply_filters(
+					'wootax_pickup_address',
+					SST_Addresses::get_default_address(),
+					$this->order
+				);
+
+				$raw_packages[ $key ]['destination'] = array(
+					'country'   => 'US',
+					'address'   => $pickup_address->getAddress1(),
+					'address_2' => $pickup_address->getAddress2(),
+					'city'      => $pickup_address->getCity(),
+					'state'     => $pickup_address->getState(),
+					'postcode'  => $pickup_address->getZip5(),
+				);
+			} elseif ( ! isset( $package['destination'] ) ) {
+				$raw_packages[ $key ]['destination'] = $this->get_shipping_address();
+			}
+		}
+
+		// Split packages by origin address.
 		foreach ( $raw_packages as $raw_package ) {
 			$packages = array_merge( $packages, $this->split_package( $raw_package ) );
 		}
 
-		/* Add fees to first package. */
+		// Add fees to first package.
 		if ( apply_filters( 'wootax_add_fees', true ) ) {
 			$fees = array();
 
