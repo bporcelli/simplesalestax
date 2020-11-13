@@ -75,7 +75,6 @@ class SST_WCFM extends SST_Marketplace_Integration {
 		add_filter( 'wootax_tic_select_init_events', array( $this, 'filter_tic_select_init_events' ) );
 		add_action( 'after_wcfm_products_manage_meta_save', array( $this, 'save_product_tic' ), 10, 2 );
 		add_action( 'after_wcfm_product_variation_meta_save', array( $this, 'save_variation_tic' ), 10, 3 );
-		add_filter( 'wootax_marketplace_is_user_seller', array( $this, 'is_user_seller' ) );
 		add_action( 'after_wcfm_orders_edit', array( $this, 'recalculate_order_taxes' ), 10, 2 );
 
 		// Don't add package filters unless WCFM Marketplace is installed to

@@ -70,7 +70,6 @@ class SST_WC_Vendors extends SST_Marketplace_Integration {
 		add_action( 'wcvendors_before_product_form', array( $this, 'hide_tax_fields' ) );
 		add_action( 'wcv_save_product', array( $this, 'save_tic' ) );
 		add_action( 'wcv_save_product_variation', array( $this, 'save_tic' ) );
-		add_filter( 'wootax_marketplace_is_user_seller', array( $this, 'is_user_seller' ) );
 
 		parent::__construct();
 	}

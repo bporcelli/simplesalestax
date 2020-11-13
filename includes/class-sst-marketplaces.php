@@ -62,8 +62,6 @@ class SST_Marketplaces {
 
 		// todo: warn if giving tax to vendors?
 		if ( $this->integration_loaded ) {
-			add_filter( 'woocommerce_cart_shipping_packages', array( $this, 'check_for_split_packages' ), PHP_INT_MAX );
-			add_filter( 'wootax_origin_address', array( $this, 'maybe_filter_origin_address' ), 10, 2 );
 		}
 	}
 
@@ -92,86 +90,6 @@ class SST_Marketplaces {
 			$this->integration_loaded = true;
 		}
 	}
-
-	/**
-     * Inspects the cart shipping packages to see whether they've been split
-     * by seller ID.
-     *
-     * @param array $packages WooCommerce cart shipping packages.
-     *
-     * @return array
-     */
-    public function check_for_split_packages( $packages ) {
-        // If the keys are nonsequential (WCFM) or the 'vendor_id' or 'seller_id'
-        // keys appear in a package, we assume the packages were split by seller.
-        $keys_non_sequential = 0 !== (int) current( array_keys( $packages ) );
-        $seller_ids_set      = isset( $packages[0]['seller_id'] ) || isset( $packages[0]['vendor_id'] );
-
-        $this->should_split_packages = $keys_non_sequential || $seller_ids_set;
-
-        return $packages;
-    }
-
-    /**
-     * Checks whether we should split the shipping packages by seller ID.
-     *
-     * @return bool
-     */
-    protected function should_split_packages() {
-    	return apply_filters( 'wootax_marketplace_should_split_packages', $this->should_split_packages );
-    }
-
-    /**
-     * Filters the product origin address to append the seller's user ID
-     * to the origin address ID. This is required for Simple Sales Tax to
-     * split the cart packages into shipments in the same way that Dokan
-     * does.
-     *
-     * @todo check with john to see whether seller origin address should be used 
-     * @todo figure out a better way to handle this
-     *
-     * @param SST_Origin_Address $origin Origin address for product.
-     * @param array              $item   Array with info about cart item.
-     *
-     * @return SST_Origin_Address
-     */
-    public function maybe_filter_origin_address( $origin, $item ) {
-    	if ( ! $this->should_split_packages() ) {
-    		return $origin;
-    	}
-
-        if ( ! isset( $item['product_id'] ) ) {
-            return $origin;
-        }
-
-        $origin_id = $origin->getID();
-        $seller_id = get_post_field( 'post_author', $item['product_id'] );
-
-        if ( ! $this->is_user_seller( $seller_id ) ) {
-            $seller_id = 0;
-        }
-
-        return new SST_Origin_Address(
-            "{$origin_id}-{$seller_id}",
-            false,
-            $origin->getAddress1(),
-            $origin->getAddress2(),
-            $origin->getCity(),
-            $origin->getState(),
-            $origin->getZip5()
-        );
-    }
-    
-    /**
-     * Checks whether a user is a seller.
-     *
-     * @param int $user_id User ID.
-     *
-     * @return bool
-     */
-    public function is_user_seller( $user_id ) {
-    	return apply_filters( 'wootax_marketplace_is_user_seller', $user_id );
-    }
 
 }
 

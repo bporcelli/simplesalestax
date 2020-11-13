@@ -88,7 +88,6 @@ class SST_Dokan extends SST_Marketplace_Integration {
 		add_action( 'dokan_product_after_variable_attributes', array( $this, 'reenable_wc_taxes' ) );
 		add_action( 'wp_footer', array( $this, 'print_styles_to_hide_tax_class_field' ) );
 		add_filter( 'wootax_tic_select_init_events', array( $this, 'filter_tic_select_init_events' ) );
-		add_filter( 'wootax_marketplace_is_user_seller', array( $this, 'is_user_seller' ) );
 		add_action( 'sst_output_tax_meta_box', array( $this, 'output_tax_meta_box' ) );
 		add_action( 'dokan_checkout_update_order_meta', array( $this, 'recalculate_sub_order_taxes' ) );
 		add_filter( 'sst_should_capture_order', array( $this, 'prevent_parent_order_processing' ), 10, 2 );
