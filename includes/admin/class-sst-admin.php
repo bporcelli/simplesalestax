@@ -104,34 +104,7 @@ class SST_Admin {
 	 * @since 4.2
 	 */
 	public static function output_tax_metabox( $post ) {
-		$order           = new SST_Order( $post->ID );
-		$status          = $order->get_taxcloud_status( 'view' );
-		$raw_certificate = $order->get_certificate();
-		$certificate     = '';
-
-		if ( ! is_null( $raw_certificate ) ) {
-			$certificate = SST_Certificates::get_certificate_formatted(
-				$raw_certificate->getCertificateID(),
-				$order->get_user_id()
-			);
-		}
-
-		wp_enqueue_script( 'sst-view-certificate' );
-		wp_localize_script(
-			'sst-view-certificate',
-			'SSTCertData',
-			array(
-				'certificate' => $certificate,
-				'seller_name' => SST_Settings::get( 'company_name' ),
-				'images'      => array(
-					'single_cert'  => SST()->url( 'assets/img/sp_exemption_certificate750x600.png' ),
-					'blanket_cert' => SST()->url( 'assets/img/exemption_certificate750x600.png' ),
-				),
-			)
-		);
-
-		include __DIR__ . '/views/html-meta-box.php';
-		include dirname( __DIR__ ) . '/frontend/views/html-view-certificate.php';
+		do_action( 'sst_output_tax_meta_box', $post );
 	}
 
 	/**
