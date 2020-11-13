@@ -172,6 +172,56 @@ class SST_WC_Vendors extends SST_Marketplace_Integration {
 		return WCV_Vendors::is_vendor( $user_id );
 	}
 
+	/**
+	 * Get the origin address for a seller.
+	 *
+	 * @param int $seller_id Seller user ID.
+	 *
+	 * @return SST_Origin_Address
+	 */
+	public function get_seller_address( $seller_id ) {
+		$address = array(
+			'country'   => get_user_meta( $seller_id, '_wcv_store_country', true ),
+			'address'   => get_user_meta( $seller_id, '_wcv_store_address1', true ),
+			'address_2' => get_user_meta( $seller_id, '_wcv_store_address2', true ),
+			'city'      => get_user_meta( $seller_id, '_wcv_store_city', true ),
+			'state'     => get_user_meta( $seller_id, '_wcv_store_state', true ),
+			'postcode'  => get_user_meta( $seller_id, '_wcv_store_postcode', true ),
+		);
+
+		$shipping_details = get_user_meta( $seller_id, '_wcv_shipping', true );
+
+		if ( is_array( $shipping_details ) && isset( $shipping_details['shipping_from'] ) ) {
+			if ( 'other' === $shipping_details['shipping_from'] ) {
+				$shipping_address = $shipping_details['shipping_address'];
+				$address          = array(
+					'country'   => $shipping_address['country'],
+					'address'   => $shipping_address['address1'],
+					'address_2' => $shipping_address['address2'],
+					'city'      => $shipping_address['city'],
+					'state'     => $shipping_address['state'],
+					'postcode'  => $shipping_address['postcode'],
+				);
+			}
+		}
+
+		try {
+			return new SST_Origin_Address(
+				"S-{$seller_id}",
+				false,
+				$address['address'],
+				$address['address_2'],
+				$address['city'],
+				$address['state'],
+				$address['postcode']
+			);
+		} catch ( Exception $ex ) {
+			SST_Logger::add( "Error encountered while constructing origin address for seller {$seller_id}: {$ex->getMessage()}. Falling back to default store origin." );
+
+			return SST_Addresses::get_default_address();
+		}
+	}
+
 }
 
 SST_WC_Vendors::instance();
