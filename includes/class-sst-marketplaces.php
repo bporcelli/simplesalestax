@@ -62,6 +62,10 @@ class SST_Marketplaces {
 
 		// todo: warn if giving tax to vendors?
 		if ( $this->integration_loaded ) {
+			// Hide the origin address dropdown. We always use the vendor's
+			// address as the origin address in the marketplace setting.
+			add_filter( 'sst_show_origin_address_dropdown', '__return_false' );
+			add_filter( 'sst_settings_form_fields', array( $this, 'change_origin_addresses_description' ) );
 		}
 	}
 
@@ -89,6 +93,28 @@ class SST_Marketplaces {
 			require_once $integrations_dir . '/class-sst-wcfm.php';
 			$this->integration_loaded = true;
 		}
+	}
+
+	/**
+	 * Changes the description for the Shipping Origin Addresses field when a
+	 * marketplace integration is active to reflect that the addresses will
+	 * only be used as a fallback when a vendor's address isn't known.
+	 *
+	 * @param array $fields Fields for SST settings form.
+	 *
+	 * @return array
+	 */
+	public function change_origin_addresses_description( $fields ) {
+		if ( ! isset( $fields['default_origin_addresses'] ) ) {
+			return $fields;
+		}
+
+		$fields['default_origin_addresses']['description'] = __(
+			"Select the addresses you ship your products from. These will be used when calculating tax for your products and for vendors who haven't provided an address yet.",
+			'simple-sales-tax'
+		);
+
+		return $fields;
 	}
 
 }

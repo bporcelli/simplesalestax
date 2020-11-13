@@ -108,11 +108,11 @@ class SST_Product {
 		$addresses = SST_Addresses::get_origin_addresses();
 
 		// Do not display if there is less than 2 origin addresses to select from.
-		if ( ! is_array( $addresses ) || count( $addresses ) < 2 ) {
-			return;
-		}
+		$show_dropdown = is_array( $addresses ) && count( $addresses ) >= 2;
 
-		include __DIR__ . '/admin/views/html-origin-select.php';
+		if ( apply_filters( 'sst_show_origin_address_dropdown', $show_dropdown ) ) {
+			include __DIR__ . '/admin/views/html-origin-select.php';
+		}
 	}
 
 	/**

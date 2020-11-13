@@ -46,7 +46,7 @@ class SST_Settings {
 	 * @since 5.0
 	 */
 	public static function get_form_fields() {
-		return array(
+		$fields = array(
 			'taxcloud_settings'           => array(
 				'title'       => __( 'TaxCloud Settings', 'simple-sales-tax' ),
 				'type'        => 'title',
@@ -246,6 +246,8 @@ class SST_Settings {
 				'desc_tip'    => true,
 			),
 		);
+
+		return apply_filters( 'sst_settings_form_fields', $fields );
 	}
 
 	/**
