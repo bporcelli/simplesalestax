@@ -49,6 +49,8 @@ class SST_WCFM extends SST_Marketplace_Integration {
 	 * SST_WCFM constructor.
 	 */
 	private function __construct() {
+		global $WCFMmp;
+
 		// Bail if WCFM is not installed and activated.
 		if ( ! defined( 'WCFM_VERSION' ) ) {
 			return;
@@ -75,7 +77,11 @@ class SST_WCFM extends SST_Marketplace_Integration {
 		add_action( 'after_wcfm_product_variation_meta_save', array( $this, 'save_variation_tic' ), 10, 3 );
 		add_filter( 'wootax_marketplace_is_user_seller', array( $this, 'is_user_seller' ) );
 		add_action( 'after_wcfm_orders_edit', array( $this, 'recalculate_order_taxes' ), 10, 2 );
-		add_filter( 'wootax_order_packages_before_split', array( $this, 'filter_wootax_order_packages' ), 10, 2 );
+
+		// Don't add package filters unless WCFM Marketplace is installed to
+		// avoid adding filters in multiple integrations (WCFM & Dokan/WCV).
+		// This assumes at most one marketplace plugin is active at any time.
+		$this->should_add_package_filters = isset( $WCFMmp );
 
 		parent::__construct();
 	}
@@ -257,92 +263,52 @@ class SST_WCFM extends SST_Marketplace_Integration {
 	}
 
 	/**
-	 * Splits the SST order packages by seller ID.
-	 * Assumes no fees in the order.
+	 * Get the origin address for a seller.
 	 *
-	 * @param array    $packages SST order packages.
-	 * @param WC_Order $order    WooCommerce order object.
+	 * @param int $seller_id Seller user ID.
 	 *
-	 * @return array
+	 * @return SST_Origin_Address
 	 */
-	public function filter_wootax_order_packages( $packages, $order ) {
-		global $WCFMmp;
+	public function get_seller_address( $seller_id ) {
+		$address = array(
+			'country'   => '',
+			'address'   => '',
+			'address_2' => '',
+			'city'      => '',
+			'state'     => '',
+			'postcode'  => '',
+		);
 
-		if ( empty( $WCFMmp->wcfmmp_shipping ) ) {
-			return $packages;
+		if ( apply_filters( 'wcfm_is_allow_store_address', true ) ) {
+			$vendor_data = get_user_meta( $seller_id, 'wcfmmp_profile_settings', true );
+
+			if ( isset( $vendor_data['address'] ) ) {
+				$address = array(
+					'country'   => isset( $vendor_data['address']['country'] ) ? $vendor_data['address']['country'] : '',
+					'address'   => isset( $vendor_data['address']['street_1'] ) ? $vendor_data['address']['street_1'] : '',
+					'address_2' => isset( $vendor_data['address']['street_2'] ) ? $vendor_data['address']['street_2'] : '',
+					'city'      => isset( $vendor_data['address']['city'] ) ? $vendor_data['address']['city'] : '',
+					'state'     => isset( $vendor_data['address']['state'] ) ? $vendor_data['address']['state'] : '',
+					'postcode'  => isset( $vendor_data['address']['zip'] ) ? $vendor_data['address']['zip'] : '',
+				);
+			}
 		}
 
-		$vendor_shipping = $WCFMmp->wcfmmp_shipping->get_order_vendor_shipping( $order );
-
-		if ( empty( $vendor_shipping ) ) {
-			return $packages;
-		}
-
-		$raw_packages = array();
-		$order_items  = sst_format_order_items( $order->get_items() );
-
-		foreach ( $vendor_shipping as $vendor_id => $shipping_info ) {
-			$vendor_items = array();
-
-			foreach ( $order_items as $key => $item ) {
-				if ( (int) $vendor_id === (int) wcfm_get_vendor_id_by_post( $item['product_id'] ) ) {
-					$vendor_items[ $key ] = $item;
-				}
-			}
-
-			if ( empty( $vendor_items ) ) {
-				continue;
-			}
-
-			$shipping_item_id = $shipping_info['shipping_item_id'];
-			$shipping_item    = new WC_Order_Item_Shipping( $shipping_item_id );
-
-			// Create base package with vendor's items.
-			$package = sst_create_package(
-				array(
-					'contents' => $vendor_items,
-					'shipping' => new WC_Shipping_Rate(
-						$shipping_item_id,
-						'',
-						$shipping_item->get_total(),
-						array(),
-						$shipping_item->get_method_id()
-					),
-					'user'     => array(
-						'ID' => $order->get_user_id(),
-					),
-				)
+		try {
+			return new SST_Origin_Address(
+				"S-{$seller_id}",
+				false,
+				$address['address'],
+				$address['address_2'],
+				$address['city'],
+				$address['state'],
+				$address['postcode']
 			);
+		} catch ( Exception $ex ) {
+			SST_Logger::add( "Error encountered while constructing origin address for seller {$seller_id}: {$ex->getMessage()}. Falling back to default store origin." );
 
-			// Set destination based on shipping method.
-			if ( SST_Shipping::is_local_pickup( array( $package['shipping']->method_id ) ) ) {
-				$pickup_address = apply_filters(
-					'wootax_pickup_address',
-					SST_Addresses::get_default_address(),
-					$order
-				);
-
-				$package['destination'] = array(
-					'country'   => 'US',
-					'address'   => $pickup_address->getAddress1(),
-					'address_2' => $pickup_address->getAddress2(),
-					'city'      => $pickup_address->getCity(),
-					'state'     => $pickup_address->getState(),
-					'postcode'  => $pickup_address->getZip5(),
-				);
-			} else {
-				$package['destination'] = sst_get_order_shipping_address( $order );
-			}
-
-			$raw_packages[] = $package;
+			return SST_Addresses::get_default_address();
 		}
-
-		// todo: move this?
-		if ( ! has_filter( 'wootax_marketplace_should_split_packages', '__return_true' ) ) {
-			add_filter( 'wootax_marketplace_should_split_packages', '__return_true' );
-		}
-
-    	return $packages;
 	}
 
 }
