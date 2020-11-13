@@ -17,20 +17,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 abstract class SST_Marketplace_Integration {
 
     /**
-     * Key used to save seller ID in cart packages.
-     *
-     * @var string
-     */
-    protected $cart_seller_id_key = 'vendor_id';
-
-    /**
-     * Key used to save seller ID in order shipping items.
-     *
-     * @var string
-     */
-    protected $order_seller_id_key = 'vendor_id';
-
-    /**
      * Flag to control whether package filters should be added.
      *
      * @var bool
@@ -88,7 +74,7 @@ abstract class SST_Marketplace_Integration {
         $seller_id_key     = $this->cart_seller_id_key;
 
         foreach ( $shipping_packages as $key => $package ) {
-            $seller_id = isset( $package[ $seller_id_key ] ) ? $package[ $seller_id_key ] : 0;
+            $seller_id = $this->get_seller_id_for_cart_package( $package );
 
             // Add in virtual products not needing shipping.
             $virtual_products = array();
@@ -117,6 +103,42 @@ abstract class SST_Marketplace_Integration {
     }
 
     /**
+     * Get the seller ID for a cart package.
+     *
+     * @param array $package WooCommerce cart package.
+     *
+     * @return int
+     */
+    protected function get_seller_id_for_cart_package( $package ) {
+        $id_keys = $this->get_seller_id_keys();
+
+        foreach ( $id_keys as $key ) {
+            if ( ! empty( $package[ $key ] ) ) {
+                return $package[ $key ];
+            }
+        }
+
+        return 0;
+    }
+
+    /**
+     * Gets a list of keys that are used for the seller ID in cart packages and
+     * WooCommerce order item meta.
+     *
+     * @return array
+     */
+    protected function get_seller_id_keys() {
+        $keys = array(
+            'vendor_id',
+            '_vendor_id',
+            'seller_id',
+            '_seller_id',
+        );
+
+        return apply_filters( 'sst_marketplace_seller_id_keys', $keys );
+    }
+
+    /**
      * Filters the order packages so that we can execute one tax lookup per seller.
      *
      * @param array    $packages SST order packages.
@@ -140,7 +162,7 @@ abstract class SST_Marketplace_Integration {
         $seller_id_key = $this->order_seller_id_key;
 
         foreach ( $order->get_shipping_methods() as $item_id => $shipping_method ) {
-            $seller_id                        = $shipping_method->get_meta( $seller_id_key );
+            $seller_id                        = $this->get_seller_id_for_shipping_method( $shipping_method );
             $shipping_by_seller[ $seller_id ] = $shipping_method;
         }
 
@@ -177,6 +199,27 @@ abstract class SST_Marketplace_Integration {
         }
 
         return $packages;
+    }
+
+    /**
+     * Get the seller ID for a WooCommerce shipping method.
+     *
+     * @param WC_Order_Item_Shipping $shipping_method WC shipping method.
+     *
+     * @return int
+     */
+    protected function get_seller_id_for_shipping_method( $shipping_method ) {
+        $seller_id_keys = $this->get_seller_id_keys();
+
+        foreach ( $seller_id_keys as $key ) {
+            $value = $shipping_method->get_meta( $key );
+
+            if ( $value ) {
+                return $value;
+            }
+        }
+
+        return 0;
     }
 
     /**

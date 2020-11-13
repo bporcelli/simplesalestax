@@ -42,20 +42,6 @@ class SST_Dokan extends SST_Marketplace_Integration {
 	protected $printed_tic_select = false;
 
 	/**
-     * Key used to save seller ID in cart packages.
-     *
-     * @var string
-     */
-    protected $cart_seller_id_key = 'seller_id';
-
-    /**
-     * Key used to save seller ID in order shipping items.
-     *
-     * @var string
-     */
-    protected $order_seller_id_key = 'seller_id';
-
-	/**
 	 * Returns the singleton instance of this class.
 	 *
 	 * @return SST_Dokan
