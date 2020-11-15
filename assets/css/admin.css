@@ -91,3 +91,8 @@
 .woocommerce-message .submit a br {
     display: none;
 }
+
+.woocommerce-message ul.sst-address-list {
+    list-style: disc;
+    padding-left: 1.5rem;
+}

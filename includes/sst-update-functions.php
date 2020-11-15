@@ -866,12 +866,14 @@ function sst_update_620_import_origin_addresses() {
 	}
 
 	// Set Default flag for addresses as appropriate.
-	$address_mismatch_detected = false;
-	$address_id_map            = array();
+	$address_id_map       = array();
+	$mismatched_addresses = array();
+
 	foreach ( $saved_addresses as $old_index => $saved_address ) {
 		$saved_address      = json_decode( $saved_address, true );
 		$normalized_address = _sst_update_620_normalize_address( $saved_address['Address1'] );
 		$matching_address   = null;
+
 		foreach ( $taxcloud_addresses as $new_index => $taxcloud_address ) {
 			if ( _sst_update_620_normalize_address( $taxcloud_address->getAddress1() ) === $normalized_address ) {
 				$matching_address             = $taxcloud_address;
@@ -879,36 +881,31 @@ function sst_update_620_import_origin_addresses() {
 				break;
 			}
 		}
+
 		if ( $matching_address ) {
 			$matching_address->setDefault( $saved_address['Default'] );
 		} else {
-			$address_mismatch_detected = true;
+			$mismatched_addresses[] = $saved_address;
 		}
 	}
 
-	// Warn the admin if an address mismatch was detected.
-	if ( $address_mismatch_detected ) {
+	// Abort if an address mismatch was detected.
+	if ( ! empty( $mismatched_addresses ) ) {
+		SST_Settings::set( 'address_mismatch', true );
+
 		if ( ! class_exists( 'WC_Admin_Notices' ) ) {
 			require WC()->plugin_path() . '/admin/class-wc-admin-notices.php';
 		}
-		$dismiss_args = array(
-			'page'                       => 'wc-settings',
-			'tab'                        => 'integration',
-			'section'                    => 'wootax',
-			'dismiss_sst_address_notice' => 1
-		);
+
 		WC_Admin_Notices::add_custom_notice(
 			'sst_address_mismatch',
-			sprintf(
-				__(
-					'<strong>IMPORTANT: Your Simple Sales Tax settings may have changed.</strong> We made some improvements to the way we save your business addresses and we think your settings may have changed as a result. Please <a href="%1$s">check the value of the Shipping Origin Addresses setting</a> and review the origin addresses for any products that have custom origin addresses set ASAP. Sorry for the inconvenience!',
-					'simple-sales-tax'
-				),
-				add_query_arg( $dismiss_args, admin_url( 'admin.php' ) )
-			)
+			_sst_update_620_get_address_mismatch_notice( $mismatched_addresses )
 		);
+
+		return false;
 	}
 
+	SST_Settings::set( 'address_mismatch', false );
 	SST_Settings::set( 'addresses', array_map( 'json_encode', $taxcloud_addresses ) );
 
 	// Save the address ID map so we can use it to update product origin addresses
@@ -916,6 +913,38 @@ function sst_update_620_import_origin_addresses() {
 
 	// This will queue the sst_update_620_fix_product_origin_addresses task
 	return 'sst_update_620_fix_product_origin_addresses';
+}
+
+/**
+ * Get the markup for the address mismatch notice.
+ *
+ * @param array $mismatched_addresses Addresses not found in TaxCloud.
+ *
+ * @return string
+ */
+function _sst_update_620_get_address_mismatch_notice( $mismatched_addresses ) {
+	$address_list_html = '<ul class="sst-address-list">';
+
+	foreach ( $mismatched_addresses as $address ) {
+		$address_list_html .= sprintf(
+			'<li>%s, %s, %s %s</li>',
+			$address['Address1'],
+			$address['City'],
+			$address['State'],
+			$address['Zip5'],
+		);
+	}
+
+	$address_list_html .= '</ul>';
+
+	return sprintf(
+		__(
+			'<strong>IMPORTANT: Your TaxCloud Locations are out of sync.</strong> One or more of the addresses from your Simple Sales Tax settings are not registered as Locations in your TaxCloud account. Please add all of the addresses listed below on the <a href="https://simplesalestax.com/taxcloud/locations/" target="_blank">Locations</a> page in TaxCloud, then click Dismiss to dismiss this notice. %2$s',
+			'simple-sales-tax'
+		),
+		add_query_arg( $dismiss_args, admin_url( 'admin.php' ) ),
+		$address_list_html
+	);
 }
 
 /**

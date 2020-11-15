@@ -34,7 +34,7 @@ class SST_Integration extends WC_Integration {
 		// Register action hooks.
 		add_action( 'woocommerce_update_options_integration_' . $this->id, array( $this, 'process_admin_options' ) );
 		add_action( 'admin_init', array( $this, 'maybe_download_log_file' ) );
-		add_action( 'admin_init', array( $this, 'maybe_dismiss_address_notice' ) );
+		add_action( 'woocommerce_hide_sst_address_mismatch_notice', array( $this, 'maybe_dismiss_address_notice' ) );
 	}
 
 	/**
@@ -278,11 +278,16 @@ class SST_Integration extends WC_Integration {
 		/**
 		 * Refresh the origin address list.
 		 *
-		 * Hold on refreshing if the user hasn't applied the 6.2 data update yet,
-		 * since refreshing under these conditions can break sales tax calcs for
-		 * products that have their origin addresses set with the old address keys.
+		 * Hold on refreshing until all legacy addresses have been mapped
+		 * to TaxCloud Locations to avoid breaking backward compatibility
+		 * with existing SST installations.
 		 */
-		if ( version_compare( get_option( 'wootax_version' ), '6.2', '>=' ) ) {
+		$all_addresses_mapped = (
+			version_compare( get_option( 'wootax_version' ), '6.2', '>=' )
+			&& ! SST_Settings::get( 'address_mismatch', false )
+		);
+
+		if ( $all_addresses_mapped ) {
 			SST_Settings::set(
 				'addresses',
 				array_map( 'json_encode', SST_Addresses::get_origin_addresses( true ) )
@@ -293,12 +298,20 @@ class SST_Integration extends WC_Integration {
 	}
 
 	/**
-	 * Dismisses the 6.2 update address mismatch notice if the appropriate query var is set.
+	 * Handles attempts to dismiss the address mismatch notice.
+	 *
+	 * The notice will be hidden and then the address update routine will be ran
+	 * again. If there are no mismatches this time the mismatch notice will be
+	 * permanently dismissed, otherwise it will  appear again with the new list
+	 * of mismatched addresses.
 	 */
 	public function maybe_dismiss_address_notice() {
-		if ( isset( $_GET['dismiss_sst_address_notice'] ) ) {
-			WC_Admin_Notices::remove_notice( 'sst_address_mismatch' );
-		}
+		WC_Admin_Notices::remove_notice( 'sst_address_mismatch' );
+
+		$updater = SST_Install::init_background_updater();
+
+		$updater->push_to_queue( 'sst_update_620_import_origin_addresses' );
+		$updater->save()->dispatch();
 	}
 
 }
