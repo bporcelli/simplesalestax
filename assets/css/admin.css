@@ -87,3 +87,7 @@
     width: 100%;
     height: 32px;
 }
+
+.woocommerce-message .submit a br {
+    display: none;
+}
