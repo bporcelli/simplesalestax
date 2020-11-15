@@ -3,7 +3,7 @@ Contributors: taxcloud, bporcelli
 Tags: woocommerce, taxcloud, tax, taxes, sales tax, tax calculation, sales tax compliance, sales tax filing, sales tax reporting
 Requires at least: 4.5
 Tested up to: 5.5
-Stable tag: 6.1.2
+Stable tag: 6.2.0
 Requires PHP: 5.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -27,6 +27,7 @@ With monthly service fees starting at $0 and support for product level tax exemp
 
 **Other Notable Features:**
 
+* Marketplace integration — Simple Sales Tax supports popular WooCommerce marketplace plugins, including Dokan, WCFM Marketplace, and WC Vendors.
 * Recurring payments — Simple Sales Tax is fully compatible with the WooCommerce Subscriptions extension by Prospress and will automatically calculate the sales tax for recurring payments.
 * Multi-destination shipments — Simple Sales Tax supports multi-destination shipments created with the WooCommerce Shipping Multiple Addresses extension.
 * Customer support — Simple Sales Tax is backed by TaxCloud's world class support team.
@@ -59,6 +60,12 @@ Yes! Simple Sales Tax is fully compatible with the official WooCommerce Subscrip
 = What versions of WooCommerce and WordPress are supported? =
 
 Simple Sales Tax supports WooCommerce 3.0+ and WordPress 4.5+.
+
+= Does Simple Sales Tax work with marketplace plugins like Dokan? =
+
+Yes! As of version 6.2, Simple Sales Tax supports Dokan 2.9.11+, WCFM Marketplace 6.5.0+, and WC Vendors 1.5.8+. When a supported marketplace plugin is installed, Simple Sales Tax will calculate the tax for each seller's shipment separately and sum the results to present a single tax total to the customer. Sellers can also set an appropriate [Taxability Information Code](https://taxcloud.net/tic/) (TIC) for each of their products through the seller dashboard so products that qualify for exemptions or reduced rates are taxed correctly.
+
+Currently we only support the use case where the marketplace acts as the seller of record and collects sales tax on behalf of all sellers through a single TaxCloud account. We believe that this is the best way to handle sales tax compliance in the marketplace setting - especially for marketplaces based in the U.S. - but if you would like us to add support for more advanced use cases, please leave us a message at go@taxcloud.com.
 
 == Screenshots ==
 

@@ -1,0 +1,1 @@
+jQuery(function(i){i(document).ajaxComplete(function(o,n,a){["wcv_json_add_variation","wcv_json_link_all_variations"].forEach(function(o){0<=a.data.indexOf(o)&&setTimeout(function(){i(document.body).trigger("woocommerce_variations_loaded")})})})});
