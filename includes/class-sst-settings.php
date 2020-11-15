@@ -99,7 +99,7 @@ class SST_Settings {
 				'type'        => 'origin_address_select',
 				'description' => __(
 					'Select the addresses you ship your products from. You can choose a different set of origin addresses for a specific product under the Shipping tab on the Edit Product screen.',
-					'simple-sales-tax',
+					'simple-sales-tax'
 				),
 				'desc_tip'    => true,
 				'default'     => array(),
