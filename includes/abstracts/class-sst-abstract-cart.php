@@ -436,26 +436,26 @@ abstract class SST_Abstract_Cart {
 	}
 
 	/**
-	 * Get the base packages for the cart, filtering out all packages destined
-	 * for places abroad.
+	 * Checks whether a cart package has a valid destination for TaxCloud
+	 * lookup requests.
 	 *
-	 * @return array
-	 * @since 5.5
+	 * @param array $package Cart package.
+	 *
+	 * @return bool True if cart package destination is valid, else false.
+	 * @since 6.2.2
 	 */
-	protected function get_filtered_packages() {
-		$packages = $this->get_base_packages();
+	public function is_package_destination_valid( $package ) {
+		$valid = true;
 
-		foreach ( $packages as $key => $package ) {
-			if ( ! isset( $package['destination'], $package['destination']['country'] ) ) {
-				unset( $packages[ $key ] );
-			} else {
-				if ( 'US' !== $package['destination']['country'] ) {
-					unset( $packages[ $key ] );
-				}
+		if ( ! isset( $package['destination'], $package['destination']['country'] ) ) {
+			$valid = false;
+		} else {
+			if ( 'US' !== $package['destination']['country'] ) {
+				$valid = false;
 			}
 		}
 
-		return $packages;
+		return apply_filters( 'sst_is_package_destination_valid', $valid, $package );
 	}
 
 	/**

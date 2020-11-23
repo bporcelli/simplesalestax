@@ -240,7 +240,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 		// Let devs change the packages before we split them.
 		$raw_packages = apply_filters(
 			'wootax_cart_packages_before_split',
-			$this->get_filtered_packages(),
+			$this->get_base_packages(),
 			$this->cart
 		);
 
@@ -271,6 +271,9 @@ class SST_Checkout extends SST_Abstract_Cart {
 				);
 			}
 		}
+
+		// Filter out packages with invalid destinations.
+		$raw_packages = array_filter( $raw_packages, array( $this, 'is_package_destination_valid' ) );
 
 		// Split packages by origin address.
 		foreach ( $raw_packages as $raw_package ) {
