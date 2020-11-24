@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "bporcelli/php-taxcloud",
-            "version": "0.3.2",
+            "version": "0.4.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/bporcelli/php-taxcloud.git",
-                "reference": "04d3480ac88dd1320f74bdb1d4db16085990033c"
+                "reference": "8fb3b968e82057d65631927741d3a31ddfb3df68"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bporcelli/php-taxcloud/zipball/04d3480ac88dd1320f74bdb1d4db16085990033c",
-                "reference": "04d3480ac88dd1320f74bdb1d4db16085990033c",
+                "url": "https://api.github.com/repos/bporcelli/php-taxcloud/zipball/8fb3b968e82057d65631927741d3a31ddfb3df68",
+                "reference": "8fb3b968e82057d65631927741d3a31ddfb3df68",
                 "shasum": ""
             },
             "require": {
@@ -58,7 +58,7 @@
                 "webshop",
                 "webstore"
             ],
-            "time": "2019-12-18T21:03:47+00:00"
+            "time": "2020-11-24T18:52:28+00:00"
         },
         {
             "name": "guzzlehttp/guzzle",
