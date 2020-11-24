@@ -74,6 +74,18 @@ Currently we only support the use case where the marketplace acts as the seller 
 3. Admins can check an order's status in TaxCloud and view the applied exemption certificate (if any) from the WooCommerce Edit Order Screen
 4. Tax exempt customers can manage their exemption certificate(s) from the checkout page
 
+== Changelog ==
+
+= [6.2.4] - 2020-11-24 =
+
+Fixed:
+- PHP TaxCloud library throws fatal error with PHP < 7.3
+
+= [6.2.3] - 2020-11-23 =
+
+Fixed:
+- v6.2 data update doesn't terminate for users running PHP < 7.3
+
 == Upgrade Notice ==
 
 None yet.
