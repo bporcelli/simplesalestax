@@ -931,7 +931,7 @@ function _sst_update_620_get_address_mismatch_notice( $mismatched_addresses ) {
 			$address['Address1'],
 			$address['City'],
 			$address['State'],
-			$address['Zip5'],
+			$address['Zip5']
 		);
 	}
 
