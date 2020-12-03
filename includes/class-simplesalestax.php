@@ -20,7 +20,7 @@ final class SimpleSalesTax {
 	 *
 	 * @var string
 	 */
-	public $version = '6.2.3';
+	public $version = '6.2.5';
 
 	/**
 	 * The singleton plugin instance.
