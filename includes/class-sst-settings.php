@@ -287,10 +287,7 @@ class SST_Settings {
 	 * @param mixed  $value Option value.
 	 */
 	public static function set( $key, $value ) {
-		if ( empty( self::$settings ) ) {
-			self::init_settings();
-		}
-
+		self::init_settings();
 		self::$settings[ $key ] = $value;
 
 		update_option( self::$options_key, self::$settings );
