@@ -1372,7 +1372,7 @@ function sst_update_620_fix_product_origin_addresses_batch() {
 
 	$all_product_ids   = get_option( '_sst_update_620_products_list', array() );
 	$offset            = get_option( '_sst_update_620_batch_offset', 0 );
-	$batch_size        = 2;
+	$batch_size        = 100;
 	$batch_product_ids = array_slice( $all_product_ids, $offset, $batch_size );
 
 	foreach ( $batch_product_ids as $product_id ) {
