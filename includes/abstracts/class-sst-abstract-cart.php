@@ -327,7 +327,7 @@ abstract class SST_Abstract_Cart {
 			$packages[ $origin_id ]['contents'][ $cart_key ] = $item;
 		}
 
-		return $packages;
+		return array_values( $packages );
 	}
 
 	/**
