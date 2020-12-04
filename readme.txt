@@ -3,7 +3,7 @@ Contributors: taxcloud, bporcelli
 Tags: woocommerce, taxcloud, tax, taxes, sales tax, tax calculation, sales tax compliance, sales tax filing, sales tax reporting
 Requires at least: 4.5
 Tested up to: 5.5
-Stable tag: 6.2.5
+Stable tag: 6.2.6
 Requires PHP: 5.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -76,15 +76,15 @@ Currently we only support the use case where the marketplace acts as the seller 
 
 == Changelog ==
 
+= [6.2.6] - 2020-12-03 =
+
+Fixed:
+- Tax not calculated correctly when there are multiple cart packages w/ the same origin address
+
 = [6.2.5] - 2020-12-03 =
 
 Fixed:
 - API credentials are not saving
-
-= [6.2.4] - 2020-11-24 =
-
-Fixed:
-- PHP TaxCloud library throws fatal error with PHP < 7.3
 
 == Upgrade Notice ==
 
