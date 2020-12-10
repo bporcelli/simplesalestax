@@ -57,3 +57,20 @@
         width: 100%;
     }
 }
+
+.wcmp-wrapper .sst-select-tic {
+    margin-left: 10px;
+}
+
+.wcmp-wrapper ~ #wc-backbone-modal-dialog .sst-tic-search {
+    margin-bottom: 1em;
+}
+
+.wcmp-wrapper ~ #wc-backbone-modal-dialog .sst-tic-list h4 {
+    margin-bottom: 3px;
+    font-size: 16px;
+}
+
+.wcmp-wrapper ~ #wc-backbone-modal-dialog .tic-row td {
+    padding: 0.5em 0;
+}

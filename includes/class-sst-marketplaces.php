@@ -93,6 +93,12 @@ class SST_Marketplaces {
 			require_once $integrations_dir . '/class-sst-wcfm.php';
 			$this->integration_loaded = true;
 		}
+
+		// WC Marketplace.
+		if ( defined( 'WCMp_PLUGIN_VERSION' ) ) {
+			require_once $integrations_dir . '/class-sst-wcmp.php';
+			$this->integration_loaded = true;
+		}
 	}
 
 	/**
