@@ -35,7 +35,6 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	public function __construct() {
-		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_styles' ) );
 		add_filter( 'woocommerce_calculated_total', array( $this, 'calculate_tax_totals' ), 1100, 2 );
 		add_filter( 'woocommerce_cart_hide_zero_taxes', array( $this, 'hide_zero_taxes' ) );
 		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'add_order_meta' ) );
@@ -526,16 +525,6 @@ class SST_Checkout extends SST_Abstract_Cart {
 	}
 
 	/**
-	 * Enqueues the CSS for the exemption management interface.
-	 *
-	 * @since 5.0
-	 */
-	public function enqueue_styles() {
-		wp_enqueue_style( 'sst-modal-css' );
-		wp_enqueue_style( 'sst-certificate-modal-css' );
-	}
-
-	/**
 	 * Does the customer have an exempt user role?
 	 *
 	 * @return bool
@@ -572,6 +561,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 		}
 
 		wp_enqueue_script( 'sst-checkout' );
+		wp_enqueue_style( 'sst-modal-css' );
+		wp_enqueue_style( 'sst-certificate-modal-css' );
 
 		// phpcs:disable
 		$checked = (

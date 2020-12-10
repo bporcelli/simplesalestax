@@ -1,5 +1,5 @@
-/* global SST, SSTCertData */
-(function(SST, data) {
+/* global SSTCertData */
+(function(data) {
     jQuery( function() {
         jQuery( '.sst-view-certificate' ).click( function( e ) {
             e.preventDefault();
@@ -25,4 +25,4 @@
             jQuery( '.sst-view-certificate' ).prop( 'disabled', true );
         }
     } );
-})(SST, SSTCertData);
+})(SSTCertData);

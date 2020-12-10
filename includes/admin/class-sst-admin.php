@@ -72,12 +72,15 @@ class SST_Admin {
 	 * @since 4.2
 	 */
 	public static function enqueue_scripts_and_styles() {
-		// Admin JS.
-		wp_enqueue_script( 'sst-admin-js' );
+		global $pagenow, $post;
 
-		// Admin CSS.
+		// Global admin CSS.
 		wp_enqueue_style( 'sst-admin-css' );
-		wp_enqueue_style( 'sst-certificate-modal-css' );
+
+		// Edit Order screen CSS.
+		if ( 'post.php' === $pagenow && 'shop_order' === get_post_type( $post ) ) {
+			wp_enqueue_style( 'sst-certificate-modal-css' );
+		}
 	}
 
 	/**

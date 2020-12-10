@@ -52,6 +52,8 @@ class SST_Integration extends WC_Integration {
 	 * @since 5.0
 	 */
 	public function admin_options() {
+		wp_enqueue_script( 'sst-admin-js' );
+
 		$this->display_errors();
 		parent::admin_options();
 	}
