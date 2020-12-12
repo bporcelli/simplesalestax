@@ -43,11 +43,11 @@ Need us to add compatibility with another extension? Drop us a line at go@taxclo
 
 == Installation ==
 
-=== Step 1: Create a TaxCloud Account ===
+= Step 1: Create a TaxCloud Account =
 
 If you have not yet registered for TaxCloud, click [here](https://taxcloud.com/go/get-started/) to get started. Registration can be completed in minutes and is entirely free.
 
-=== Step 2: Configure your TaxCloud account ===
+= Step 2: Configure your TaxCloud account =
 
 Now that you have created your TaxCloud account, there are a few important matters to take care of. Please log in to your TaxCloud account and complete all of the items below.
 
@@ -56,26 +56,26 @@ Now that you have created your TaxCloud account, there are a few important matte
 3. **Add business locations.** If your business has a physical presence in the United States, it is imperative that you register your business locations, including stores, warehouses, and distribution facilities, with TaxCloud. To do so, navigate to [Settings -> Locations](https://taxcloud.com/go/locations/) and click "Add Location."
 4. **Select your tax states.** Navigate to [Settings -> Manage Tax States](https://taxcloud.com/go/states-management/). You will be presented with a map of the United States. Click the map to highlight those states where you would like to collect sales tax.
 
-=== Step 3: Install and Activate Simple Sales Tax ===
+= Step 3: Install and Activate Simple Sales Tax =
 
 To install Simple Sales Tax, log in to your WordPress dashboard, navigate to the Plugins menu, and click "Add New."
 
 In the search field type "Simple Sales Tax," then click "Search Plugins." Once you've found our plugin, you can view details about it such as the point release, rating, and description. Most importantly of course, you can install it! Just click "Install Now," and WordPress will take it from there. Finally, click "Activate" to finish the installation process.
 
-=== Step 4: Delete Existing Tax Rates ===
+= Step 4: Delete Existing Tax Rates =
 
 If there are one or more rates in your WooCommerce tax rate tables, you will be presented with a notice like [this](https://i.ibb.co/k5Pm96m/Screenshot-2020-12-12-Dashboard-Simple-Sales-Tax-Word-Press.png) when you log in to WordPress. In most situations you should click the "delete" link to delete all existing tax rates, since your customers will be charged double sales tax otherwise. The only situation in which you should choose to keep your existing WooCommerce tax rates is if they are for tax types that are not handled by TaxCloud and Simple Sales Tax.
 
-=== Step 5: Configure Simple Sales Tax ===
+= Step 5: Configure Simple Sales Tax =
 
 1. Navigate to WooCommerce > Settings > Integrations > Simple Sales Tax in the WordPress dashboard.
 2. Enter your TaxCloud API ID and API Key in the relevant fields, then click "Verify Settings" to validate your API credentials. You can find your API ID and API Key under [Settings -> Stores & Websites](https://taxcloud.com/go/stores/) in the TaxCloud dashboard. After entering and validating your credentials, click **Save changes** to import your business [locations](https://taxcloud.com/go/locations/) from TaxCloud.
-3. Under *Address Settings*, you should now see a list of your TaxCloud locations in the Shipping Origin Addresses field. Select all of the addresses you ship your products from.
-4. If you have tax exempt customers like schools, churches, or wholesale purchasers, enable tax exemptions and fill out the fields under the *Exemption Settings* heading.
-5. Optionally change the default settings under *Display Settings* and *Advanced Settings*. **Do not change Advanced Settings unless you understand the consequences!**
+3. Under Address Settings, you should now see a list of your TaxCloud locations in the Shipping Origin Addresses field. Select all of the addresses you ship your products from.
+4. If you have tax exempt customers like schools, churches, or wholesale purchasers, enable tax exemptions and fill out the fields under the Exemption Settings heading.
+5. Optionally change the default settings under Display Settings and Advanced Settings. **Do not change Advanced Settings unless you understand the consequences!**
 6. Click **Save changes** to finalize your changes.
 
-=== Step 6: Configure Your Products ===
+= Step 6: Configure Your Products =
 
 If you sell products that do not fall into the category indicated by your site's Default [TIC](https://taxcloud.com/tic), you will need to assign appropriate TICs to these products. For your convenience, Simple Sales Tax provides three methods by which you can do this:
 
@@ -83,19 +83,19 @@ If you sell products that do not fall into the category indicated by your site's
 2. **Bulk TIC assignment:** To assign a TIC to a group of products, start by navigating to the Products screen and ticking the checkbox next to each product. Next, select "Edit" under "Bulk Actions" and click "Apply." You will then see an option to set a TIC for the selected products.
 3. **Product-level TIC assignment:** To assign a TIC to a single product, edit the product and scroll until you see the "Product Data" meta box. Under the "General Tab", select the correct TIC, and then update the product to save your changes.
 
-==== Step 6b: For multi-state businesses only ====
+= Step 6b: For multi-state businesses only =
 
 If you ship items from more than one business location, you also need to indicate the shipping origin addresses for each of your items, i.e. the locations from which they will be sent. This is important because a handful of states use the origin address to determine the sales tax rate to apply.
 
 By default, all products in your store will be configured to ship from the Shipping Origin Addresses you've selected on the Simple Sales Tax settings page. If you need to change the default origin addresses for a product, you can do so on the Edit Product screen under Product Data > Shipping > Origin addresses.
 
-=== Step 7: Testing ===
+= Step 7: Testing =
 
 Now that Simple Sales Tax is installed, you should perform several test transactions to ensure that everything is working properly. To do so, add some items to your cart and go through the checkout process to make sure sales tax is calculated and applied. After checking out, don't forget to go to the WooCommerce -> Orders page to mark your test order as "completed." **It is imperative that you complete at least one test order.**
 
 While testing, you may review your transactions by logging in to TaxCloud and navigating to the "Transactions" tab.
 
-=== Step 8: Go Live! ===
+= Step 8: Go Live! =
 
 Now that you have tested your website and verified that Simple Sales Tax is working properly, it is time to switch your TaxCloud account from test mode to live mode. To do so, log in to TaxCloud and you should see the "Go Live Advisor" and click "Go Live" - if you don't see a Go Live button, you should see instructions on what needs to be done in order to complete your account setup.
 
