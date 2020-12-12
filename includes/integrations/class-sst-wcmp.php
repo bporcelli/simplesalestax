@@ -28,11 +28,9 @@ class SST_WCMP extends SST_Marketplace_Integration {
 	/**
 	 * Minimum supported version of WCMp.
 	 *
-	 * @todo test with minimum version
-	 *
 	 * @var string
 	 */
-	protected $min_version = '3.3.0';
+	protected $min_version = '3.4.0';
 
 	/**
 	 * Returns the singleton instance of this class.
@@ -70,7 +68,7 @@ class SST_WCMP extends SST_Marketplace_Integration {
 		add_filter( 'wcmp_can_vendor_configure_tax', '__return_false' );
 		add_filter( 'afm_can_vendor_configure_tax', '__return_false' );
 		add_action( 'wcmp_afm_after_general_product_data', array( $this, 'output_tic_select' ) );
-		add_action( 'wcmp_process_product_object', array( $this, 'save_product_tic' ), 10, 2 );
+		add_action( 'wcmp_process_product_object', array( $this, 'save_product_tic' ) );
 		add_filter( 'sst_tic_select_button_classes', array( $this, 'filter_tic_button_classes' ) );
 		add_filter( 'sst_tic_select_input_classes', array( $this, 'filter_tic_input_classes' ) );
 		add_action( 'wcmp_afm_product_after_variable_attributes', array( $this, 'output_variation_tic_select' ), 10, 3 );
@@ -184,13 +182,8 @@ class SST_WCMP extends SST_Marketplace_Integration {
 	 * Saves the TIC for a product.
 	 *
 	 * @param WC_Product $product   The product being saved.
-	 * @param array      $form_data Submitted product form data.
 	 */
-	public function save_product_tic( $product, $form_data ) {
-		if ( isset( $form_data['wootax_tic'] ) ) {
-			$_REQUEST['wootax_tic'] = $form_data['wootax_tic'];
-		}
-
+	public function save_product_tic( $product ) {
 		$this->save_tic( $product->get_id() );
 	}
 
@@ -265,11 +258,33 @@ class SST_WCMP extends SST_Marketplace_Integration {
 			$order_id = $order->get_id();
 		}
 
-		$sub_orders = get_wcmp_suborders( $order_id );
+		$sub_orders = $this->get_wcmp_suborders( $order_id );
 
 		foreach ( $sub_orders as $order ) {
 			sst_order_calculate_taxes( $order );
 		}
+	}
+
+	/**
+	 * Get the sub orders for an order.
+	 *
+	 * We implement our own version of this function for compatibility
+	 * with versions of WCMp where `get_wcmp_suborders` was not defined.
+	 *
+	 * @param int $order_id Order ID.
+	 *
+	 * @return array
+	 */
+	protected function get_wcmp_suborders( $order_id ) {
+		$args = array(
+			'post_parent' => $order_id,
+			'post_type'   => 'shop_order',
+			'numberposts' => -1,
+			'post_status' => 'any',
+			'fields'      => 'ids',
+		);
+
+		return array_map( 'wc_get_order', get_posts( $args ) );
 	}
 
 	/**
