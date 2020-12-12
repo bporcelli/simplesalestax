@@ -75,6 +75,9 @@ class SST_WCMP extends SST_Marketplace_Integration {
 		add_filter( 'sst_tic_select_input_classes', array( $this, 'filter_tic_input_classes' ) );
 		add_action( 'wcmp_afm_product_after_variable_attributes', array( $this, 'output_variation_tic_select' ), 10, 3 );
 		add_action( 'woocommerce_save_product_variation', array( $this, 'save_tic' ) );
+		add_action( 'woocommerce_saved_order_items', array( $this, 'recalculate_sub_order_taxes' ), 20 );
+		add_action( 'woocommerce_checkout_order_processed', array( $this, 'recalculate_sub_order_taxes' ), 20 );
+		add_action( 'woocommerce_rest_insert_shop_order_object',array( $this,'recalculate_sub_order_taxes' ), 20 );
 
 		parent::__construct();
 	}
@@ -244,6 +247,48 @@ class SST_WCMP extends SST_Marketplace_Integration {
 	 */
 	public function filter_tic_input_classes() {
 		return array( 'form-control' );
+	}
+
+	/**
+	 * Recalculates the taxes for WCMp sub orders after they're created.
+	 *
+	 * @param int|WC_Order $order Parent order or parent order ID.
+	 */
+	public function recalculate_sub_order_taxes( $order ) {
+		if ( ! $this->order_has_sub_orders( $order ) ) {
+			return;
+		}
+
+		$order_id = $order;
+
+		if ( $order instanceof WC_Order ) {
+			$order_id = $order->get_id();
+		}
+
+		$sub_orders = get_wcmp_suborders( $order_id );
+
+		foreach ( $sub_orders as $order ) {
+			sst_order_calculate_taxes( $order );
+		}
+	}
+
+	/**
+	 * Checks whether an order has sub-orders.
+	 *
+	 * @param int|WC_Order $order Order or order ID.
+	 *
+	 * @return bool
+	 */
+	protected function order_has_sub_orders( $order ) {
+		$has_sub_orders = false;
+
+		if ( $order instanceof WC_Order ) {
+			$has_sub_orders = $order->get_meta( 'has_wcmp_sub_order' );
+		} elseif ( is_numeric( $order ) ) {
+			$has_sub_orders = get_post_meta( $order, 'has_wcmp_sub_order', true );
+		}
+
+		return $has_sub_orders;
 	}
 
 }

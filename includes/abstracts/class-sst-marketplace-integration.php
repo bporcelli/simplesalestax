@@ -27,12 +27,18 @@ abstract class SST_Marketplace_Integration {
      * Constructor.
      */
     public function __construct() {
-        if ( ! $this->should_add_package_filters ) {
-            return;
-        }
+        // Replace the default sales tax meta box with one optimized for marketplaces.
+        remove_action( 'sst_output_tax_meta_box', 'sst_render_tax_meta_box' );
+        add_action( 'sst_output_tax_meta_box', array( $this, 'render_tax_meta_box' ) );
 
-        add_filter( 'wootax_cart_packages_before_split', array( $this, 'filter_wootax_cart_packages' ), 10, 2 );
-        add_filter( 'wootax_order_packages_before_split', array( $this, 'filter_wootax_order_packages' ), 10, 2 );
+        // Prevent SST from sending parent orders with sub orders to TaxCloud.
+        add_filter( 'sst_should_capture_order', array( $this, 'prevent_parent_order_processing' ), 10, 2 );
+        add_filter( 'sst_should_refund_order', array( $this, 'prevent_parent_order_processing' ), 10, 2 );
+
+        if ( $this->should_add_package_filters ) {
+            add_filter( 'wootax_cart_packages_before_split', array( $this, 'filter_wootax_cart_packages' ), 10, 2 );
+            add_filter( 'wootax_order_packages_before_split', array( $this, 'filter_wootax_order_packages' ), 10, 2 );
+        }
     }
 
     /**
@@ -217,6 +223,65 @@ abstract class SST_Marketplace_Integration {
         }
 
         return 0;
+    }
+
+    /**
+     * Renders the Sales Tax meta box for marketplaces.
+     *
+     * We show the default Sales Tax meta box for the suborders
+     * that will be captured in TaxCloud and a warning message
+     * for parent orders.
+     *
+     * @param WP_Post $post The post being edited.
+     */
+    public function render_tax_meta_box( $post ) {
+        $has_sub_orders = $this->order_has_sub_orders( $post->ID );
+
+        if ( $has_sub_orders ) {
+            echo '<p>';
+
+            esc_html_e(
+                'This order has sub-orders and will not be captured in TaxCloud. Please see the sub-orders for tax details.',
+                'simple-sales-tax'
+            );
+
+            echo '</p>';
+        } else {
+            sst_render_tax_meta_box( $post );
+        }
+    }
+
+    /**
+     * Prevents parent orders from being captured and refunded in TaxCloud.
+     * If an order has sub-orders, only its sub-orders should be captured
+     * and refunded in TaxCloud.
+     *
+     * @param bool     $should_process Should the order be captured/refunded
+     *                                 in TaxCloud?
+     * @param WC_Order $order          WC order instance.
+     *
+     * @return bool
+     */
+    public function prevent_parent_order_processing( $should_process, $order ) {
+        if ( $this->order_has_sub_orders( $order ) ) {
+            $should_process = false;
+        }
+
+        return $should_process;
+    }
+
+    /**
+     * Checks whether an order has sub-orders.
+     *
+     * Integrations for marketplace plugins that use suborders
+     * should override this.
+     *
+     * @param int|WC_Order $order Order or order ID.
+     *
+     * @return bool
+     */
+    protected function order_has_sub_orders( $order ) {
+        return false;
     }
 
     /**

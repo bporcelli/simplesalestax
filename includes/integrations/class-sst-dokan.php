@@ -74,9 +74,6 @@ class SST_Dokan extends SST_Marketplace_Integration {
 			return;
 		}
 
-		// Remove default hook for tax meta box so we can customize it.
-		remove_action( 'sst_output_tax_meta_box', 'sst_render_tax_meta_box' );
-
 		add_action( 'dokan_new_product_after_product_tags', array( $this, 'output_tic_select' ) );
 		add_action( 'dokan_product_edit_after_product_tags', array( $this, 'output_tic_select' ) );
 		add_action( 'dokan_product_after_variable_attributes', array( $this, 'output_tic_select_for_variation' ), 10, 3 );
@@ -88,10 +85,7 @@ class SST_Dokan extends SST_Marketplace_Integration {
 		add_action( 'dokan_product_after_variable_attributes', array( $this, 'reenable_wc_taxes' ) );
 		add_action( 'wp_footer', array( $this, 'print_styles_to_hide_tax_class_field' ) );
 		add_filter( 'wootax_tic_select_init_events', array( $this, 'filter_tic_select_init_events' ) );
-		add_action( 'sst_output_tax_meta_box', array( $this, 'output_tax_meta_box' ) );
 		add_action( 'dokan_checkout_update_order_meta', array( $this, 'recalculate_sub_order_taxes' ) );
-		add_filter( 'sst_should_capture_order', array( $this, 'prevent_parent_order_processing' ), 10, 2 );
-		add_filter( 'sst_should_refund_order', array( $this, 'prevent_parent_order_processing' ), 10, 2 );
 
 		parent::__construct();
 	}
@@ -272,29 +266,6 @@ class SST_Dokan extends SST_Marketplace_Integration {
 	}
 
 	/**
-	 * Renders the Sales Tax meta box. We show the default Sales Tax meta box
-	 * for sub-orders and a warning message for parent orders.
-	 *
-	 * @param WP_Post $post The post being edited.
-	 */
-	public function output_tax_meta_box( $post ) {
-		$has_sub_orders = get_post_meta( $post->ID, 'has_sub_order', true );
-
-		if ( $has_sub_orders ) {
-			echo '<p>';
-
-			esc_html_e(
-				'This order has sub-orders and will not be captured in TaxCloud. Please see the sub-orders for tax details.',
-				'simple-sales-tax'
-			);
-
-			echo '</p>';
-		} else {
-			sst_render_tax_meta_box( $post );
-		}
-	}
-
-	/**
 	 * Recalculates the tax for a Dokan sub-order after it's created.
 	 *
 	 * @param int $order_id Order ID.
@@ -309,25 +280,23 @@ class SST_Dokan extends SST_Marketplace_Integration {
 	}
 
 	/**
-	 * Prevents parent orders from being captured and refunded in TaxCloud.
-	 * If an order has sub-orders, only its sub-orders should be captured
-	 * and refunded in TaxCloud.
-	 *
-	 * @param bool     $should_process Should the order be captured/refunded
-	 *                                 in TaxCloud?
-	 * @param WC_Order $order          WC order instance.
-	 *
-	 * @return bool
-	 */
-	public function prevent_parent_order_processing( $should_process, $order ) {
-		$has_sub_orders = $order->get_meta( 'has_sub_order' );
+     * Checks whether an order has sub-orders.
+     *
+     * @param int|WC_Order $order Order or order ID.
+     *
+     * @return bool
+     */
+    protected function order_has_sub_orders( $order ) {
+        $has_sub_orders = false;
 
-		if ( $has_sub_orders ) {
-			$should_process = false;
-		}
+        if ( $order instanceof WC_Order ) {
+			$has_sub_orders = $order->get_meta( 'has_sub_order' );
+        } elseif ( is_numeric( $order ) ) {
+			$has_sub_orders = get_post_meta( $order, 'has_sub_order', true );
+        }
 
-		return $should_process;
-	}
+        return $has_sub_orders;
+    }
 
 }
 
