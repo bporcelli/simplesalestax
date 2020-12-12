@@ -71,7 +71,6 @@ abstract class SST_Marketplace_Integration {
         // and add in any of the seller's virtual/downloadable products since
         // these aren't included in shipping packages by default.
         $shipping_packages = WC()->shipping->get_packages();
-        $seller_id_key     = $this->cart_seller_id_key;
 
         foreach ( $shipping_packages as $key => $package ) {
             $seller_id = $this->get_seller_id_for_cart_package( $package );
@@ -159,8 +158,6 @@ abstract class SST_Marketplace_Integration {
         }
 
         // Assumes one shipping method per seller.
-        $seller_id_key = $this->order_seller_id_key;
-
         foreach ( $order->get_shipping_methods() as $item_id => $shipping_method ) {
             $seller_id                        = $this->get_seller_id_for_shipping_method( $shipping_method );
             $shipping_by_seller[ $seller_id ] = $shipping_method;
