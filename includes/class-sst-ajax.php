@@ -244,9 +244,16 @@ class SST_Ajax {
 		// Save items and recalc taxes.
 		wc_save_order_items( $order_id, $items );
 
-		$order = wc_get_order( $order_id );
+		$order          = wc_get_order( $order_id );
+		$posted_address = compact(
+			'country',
+			'state',
+			'city',
+			'postcode',
+		);
 
-		self::ensure_order_shipping_address( $order, compact( 'country', 'state', 'city', 'postcode' ) );
+		self::ensure_order_address( $order, 'billing', $posted_address );
+		self::ensure_order_address( $order, 'shipping', $posted_address );
 
 		$result = sst_order_calculate_taxes( $order );
 
@@ -260,21 +267,22 @@ class SST_Ajax {
 	}
 
 	/**
-	 * Ensures that the order shipping address is set before taxes are calculated.
+	 * Ensures that an order has an address set before taxes are calculated.
 	 *
 	 * @param WC_Order $order   Order object.
+	 * @param string   $type    Address type. Can be 'billing' or 'shipping'.
 	 * @param array    $address POSTed address data.
 	 */
-	protected static function ensure_order_shipping_address( $order, $address ) {
+	protected static function ensure_order_address( $order, $type, $address ) {
 		try {
 			foreach ( $address as $field => $value ) {
-				if ( empty( $order->{"get_shipping_{$field}"}() ) ) {
-					$order->{"set_shipping_{$field}"}( $value );
+				if ( empty( $order->{"get_{$type}_{$field}"}() ) ) {
+					$order->{"set_{$type}_{$field}"}( $value );
 				}
 			}
 		} catch ( WC_Data_Exception $ex ) {
 			wc_get_logger()->error(
-				sprintf( 'Failed to set shipping address for order #%d: %s', $order->get_id(), $ex->getMessage() )
+				sprintf( 'Failed to set %s address for order #%d: %s', $type, $order->get_id(), $ex->getMessage() )
 			);
 		}
 	}
