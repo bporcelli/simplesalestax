@@ -14,11 +14,11 @@ Simplify sales tax calculations, reporting, and filing by connecting your WooCom
 
 Simple Sales Tax integrates your WooCommerce store with [TaxCloud](https://taxcloud.com) to automate sales tax calculations, reporting, and filing.
 
-With monthly service fees starting at $0 and support for product level tax exemptions and tax exempt customers baked in, Simple Sales Tax is the most capable and cost effective sales tax automation solution for WooCommerce.
+With affordable service fees and support for product level tax exemptions and tax exempt customers baked in, Simple Sales Tax is the most capable and cost effective sales tax automation solution for WooCommerce.
 
 **Key Features:**
 
-* Affordable — TaxCloud's [Automated Compliance plan](https://taxcloud.com/pricing) is FREE! If you need a little more control, upgrade to a Selective Compliance plan for as low as $9/mo.
+* Affordable — TaxCloud's [competitive pricing](https://taxcloud.com/pricing) provides the best value in the industry. 
 * Accurate sales tax calculations — Calculate sales tax in real time for every state, county, city, and special jurisdiction in the US. Rates are updated automatically so you never have to worry.
 * Advanced reports — Cut your sales tax prep time significantly with TaxCloud's advanced, return-ready reporting.
 * Exemption certificates — Optionally enable tax exemptions and collect exemption certificates from exempt customers.
@@ -105,9 +105,7 @@ Please feel free to [contact us](https://taxcloud.com/contact) if you need help 
 
 = What does TaxCloud cost? =
 
-TaxCloud's Automated Compliance plan is free and includes sales tax calculations, filing, and remittance in all of the [SSUTA member states](https://www.streamlinedsalestax.org/Shared-Pages/State-Detail).
-
-If you need more control, you can switch to one TaxCloud's [Selective Compliance plans](https://taxcloud.com/pricing/selective-compliance), which start as low as $9/mo.
+Please consult the TaxCloud [Pricing](https://taxcloud.com/pricing) page for details on the cost of TaxCloud.
 
 = Does the plugin support recurring payments? =
 
