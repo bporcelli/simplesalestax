@@ -2,6 +2,21 @@ Changelog for Simple Sales Tax
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+= [6.3.0] - 2020-12-12 =
+
+Added:
+- Add support for WC Marketplace / WCMp
+
+Fixed:
+- SST loads unnecessary assets on the frontend
+- Tax is not calculated for virtual products on the Add new order screen
+- Fix references to undefined class properties in the SST_Marketplace_Integration class
+
+Changed:
+- Remove all references to simplesalestax.com
+- Update pricing info in readme
+- Move Installation Guide to readme
+
 = [6.2.6] - 2020-12-03 =
 
 Fixed:
