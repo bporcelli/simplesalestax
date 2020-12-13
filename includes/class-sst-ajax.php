@@ -249,7 +249,7 @@ class SST_Ajax {
 			'country',
 			'state',
 			'city',
-			'postcode',
+			'postcode'
 		);
 
 		self::ensure_order_address( $order, 'billing', $posted_address );
