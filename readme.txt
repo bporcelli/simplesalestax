@@ -3,7 +3,7 @@ Contributors: taxcloud, bporcelli
 Tags: woocommerce, taxcloud, tax, taxes, sales tax, tax calculation, sales tax compliance, sales tax filing, sales tax reporting
 Requires at least: 4.5
 Tested up to: 5.5
-Stable tag: 6.3.0
+Stable tag: 6.3.1
 Requires PHP: 5.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -130,6 +130,11 @@ Currently we only support the use case where the marketplace acts as the seller 
 
 == Changelog ==
 
+= [6.3.1] - 2020-12-13 =
+
+Fixed:
+- Remove new PHP syntax breaking sites running PHP < 7.3
+
 = [6.3.0] - 2020-12-12 =
 
 Added:
@@ -144,11 +149,6 @@ Changed:
 - Remove all references to simplesalestax.com
 - Update pricing info in readme
 - Move Installation Guide to readme
-
-= [6.2.6] - 2020-12-03 =
-
-Fixed:
-- Tax not calculated correctly when there are multiple cart packages w/ the same origin address
 
 == Upgrade Notice ==
 
