@@ -3,7 +3,7 @@ Contributors: taxcloud, bporcelli
 Tags: woocommerce, taxcloud, tax, taxes, sales tax, tax calculation, sales tax compliance, sales tax filing, sales tax reporting
 Requires at least: 4.5
 Tested up to: 5.5
-Stable tag: 6.3.1
+Stable tag: 6.3.2
 Requires PHP: 5.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -130,25 +130,15 @@ Currently we only support the use case where the marketplace acts as the seller 
 
 == Changelog ==
 
+= [6.3.2] - 2020-12-19 =
+
+Fixed:
+- Marketplaces - Tax calculations fail when vendors enter a Zip+4 ZIP code
+
 = [6.3.1] - 2020-12-13 =
 
 Fixed:
 - Remove new PHP syntax breaking sites running PHP < 7.3
-
-= [6.3.0] - 2020-12-12 =
-
-Added:
-- Add support for WC Marketplace / WCMp
-
-Fixed:
-- SST loads unnecessary assets on the frontend
-- Tax is not calculated for virtual products on the Add new order screen
-- Fix references to undefined class properties in the SST_Marketplace_Integration class
-
-Changed:
-- Remove all references to simplesalestax.com
-- Update pricing info in readme
-- Move Installation Guide to readme
 
 == Upgrade Notice ==
 
