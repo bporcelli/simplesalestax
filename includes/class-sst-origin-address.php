@@ -94,4 +94,22 @@ class SST_Origin_Address extends Address {
 		return $this->Default;
 	}
 
+	/**
+	 * Set Zip5.
+	 *
+	 * @param string $Zip5 5 digit ZIP code.
+	 */
+	public function setZip5( $Zip5 ) {
+		$this->Zip5 = substr( $Zip5, 0, 5 );
+	}
+
+	/**
+	 * Set Zip4.
+	 *
+	 * @param string $Zip4 4 digit component of ZIP code.
+	 */
+	public function setZip4( $Zip4 ) {
+		$this->Zip4 = substr( $Zip4, 0, 4 );
+	}
+
 }
