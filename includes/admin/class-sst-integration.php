@@ -33,6 +33,7 @@ class SST_Integration extends WC_Integration {
 
 		// Register action hooks.
 		add_action( 'woocommerce_update_options_integration_' . $this->id, array( $this, 'process_admin_options' ) );
+		add_action( 'woocommerce_update_options_integration_' . $this->id, array( $this, 'refresh_origin_address_list' ), 15 );
 		add_action( 'admin_init', array( $this, 'maybe_download_log_file' ) );
 		add_action( 'woocommerce_hide_sst_address_mismatch_notice', array( $this, 'maybe_dismiss_address_notice' ) );
 	}
@@ -216,7 +217,7 @@ class SST_Integration extends WC_Integration {
 	public function validate_default_origin_addresses_field( $key, $value ) {
 		$addresses = SST_Addresses::get_origin_addresses();
 
-		// You need addresses to have default addresses
+		// You need addresses to have default addresses.
 		if ( empty( $addresses ) ) {
 			return array();
 		}
@@ -225,15 +226,7 @@ class SST_Integration extends WC_Integration {
 			throw new Exception( __( 'Please select at least one origin address.', 'simple-sales-tax' ) );
 		}
 
-		$selected_addresses = array_map( 'sanitize_title', (array) $value );
-
-		foreach ( $addresses as $address ) {
-			$address->setDefault( in_array( $address->getID(), $selected_addresses ) );
-		}
-
-		SST_Settings::set( 'addresses', array_map( 'json_encode', $addresses ) );
-
-		return $selected_addresses;
+		return array_map( 'sanitize_title', (array) $value );
 	}
 
 	/**
@@ -268,35 +261,37 @@ class SST_Integration extends WC_Integration {
 	}
 
 	/**
-	 * Processes and saves options, refreshing the origin address list in the process.
+	 * Refreshes the origin address list after the plugin settings are updated.
 	 *
-	 * If there is an error thrown, will continue to save and validate fields, but will leave the erroring field out.
-	 *
-	 * @return bool was anything saved?
+	 * Hold on refreshing until all legacy addresses have been mapped to
+	 * TaxCloud Locations to avoid breaking backward compatibility with
+	 * existing SST installations.
 	 */
-	public function process_admin_options() {
-		$result = parent::process_admin_options();
-
-		/**
-		 * Refresh the origin address list.
-		 *
-		 * Hold on refreshing until all legacy addresses have been mapped
-		 * to TaxCloud Locations to avoid breaking backward compatibility
-		 * with existing SST installations.
-		 */
-		$all_addresses_mapped = (
+	public function refresh_origin_address_list() {
+		$should_refresh_addresses = (
 			version_compare( get_option( 'wootax_version' ), '6.2', '>=' )
 			&& ! SST_Settings::get( 'address_mismatch', false )
 		);
 
-		if ( $all_addresses_mapped ) {
-			SST_Settings::set(
-				'addresses',
-				array_map( 'json_encode', SST_Addresses::get_origin_addresses( true ) )
-			);
+		if ( ! $should_refresh_addresses ) {
+			return $result;
 		}
 
-		return $result;
+		// Reload settings so new API key is used.
+		SST_Settings::load_settings();
+
+		// Refresh addresses.
+		$default_origins = SST_Settings::get( 'default_origin_addresses', array() );
+		$addresses       = SST_Addresses::get_origin_addresses( true );
+
+		foreach ( $addresses as $address ) {
+			$address->setDefault( in_array( $address->getID(), $default_origins ) );
+		}
+
+		SST_Settings::set(
+			'addresses',
+			array_map( 'json_encode', $addresses )
+		);
 	}
 
 	/**

@@ -32,11 +32,11 @@ class SST_Settings {
 	private static $settings = array();
 
 	/**
-	 * Initialize the settings array.
+	 * Load the plugin settings from the options table.
 	 *
-	 * @since 5.0
+	 * @since 6.3.3
 	 */
-	private static function init_settings() {
+	public static function load_settings() {
 		self::$settings = get_option( self::$options_key, array() );
 	}
 
@@ -262,7 +262,7 @@ class SST_Settings {
 	 */
 	public static function get( $key, $empty_value = null ) {
 		if ( empty( self::$settings ) ) {
-			self::init_settings();
+			self::load_settings();
 		}
 
 		// Get option default if unset.
@@ -287,7 +287,7 @@ class SST_Settings {
 	 * @param mixed  $value Option value.
 	 */
 	public static function set( $key, $value ) {
-		self::init_settings();
+		self::load_settings();
 		self::$settings[ $key ] = $value;
 
 		update_option( self::$options_key, self::$settings );
