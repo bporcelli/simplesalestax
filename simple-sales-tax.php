@@ -16,7 +16,7 @@
  * WC tested up to:      5.0.0
  *
  * @category             Plugin
- * @copyright            Copyright © 2020 The Federal Tax Authority, LLC
+ * @copyright            Copyright © 2021 The Federal Tax Authority, LLC
  * @author               Brett Porcelli
  * @license              GPL2
  *
