@@ -2,6 +2,16 @@ Changelog for Simple Sales Tax
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+= [6.3.5] - 2021-03-08 =
+
+Fixed:
+- jQuery deprecation notices with WP 5.7
+- Dokan - TIC select appears below Products table in vendor dashboard
+- Marketplaces - Uncaught address exception on cart page when vendor has non-numeric origin ZIP code
+
+Changed:
+- Update tested WP version to 5.7
+
 = [6.3.4] - 2021-02-14 =
 
 Changed:

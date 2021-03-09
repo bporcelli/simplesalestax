@@ -3,7 +3,7 @@ Contributors: taxcloud, bporcelli
 Tags: woocommerce, taxcloud, tax, taxes, sales tax, tax calculation, sales tax compliance, sales tax filing, sales tax reporting
 Requires at least: 4.5
 Tested up to: 5.7
-Stable tag: 6.3.4
+Stable tag: 6.3.5
 Requires PHP: 5.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -130,19 +130,21 @@ Currently we only support the use case where the marketplace acts as the seller 
 
 == Changelog ==
 
+= [6.3.5] - 2021-03-08 =
+
+Fixed:
+- jQuery deprecation notices with WP 5.7
+- Dokan - TIC select appears below Products table in vendor dashboard
+- Marketplaces - Uncaught address exception on cart page when vendor has non-numeric origin ZIP code
+
+Changed:
+- Update tested WP version to 5.7
+
 = [6.3.4] - 2021-02-14 =
 
 Changed:
 - Update tested WC version to 5.0
 - Update tested WP version to 5.6
-
-= [6.3.3] - 2021-01-11 =
-
-Fixed:
-- TaxCloud locations are not pulled the first time the user saves their settings
-
-Changed:
-- Updated tested WC version to 4.9
 
 == Upgrade Notice ==
 
