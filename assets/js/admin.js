@@ -2,7 +2,7 @@
 (function(data) {
     jQuery( function() {
         // Verify TaxCloud settings
-        jQuery( '#verifySettings' ).click( function( e ) {
+        jQuery( '#verifySettings' ).on( 'click', function( e ) {
             e.preventDefault();
 
             var apiID = jQuery( '#woocommerce_wootax_tc_id' ).val();

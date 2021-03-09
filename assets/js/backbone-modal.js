@@ -80,9 +80,9 @@
             _.bindAll( this, 'render' );
             this.render();
 
-            $( window ).resize(function() {
+            $( window ).on( 'resize', function() {
                 view.resizeContent();
-            });
+            } );
         },
         render: function() {
             var template = wp.template( this._target );

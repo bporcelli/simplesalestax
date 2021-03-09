@@ -12,7 +12,7 @@
                     this.handleInputChange = this.handleInputChange.bind( this );
 
                     // todo: refactor so we can use backbone.view.events.
-                    this.$el.click( { view: this }, this.openModal );
+                    this.$el.on( 'click', { view: this }, this.openModal );
                     this.input.on( 'change', this.handleInputChange );
                 },
                 render: function() {
