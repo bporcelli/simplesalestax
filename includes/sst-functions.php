@@ -256,6 +256,14 @@ function sst_output_tic_select_field( $args = array() ) {
 	</button>
 	<?php
 
+	add_action( 'admin_footer', 'sst_print_tic_select_modal_template' );
+	add_action( 'wp_footer', 'sst_print_tic_select_modal_template' );
+}
+
+/**
+ * Prints the Underscores template for the TIC select modal.
+ */
+function sst_print_tic_select_modal_template() {
 	require_once __DIR__ . '/views/html-select-tic-modal.php';
 }
 

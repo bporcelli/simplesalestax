@@ -196,15 +196,15 @@ class SST_Dokan extends SST_Marketplace_Integration {
 	}
 
 	/**
-	 * Adds dokan_variations_loaded and dokan_variation_added to the list of
-	 * JS events that trigger TIC select initialization.
+	 * Adds Dokan specific events to the list of JS events that trigger TIC
+	 * select initialization.
 	 *
 	 * @param string $events JS events that trigger TIC select initialization.
 	 *
 	 * @return string
 	 */
 	public function filter_tic_select_init_events( $events ) {
-		return trim( "{$events} dokan_variations_loaded dokan_variation_added" );
+		return trim( "{$events} dokan_variations_loaded dokan_variation_added dokan-product-editor-popup-opened" );
 	}
 
 	/**
@@ -297,6 +297,29 @@ class SST_Dokan extends SST_Marketplace_Integration {
 
         return $has_sub_orders;
     }
+
+	/**
+	 * Saves the TIC for a product or variation.
+	 *
+	 * @param int $product_id Product ID.
+	 */
+	public function save_tic( $product_id ) {
+		$is_create_new_product_request = isset( $_POST['postdata'] ); // phpcs:ignore
+
+		if ( ! $is_create_new_product_request ) {
+			parent::save_tic( $product_id );
+			return;
+		}
+
+		$submitted_data = wp_unslash( $_POST['postdata'] ); // phpcs:ignore
+		parse_str( $submitted_data, $postdata );
+
+		if ( isset( $postdata['wootax_tic'] ) ) {
+			$_REQUEST['wootax_tic'] = $postdata['wootax_tic'];
+		}
+
+		parent::save_tic( $product_id );
+	}
 
 }
 
