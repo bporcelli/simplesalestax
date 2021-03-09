@@ -339,14 +339,20 @@ abstract class SST_Abstract_Cart {
 	 * @return array
 	 */
 	protected function format_package( $package ) {
-		if ( isset( $package['origin'] ) && $package['origin'] instanceof SST_Origin_Address ) {
-			$origin_address = $package['origin'];
-		} else {
-			$origin_address = SST_Addresses::get_default_address();
+		if ( ! isset( $package['origin'] ) ) {
+			$package['origin'] = SST_Addresses::get_default_address();
 		}
 
-		// SST_Origin_Address must be converted to TaxCloud\Address.
-		$package['origin'] = SST_Addresses::to_address( $origin_address );
+		$package['origin'] = SST_Addresses::to_address( $package['origin'] );
+
+		if ( ! ( $package['origin'] instanceof SST_Origin_Address ) ) {
+			SST_Logger::add(
+				__( 'Origin address for shipping package is invalid. Using default origin address from Simple Sales Tax settings.', 'simple-sales-tax' )
+			);
+			$package['origin'] = SST_Addresses::to_address(
+				SST_Addresses::get_default_address()
+			);
+		}
 
 		if ( ! isset( $package['certificate'] ) ) {
 			$package['certificate'] = $this->get_certificate();
@@ -432,7 +438,10 @@ abstract class SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	protected function ready_for_lookup( $package ) {
-		return isset( $package['destination'] ) && SST_Addresses::is_valid( $package['destination'] );
+		$dest_valid   = isset( $package['destination'] ) && SST_Addresses::is_valid( $package['destination'] );
+		$origin_valid = isset( $package['origin'] ) && $package['origin'] instanceof TaxCloud\Address;
+
+		return $origin_valid && $dest_valid;
 	}
 
 	/**

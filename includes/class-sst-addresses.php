@@ -229,7 +229,9 @@ class SST_Addresses {
 	public static function to_address( $address ) {
 		if ( is_null( $address ) || ! is_a( $address, 'SST_Origin_Address' ) ) {
 			return null;
-		} else {
+		}
+
+		try {
 			return new TaxCloud\Address(
 				$address->getAddress1(),
 				$address->getAddress2(),
@@ -238,6 +240,8 @@ class SST_Addresses {
 				$address->getZip5(),
 				$address->getZip4()
 			);
+		} catch ( Exception $ex ) {
+			return null;
 		}
 	}
 
