@@ -341,18 +341,14 @@ abstract class SST_Abstract_Cart {
 	protected function format_package( $package ) {
 		if ( ! isset( $package['origin'] ) ) {
 			$package['origin'] = SST_Addresses::get_default_address();
-		}
-
-		$package['origin'] = SST_Addresses::to_address( $package['origin'] );
-
-		if ( ! ( $package['origin'] instanceof SST_Origin_Address ) ) {
+		} elseif ( ! ( $package['origin'] instanceof SST_Origin_Address ) ) {
 			SST_Logger::add(
 				__( 'Origin address for shipping package is invalid. Using default origin address from Simple Sales Tax settings.', 'simple-sales-tax' )
 			);
-			$package['origin'] = SST_Addresses::to_address(
-				SST_Addresses::get_default_address()
-			);
+			$package['origin'] = SST_Addresses::get_default_address();
 		}
+
+		$package['origin'] = SST_Addresses::to_address( $package['origin'] );
 
 		if ( ! isset( $package['certificate'] ) ) {
 			$package['certificate'] = $this->get_certificate();
