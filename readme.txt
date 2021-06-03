@@ -130,20 +130,18 @@ Currently we only support the use case where the marketplace acts as the seller 
 
 == Changelog ==
 
+= [6.3.7] - 2021-06-02 =
+
+Fixed:
+- Default origin address overrides other origin addresses
+
+Changed:
+- Update tested WC version to 5.3
+
 = [6.3.6] - 2021-03-09 =
 
 Changed:
 - Update tested WC version to 5.1
-
-= [6.3.5] - 2021-03-08 =
-
-Fixed:
-- jQuery deprecation notices with WP 5.7
-- Dokan - TIC select appears below Products table in vendor dashboard
-- Marketplaces - Uncaught address exception on cart page when vendor has non-numeric origin ZIP code
-
-Changed:
-- Update tested WP version to 5.7
 
 == Upgrade Notice ==
 
