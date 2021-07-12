@@ -2,6 +2,12 @@ Changelog for Simple Sales Tax
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+= [6.3.8] - 2021-07-12 =
+
+Changed:
+- Update tested WC version to 5.5
+- Update tested WP version to 5.8
+
 = [6.3.7] - 2021-06-02 =
 
 Fixed:
