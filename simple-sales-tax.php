@@ -11,7 +11,7 @@
  * Domain Path:          /languages/
  *
  * Requires at least:    4.5.0
- * Tested up to:         5.7.0
+ * Tested up to:         5.8.0
  * WC requires at least: 3.0.0
  * WC tested up to:      5.3.0
  *
