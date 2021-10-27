@@ -3,7 +3,7 @@ Contributors: taxcloud, bporcelli
 Tags: woocommerce, taxcloud, tax, taxes, sales tax, tax calculation, sales tax compliance, sales tax filing, sales tax reporting
 Requires at least: 4.5
 Tested up to: 5.8
-Stable tag: 6.3.9
+Stable tag: 6.3.10
 Requires PHP: 5.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -130,16 +130,7 @@ Currently we only support the use case where the marketplace acts as the seller 
 
 == Changelog ==
 
-= [6.3.9] - 2021-08-16 =
-
-Changed:
-- Update tested WC version to 5.6
-
-= [6.3.8] - 2021-07-12 =
-
-Changed:
-- Update tested WC version to 5.5
-- Update tested WP version to 5.8
+See [Releases](https://github.com/bporcelli/simplesalestax/releases).
 
 == Upgrade Notice ==
 
