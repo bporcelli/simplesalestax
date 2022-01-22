@@ -1,0 +1,26 @@
+{
+  "simpleProduct": {
+    "name": "General Product",
+    "id": 14693,
+    "expectedTax": 1.72
+  },
+  "downloadableProduct": {
+    "name": "eBook",
+    "id": 14694,
+    "expectedTax": 0.00
+  },
+  "variableProduct": {
+    "name": "Variable Product",
+    "id": 90148,
+    "variations": [
+      {
+        "name": "A",
+        "expectedTax": 0.43
+      },
+      {
+        "name": "B",
+        "expectedTax": 0.52
+      }
+    ]
+  }
+}

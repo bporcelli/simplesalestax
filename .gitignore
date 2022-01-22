@@ -4,3 +4,4 @@ tests/config/local.json
 .idea/
 build/
 releases/
+cypress/downloads/
