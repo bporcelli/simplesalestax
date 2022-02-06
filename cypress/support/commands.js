@@ -60,3 +60,7 @@ Cypress.Commands.add('selectShippingMethod', (methodName) => {
     }
   });
 });
+
+Cypress.Commands.add('waitForBlockedElements', (timeout = 15000) => {
+  cy.get('.blockOverlay', {timeout}).should('not.exist');
+});

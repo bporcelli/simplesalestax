@@ -41,6 +41,11 @@ describe('Certificate manager', () => {
     cy.visit('/checkout/');
     cy.contains('Tax exempt?').should('be.visible');
     cy.get('#tax_exempt_checkbox').should('be.checked');
+
+    // Reset when done.
+    cy.goToSettingsPage();
+    cy.get('#woocommerce_wootax_exempt_roles').select(['Exempt Customer'], {force: true});
+    cy.findByRole('button', {name: 'Save changes'}).click();
   });
 
   describe('allows the user to add, view, and delete a certificate', () => {
@@ -50,20 +55,21 @@ describe('Certificate manager', () => {
       cy.get('#sst-certificates tbody tr[data-id]').its('length').as('origNumCerts');
     });
 
-    const testReason = 'Test ' + Date.now();
+    const randomNumber = Math.floor(Math.random() * 9999);
+    const idSuffix = randomNumber.toString().padStart(4, '0');
+    const testId = `123-45-${idSuffix}`;
 
     it('allows user to add a cerificate', () => {
       cy.findByRole('link', {name: 'Add Certificate'}).click();
       cy.get('#ExemptState').select('New York');
       cy.get('#TaxType').select('Federal Employer ID');
-      cy.get('#IDNumber').type('123-45-6789');
+      cy.get('#IDNumber').type(testId);
       cy.get('#PurchaserBusinessType').select('Construction');
       cy.get('#PurchaserExemptionReason').select('Federal Government Department');
-      cy.get('#exempt-other-reason').type(testReason);
+      cy.get('#exempt-other-reason').type('Test');
 
-      cy.intercept('POST', '/wp-admin/admin-ajax.php?action=sst_add_certificate').as('addCertificateRequest');
       cy.findByRole('button', {name: 'Add certificate'}).click();
-      cy.wait('@addCertificateRequest', {timeout: 15000});
+      cy.waitForBlockedElements();
 
       cy.get('#sst-certificates tbody tr[data-id]').its('length').then(function(newNumCerts) {
         expect(newNumCerts).to.eq(parseInt(this.origNumCerts) + 1);
@@ -75,18 +81,16 @@ describe('Certificate manager', () => {
         .last()
         .findByRole('link', {name: 'View'})
         .click();
-      cy.contains(testReason).should('be.visible');
-      cy.get('.modal-close').click();
+      cy.contains(`***-**-${idSuffix}`).should('be.visible');
+      cy.get('button.modal-close').click();
     });
 
     it('allows user to delete the ceriticate', () => {
-      cy.intercept('POST', '/wp-admin/admin-ajax.php?action=sst_delete_certificate')
-        .as('deleteRequest');
       cy.get('#sst-certificates tbody tr[data-id]')
         .last()
         .findByRole('link', {name: 'Delete'})
         .click();
-      cy.wait('@deleteRequest');
+      cy.waitForBlockedElements();
       cy.get('#sst-certificates tbody tr[data-id]').its('length').then(function(newNumCerts) {
         expect(newNumCerts).to.eq(this.origNumCerts);
       });
@@ -94,21 +98,19 @@ describe('Certificate manager', () => {
   });
 
   it('toggles tax calculations based on whether "Tax exempt?" is checked', () => {
-    cy.goToSettingsPage();
-    cy.get('#woocommerce_wootax_show_zero_tax').select('No', {force: true});
-    cy.findByRole('button', {name: 'Save changes'}).click();
-
     cy.visit('/checkout/');
-    cy.intercept('POST', '/?wc-ajax=update_order_review')
-      .as('updateOrderReview');
 
     cy.get('#tax_exempt_checkbox').uncheck();
-    cy.wait('@updateOrderReview');
-    cy.get('.tax-rate-sales-tax').should('exist');
+    cy.waitForBlockedElements();
+    cy.getTaxTotal().then((total) => {
+      expect(total).not.to.match(/0\.00$/);
+    });
 
     cy.get('#tax_exempt_checkbox').check();
-    cy.wait('@updateOrderReview');
-    cy.get('.tax-rate-sales-tax').should('not.exist');
+    cy.waitForBlockedElements();
+    cy.getTaxTotal().then((total) => {
+      expect(total).to.match(/0\.00$/);
+    });
   });
 
   after(() => {

@@ -4,34 +4,34 @@ import coupons from '../../fixtures/coupons.json';
 
 describe('Coupon calculations', () => {
   const applyCoupon = (couponCode) => {
-    cy.intercept('POST', '/cart').as('updateCart');
     cy.get('#coupon_code').type(couponCode);
     cy.findByRole('button', {name: 'Apply coupon'}).click();
-    cy.wait('@updateCart', {timeout: 15000});
+    cy.waitForBlockedElements(30000);
   };
 
   const removeCoupon = () => {
     cy.get('body').then(($body) => {
       if ($body.find('.woocommerce-remove-coupon').length) {
-        cy.intercept('POST', '/cart').as('updateCart');
         cy.get('.woocommerce-remove-coupon').click();
-        cy.wait('@updateCart', {timeout: 15000});
+        cy.waitForBlockedElements(30000);
       }
     });
   };
 
   before(() => {
-    cy.addProductToCart('General Product');
+    cy.goToSettingsPage();
+    cy.get('#woocommerce_wootax_show_zero_tax').select('Yes');
+    cy.findByRole('button', {name: 'Save changes'}).click();
 
+    cy.addProductToCart('General Product');
     cy.visit('/cart/');
 
-    cy.intercept('POST', '/cart').as('updateCart');
     cy.get('.shipping-calculator-button').click();
     cy.get('#calc_shipping_state').select('NY', {force: true});
     cy.get('#calc_shipping_city').clear().type('West Islip');
     cy.get('#calc_shipping_postcode').clear().type('11795');
     cy.findByRole('button', {name: 'Update'}).click();
-    cy.wait('@updateCart');
+    cy.waitForBlockedElements(30000);
   });
 
   beforeEach(() => {

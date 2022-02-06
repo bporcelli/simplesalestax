@@ -15,7 +15,7 @@ describe('Create order', () => {
     cy.visit('/checkout/');
     cy.wait('@updateOrderReview', {timeout: 15000});
     cy.findByRole('button', {name: 'Place order'}).click({force: true});
-    cy.wait('@doCheckout', {timeout: 30000});
+    cy.wait('@doCheckout', {timeout: 60000});
 
     const orderNumber =
       cy.contains('Order number:')

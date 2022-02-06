@@ -16,8 +16,6 @@ describe('Basic calculations', () => {
 
   beforeEach(() => {
     cy.emptyCart();
-    cy.intercept('POST', '/?wc-ajax=get_refreshed_fragments')
-      .as('refreshCart');
   });
 
   it('calculates tax correctly for simple products', () => {
@@ -49,8 +47,6 @@ describe('Basic calculations', () => {
   });
 
   it('uses correct origin address for multi-origin products when calculating tax', () => {
-    cy.intercept('POST', '/?wc-ajax=update_order_review').as('updateOrderReview');
-
     const toggleShipToAnotherAddress = (check) => {
       cy.findByRole('checkbox', {name: 'Ship to a different address?'}).then(($checkbox) => {
         if (check !== $checkbox.prop('checked')) {
@@ -80,11 +76,11 @@ describe('Basic calculations', () => {
     cy.get('#shipping_state').select('Georgia', {force: true});
     cy.get('#shipping_postcode').clear().type('30334');
 
-    cy.wait('@updateOrderReview');
+    cy.waitForBlockedElements();
 
     cy.getTaxTotal().then((origTaxAmount) => {
       toggleShipToAnotherAddress(false);
-      cy.wait('@updateOrderReview');
+      cy.waitForBlockedElements();
 
       cy.getTaxTotal().then((updatedTaxAmount) => {
           expect(updatedTaxAmount).not.to.eq(origTaxAmount);
