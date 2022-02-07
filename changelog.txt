@@ -2,6 +2,14 @@ Changelog for Simple Sales Tax
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+= [6.3.13] - 2022-02-07 =
+
+Fixed:
+- Resolve PHP 8 deprecation notices
+
+Changed:
+- Update tested WC version to 6.2
+
 = [6.3.12] - 2022-01-25 =
 
 Changed:
