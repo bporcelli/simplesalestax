@@ -6,14 +6,14 @@ describe('Coupon calculations', () => {
   const applyCoupon = (couponCode) => {
     cy.get('#coupon_code').type(couponCode);
     cy.findByRole('button', {name: 'Apply coupon'}).click();
-    cy.waitForBlockedElements(30000);
+    cy.waitForBlockedElements();
   };
 
   const removeCoupon = () => {
     cy.get('body').then(($body) => {
       if ($body.find('.woocommerce-remove-coupon').length) {
         cy.get('.woocommerce-remove-coupon').click();
-        cy.waitForBlockedElements(30000);
+        cy.waitForBlockedElements();
       }
     });
   };
@@ -31,7 +31,7 @@ describe('Coupon calculations', () => {
     cy.get('#calc_shipping_city').clear().type('West Islip');
     cy.get('#calc_shipping_postcode').clear().type('11795');
     cy.findByRole('button', {name: 'Update'}).click();
-    cy.waitForBlockedElements(30000);
+    cy.waitForBlockedElements();
   });
 
   beforeEach(() => {
