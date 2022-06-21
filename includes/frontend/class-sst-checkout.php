@@ -455,11 +455,15 @@ class SST_Checkout extends SST_Abstract_Cart {
 		// Make sure we're saving the data from the 'main' cart.
 		$this->cart = new SST_Cart_Proxy( WC()->cart );
 
-		// Save the packages from the last lookup and the applied exemption certificate (if any).
+		// Save the packages from the last lookup.
 		$order = new SST_Order( $order_id );
-
 		$order->set_packages( $this->get_packages() );
-		$order->set_certificate( $this->get_certificate() );
+
+		// Save the applied exemption certificate (if any).
+		$certificate = $this->get_certificate();
+		if ( is_a( $certificate, 'TaxCloud\ExemptionCertificateBase' ) ) {
+			$order->set_certificate( $certificate );
+		}
 
 		$order->save();
 	}

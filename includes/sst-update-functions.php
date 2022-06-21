@@ -1409,3 +1409,19 @@ function sst_update_640_delete_package_cache() {
 
 	$wpdb->query( "DELETE FROM {$wpdb->postmeta} WHERE meta_key = '_wootax_package_cache'" );
 }
+
+/**
+ * Delete null _wootax_exempt_cert meta values on upgrade to 6.4.
+ */
+function sst_update_640_delete_null_certificates() {
+	global $wpdb;
+
+	$null_value = 's:2:"N;";';
+
+	$wpdb->query(
+		$wpdb->prepare(
+			"DELETE FROM {$wpdb->postmeta} WHERE meta_key = '_wootax_exempt_cert' AND meta_value = %s",
+			$null_value
+		)
+	);
+}
