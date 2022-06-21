@@ -1400,3 +1400,12 @@ function sst_update_620_fix_product_origin_addresses_batch() {
 
 	return 'sst_update_620_fix_product_origin_addresses_batch';
 }
+
+/**
+ * Delete the _wootax_package_cache meta key on upgrade to 6.4.
+ */
+function sst_update_640_delete_package_cache() {
+	global $wpdb;
+
+	$wpdb->query( "DELETE FROM {$wpdb->postmeta} WHERE meta_key = '_wootax_package_cache'" );
+}

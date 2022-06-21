@@ -461,13 +461,6 @@ class SST_Checkout extends SST_Abstract_Cart {
 		$order->set_packages( $this->get_packages() );
 		$order->set_certificate( $this->get_certificate() );
 
-		// Save cached packages as metadata to avoid duplicate lookups from the backend.
-		$cached_packages = WC()->session->get( 'sst_package_cache', array() );
-
-		foreach ( $cached_packages as $hash => $package ) {
-			$order->save_package( $hash, $package );
-		}
-
 		$order->save();
 	}
 

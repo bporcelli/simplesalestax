@@ -30,10 +30,9 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 4.4
 	 */
 	protected static $defaults = array(
-		'packages'      => array(),
-		'package_cache' => array(),
-		'exempt_cert'   => null,
-		'status'        => 'pending',
+		'packages'    => array(),
+		'exempt_cert' => null,
+		'status'      => 'pending',
 	);
 
 	/**
@@ -881,10 +880,16 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @return array|bool The saved package with the given hash, or false if no such package exists.
 	 */
 	protected function get_saved_package( $hash ) {
-		$saved_packages = $this->get_meta( 'package_cache' );
+		$saved_packages = $this->get_meta( 'packages' );
 
-		if ( is_array( $saved_packages ) && isset( $saved_packages[ $hash ] ) ) {
-			return $saved_packages[ $hash ];
+		if ( ! is_array( $saved_packages ) ) {
+			return false;
+		}
+
+		foreach ( $saved_packages as $package ) {
+			if ( $hash === $this->get_package_hash( $package ) ) {
+				return $package;
+			}
 		}
 
 		return false;
@@ -897,15 +902,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @param array  $package Package.
 	 */
 	protected function save_package( $hash, $package ) {
-		$saved_packages = $this->get_meta( 'package_cache' );
-
-		if ( ! is_array( $saved_packages ) ) {
-			$saved_packages = array();
-		}
-
-		$saved_packages[ $hash ] = $package;
-
-		$this->update_meta( 'package_cache', $saved_packages );
+		// No op.
 	}
 
 }
