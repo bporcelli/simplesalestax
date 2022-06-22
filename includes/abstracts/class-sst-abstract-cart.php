@@ -61,20 +61,29 @@ abstract class SST_Abstract_Cart {
 			$response = $package['response'];
 
 			if ( ! is_wp_error( $response ) ) {
-				$cart_items = current( $package['response'] );
+				$tax_totals = current( $package['response'] );
+				$cart_items = $package['cart_items'];
 
-				foreach ( $cart_items as $index => $tax_total ) {
-					$info = $package['map'][ $index ];
-
-					switch ( $info['type'] ) {
+				foreach ( $cart_items as $index => $item ) {
+					$tax_total = $tax_totals[ $index ];
+					switch ( $item['type'] ) {
 						case 'shipping':
-							$this->set_shipping_tax( $info['cart_id'], $tax_total );
+							$this->set_shipping_tax(
+								$item['cart_id'],
+								$tax_total
+							);
 							break;
 						case 'line_item':
-							$this->set_product_tax( $info['cart_id'], $tax_total );
+							$this->set_product_tax(
+								$item['cart_id'],
+								$tax_total
+							);
 							break;
 						case 'fee':
-							$this->set_fee_tax( $info['cart_id'], $tax_total );
+							$this->set_fee_tax(
+								$item['cart_id'],
+								$tax_total
+							);
 					}
 				}
 			} else {
@@ -106,11 +115,15 @@ abstract class SST_Abstract_Cart {
 		$packages = array();
 
 		foreach ( $this->create_packages() as $package ) {
+			$package['request'] = $this->get_lookup_for_package( $package );
+
 			$hash          = $this->get_package_hash( $package );
 			$saved_package = $this->get_saved_package( $hash );
 
 			if ( false === $saved_package ) {
-				$saved_package = $this->do_package_lookup( $package );
+				$saved_package = $this->compress_package_data(
+					$this->do_package_lookup( $package )
+				);
 
 				if ( $saved_package ) {
 					$this->save_package( $hash, $saved_package );
@@ -142,7 +155,6 @@ abstract class SST_Abstract_Cart {
 		}
 
 		try {
-			$package['request']  = $this->get_lookup_for_package( $package );
 			$package['response'] = TaxCloud()->Lookup( $package['request'] );
 			$package['cart_id']  = key( $package['response'] );
 		} catch ( Exception $ex ) {
@@ -370,25 +382,11 @@ abstract class SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	private function get_package_hash( $package ) {
-		// Remove data objects so hashes are consistent.
-		foreach ( $package['contents'] as $item_id => $item ) {
-			unset( $package['contents'][ $item_id ]['data'] );
-		}
+		$package  = $this->compress_package_data( $package );
+		$version  = WC_Cache_Helper::get_transient_version( 'shipping' );
+		$md5_hash = md5( wp_json_encode( $package ) . $version );
 
-		// Convert WC_Shipping_Rate to array (shipping will be excluded from hash o.w.).
-		if ( is_a( $package['shipping'], 'WC_Shipping_Rate' ) ) {
-			$package['shipping'] = array(
-				'id'        => $package['shipping']->id,
-				'label'     => $package['shipping']->label,
-				'cost'      => $package['shipping']->cost,
-				'method_id' => $package['shipping']->method_id,
-			);
-		}
-
-		// Exclude user ID from hash - does not change calculated tax amount.
-		unset( $package['user'] );
-
-		return 'sst_pack_' . md5( wp_json_encode( $package ) . WC_Cache_Helper::get_transient_version( 'shipping' ) );
+		return "sst_pack_{$md5_hash}";
 	}
 
 	/**
@@ -477,6 +475,97 @@ abstract class SST_Abstract_Cart {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Prepares a cart package for saving to the session or the database.
+	 * Strips out unnecessary data to reduce space usage.
+	 *
+	 * @todo Rewrite lookup code to use compressed data format so this is not necessary.
+	 *
+	 * @param array $package Package data.
+	 *
+	 * @return array Compressed package data.
+	 */
+	public function compress_package_data( $package ) {
+		$already_compressed = isset( $package['cart_items'] );
+
+		if ( $already_compressed ) {
+			return $package;
+		}
+
+		// Set new keys with compressed data.
+		$package['customer_id']         = $package['user']['ID'];
+		$package['cart_items']          = $this->get_package_cart_items( $package );
+		$package['shipping_method']     = '';
+		$package['shipping_cost']       = 0;
+		$package['origin_address']      = '';
+		$package['destination_address'] = '';
+		$package['certificate_id']      = '';
+
+		if ( ! empty( $package['shipping'] ) ) {
+			$package['shipping_method'] = $package['shipping']->method_id;
+			$package['shipping_cost']   = $package['shipping']->cost;
+		}
+
+		if ( is_a( $package['origin'], 'TaxCloud\Address' ) ) {
+			$package['origin_address'] = SST_Addresses::format(
+				$package['origin']
+			);
+		}
+
+		if ( is_a( $package['destination'], 'TaxCloud\Address' ) ) {
+			$package['destination_address'] = SST_Addresses::format(
+				$package['destination']
+			);
+		}
+
+		if ( is_a( $package['certificate'], 'TaxCloud\ExemptionCertificateBase' ) ) {
+			$package['certificate_id'] = $package['certificate']->getCertificateId();
+		}
+
+		// Remove keys not required to set tax amounts or capture/refund orders.
+		$extra_keys = array(
+			'contents',
+			'fees',
+			'shipping',
+			'map',
+			'user',
+			'request',
+			'origin',
+			'destination',
+			'certificate',
+		);
+
+		$package = array_diff_key( $package, array_flip( $extra_keys ) );
+
+		return $package;
+	}
+
+	/**
+	 * Get the cart items for a given package.
+	 *
+	 * @param array $package Package data.
+	 *
+	 * @return array Cart items.
+	 * @since 6.4.0
+	 */
+	protected function get_package_cart_items( $package ) {
+		$map        = $package['map'];
+		$cart_items = array();
+
+		foreach ( $package['request']->getCartItems() as $key => $item ) {
+			$map_entry    = $package['map'][ $key ];
+			$cart_items[] = array_merge(
+				$map_entry,
+				array(
+					'qty' => $item->getQty(),
+					'tic' => $item->getTIC(),
+				)
+			);
+		}
+
+		return $cart_items;
 	}
 
 	/**

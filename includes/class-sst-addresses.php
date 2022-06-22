@@ -25,11 +25,12 @@ class SST_Addresses {
 	 */
 	public static function format( $address ) {
 		return sprintf(
-			'%s, %s, %s %s',
+			'%s, %s, %s %s-%s',
 			$address->getAddress1(),
 			$address->getCity(),
 			$address->getState(),
-			$address->getZip5()
+			$address->getZip5(),
+			$address->getZip4()
 		);
 	}
 

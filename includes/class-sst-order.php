@@ -109,6 +109,15 @@ class SST_Order extends SST_Abstract_Cart {
 			return array();
 		}
 
+		// Compress package data just in case the order hasn't been
+		// migrated to the new data format used in SST 6.4+ yet.
+		// For orders that are already using the new data format
+		// this is a no-op.
+		$packages = array_map(
+			array( $this, 'compress_package_data' ),
+			$packages
+		);
+
 		return array_values( $packages );
 	}
 
@@ -632,15 +641,16 @@ class SST_Order extends SST_Abstract_Cart {
 
 		// Send AuthorizedWithCapture for all packages.
 		foreach ( $packages as $key => $package ) {
-			$now = date( 'c' );
+			$now      = date( 'c' );
+			$order_id = $this->get_package_order_id( $key, $package );
 
 			try {
 				$request = new TaxCloud\Request\AuthorizedWithCapture(
 					$this->api_id,
 					$this->api_key,
-					$package['request']->getCustomerID(),
+					$package['customer_id'],
 					$package['cart_id'],
-					$this->get_package_order_id( $key ),
+					$order_id,
 					$now,
 					$now
 				);
@@ -716,27 +726,30 @@ class SST_Order extends SST_Abstract_Cart {
 				break;
 			}
 
-			$cart_items   = $package['request']->getCartItems();
-			$refund_items = array();
+			$cart_items      = $package['cart_items'];
+			$shipping_method = $this->process_method_id(
+				$package['shipping_method']
+			);
+			$refund_items    = array();
 
-			foreach ( $cart_items as $cart_item_key => $pitem ) {
-				$to_match = $package['map'][ $cart_item_key ];
+			foreach ( $cart_items as $cart_item ) {
+				$id_to_match = $cart_item['id'];
 
-				if ( 'shipping' === $to_match['type'] ) {
-					$to_match['id'] = $this->process_method_id( $package['shipping']->method_id );
+				if ( 'shipping' === $cart_item['type'] ) {
+					$id_to_match = $shipping_method;
 				}
 
 				foreach ( $items as $item_key => $item ) {
-					if ( $item['id'] !== $to_match['id'] ) {
+					if ( $item['id'] !== $id_to_match ) {
 						continue; // No match.
 					}
 
-					$qty = min( $item['qty'], $pitem->getQty() );
+					$qty = min( $item['qty'], $cart_item['qty'] );
 
 					$refund_items[] = new TaxCloud\CartItem(
 						count( $refund_items ),
-						$pitem->getItemID(),
-						$pitem->getTIC(),
+						$cart_item['id'],
+						$cart_item['tic'],
 						$item['price'],
 						$qty
 					);
@@ -750,11 +763,16 @@ class SST_Order extends SST_Abstract_Cart {
 			}
 
 			if ( ! empty( $refund_items ) ) {
+				$order_id = $this->get_package_order_id(
+					key( $packages ),
+					$package
+				);
+
 				try {
 					$request = new TaxCloud\Request\Returned(
 						$this->api_id,
 						$this->api_key,
-						$this->get_package_order_id( key( $packages ), $package ),
+						$order_id,
 						$refund_items,
 						date( 'c' )
 					);

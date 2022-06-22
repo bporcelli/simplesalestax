@@ -52,6 +52,7 @@ class SST_Install {
 			'sst_update_640_delete_package_cache',
 			'sst_update_640_delete_null_certificates',
 			'sst_update_640_migrate_certificates',
+			'sst_update_640_compress_packages',
 		),
 	);
 

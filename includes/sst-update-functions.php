@@ -1461,3 +1461,40 @@ function sst_update_640_migrate_certificates() {
 
 	return false;
 }
+
+/**
+ * Compresses saved order packages on upgrade to 6.4.
+ */
+function sst_update_640_compress_packages() {
+	$batch_size = 100;
+	$args       = array(
+		'type'         => 'shop_order',
+		'return'       => 'ids',
+		'limit'        => $batch_size,
+		'meta_key'     => '_wootax_db_version',
+		'meta_value'   => '6.4.0',
+		'meta_compare' => '!=',
+	);
+
+	$order_ids = wc_get_orders( $args );
+
+	foreach ( $order_ids as $order_id ) {
+		$order        = new SST_Order( $order_id );
+		$packages     = $order->get_meta( 'packages' );
+		$new_packages = array_map(
+		    array( $order, 'compress_package_data' ),
+		    $packages
+		);
+
+		$order->set_packages( $new_packages );
+		$order->update_meta( 'db_version', '6.4.0' );
+		$order->save();
+	}
+
+	if ( count( $order_ids ) === $batch_size ) {
+		// More orders remain to process.
+		return 'sst_update_640_compress_packages';
+	}
+
+	return false;
+}
