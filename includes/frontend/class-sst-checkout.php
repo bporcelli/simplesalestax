@@ -373,12 +373,13 @@ class SST_Checkout extends SST_Abstract_Cart {
 	}
 
 	/**
-	 * Get the customer exemption certificate.
+	 * Get the ID of the applied exemption certificate.
 	 *
-	 * @return TaxCloud\ExemptionCertificateBase|NULL
-	 * @since 5.0
+	 * @return string Exemption certificate ID.
+	 *
+	 * @since 6.4.0
 	 */
-	public function get_certificate() {
+	public function get_certificate_id() {
 		if ( ! isset( $_POST['post_data'] ) ) { // phpcs:ignore WordPress.CSRF.NonceVerification
 			$post_data = $_POST; // phpcs:ignore WordPress.CSRF.NonceVerification
 		} else {
@@ -387,12 +388,10 @@ class SST_Checkout extends SST_Abstract_Cart {
 		}
 
 		if ( isset( $post_data['tax_exempt'] ) && isset( $post_data['certificate_id'] ) ) {
-			$certificate_id = sanitize_text_field( wp_unslash( $post_data['certificate_id'] ) );
-
-			return new TaxCloud\ExemptionCertificateBase( $certificate_id );
+			return sanitize_text_field( wp_unslash( $post_data['certificate_id'] ) );
 		}
 
-		return null;
+		return '';
 	}
 
 	/**
@@ -460,9 +459,9 @@ class SST_Checkout extends SST_Abstract_Cart {
 		$order->set_packages( $this->get_packages() );
 
 		// Save the applied exemption certificate (if any).
-		$certificate = $this->get_certificate();
-		if ( is_a( $certificate, 'TaxCloud\ExemptionCertificateBase' ) ) {
-			$order->set_certificate( $certificate );
+		$certificate_id = $this->get_certificate_id();
+		if ( $certificate_id ) {
+			$order->set_certificate_id( $certificate_id );
 		}
 
 		$order->save();

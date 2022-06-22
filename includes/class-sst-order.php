@@ -31,7 +31,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 */
 	protected static $defaults = array(
 		'packages'    => array(),
-		'exempt_cert' => null,
+		'exempt_cert' => '',
 		'status'      => 'pending',
 	);
 
@@ -422,22 +422,6 @@ class SST_Order extends SST_Abstract_Cart {
 	}
 
 	/**
-	 * Get the exemption certificate for the customer.
-	 *
-	 * @return TaxCloud\ExemptionCertificateBase
-	 * @since 5.0
-	 */
-	public function get_certificate() {
-		$certificate = $this->get_meta( 'exempt_cert' );
-
-		if ( ! is_a( $certificate, 'TaxCloud\ExemptionCertificateBase' ) ) {
-			return null;
-		}
-
-		return $certificate;
-	}
-
-	/**
 	 * Sets the exemption certificate for the order.
 	 *
 	 * @param TaxCloud\ExemptionCertificateBase $certificate Exemption certificate object.
@@ -445,11 +429,53 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 6.0.7
 	 */
 	public function set_certificate( $certificate ) {
-		if ( ! is_a( $certificate, 'TaxCloud\ExemptionCertificateBase' ) ) {
-			$certificate = null;
+		// TODO: Remove this method in v7.
+		_deprecated_function(
+			__CLASS__ . '::' . __METHOD__,
+			'6.4.0',
+			__CLASS__ . '::set_certificate_id'
+		);
+
+		$certificate_id = '';
+		if ( is_a( $certificate, 'TaxCloud\ExemptionCertificateBase' ) ) {
+			$certificate_id = $certificate->getCertificateID();
 		}
 
-		$this->update_meta( 'exempt_cert', $certificate );
+		$this->set_certificate_id( $certificate_id );
+	}
+
+	/**
+	 * Set the ID of the applied exemption certificate.
+	 *
+	 * @param string $certificate_id Exemption certificate ID.
+	 *
+	 * @since 6.4.0
+	 */
+	public function set_certificate_id( $certificate_id ) {
+		if ( ! is_string( $certificate_id ) ) {
+			$certificate_id = '';
+		}
+
+		$this->update_meta( 'exempt_cert', $certificate_id );
+	}
+
+	/**
+	 * Get the ID of the applied exemption certificate.
+	 *
+	 * @return string Certificate ID.
+	 *
+	 * @since 6.4.0
+	 */
+	public function get_certificate_id() {
+		$certificate_or_id = $this->get_meta( 'exempt_cert' );
+
+		// Prior to SST 6.4 we saved the entire certificate object.
+		// Now we just save the certificate ID.
+		if ( is_a( $certificate_or_id, 'TaxCloud\ExemptionCertificateBase' ) ) {
+			return $certificate_or_id->getCertificateID();
+		}
+
+		return $certificate_or_id;
 	}
 
 	/**

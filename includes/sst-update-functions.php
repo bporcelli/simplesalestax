@@ -1425,3 +1425,39 @@ function sst_update_640_delete_null_certificates() {
 		)
 	);
 }
+
+/**
+ * Replaces serialized TaxCloud\ExemptionCertificateBase objects
+ * with string certificate IDs in the `exempt_cert` meta key on
+ * upgrade to 6.4.
+ */
+function sst_update_640_migrate_certificates() {
+	$batch_size = 100;
+	$args       = array(
+		'type'         => 'shop_order',
+		'return'       => 'ids',
+		'limit'        => $batch_size,
+		'meta_key'     => '_wootax_exempt_cert',
+		'meta_value'   => 'ExemptionCertificateBase',
+		'meta_compare' => 'LIKE',
+	);
+
+	$order_ids = wc_get_orders( $args );
+
+	foreach ( $order_ids as $order_id ) {
+		$order       = new SST_Order( $order_id );
+		$certificate = $order->get_meta( 'exempt_cert' );
+
+		if ( is_a( $certificate, 'TaxCloud\ExemptionCertificateBase' ) ) {
+			$order->set_certificate_id( $certificate->getCertificateID() );
+			$order->save();
+		}
+	}
+
+	if ( count( $order_ids ) === $batch_size ) {
+		// More orders remain to process.
+		return 'sst_update_640_migrate_certificates';
+	}
+
+	return false;
+}

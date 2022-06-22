@@ -464,6 +464,22 @@ abstract class SST_Abstract_Cart {
 	}
 
 	/**
+	 * Get the exemption certificate for the customer.
+	 *
+	 * @return TaxCloud\ExemptionCertificateBase
+	 * @since 6.4.0
+	 */
+	public function get_certificate() {
+		$certificate_id = $this->get_certificate_id();
+
+		if ( $certificate_id ) {
+			return new TaxCloud\ExemptionCertificateBase( $certificate_id );
+		}
+
+		return null;
+	}
+
+	/**
 	 * Get saved packages for this cart.
 	 *
 	 * @return array
@@ -611,12 +627,13 @@ abstract class SST_Abstract_Cart {
 	abstract protected function set_fee_tax( $id, $tax );
 
 	/**
-	 * Get the exemption certificate for the customer.
+	 * Get the ID of the applied exemption certificate.
 	 *
-	 * @return TaxCloud\ExemptionCertificateBase
-	 * @since 5.0
+	 * @return string Exemption certificate ID.
+	 *
+	 * @since 6.4.0
 	 */
-	abstract public function get_certificate();
+	abstract public function get_certificate_id();
 
 	/**
 	 * Handle an error by logging it or displaying it to the user.
