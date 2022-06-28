@@ -1400,3 +1400,101 @@ function sst_update_620_fix_product_origin_addresses_batch() {
 
 	return 'sst_update_620_fix_product_origin_addresses_batch';
 }
+
+/**
+ * Delete the _wootax_package_cache meta key on upgrade to 6.4.
+ */
+function sst_update_640_delete_package_cache() {
+	global $wpdb;
+
+	$wpdb->query( "DELETE FROM {$wpdb->postmeta} WHERE meta_key = '_wootax_package_cache'" );
+}
+
+/**
+ * Delete null _wootax_exempt_cert meta values on upgrade to 6.4.
+ */
+function sst_update_640_delete_null_certificates() {
+	global $wpdb;
+
+	$null_value = 's:2:"N;";';
+
+	$wpdb->query(
+		$wpdb->prepare(
+			"DELETE FROM {$wpdb->postmeta} WHERE meta_key = '_wootax_exempt_cert' AND meta_value = %s",
+			$null_value
+		)
+	);
+}
+
+/**
+ * Replaces serialized TaxCloud\ExemptionCertificateBase objects
+ * with string certificate IDs in the `exempt_cert` meta key on
+ * upgrade to 6.4.
+ */
+function sst_update_640_migrate_certificates() {
+	$batch_size = 100;
+	$args       = array(
+		'type'         => 'shop_order',
+		'return'       => 'ids',
+		'limit'        => $batch_size,
+		'meta_key'     => '_wootax_exempt_cert',
+		'meta_value'   => 'ExemptionCertificateBase',
+		'meta_compare' => 'LIKE',
+	);
+
+	$order_ids = wc_get_orders( $args );
+
+	foreach ( $order_ids as $order_id ) {
+		$order       = new SST_Order( $order_id );
+		$certificate = $order->get_meta( 'exempt_cert' );
+
+		if ( is_a( $certificate, 'TaxCloud\ExemptionCertificateBase' ) ) {
+			$order->set_certificate_id( $certificate->getCertificateID() );
+			$order->save();
+		}
+	}
+
+	if ( count( $order_ids ) === $batch_size ) {
+		// More orders remain to process.
+		return 'sst_update_640_migrate_certificates';
+	}
+
+	return false;
+}
+
+/**
+ * Compresses saved order packages on upgrade to 6.4.
+ */
+function sst_update_640_compress_packages() {
+	$batch_size = 100;
+	$args       = array(
+		'type'         => 'shop_order',
+		'return'       => 'ids',
+		'limit'        => $batch_size,
+		'meta_key'     => '_wootax_db_version',
+		'meta_value'   => '6.4.0',
+		'meta_compare' => '!=',
+	);
+
+	$order_ids = wc_get_orders( $args );
+
+	foreach ( $order_ids as $order_id ) {
+		$order        = new SST_Order( $order_id );
+		$packages     = $order->get_meta( 'packages' );
+		$new_packages = array_map(
+		    array( $order, 'compress_package_data' ),
+		    $packages
+		);
+
+		$order->set_packages( $new_packages );
+		$order->update_meta( 'db_version', '6.4.0' );
+		$order->save();
+	}
+
+	if ( count( $order_ids ) === $batch_size ) {
+		// More orders remain to process.
+		return 'sst_update_640_compress_packages';
+	}
+
+	return false;
+}

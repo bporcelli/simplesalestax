@@ -373,12 +373,13 @@ class SST_Checkout extends SST_Abstract_Cart {
 	}
 
 	/**
-	 * Get the customer exemption certificate.
+	 * Get the ID of the applied exemption certificate.
 	 *
-	 * @return TaxCloud\ExemptionCertificateBase|NULL
-	 * @since 5.0
+	 * @return string Exemption certificate ID.
+	 *
+	 * @since 6.4.0
 	 */
-	public function get_certificate() {
+	public function get_certificate_id() {
 		if ( ! isset( $_POST['post_data'] ) ) { // phpcs:ignore WordPress.CSRF.NonceVerification
 			$post_data = $_POST; // phpcs:ignore WordPress.CSRF.NonceVerification
 		} else {
@@ -387,12 +388,10 @@ class SST_Checkout extends SST_Abstract_Cart {
 		}
 
 		if ( isset( $post_data['tax_exempt'] ) && isset( $post_data['certificate_id'] ) ) {
-			$certificate_id = sanitize_text_field( wp_unslash( $post_data['certificate_id'] ) );
-
-			return new TaxCloud\ExemptionCertificateBase( $certificate_id );
+			return sanitize_text_field( wp_unslash( $post_data['certificate_id'] ) );
 		}
 
-		return null;
+		return '';
 	}
 
 	/**
@@ -455,17 +454,14 @@ class SST_Checkout extends SST_Abstract_Cart {
 		// Make sure we're saving the data from the 'main' cart.
 		$this->cart = new SST_Cart_Proxy( WC()->cart );
 
-		// Save the packages from the last lookup and the applied exemption certificate (if any).
+		// Save the packages from the last lookup.
 		$order = new SST_Order( $order_id );
-
 		$order->set_packages( $this->get_packages() );
-		$order->set_certificate( $this->get_certificate() );
 
-		// Save cached packages as metadata to avoid duplicate lookups from the backend.
-		$cached_packages = WC()->session->get( 'sst_package_cache', array() );
-
-		foreach ( $cached_packages as $hash => $package ) {
-			$order->save_package( $hash, $package );
+		// Save the applied exemption certificate (if any).
+		$certificate_id = $this->get_certificate_id();
+		if ( $certificate_id ) {
+			$order->set_certificate_id( $certificate_id );
 		}
 
 		$order->save();

@@ -48,6 +48,12 @@ class SST_Install {
 		'6.2.0' => array(
 			'sst_update_620_import_origin_addresses',
 		),
+		'6.4.0' => array(
+			'sst_update_640_delete_package_cache',
+			'sst_update_640_delete_null_certificates',
+			'sst_update_640_migrate_certificates',
+			'sst_update_640_compress_packages',
+		),
 	);
 
 	/**

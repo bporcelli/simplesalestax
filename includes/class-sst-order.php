@@ -30,10 +30,9 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 4.4
 	 */
 	protected static $defaults = array(
-		'packages'      => array(),
-		'package_cache' => array(),
-		'exempt_cert'   => null,
-		'status'        => 'pending',
+		'packages'    => array(),
+		'exempt_cert' => '',
+		'status'      => 'pending',
 	);
 
 	/**
@@ -109,6 +108,15 @@ class SST_Order extends SST_Abstract_Cart {
 		if ( ! is_array( $packages ) ) {
 			return array();
 		}
+
+		// Compress package data just in case the order hasn't been
+		// migrated to the new data format used in SST 6.4+ yet.
+		// For orders that are already using the new data format
+		// this is a no-op.
+		$packages = array_map(
+			array( $this, 'compress_package_data' ),
+			$packages
+		);
 
 		return array_values( $packages );
 	}
@@ -423,22 +431,6 @@ class SST_Order extends SST_Abstract_Cart {
 	}
 
 	/**
-	 * Get the exemption certificate for the customer.
-	 *
-	 * @return TaxCloud\ExemptionCertificateBase
-	 * @since 5.0
-	 */
-	public function get_certificate() {
-		$certificate = $this->get_meta( 'exempt_cert' );
-
-		if ( ! is_a( $certificate, 'TaxCloud\ExemptionCertificateBase' ) ) {
-			return null;
-		}
-
-		return $certificate;
-	}
-
-	/**
 	 * Sets the exemption certificate for the order.
 	 *
 	 * @param TaxCloud\ExemptionCertificateBase $certificate Exemption certificate object.
@@ -446,11 +438,53 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 6.0.7
 	 */
 	public function set_certificate( $certificate ) {
-		if ( ! is_a( $certificate, 'TaxCloud\ExemptionCertificateBase' ) ) {
-			$certificate = null;
+		// TODO: Remove this method in v7.
+		_deprecated_function(
+			__CLASS__ . '::' . __METHOD__,
+			'6.4.0',
+			__CLASS__ . '::set_certificate_id'
+		);
+
+		$certificate_id = '';
+		if ( is_a( $certificate, 'TaxCloud\ExemptionCertificateBase' ) ) {
+			$certificate_id = $certificate->getCertificateID();
 		}
 
-		$this->update_meta( 'exempt_cert', $certificate );
+		$this->set_certificate_id( $certificate_id );
+	}
+
+	/**
+	 * Set the ID of the applied exemption certificate.
+	 *
+	 * @param string $certificate_id Exemption certificate ID.
+	 *
+	 * @since 6.4.0
+	 */
+	public function set_certificate_id( $certificate_id ) {
+		if ( ! is_string( $certificate_id ) ) {
+			$certificate_id = '';
+		}
+
+		$this->update_meta( 'exempt_cert', $certificate_id );
+	}
+
+	/**
+	 * Get the ID of the applied exemption certificate.
+	 *
+	 * @return string Certificate ID.
+	 *
+	 * @since 6.4.0
+	 */
+	public function get_certificate_id() {
+		$certificate_or_id = $this->get_meta( 'exempt_cert' );
+
+		// Prior to SST 6.4 we saved the entire certificate object.
+		// Now we just save the certificate ID.
+		if ( is_a( $certificate_or_id, 'TaxCloud\ExemptionCertificateBase' ) ) {
+			return $certificate_or_id->getCertificateID();
+		}
+
+		return $certificate_or_id;
 	}
 
 	/**
@@ -607,15 +641,16 @@ class SST_Order extends SST_Abstract_Cart {
 
 		// Send AuthorizedWithCapture for all packages.
 		foreach ( $packages as $key => $package ) {
-			$now = date( 'c' );
+			$now      = date( 'c' );
+			$order_id = $this->get_package_order_id( $key, $package );
 
 			try {
 				$request = new TaxCloud\Request\AuthorizedWithCapture(
 					$this->api_id,
 					$this->api_key,
-					$package['request']->getCustomerID(),
+					$package['customer_id'],
 					$package['cart_id'],
-					$this->get_package_order_id( $key ),
+					$order_id,
 					$now,
 					$now
 				);
@@ -691,27 +726,30 @@ class SST_Order extends SST_Abstract_Cart {
 				break;
 			}
 
-			$cart_items   = $package['request']->getCartItems();
-			$refund_items = array();
+			$cart_items      = $package['cart_items'];
+			$shipping_method = $this->process_method_id(
+				$package['shipping_method']
+			);
+			$refund_items    = array();
 
-			foreach ( $cart_items as $cart_item_key => $pitem ) {
-				$to_match = $package['map'][ $cart_item_key ];
+			foreach ( $cart_items as $cart_item ) {
+				$id_to_match = $cart_item['id'];
 
-				if ( 'shipping' === $to_match['type'] ) {
-					$to_match['id'] = $this->process_method_id( $package['shipping']->method_id );
+				if ( 'shipping' === $cart_item['type'] ) {
+					$id_to_match = $shipping_method;
 				}
 
 				foreach ( $items as $item_key => $item ) {
-					if ( $item['id'] !== $to_match['id'] ) {
+					if ( $item['id'] !== $id_to_match ) {
 						continue; // No match.
 					}
 
-					$qty = min( $item['qty'], $pitem->getQty() );
+					$qty = min( $item['qty'], $cart_item['qty'] );
 
 					$refund_items[] = new TaxCloud\CartItem(
 						count( $refund_items ),
-						$pitem->getItemID(),
-						$pitem->getTIC(),
+						$cart_item['id'],
+						$cart_item['tic'],
 						$item['price'],
 						$qty
 					);
@@ -725,11 +763,16 @@ class SST_Order extends SST_Abstract_Cart {
 			}
 
 			if ( ! empty( $refund_items ) ) {
+				$order_id = $this->get_package_order_id(
+					key( $packages ),
+					$package
+				);
+
 				try {
 					$request = new TaxCloud\Request\Returned(
 						$this->api_id,
 						$this->api_key,
-						$this->get_package_order_id( key( $packages ), $package ),
+						$order_id,
 						$refund_items,
 						date( 'c' )
 					);
@@ -881,10 +924,16 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @return array|bool The saved package with the given hash, or false if no such package exists.
 	 */
 	protected function get_saved_package( $hash ) {
-		$saved_packages = $this->get_meta( 'package_cache' );
+		$saved_packages = $this->get_meta( 'packages' );
 
-		if ( is_array( $saved_packages ) && isset( $saved_packages[ $hash ] ) ) {
-			return $saved_packages[ $hash ];
+		if ( ! is_array( $saved_packages ) ) {
+			return false;
+		}
+
+		foreach ( $saved_packages as $package ) {
+			if ( $hash === $this->get_package_hash( $package ) ) {
+				return $package;
+			}
 		}
 
 		return false;
@@ -897,15 +946,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @param array  $package Package.
 	 */
 	protected function save_package( $hash, $package ) {
-		$saved_packages = $this->get_meta( 'package_cache' );
-
-		if ( ! is_array( $saved_packages ) ) {
-			$saved_packages = array();
-		}
-
-		$saved_packages[ $hash ] = $package;
-
-		$this->update_meta( 'package_cache', $saved_packages );
+		// No op.
 	}
 
 }
