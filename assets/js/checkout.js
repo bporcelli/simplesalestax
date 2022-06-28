@@ -19,7 +19,6 @@
                     this.listenTo( this.model, 'change:certificates', this.render );
 
                     $( document.body ).on( 'click', '.sst-certificate-add', { view: this }, this.onAddCertificate );
-                    $( document.body ).on( 'wc_backbone_modal_response', this.onAddCertificateSubmitted );
                 },
                 render: function() {
                     var certificates = _.indexBy( this.model.get( 'certificates' ), 'CertificateID' ),
@@ -117,13 +116,6 @@
                     event.preventDefault();
 
                     if ( certificate ) {
-                        // Set background image based on certificate type
-                        if ( certificate.SinglePurchase ) {
-                            certificate.backgroundImage = data.images.single_cert;
-                        } else {
-                            certificate.backgroundImage = data.images.blanket_cert;
-                        }
-
                         $( this ).SSTBackboneModal({
                             template: 'sst-modal-view-certificate',
                             variable: certificate,
@@ -131,58 +123,45 @@
                     }
                 },
                 onAddCertificate: function( event ) {
-                    var view = event.data.view;
-
                     event.preventDefault();
 
-                    $( this ).SSTBackboneModal({
-                        template: 'sst-modal-add-certificate',
-                        variable: {
-                            CertificateID: 'new-' + (new Date().getTime())
-                        },
-                        callback: view.validateAddCertificate
-                    });
-                },
-                validateAddCertificate: function( event, target, posted_data ) {
-                    var $target = $( event.target ),
-                        form    = $target.closest( '.wc-backbone-modal' ).find( 'form' );
-                    
-                    // Reset
-                    form.find( '.validate-required' ).removeClass( 'woocommerce-invalid-required-field woocommerce-invalid' );
-                    
-                    // Mark all required fields
-                    form.find( '.validate-required' ).each( function() {
-                        var $field = $( this ).find( 'input, select, textarea' );
-                        if ( $field.val() === '' ) {
-                            $( this ).addClass( 'woocommerce-invalid-required-field woocommerce-invalid' );
-                        }
+                    var view = event.data.view;
+
+                    SST_Add_Certificate_Modal.open( {
+                        onAddCertificate: view.addCertificateHandler,
                     } );
-
-                    return form.find( '.woocommerce-invalid' ).length === 0;
                 },
-                onAddCertificateSubmitted: function( event, target, posted_data ) {
-                    if ( 'sst-modal-add-certificate' === target ) {
-                        certificateTableView.block();
+                addCertificateHandler: function( posted_data ) {
+                    certificateTableView.block();
 
-                        // Add certificate via ajax call
-                        $.post( data.ajaxurl + '?action=sst_add_certificate', {
-                            nonce: data.add_certificate_nonce,
-                            certificate: posted_data,
-                            form_data: $( 'form.woocommerce-checkout' ).serialize(),
-                        }, function( response, textStatus ) {
-                            certificateTableView.unblock();
+                    var $form = $( 'form.woocommerce-checkout' );
 
-                            if ( 'success' === textStatus && response.success ) {
-                                // Re-render
-                                certificateTableView.model.set( 'selected', response.data.certificate_id );
-                                certificateTableView.model.set( 'certificates', response.data.certificates );
-                                certificateTableView.model.trigger( 'change:certificates' );
-                                certificateTableView.updateCheckout();
-                            } else {
-                                alert( data.strings.add_failed + ': ' + response.data );
-                            }
-                        }, 'json' );
-                    }
+                    // Add certificate via ajax call
+                    $.post( data.ajaxurl + '?action=sst_add_certificate', {
+                        nonce: SST_Add_Certificate_Data.nonce,
+                        certificate: posted_data,
+                        address: {
+                            first_name: $form.find( '[name="billing_first_name"]' ).val(),
+                            last_name: $form.find( '[name="billing_last_name"]' ).val(),
+                            address_1: $form.find( '[name="billing_address_1"]' ).val(),
+                            address_2: $form.find( '[name="billing_address_2"]' ).val(),
+                            city: $form.find( '[name="billing_city"]' ).val(),
+                            state: $form.find( '[name="billing_state"]' ).val(),
+                            postcode: $form.find( '[name="billing_postcode"]' ).val(),
+                        },
+                    }, function( response, textStatus ) {
+                        certificateTableView.unblock();
+
+                        if ( 'success' === textStatus && response.success ) {
+                            // Re-render
+                            certificateTableView.model.set( 'selected', response.data.certificate_id );
+                            certificateTableView.model.set( 'certificates', response.data.certificates );
+                            certificateTableView.model.trigger( 'change:certificates' );
+                            certificateTableView.updateCheckout();
+                        } else {
+                            alert( data.strings.add_failed + ': ' + response.data );
+                        }
+                    }, 'json' );
                 },
             } ),
             certificateTable = new CertificateTable( {
@@ -199,70 +178,13 @@
         // Toggle visibility of tax details form based on value of "Tax exempt?" checkbox
         $( document ).on( 'change', '#tax_exempt_checkbox', function() {
             var checked = $( '#tax_exempt_checkbox' ).is( ':checked' );
-            
+
             if ( checked )
                 $( '#tax_details' ).fadeIn();
             else
                 $( '#tax_details' ).hide();
-            
+
             $( document.body ).trigger( 'update_checkout' );
-        } );
-
-        // Toggle visibility of certain form fields based on the value of a select box
-        $( document ).on( 'change', '#PurchaserBusinessType', function() {
-            var $toggle = $( '#business-type-other_field' );
-
-            if ( 'Other' == $( this ).val() )
-                $toggle.addClass( 'validate-required' ).show();
-            else
-                $toggle.removeClass( 'validate-required' ).hide();
-        } );
-
-        $( document ).on( 'change', '#TaxType', function() {
-            var $toggle = $( '#issuing-state_field' );
-
-            if ( 'StateIssued' == $( this ).val() )
-                $toggle.addClass( 'validate-required' ).show();
-            else
-                $toggle.removeClass( 'validate-required' ).hide();
-        } );
-
-        $( document ).on( 'change', '#PurchaserExemptionReason', function() {
-            var $toggle = $( '#exempt-other-reason_field' ),
-                $label  = $toggle.find( 'label' ),
-                value   = $( this ).val();
-
-            if ( value !== '' ) {
-                $toggle.addClass( 'validate-required' ).show();
-
-                // Set label depending on value
-                var labels = {
-                    'FederalGovernmentDepartment': 'Dept. Name',
-                    'StateOrLocalGovernmentName': 'Govt. Name',
-                    'TribalGovernmentName': 'Tribe Name',
-                    'ForeignDiplomat': 'Diplomat ID',
-                    'CharitableOrganization': 'Organization ID',
-                    'ReligiousOrEducationalOrganization': 'Organization ID',
-                    'Resale': 'Resale ID',
-                    'AgriculturalProduction': 'Agricultural Prod. ID',
-                    'IndustrialProductionOrManufacturing': 'Production ID',
-                    'DirectPayPermit': 'Permit ID',
-                    'DirectMail': 'Direct Mail ID',
-                    'Other': 'Please explain'
-                };
-
-                $label.text( labels[ value ] );
-            } else {
-                $toggle.removeClass( 'validate-required' ).hide();
-            }
-        } );
-
-        // Remove red border from invalid fields when value changes
-        $( document ).on( 'input', '.sst-input', function( e ) {
-            var $this   = $( this ),
-                $parent = $this.closest( '.form-row' );
-
-            $parent.removeClass( 'woocommerce-invalid woocommerce-invalid-required-field woocommerce-invalid-email woocommerce-validated' );
         } );
 
         // Initialize exemption form

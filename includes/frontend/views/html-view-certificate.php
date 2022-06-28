@@ -17,7 +17,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 					</button>
 				</header>
 				<article>
-					<div class="sst-certificate" style="background-image: url({{ data.backgroundImage }});">
+					<#
+					var classNames = ['sst-certificate'];
+					if (data.SinglePurchase) {
+						classNames.push('sst-certificate--single');
+					}
+					#>
+					<div class="{{classNames.join(' ')}}">
 						<span id="PurchaserName">{{ data.PurchaserName }}</span>
 						<span id="PurchaserAddress">{{ data.PurchaserAddress }}</span>
 						<span id="PurchaserState">{{ data.PurchaserState }}</span>
@@ -27,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<span id="TaxType">{{ data.TaxType }}</span>
 						<span id="IDNumber">{{ data.IDNumber }}</span>
 						<span id="PurchaserBusinessType">{{ data.PurchaserBusinessType }}</span>
-						<span id="MerchantName">{{ SSTCertData.seller_name }}</span>
+						<span id="MerchantName">{{ data.SellerName }}</span>
 					</div>
 				</article>
 			</section>

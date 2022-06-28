@@ -1,0 +1,287 @@
+jQuery(function($) {
+	var CertificateSelectModel = Backbone.Model.extend({
+		defaults: {
+			certificates: {},
+			customerId: '',
+			selectedCertificate: '',
+			loading: true,
+			isEditable: true,
+		},
+
+		initialize: function() {
+			this.loadCustomerCertificates();
+
+			this.on('change:customerId', this.loadCustomerCertificates);
+			this.on('change:certificates', this.maybeResetSelection);
+		},
+
+		loadCustomerCertificates: function() {
+			var _this = this;
+			var customerId = _this.get('customerId');
+
+			_this.set('certificates', {});
+
+			if (!customerId) {
+				return;
+			}
+
+			_this.set('loading', true);
+
+			var requestData = {
+				action: 'sst_get_certificates',
+				nonce: SSTMetaBox.get_certificates_nonce,
+				customerId: customerId,
+			};
+
+			$.get(ajaxurl, requestData).then(function(response) {
+				_this.set('certificates', response.data);
+			}).catch(function(err) {
+				console.error('Failed to load certificates:', err.message);
+			}).always(function() {
+				_this.set('loading', false);
+			});
+		},
+
+		maybeResetSelection: function() {
+			var selectedCertificate = this.get('selectedCertificate');
+
+			if (!selectedCertificate) {
+				return;
+			}
+
+			var certificates = this.get('certificates');
+			var selectionValid = selectedCertificate in certificates;
+
+			if (!selectionValid) {
+				this.set('selectedCertificate', '');
+			}
+		}
+	});
+
+	var CertificateSelectView = Backbone.View.extend({
+		template: wp.template('exempt-cert-select'),
+
+		events: {
+			'change select': 'updateSelectedCertificate',
+			'click .sst-view-certificate': 'viewCertificate',
+			'click .sst-add-certificate': 'addCertificate',
+		},
+
+		initialize: function() {
+			this.listenTo(
+				this.model,
+				'change:loading change:customerId',
+				this.render
+			);
+			this.listenTo(
+				this.model,
+				'change:certificates',
+				this.updateDropdownOptions
+			);
+			this.listenTo(
+				this.model,
+				'change:selectedCertificate',
+				this.toggleViewButton
+			);
+			jQuery(document).ajaxSend(this.filterRecalcRequest.bind(this));
+		},
+
+		render: function() {
+			this.$el.html(
+				this.template(this.model.attributes)
+			);
+
+			this.initDropdown();
+			this.toggleViewButton();
+
+			return this;
+		},
+
+		initDropdown: function() {
+			this.$('select').selectWoo({
+				minimumResultsForSearch: Infinity,
+				placeholder: SSTMetaBox.i18n.none,
+				allowClear: true,
+				data: this.getDropdownOptions()
+			});
+		},
+
+		updateDropdownOptions: function() {
+			if (!this.model.get('loading')) {
+				this.initDropdown();
+			}
+		},
+
+		getDropdownOptions: function() {
+			var certificates = this.model.get('certificates');
+			var selectedCertificate = this.model.get('selectedCertificate');
+			var options = [
+				{
+					id: '',
+					text: SSTMetaBox.i18n.none,
+					selected: selectedCertificate === '',
+				}
+			];
+
+			for (var key in certificates) {
+				if (!certificates.hasOwnProperty(key)) {
+					continue;
+				}
+
+				var certificate = certificates[key];
+				var certificateId = certificate.CertificateID;
+				var isSelected = selectedCertificate === certificateId;
+
+				options.push({
+					id: certificateId,
+					text: certificate.Description,
+					selected: isSelected,
+				});
+			}
+
+			return options;
+		},
+
+		updateSelectedCertificate: function() {
+			this.model.set(
+				'selectedCertificate',
+				this.$('select').val()
+			);
+		},
+
+		toggleViewButton: function() {
+			var showButton = !!this.model.get('selectedCertificate');
+			this.$('.sst-view-certificate').toggle(showButton);
+		},
+
+		viewCertificate: function() {
+			var certificates = this.model.get('certificates');
+			var selectedId = this.model.get('selectedCertificate');
+			var certificate = certificates[selectedId];
+
+			if (!certificate) {
+				return;
+			}
+
+			jQuery(this).SSTBackboneModal({
+				template: 'sst-modal-view-certificate',
+				variable: certificate,
+			});
+		},
+
+		addCertificate: function() {
+			if (!this.hasBillingAddress()) {
+				alert(SSTMetaBox.i18n.please_add_address);
+				return;
+			}
+
+			SST_Add_Certificate_Modal.open({
+				onAddCertificate: this.addCertificateHandler.bind(this),
+			});
+		},
+
+		addCertificateHandler: function(certificate) {
+			jQuery('#sales_tax_meta').block({
+				message: null,
+				overlayCSS: {
+					background: '#fff',
+					opacity: 0.6
+				}
+			});
+
+			var postUrl = ajaxurl + '?action=sst_add_certificate';
+			var data = {
+				nonce: SST_Add_Certificate_Data.nonce,
+				certificate: certificate,
+				user_id: this.getCustomerId(),
+				address: this.getBillingAddress(),
+			};
+
+			jQuery.post(postUrl, data)
+				.done(function(response) {
+					if (!response.success) {
+						throw new Error(response.data);
+					}
+
+					model.set({
+						'selectedCertificate': response.data.certificate_id,
+						'certificates': response.data.certificates,
+					});
+
+					alert(SSTMetaBox.i18n.certificate_added);
+				})
+				.fail(function(e) {
+					alert(SSTMetaBox.i18n.add_certificate_failed + ': ' + e);
+				})
+				.always(function() {
+					jQuery('#sales_tax_meta').unblock();
+				});
+		},
+
+		hasBillingAddress: function() {
+			var address = this.getBillingAddress();
+			var required_fields = [
+				'first_name',
+				'last_name',
+				'address_1',
+				'city',
+				'state',
+				'postcode',
+			];
+
+			return required_fields.every(function(field) {
+				return field in address && !!address[field];
+			});
+		},
+
+		getBillingAddress: function() {
+			var address = {
+				first_name: '',
+				last_name: '',
+				address_1: '',
+				address_2: '',
+				city: '',
+				state: '',
+				postcode: '',
+			};
+
+			for (var key in address) {
+				if (!address.hasOwnProperty(key)) {
+					continue;
+				}
+				address[key] = $('#_billing_' + key).val().trim();
+			}
+
+			return address;
+		},
+
+		getCustomerId: function() {
+			return $('#customer_user').val();
+		},
+
+		filterRecalcRequest: function(event, jqXHR, settings) {
+			if (settings.data.indexOf('action=woocommerce_calc_line_taxes') >= 0) {
+				var certificateId = this.model.get('selectedCertificate');
+				settings.data += '&exemption_certificate=' + certificateId;
+			}
+		}
+	});
+
+	var orderIsEditable = $('button.calculate-action').is(':visible');
+	var model = new CertificateSelectModel({
+		customerId: $('#customer_user').val(),
+		selectedCertificate: SSTMetaBox.selected_certificate,
+		isEditable: orderIsEditable && 'pending' === SSTMetaBox.order_status,
+	});
+
+	var view = new CertificateSelectView({
+		el: $('#exempt-cert-select'),
+		model: model,
+	});
+
+	view.render();
+
+	$('#customer_user').on('change', function() {
+		model.set('customerId', $(this).val());
+	});
+});

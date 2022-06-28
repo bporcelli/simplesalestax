@@ -119,9 +119,36 @@ class SST_Certificates {
 			'TaxType'                    => sst_prettify( $detail->getPurchaserTaxID()->getTaxType() ),
 			'IDNumber'                   => $detail->getPurchaserTaxID()->getIDNumber(),
 			'PurchaserBusinessType'      => sst_prettify( $detail->getPurchaserBusinessType() ),
+			'Description'                => self::get_certificate_description(
+				$detail
+			),
+			'SellerName'                 => SST_Settings::get( 'company_name' ),
 		);
 
 		return $formatted;
+	}
+
+	/**
+	 * Get a text description of a certificate.
+	 *
+	 * @param TaxCloud\ExemptionCertificateDetail $detail Certificate details.
+	 *
+	 * @return string
+	 */
+	protected static function get_certificate_description( $detail ) {
+		$state      = current( $detail->GetExemptStates() );
+		$state_abbr = $state->GetStateAbbr();
+		$id_type    = sst_prettify( $detail->getPurchaserTaxID()->getTaxType() );
+		$id_number  = $detail->getPurchaserTaxID()->getIDNumber();
+		$date       = date( 'm/d/Y', strtotime( $detail->getCreatedDate() ) );
+
+		return sprintf(
+			/* translators: 1 - state issued, 2 - tax id, 3 - date created */
+			__( '%1$s - %2$s (created %3$s)', 'simple-sales-tax' ),
+			$state_abbr,
+			$id_number,
+			$date
+		);
 	}
 
 	/**

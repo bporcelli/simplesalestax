@@ -33,6 +33,7 @@ class SST_Order_Controller {
 			10,
 			2
 		);
+		add_action( 'woocommerce_process_shop_order_meta', array( $this, 'save_certficiate' ) );
 	}
 
 	/**
@@ -215,6 +216,26 @@ class SST_Order_Controller {
 		}
 
 		return $query;
+	}
+
+	/**
+	 * Saves the exemption certificate for an order.
+	 *
+	 * @param int $order_id Order post ID.
+	 */
+	public function save_certficiate( $order_id ) {
+		$order       = new SST_Order( $order_id );
+		$is_editable = 'pending' === $order->get_taxcloud_status();
+
+		if ( ! $is_editable ) {
+			return;
+		}
+
+		$certificate_id = sanitize_text_field(
+			wp_unslash( $_POST['exempt_cert'] ?? '' )
+		);
+		$order->update_meta( 'exempt_cert', $certificate_id );
+		$order->save();
 	}
 
 }

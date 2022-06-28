@@ -380,33 +380,37 @@ function sst_get_order_shipping_address( $order ) {
  * @param WP_Post $post The post being edited.
  */
 function sst_render_tax_meta_box( $post ) {
-	$order           = new SST_Order( $post->ID );
-	$status          = $order->get_taxcloud_status( 'view' );
-	$raw_certificate = $order->get_certificate();
-	$certificate     = '';
+	$order  = new SST_Order( $post->ID );
+	$status = $order->get_taxcloud_status( 'view' );
 
-	if ( ! is_null( $raw_certificate ) ) {
-		$certificate = SST_Certificates::get_certificate_formatted(
-			$raw_certificate->getCertificateID(),
-			$order->get_user_id()
-		);
-	}
-
-	wp_enqueue_script( 'sst-view-certificate' );
+	wp_enqueue_script( 'sst-meta-box' );
 	wp_localize_script(
-		'sst-view-certificate',
-		'SSTCertData',
+		'sst-meta-box',
+		'SSTMetaBox',
 		array(
-			'certificate' => $certificate,
-			'seller_name' => SST_Settings::get( 'company_name' ),
-			'images'      => array(
-				'single_cert'  => SST()->url( 'assets/img/sp_exemption_certificate750x600.png' ),
-				'blanket_cert' => SST()->url( 'assets/img/exemption_certificate750x600.png' ),
+			'order_status'               => $order->get_taxcloud_status(),
+			'selected_certificate'       => $order->get_certificate_id(),
+			'get_certificates_nonce'     => wp_create_nonce( 'sst_get_certificates' ),
+			'i18n'                       => array(
+				'none'                   => __( 'None', 'simple-sales-tax' ),
+				'please_add_address'     => __(
+					'Please enter a complete billing address for the customer first.',
+					'simple-sales-tax'
+				),
+				'certificate_added'      => __(
+					"Certificate added successfully! Don't forget to recalculate taxes.",
+					'simple-sales-tax'
+				),
+				'add_certificate_failed' => __(
+					'Failed to add certificate',
+					'simple-sales-tax'
+				),
 			),
 		)
 	);
 
 	require __DIR__ . '/views/html-meta-box.php';
+	require __DIR__ . '/views/html-add-certificate-modal.php';
 	require __DIR__ . '/frontend/views/html-view-certificate.php';
 }
 

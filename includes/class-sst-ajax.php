@@ -26,6 +26,7 @@ class SST_Ajax {
 		'sst_delete_certificate'      => false,
 		'sst_add_certificate'         => false,
 		'woocommerce_calc_line_taxes' => false,
+		'sst_get_certificates'        => false,
 	);
 
 	/**
@@ -136,15 +137,16 @@ class SST_Ajax {
 			return;
 		}
 
-		if ( ! isset( $_POST['form_data'], $_POST['certificate'] ) ) {
+		if ( ! isset( $_POST['address'], $_POST['certificate'] ) ) {
 			wp_send_json_error( __( 'Invalid request.', 'simple-sales-tax' ) );
 		}
 
 		// Get data.
-		parse_str( wp_unslash( $_POST['form_data'] ), $form_data ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$certificate = wp_unslash( $_POST['certificate'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$address = wp_unslash( $_POST['address'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$form_data = array_map(
 			'sanitize_text_field',
-			array_merge( wp_unslash( $_POST['certificate'] ), $form_data ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			array_merge( $certificate, $address )
 		);
 
 		// Construct certificate.
@@ -164,14 +166,14 @@ class SST_Ajax {
 			array( $exempt_state ),
 			false,
 			'',
-			$form_data['billing_first_name'],
-			$form_data['billing_last_name'],
+			$form_data['first_name'],
+			$form_data['last_name'],
 			'',
-			$form_data['billing_address_1'],
-			$form_data['billing_address_2'],
-			$form_data['billing_city'],
-			$form_data['billing_state'],
-			$form_data['billing_postcode'],
+			$form_data['address_1'],
+			$form_data['address_2'],
+			$form_data['city'],
+			$form_data['state'],
+			$form_data['postcode'],
 			$tax_id,
 			$form_data['PurchaserBusinessType'],
 			$form_data['PurchaserBusinessTypeOtherValue'],
@@ -180,7 +182,25 @@ class SST_Ajax {
 		);
 
 		// Add certificate.
-		$user = wp_get_current_user();
+		if ( isset( $_POST['user_id'] ) ) {
+			$user_id = absint( sanitize_text_field( $_POST['user_id'] ) );
+			$user    = get_user_by( 'id', $user_id );
+
+			if ( ! $user ) {
+				wp_send_json_error( __( 'Invalid request.', 'simple-sales-tax' ) );
+			}
+
+			if ( ! current_user_can( 'edit_user', $user_id ) ) {
+				wp_send_json_error(
+					__(
+						"You don't have permission to add a certificate for this user.",
+						'simple-sales-tax'
+					)
+				);
+			}
+		} else {
+			$user = wp_get_current_user();
+		}
 
 		$certificate_id = '';
 
@@ -208,11 +228,46 @@ class SST_Ajax {
 	}
 
 	/**
+	 * Lists all exemption certificates available for a customer.
+	 * Used to populate the Exemption Certificate dropdown on the
+	 * Edit Order screen.
+	 *
+	 * @since 6.4.0
+	 */
+	public static function get_certificates() {
+		check_ajax_referer( 'sst_get_certificates', 'nonce' );
+
+		$user_id      = intval( wp_unslash( $_REQUEST['customerId'] ) );
+		$certificates = array();
+
+		if ( current_user_can( 'edit_user', $user_id ) ) {
+			// Get certificates in select2 data format.
+			$certificates = SST_Certificates::get_certificates_formatted(
+				$user_id
+			);
+		}
+
+		wp_send_json_success( $certificates );
+	}
+
+	/**
+	 * Gets a string describing an exemption certificate.
+	 *
+	 * @param array $certificate Certificate data.
+	 *
+	 * @return string
+	 */
+	protected static function get_certificate_text( $certificate ) {
+		return $certificate['CertificateID'];
+	}
+
+	/**
 	 * Recalculate sales tax via AJAX.
 	 *
 	 * @since 4.2
 	 */
 	public static function calc_line_taxes() {
+		// todo: will need to account for selected exemption certificate.
 		check_ajax_referer( 'calc-totals', 'security' );
 
 		if ( ! current_user_can( 'edit_shop_orders' ) ) {
@@ -223,12 +278,15 @@ class SST_Ajax {
 			wp_die( -1 );
 		}
 
-		$items    = array();
-		$order_id = absint( $_POST['order_id'] );
-		$country  = strtoupper( sanitize_text_field( wp_unslash( $_POST['country'] ) ) );
-		$state    = strtoupper( sanitize_text_field( wp_unslash( $_POST['state'] ) ) );
-		$postcode = strtoupper( sanitize_text_field( wp_unslash( $_POST['postcode'] ) ) );
-		$city     = sanitize_text_field( wp_unslash( $_POST['city'] ) );
+		$items          = array();
+		$order_id       = absint( $_POST['order_id'] );
+		$country        = strtoupper( sanitize_text_field( wp_unslash( $_POST['country'] ) ) );
+		$state          = strtoupper( sanitize_text_field( wp_unslash( $_POST['state'] ) ) );
+		$postcode       = strtoupper( sanitize_text_field( wp_unslash( $_POST['postcode'] ) ) );
+		$city           = sanitize_text_field( wp_unslash( $_POST['city'] ) );
+		$certificate_id = sanitize_text_field(
+			wp_unslash( $_POST['exemption_certificate'] ?? '' )
+		);
 
 		// Let Woo take the reins if the customer is international.
 		if ( 'US' !== $country ) {
@@ -254,6 +312,8 @@ class SST_Ajax {
 
 		self::ensure_order_address( $order, 'billing', $posted_address );
 		self::ensure_order_address( $order, 'shipping', $posted_address );
+
+		$order->update_meta_data( '_wootax_exempt_cert', $certificate_id );
 
 		$result = sst_order_calculate_taxes( $order );
 
