@@ -41,6 +41,8 @@ class SST_Admin {
 		add_action( 'create_product_cat', array( __CLASS__, 'save_category_tic' ) );
 		add_action( 'edited_product_cat', array( __CLASS__, 'save_category_tic' ) );
 		add_action( 'woocommerce_before_settings_tax', array( __CLASS__, 'tax_based_on_notice' ) );
+		add_action( 'edit_user_profile', array( __CLASS__, 'render_user_certificates' ), 11 );
+		add_action( 'show_user_profile', array( __CLASS__, 'render_user_certificates' ), 11 );
 	}
 
 	/**
@@ -281,6 +283,55 @@ class SST_Admin {
 			</div>
 			<?php
 		}
+	}
+
+	/**
+	 * Renders a table of the customer's exemption certificates
+	 * on the Edit User screen.
+	 *
+	 * @param WP_User $user The user whose profile is being edited.
+	 */
+	public static function render_user_certificates( $user ) {
+		$user_can_edit      = apply_filters(
+			'woocommerce_current_user_can_edit_customer_meta_fields',
+			current_user_can( 'manage_woocommerce' ),
+			$user->ID
+		);
+		$exemptions_enabled = 'true' === SST_Settings::get( 'show_exempt' );
+		$show_certificates  = $user_can_edit && $exemptions_enabled;
+
+		if ( ! $show_certificates ) {
+			return;
+		}
+
+		$script_data = array(
+			'user_id'      => $user->ID,
+			'certificates' => SST_Certificates::get_certificates_formatted( $user->ID ),
+		);
+
+		wp_enqueue_script( 'sst-edit-user' );
+		wp_localize_script( 'sst-edit-user', 'SST_Edit_User_Data', $script_data );
+
+		?>
+		<h2 id="exemption_certificates">
+			<?php esc_html_e( 'Exemption Certificates', 'simple-sales-tax' ); ?>
+		</h2>
+		<p>
+			<?php
+			esc_html_e(
+				"Manage this customer's TaxCloud exemption certificates.",
+				'simple-sales-tax'
+			);
+			?>
+		</p>
+		<?php
+
+		$template_args = array(
+			'show_inputs' => false,
+			'table_class' => 'widefat',
+		);
+
+		sst_render_certificate_table( $user->ID, $template_args );
 	}
 
 }

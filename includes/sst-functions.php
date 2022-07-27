@@ -380,34 +380,74 @@ function sst_get_order_shipping_address( $order ) {
  * @param WP_Post $post The post being edited.
  */
 function sst_render_tax_meta_box( $post ) {
-	$order           = new SST_Order( $post->ID );
-	$status          = $order->get_taxcloud_status( 'view' );
-	$raw_certificate = $order->get_certificate();
-	$certificate     = '';
+	$order  = new SST_Order( $post->ID );
+	$status = $order->get_taxcloud_status( 'view' );
 
-	if ( ! is_null( $raw_certificate ) ) {
-		$certificate = SST_Certificates::get_certificate_formatted(
-			$raw_certificate->getCertificateID(),
-			$order->get_user_id()
-		);
-	}
-
-	wp_enqueue_script( 'sst-view-certificate' );
+	wp_enqueue_script( 'sst-meta-box' );
 	wp_localize_script(
-		'sst-view-certificate',
-		'SSTCertData',
+		'sst-meta-box',
+		'SSTMetaBox',
 		array(
-			'certificate' => $certificate,
-			'seller_name' => SST_Settings::get( 'company_name' ),
-			'images'      => array(
-				'single_cert'  => SST()->url( 'assets/img/sp_exemption_certificate750x600.png' ),
-				'blanket_cert' => SST()->url( 'assets/img/exemption_certificate750x600.png' ),
+			'edit_user_url'              => add_query_arg(
+				'user_id',
+				'{user_id}',
+				admin_url('user-edit.php#exemption_certificates')
+			),
+			'order_status'               => $order->get_taxcloud_status(),
+			'selected_certificate'       => $order->get_certificate_id(),
+			'get_certificates_nonce'     => wp_create_nonce( 'sst_get_certificates' ),
+			'i18n'                       => array(
+				'none'                   => __( 'None', 'simple-sales-tax' ),
+				'certificate_added'      => __(
+					"Certificate added successfully! Don't forget to recalculate taxes.",
+					'simple-sales-tax'
+				),
+				'add_certificate_failed' => __(
+					'Failed to add certificate',
+					'simple-sales-tax'
+				),
 			),
 		)
 	);
 
 	require __DIR__ . '/views/html-meta-box.php';
+	require __DIR__ . '/views/html-add-certificate-modal.php';
 	require __DIR__ . '/frontend/views/html-view-certificate.php';
 }
 
 add_action( 'sst_output_tax_meta_box', 'sst_render_tax_meta_box' );
+
+/**
+ * Loads a SST template.
+ *
+ * @param string $path Template path relative to SST root.
+ * @param array  $args Template args.
+ */
+function sst_load_template( $path, $args = array() ) {
+	$full_path = SST()->path( $path );
+
+	if ( ! file_exists( $full_path ) ) {
+		return;
+	}
+
+	require $full_path;
+}
+
+/**
+ * Renders a table of a user's exemption certificates and enqueues
+ * all required assets to make it function.
+ *
+ * @param int   $user_id User ID.
+ * @param array $options Options to pass to the certificate list template.
+ */
+function sst_render_certificate_table( $user_id = 0, $options = array() ) {
+	if ( ! $user_id ) {
+		$user_id = get_current_user_id();
+	}
+
+	wp_enqueue_style( 'sst-certificate-modal-css' );
+
+	sst_load_template( 'includes/views/html-certificate-list.php', $options );
+	sst_load_template( 'includes/views/html-add-certificate-modal.php' );
+	sst_load_template( 'includes/frontend/views/html-view-certificate.php' );
+}

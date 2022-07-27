@@ -116,30 +116,48 @@ class SST_Assets {
 				'file'    => 'admin.css',
 				'context' => 'admin',
 			),
-			'sst-checkout'              => array(
+			'sst-add-certificate-modal' => array(
 				'type'    => 'script',
-				'file'    => 'checkout.js',
-				'context' => 'frontend',
+				'file'    => 'add-certificate-modal.js',
+				'context' => 'both',
+				'options' => array(
+					'deps' => array(
+						'jquery',
+						'jquery-blockui',
+						'sst-backbone-modal',
+					),
+					'localize' => array(
+						'SST_Add_Certificate_Data' => array(
+							'nonce'   => wp_create_nonce( 'sst_add_certificate' ),
+							'strings' => array(
+								'please_add_address' => __(
+									'Please enter a complete billing address first.',
+									'simple-sales-tax'
+								),
+							),
+						),
+					),
+				)
+			),
+			'sst-certificate-table'     => array(
+				'type'    => 'script',
+				'file'    => 'certificate-table.js',
+				'context' => 'both',
 				'options' => array(
 					'deps'     => array(
 						'jquery',
 						'wp-util',
+						'wp-hooks',
 						'underscore',
 						'backbone',
 						'sst-backbone-modal',
 						'jquery-blockui',
+						'sst-add-certificate-modal',
 					),
 					'localize' => array(
-						'SSTCertData' => array(
-							'certificates'             => SST_Certificates::get_certificates_formatted(),
-							'add_certificate_nonce'    => wp_create_nonce( 'sst_add_certificate' ),
+						'SST_Certificate_Table_Data' => array(
 							'delete_certificate_nonce' => wp_create_nonce( 'sst_delete_certificate' ),
 							'ajaxurl'                  => admin_url( 'admin-ajax.php' ),
-							'seller_name'              => SST_Settings::get( 'company_name' ),
-							'images'                   => array(
-								'single_cert'  => SST()->url( 'assets/img/sp_exemption_certificate750x600.png' ),
-								'blanket_cert' => SST()->url( 'assets/img/exemption_certificate750x600.png' ),
-							),
 							'strings'                  => array(
 								'delete_failed'      => __( 'Failed to delete certificate', 'simple-sales-tax' ),
 								'add_failed'         => __( 'Failed to add certificate', 'simple-sales-tax' ),
@@ -148,6 +166,23 @@ class SST_Assets {
 									'simple-sales-tax'
 								),
 							),
+						),
+					),
+				),
+			),
+			'sst-checkout'              => array(
+				'type'    => 'script',
+				'file'    => 'checkout.js',
+				'context' => 'frontend',
+				'options' => array(
+					'deps'     => array(
+						'jquery',
+						'wp-hooks',
+						'sst-certificate-table',
+					),
+					'localize' => array(
+						'SSTCertData' => array(
+							'certificates' => SST_Certificates::get_certificates_formatted(),
 						),
 					),
 				),
@@ -161,15 +196,33 @@ class SST_Assets {
 				'type'    => 'style',
 				'file'    => 'certificate-modal.css',
 				'context' => 'both',
+				'options' => array(
+					'deps' => array( 'sst-modal-css' ),
+				),
 			),
-			'sst-view-certificate'      => array(
+			'sst-edit-user'             => array(
 				'type'    => 'script',
-				'file'    => 'view-certificate.js',
+				'file'    => 'edit-user.js',
 				'context' => 'admin',
 				'options' => array(
 					'deps' => array(
 						'jquery',
+						'sst-certificate-table',
+					),
+				),
+			),
+			'sst-meta-box'              => array(
+				'type'    => 'script',
+				'file'    => 'meta-box.js',
+				'context' => 'admin',
+				'options' => array(
+					'deps' => array(
+						'jquery',
+						'backbone',
+						'wp-util',
+						'wc-enhanced-select',
 						'sst-backbone-modal',
+						'sst-add-certificate-modal',
 					),
 				),
 			),

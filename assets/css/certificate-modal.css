@@ -15,6 +15,7 @@
 
 .sst-certificate {
     background: top left no-repeat;
+    background-image: url('../img/exemption_certificate750x600.png');
     clear: both;
     width: 750px;
     height: 600px;
@@ -22,6 +23,10 @@
     margin-left: auto;
     margin-right: auto;
     position: relative;
+}
+
+.sst-certificate--single {
+    background-image: url('../img/sp_exemption_certificate750x600.png');
 }
 
 .sst-certificate span {
@@ -92,4 +97,15 @@
     top: 353px;
     left: 445px;
     width: 235px;
+}
+
+span.table-action-sep,
+table a.sst-certificate-view,
+table a.sst-certificate-delete {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+span.table-action-sep {
+    margin: 0 3px;
 }
