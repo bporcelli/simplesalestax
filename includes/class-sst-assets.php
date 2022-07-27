@@ -128,19 +128,26 @@ class SST_Assets {
 					),
 					'localize' => array(
 						'SST_Add_Certificate_Data' => array(
-							'nonce' => wp_create_nonce( 'sst_add_certificate' ),
+							'nonce'   => wp_create_nonce( 'sst_add_certificate' ),
+							'strings' => array(
+								'please_add_address' => __(
+									'Please enter a complete billing address first.',
+									'simple-sales-tax'
+								),
+							),
 						),
 					),
 				)
 			),
-			'sst-checkout'              => array(
+			'sst-certificate-table'     => array(
 				'type'    => 'script',
-				'file'    => 'checkout.js',
-				'context' => 'frontend',
+				'file'    => 'certificate-table.js',
+				'context' => 'both',
 				'options' => array(
 					'deps'     => array(
 						'jquery',
 						'wp-util',
+						'wp-hooks',
 						'underscore',
 						'backbone',
 						'sst-backbone-modal',
@@ -148,8 +155,7 @@ class SST_Assets {
 						'sst-add-certificate-modal',
 					),
 					'localize' => array(
-						'SSTCertData' => array(
-							'certificates'             => SST_Certificates::get_certificates_formatted(),
+						'SST_Certificate_Table_Data' => array(
 							'delete_certificate_nonce' => wp_create_nonce( 'sst_delete_certificate' ),
 							'ajaxurl'                  => admin_url( 'admin-ajax.php' ),
 							'strings'                  => array(
@@ -164,6 +170,23 @@ class SST_Assets {
 					),
 				),
 			),
+			'sst-checkout'              => array(
+				'type'    => 'script',
+				'file'    => 'checkout.js',
+				'context' => 'frontend',
+				'options' => array(
+					'deps'     => array(
+						'jquery',
+						'wp-hooks',
+						'sst-certificate-table',
+					),
+					'localize' => array(
+						'SSTCertData' => array(
+							'certificates' => SST_Certificates::get_certificates_formatted(),
+						),
+					),
+				),
+			),
 			'sst-modal-css'             => array(
 				'type'    => 'style',
 				'file'    => 'modal.css',
@@ -173,6 +196,20 @@ class SST_Assets {
 				'type'    => 'style',
 				'file'    => 'certificate-modal.css',
 				'context' => 'both',
+				'options' => array(
+					'deps' => array( 'sst-modal-css' ),
+				),
+			),
+			'sst-edit-user'             => array(
+				'type'    => 'script',
+				'file'    => 'edit-user.js',
+				'context' => 'admin',
+				'options' => array(
+					'deps' => array(
+						'jquery',
+						'sst-certificate-table',
+					),
+				),
 			),
 			'sst-meta-box'              => array(
 				'type'    => 'script',

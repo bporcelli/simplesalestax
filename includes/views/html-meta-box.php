@@ -65,7 +65,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 				?>
 			</p>
 		<# } #>
-		<!-- todo: link to profile page for full certificate management (including deleting certs). add code to save cert selection in order controller. -->
+		<a
+			href="{{data.customerProfileUrl}}"
+			target="_blank"
+			class="customer-profile-url">
+			<?php esc_html_e( 'Manage customer certificates →', 'simple-sales-tax' ); ?>
+		</a>
 		<div>
 			<label for="exempt_cert" class="screen-reader-text">
 				<?php esc_html_e( 'Select certificate', 'simple-sales-tax' ); ?>

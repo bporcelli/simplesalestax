@@ -1,5 +1,12 @@
 var SST_Add_Certificate_Modal = {
 	open( args ) {
+		var address = args.address || {};
+
+		if ( ! SST_Add_Certificate_Modal.isValidAddress( address ) ) {
+			alert( SST_Add_Certificate_Data.strings.please_add_address );
+			return;
+		}
+
 		jQuery( document.body ).SSTBackboneModal( {
 			template: 'sst-modal-add-certificate',
 			variable: {
@@ -85,6 +92,20 @@ var SST_Add_Certificate_Modal = {
 				'woocommerce-invalid woocommerce-invalid-required-field woocommerce-invalid-email woocommerce-validated'
 			);
 		} );
+	},
+	isValidAddress( address ) {
+		var required_fields = [
+			'first_name',
+			'last_name',
+			'address_1',
+			'city',
+			'state',
+			'postcode',
+		];
+
+		return required_fields.every(function(field) {
+			return field in address && !!address[field];
+		});
 	},
 	validateForm( event ) {
 		var $target = jQuery( event.target );

@@ -98,3 +98,14 @@
     left: 445px;
     width: 235px;
 }
+
+span.table-action-sep,
+table a.sst-certificate-view,
+table a.sst-certificate-delete {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+span.table-action-sep {
+    margin: 0 3px;
+}

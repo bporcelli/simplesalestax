@@ -11,14 +11,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// todo: consider b.w. compat with overridden templates. may need to make this a major release if not easily doable.
-// todo: template that renders list of certificates with radio inputs.
-// may want to keep add certificate button separate since it will behave differently in modal as compared to checkout page.
+$table_class = $args['table_class'] ?? 'shop_table';
+$show_inputs = $args['show_inputs'] ?? true;
+
 ?>
-<table id="sst-certificates" class="shop_table">
+<table id="sst-certificates" class="<?php echo esc_attr( $table_class ); ?>">
 	<thead>
 	<tr>
-		<th><!-- Radio button column --></th>
+		<?php if ( $show_inputs ): ?>
+			<th><!-- Radio button column --></th>
+		<?php endif; ?>
 		<th><?php esc_html_e( 'ID', 'simple-sales-tax' ); ?></th>
 		<th><?php esc_html_e( 'Issued To', 'simple-sales-tax' ); ?></th>
 		<th><?php esc_html_e( 'Date', 'simple-sales-tax' ); ?></th>
@@ -54,18 +56,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <script type="text/html" id="tmpl-sst-certificate-row">
 	<tr data-id="{{ data.CertificateID }}">
-		<td>
-			<input type="radio" name="certificate_id" value="{{ data.CertificateID }}">
-		</td>
+		<?php if ( $show_inputs ): ?>
+			<td>
+				<input
+					type="radio"
+					name="certificate_id"
+					value="{{ data.CertificateID }}">
+			</td>
+		<?php endif; ?>
 		<td>{{ data.Index }}</td>
 		<td>{{ data.PurchaserName }}</td>
 		<td>{{ data.CreatedDate }}</td>
 		<td>
-			<a href="#" class="sst-certificate-view">View</a> | <a href="#"
-																   class="sst-certificate-delete">Delete</a>
+			<a href="#" class="sst-certificate-view" role="button">
+				<?php esc_html_e( 'View', 'simple-sales-tax' ); ?>
+			</a>
+			<span class="table-action-sep" aria-hidden="true">|</span>
+			<a href="#" class="sst-certificate-delete" role="button">
+				<?php esc_html_e( 'Delete', 'simple-sales-tax' ); ?>
+			</a>
 		</td>
 	</tr>
 </script>
-
-<?php // todo: consider better separation of templates ?>
-<?php require_once dirname( __DIR__ ) . '/frontend/views/html-view-certificate.php'; ?>

@@ -557,8 +557,6 @@ class SST_Checkout extends SST_Abstract_Cart {
 		}
 
 		wp_enqueue_script( 'sst-checkout' );
-		wp_enqueue_style( 'sst-modal-css' );
-		wp_enqueue_style( 'sst-certificate-modal-css' );
 
 		// phpcs:disable
 		$checked = (

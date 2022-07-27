@@ -99,6 +99,19 @@ class SST_Ajax {
 			$certificate_id = sanitize_text_field( wp_unslash( $_POST['certificate_id'] ) );
 		}
 
+		$user_id = isset( $_POST['user_id'] ) ? absint( wp_unslash( $_POST['user_id'] ) ) : 0;
+
+		if ( 0 === $user_id ) {
+			$user_id = get_current_user_id();
+		}
+
+		if ( ! self::user_can_delete_certificate( $user_id, $certificate_id ) ) {
+			wp_send_json_error(
+				__( 'Unauthorized', 'simple-sales-tax' ),
+				403
+			);
+		}
+
 		try {
 			$request = new TaxCloud\Request\DeleteExemptCertificate(
 				SST_Settings::get( 'tc_id' ),
@@ -109,16 +122,39 @@ class SST_Ajax {
 			TaxCloud()->DeleteExemptCertificate( $request );
 
 			// Invalidate cached certificates.
-			SST_Certificates::delete_certificates();
+			SST_Certificates::delete_certificates( $user_id );
 
+			$new_certificates = SST_Certificates::get_certificates_formatted( $user_id );
 			wp_send_json_success(
-				array(
-					'certificates' => SST_Certificates::get_certificates_formatted(),
-				)
+				array('certificates' => $new_certificates)
 			);
 		} catch ( Exception $ex ) { /* Failed to delete */
 			wp_send_json_error( $ex->getMessage() );
 		}
+	}
+
+	/**
+	 * Checks whether the current user can delete an exemption certificate.
+	 *
+	 * @param int    $user_id        User ID of certificate owner.
+	 * @param string $certificate_id Certificate ID.
+	 *
+	 * @return bool Can the user delete the certificate?
+	 */
+	protected static function user_can_delete_certificate( $user_id, $certificate_id ) {
+		if ( ! current_user_can( 'edit_user', $user_id ) ) {
+			return false;
+		}
+
+		$user_certificates = SST_Certificates::get_certificates( $user_id );
+
+		foreach ( $user_certificates as $certificate ) {
+			if ( $certificate->getCertificateID() === $certificate_id ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -214,14 +250,14 @@ class SST_Ajax {
 
 			$certificate_id = TaxCloud()->AddExemptCertificate( $request );
 
-			SST_Certificates::delete_certificates();  // Invalidate cache.
+			SST_Certificates::delete_certificates( $user->ID );  // Invalidate cache.
 		} catch ( Exception $ex ) {
 			wp_send_json_error( $ex->getMessage() );
 		}
 
 		$data = array(
 			'certificate_id' => $certificate_id,
-			'certificates'   => SST_Certificates::get_certificates_formatted(),
+			'certificates'   => SST_Certificates::get_certificates_formatted( $user->ID ),
 		);
 
 		wp_send_json_success( $data );
@@ -267,7 +303,6 @@ class SST_Ajax {
 	 * @since 4.2
 	 */
 	public static function calc_line_taxes() {
-		// todo: will need to account for selected exemption certificate.
 		check_ajax_referer( 'calc-totals', 'security' );
 
 		if ( ! current_user_can( 'edit_shop_orders' ) ) {

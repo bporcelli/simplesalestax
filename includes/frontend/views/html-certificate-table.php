@@ -16,11 +16,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <h3>
 	<?php esc_html_e( 'Tax exempt?', 'simple-sales-tax' ); ?>
-	<input type="checkbox" name="tax_exempt" id="tax_exempt_checkbox" class="input-checkbox" value="1" <?php checked( $checked ); ?>>
+	<input
+		type="checkbox"
+		name="tax_exempt"
+		id="tax_exempt_checkbox"
+		class="input-checkbox"
+	 	value="1"
+	 	<?php checked( $checked ); ?>>
 </h3>
-
 <div id="tax_details">
-
 	<noscript>
 		<p>
 			<?php
@@ -37,7 +41,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</noscript>
 
 	<?php if ( is_user_logged_in() ) : ?>
-
 		<p>
 			<?php
 			esc_html_e(
@@ -46,14 +49,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 			);
 			?>
 		</p>
-
-		<?php require_once dirname( dirname( __DIR__ ) ) . '/views/html-certificate-list.php'; ?>
-		<?php require_once dirname( dirname( __DIR__ ) ) . '/views/html-add-certificate-modal.php'; ?>
-
+		<?php sst_render_certificate_table(); ?>
 	<?php else : ?>
 		<p><?php esc_html_e( 'Please log in or register.' ); ?></p>
 	<?php endif; ?>
-
 </div>
-
-<?php require_once __DIR__ . '/html-view-certificate.php'; ?>

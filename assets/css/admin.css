@@ -115,6 +115,11 @@
     border-color: #cc0000;
 }
 
+.customer-profile-url {
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
 /**
  * Loading spinner
  */

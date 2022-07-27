@@ -3,6 +3,7 @@ jQuery(function($) {
 		defaults: {
 			certificates: {},
 			customerId: '',
+			customerProfileUrl: '',
 			selectedCertificate: '',
 			loading: true,
 			isEditable: true,
@@ -10,8 +11,10 @@ jQuery(function($) {
 
 		initialize: function() {
 			this.loadCustomerCertificates();
+			this.setCustomerProfileUrl();
 
 			this.on('change:customerId', this.loadCustomerCertificates);
+			this.on('change:customerId', this.setCustomerProfileUrl);
 			this.on('change:certificates', this.maybeResetSelection);
 		},
 
@@ -40,6 +43,20 @@ jQuery(function($) {
 			}).always(function() {
 				_this.set('loading', false);
 			});
+		},
+
+		setCustomerProfileUrl: function() {
+			var customerId = this.get('customerId');
+
+			if (!customerId) {
+				this.set('customerProfileUrl', '');
+				return;
+			}
+
+			var urlTemplate = SSTMetaBox.edit_user_url;
+			var profileUrl = urlTemplate.replace('{user_id}', customerId);
+
+			this.set('customerProfileUrl', profileUrl);
 		},
 
 		maybeResetSelection: function() {
@@ -170,12 +187,8 @@ jQuery(function($) {
 		},
 
 		addCertificate: function() {
-			if (!this.hasBillingAddress()) {
-				alert(SSTMetaBox.i18n.please_add_address);
-				return;
-			}
-
 			SST_Add_Certificate_Modal.open({
+				address: this.getBillingAddress(),
 				onAddCertificate: this.addCertificateHandler.bind(this),
 			});
 		},
@@ -218,22 +231,6 @@ jQuery(function($) {
 				});
 		},
 
-		hasBillingAddress: function() {
-			var address = this.getBillingAddress();
-			var required_fields = [
-				'first_name',
-				'last_name',
-				'address_1',
-				'city',
-				'state',
-				'postcode',
-			];
-
-			return required_fields.every(function(field) {
-				return field in address && !!address[field];
-			});
-		},
-
 		getBillingAddress: function() {
 			var address = {
 				first_name: '',
@@ -260,6 +257,10 @@ jQuery(function($) {
 		},
 
 		filterRecalcRequest: function(event, jqXHR, settings) {
+			if (typeof settings.data !== 'string') {
+				return;
+			}
+
 			if (settings.data.indexOf('action=woocommerce_calc_line_taxes') >= 0) {
 				var certificateId = this.model.get('selectedCertificate');
 				settings.data += '&exemption_certificate=' + certificateId;
