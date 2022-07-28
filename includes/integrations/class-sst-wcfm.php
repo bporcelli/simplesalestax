@@ -61,7 +61,7 @@ class SST_WCFM extends SST_Marketplace_Integration {
 			return;
 		}
 
-		// Print an error if the Dokan version is not supported.
+		// Print an error if the WCFM version is not supported.
 		if ( version_compare( WCFM_VERSION, $this->min_version, '<' ) ) {
 			add_action( 'admin_notices', array( $this, 'wcfm_version_notice' ) );
 			return;
