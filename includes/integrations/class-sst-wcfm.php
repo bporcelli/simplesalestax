@@ -69,6 +69,7 @@ class SST_WCFM extends SST_Marketplace_Integration {
 
 		// Hide the default WCFM tax fields.
 		add_filter( 'wcfm_product_simple_fields_tax', '__return_empty_array' );
+		add_filter( 'show_shipping_zone_tax', '__return_false' );
 		add_action( 'wcfm_products_manage_tax_end', array( $this, 'output_tic_select' ) );
 		add_filter( 'wcfm_variation_edit_data', array( $this, 'add_tic_to_variation_edit_data' ), 10, 3 );
 		add_filter( 'wcfm_product_manage_fields_variations', array( $this, 'filter_variation_form_fields' ), 20, 2 );
