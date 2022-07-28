@@ -545,7 +545,7 @@ function sst_update_50_order_data() {
 						$new_package['contents'][] = new TaxCloud\CartItem(
 							count( $new_package['contents'] ),
 							isset( $identifiers[ SST_SHIPPING_ITEM ] ) ? $identifiers[ SST_SHIPPING_ITEM ] : $item_id,
-							apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC ),
+							sst_get_shipping_tic( $method_id ),
 							$total,
 							1
 						);
