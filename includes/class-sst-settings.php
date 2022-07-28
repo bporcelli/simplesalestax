@@ -186,6 +186,38 @@ class SST_Settings {
 					'simple-sales-tax'
 				),
 			),
+			'shipping_tic'                => array(
+				'title'       => __( 'Shipping TIC', 'simple-sales-tax' ),
+				'type'        => 'select',
+				'options'     => array(
+					'11000' => __(
+						'11000 - Handling, crating, packing, preparation for mailing or delivery, and similar charges',
+						'simple-sales-tax'
+					),
+					'11010' => __(
+						'11010 - Transportation, shipping, postage, and similar charges',
+						'simple-sales-tax'
+					),
+					'11011' => __(
+						'11011 - Transportation, shipping, postage, and similar charges by USPS',
+						'simple-sales-tax'
+					),
+					'11012' => __(
+						'11012 - Transportation, shipping, postage, and similar charges with pick-up option',
+						'simple-sales-tax'
+					),
+					'11098' => __( '11098 - Colorado Retail Delivery Fees', 'simple-sales-tax' ),
+				),
+				'default'     => self::get_default_shipping_tic(),
+				'description' => __(
+					'Enter TIC code on <a href="https://taxcloud.net/tic" target="_blank">TaxCloud website</a> for details.',
+					'simple-sales-tax'
+				),
+				'desc_tip'    => __(
+					'Select the Taxability Information Code to apply to shipping charges.',
+					'simple-sales-tax'
+				),
+			),
 			'log_requests'                => array(
 				'title'       => __( 'Log Requests', 'simple-sales-tax' ),
 				'type'        => 'checkbox',
@@ -248,6 +280,26 @@ class SST_Settings {
 		);
 
 		return apply_filters( 'sst_settings_form_fields', $fields );
+	}
+
+	/**
+	 * Get the default value for the Shipping TIC option.
+	 *
+	 * @return string
+	 */
+	protected static function get_default_shipping_tic() {
+		$default_tic = SST_DEFAULT_SHIPPING_TIC;
+
+		if ( has_filter( 'wootax_shipping_tic' ) ) {
+			$default_tic = apply_filters_deprecated(
+				'wootax_shipping_tic',
+				array( $default_tic ),
+				'7.0.0',
+				'sst_shipping_tic'
+			);
+		}
+
+		return $default_tic;
 	}
 
 	/**

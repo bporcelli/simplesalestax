@@ -234,7 +234,7 @@ abstract class SST_Abstract_Cart {
 			$cart_items[]     = new TaxCloud\CartItem(
 				count( $cart_items ),
 				SST_SHIPPING_ITEM,
-				apply_filters( 'wootax_shipping_tic', SST_DEFAULT_SHIPPING_TIC ),
+				sst_get_shipping_tic( $shipping_rate->method_id ),
 				apply_filters( 'wootax_shipping_price', $shipping_rate->cost, $shipping_rate ),
 				1
 			);

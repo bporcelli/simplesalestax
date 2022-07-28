@@ -451,3 +451,15 @@ function sst_render_certificate_table( $user_id = 0, $options = array() ) {
 	sst_load_template( 'includes/views/html-add-certificate-modal.php' );
 	sst_load_template( 'includes/frontend/views/html-view-certificate.php' );
 }
+
+/**
+ * Gets the TIC to use for shipping charges.
+ *
+ * @param string $method_id Shipping method ID.
+ *
+ * @return string TIC to use for shipping charges.
+ */
+function sst_get_shipping_tic( $method_id ) {
+	$default_tic = SST_Settings::get( 'shipping_tic' );
+	return apply_filters( 'sst_shipping_tic', $default_tic, $method_id );
+}
