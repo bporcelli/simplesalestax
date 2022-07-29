@@ -67,7 +67,13 @@ class SST_Checkout extends SST_Abstract_Cart {
 	public function calculate_tax_totals( $total, $cart ) {
 		$this->cart = new SST_Cart_Proxy( $cart );
 
-		if ( apply_filters( 'sst_calculate_tax_totals', is_cart() || is_checkout() ) ) {
+		$should_calculate = (
+			is_cart() ||
+			is_checkout() ||
+			doing_action( 'wc_ajax_square_digital_wallet_recalculate_totals' )
+		);
+
+		if ( apply_filters( 'sst_calculate_tax_totals', $should_calculate ) ) {
 			$this->calculate_taxes();
 
 			/**
