@@ -13,8 +13,10 @@ Added:
 Fixed:
 - WCFM Marketplace - Hide the non-functional Tax Status dropdown in the edit shipping method popup
 - Tax is not included in the order total displayed in the WooCommerce Square Google / Apple Pay popup
+- Fix tested WP version in readme.txt
 
 Changed:
+- Update tested WC version to 6.7
 - Optimize data structures to reduce DB space used by Simple Sales Tax
 
 BREAKING CHANGES:
