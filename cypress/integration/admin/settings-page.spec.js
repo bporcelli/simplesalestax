@@ -27,7 +27,7 @@ describe('Settings page', () => {
     cy.findByRole('link', {name: 'Download'}).click();
     cy.wait('@downloadRequest', {timeout: 20000}).then((intercepted) => {
       expect(intercepted.response.statusCode).to.eq(200);
-      expect(intercepted.response.headers['content-disposition']).to.match(/filename=wootax-(.*).log$/);
+      expect(intercepted.response.headers['content-disposition']).to.match(/filename=sst_debug_report_(.*).txt$/);
     });
   });
 });
