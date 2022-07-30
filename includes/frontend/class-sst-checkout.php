@@ -383,7 +383,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 *
 	 * @return string Exemption certificate ID.
 	 *
-	 * @since 6.4.0
+	 * @since 7.0.0
 	 */
 	public function get_certificate_id() {
 		if ( ! isset( $_POST['post_data'] ) ) { // phpcs:ignore WordPress.CSRF.NonceVerification

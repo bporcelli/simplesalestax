@@ -1402,18 +1402,18 @@ function sst_update_620_fix_product_origin_addresses_batch() {
 }
 
 /**
- * Delete the _wootax_package_cache meta key on upgrade to 6.4.
+ * Delete the _wootax_package_cache meta key on upgrade to 7.0.
  */
-function sst_update_640_delete_package_cache() {
+function sst_update_700_delete_package_cache() {
 	global $wpdb;
 
 	$wpdb->query( "DELETE FROM {$wpdb->postmeta} WHERE meta_key = '_wootax_package_cache'" );
 }
 
 /**
- * Delete null _wootax_exempt_cert meta values on upgrade to 6.4.
+ * Delete null _wootax_exempt_cert meta values on upgrade to 7.0.
  */
-function sst_update_640_delete_null_certificates() {
+function sst_update_700_delete_null_certificates() {
 	global $wpdb;
 
 	$null_value = 's:2:"N;";';
@@ -1429,9 +1429,9 @@ function sst_update_640_delete_null_certificates() {
 /**
  * Replaces serialized TaxCloud\ExemptionCertificateBase objects
  * with string certificate IDs in the `exempt_cert` meta key on
- * upgrade to 6.4.
+ * upgrade to 7.0.
  */
-function sst_update_640_migrate_certificates() {
+function sst_update_700_migrate_certificates() {
 	$batch_size = 100;
 	$args       = array(
 		'type'         => 'shop_order',
@@ -1456,23 +1456,23 @@ function sst_update_640_migrate_certificates() {
 
 	if ( count( $order_ids ) === $batch_size ) {
 		// More orders remain to process.
-		return 'sst_update_640_migrate_certificates';
+		return 'sst_update_700_migrate_certificates';
 	}
 
 	return false;
 }
 
 /**
- * Compresses saved order packages on upgrade to 6.4.
+ * Compresses saved order packages on upgrade to 7.0.
  */
-function sst_update_640_compress_packages() {
+function sst_update_700_compress_packages() {
 	$batch_size = 100;
 	$args       = array(
 		'type'         => 'shop_order',
 		'return'       => 'ids',
 		'limit'        => $batch_size,
 		'meta_key'     => '_wootax_db_version',
-		'meta_value'   => '6.4.0',
+		'meta_value'   => '7.0.0',
 		'meta_compare' => '!=',
 	);
 
@@ -1487,13 +1487,13 @@ function sst_update_640_compress_packages() {
 		);
 
 		$order->set_packages( $new_packages );
-		$order->update_meta( 'db_version', '6.4.0' );
+		$order->update_meta( 'db_version', '7.0.0' );
 		$order->save();
 	}
 
 	if ( count( $order_ids ) === $batch_size ) {
 		// More orders remain to process.
-		return 'sst_update_640_compress_packages';
+		return 'sst_update_700_compress_packages';
 	}
 
 	return false;
