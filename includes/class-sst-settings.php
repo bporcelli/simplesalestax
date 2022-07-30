@@ -265,14 +265,14 @@ class SST_Settings {
 				),
 				'desc_tip'    => true,
 			),
-			'download_log_button'         => array(
-				'title'       => __( 'Download Log File', 'simple-sales-tax' ),
-				'label'       => __( 'Download Log', 'simple-sales-tax' ),
+			'debug_report_button'         => array(
+				'title'       => __( 'Debug Report', 'simple-sales-tax' ),
+				'label'       => __( 'Download', 'simple-sales-tax' ),
 				'type'        => 'anchor',
-				'url'         => add_query_arg( 'download_log', true ),
-				'id'          => 'download_log_button',
+				'url'         => add_query_arg( 'download_debug_report', true ),
+				'id'          => 'debug_report_button',
 				'description' => __(
-					'Click this button to download the Simple Sales Tax log file for debugging purposes.',
+					'Send a copy of this report to TaxCloud support to help with debugging Simple Sales Tax issues.',
 					'simple-sales-tax'
 				),
 				'desc_tip'    => true,
