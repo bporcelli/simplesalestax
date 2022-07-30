@@ -232,7 +232,7 @@ class SST_Integration extends WC_Integration {
 	/**
 	 * Force download debug report if download button was clicked.
 	 *
-	 * @since 5.0
+	 * @since 7.0
 	 */
 	public function maybe_download_debug_report() {
 		if ( ! isset( $_GET['download_debug_report'] ) ) { // phpcs:ignore WordPress.CSRF.NonceVerification
