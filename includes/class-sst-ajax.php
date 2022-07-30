@@ -268,7 +268,7 @@ class SST_Ajax {
 	 * Used to populate the Exemption Certificate dropdown on the
 	 * Edit Order screen.
 	 *
-	 * @since 6.4.0
+	 * @since 7.0.0
 	 */
 	public static function get_certificates() {
 		check_ajax_referer( 'sst_get_certificates', 'nonce' );

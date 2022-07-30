@@ -4,7 +4,7 @@
  *
  * @author  Brett Porcelli
  * @package Simple Sales Tax
- * @version 6.4.0
+ * @version 7.0.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

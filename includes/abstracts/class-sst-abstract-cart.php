@@ -465,7 +465,7 @@ abstract class SST_Abstract_Cart {
 	 * Get the exemption certificate for the customer.
 	 *
 	 * @return TaxCloud\ExemptionCertificateBase
-	 * @since 6.4.0
+	 * @since 7.0.0
 	 */
 	public function get_certificate() {
 		$certificate_id = $this->get_certificate_id();
@@ -548,7 +548,7 @@ abstract class SST_Abstract_Cart {
 	 * @param array $package Package data.
 	 *
 	 * @return array Cart items.
-	 * @since 6.4.0
+	 * @since 7.0.0
 	 */
 	protected function get_package_cart_items( $package ) {
 		$map        = $package['map'];
@@ -721,7 +721,7 @@ abstract class SST_Abstract_Cart {
 	 *
 	 * @return string Exemption certificate ID.
 	 *
-	 * @since 6.4.0
+	 * @since 7.0.0
 	 */
 	abstract public function get_certificate_id();
 

@@ -110,7 +110,7 @@ class SST_Order extends SST_Abstract_Cart {
 		}
 
 		// Compress package data just in case the order hasn't been
-		// migrated to the new data format used in SST 6.4+ yet.
+		// migrated to the new data format used in SST 7.0+ yet.
 		// For orders that are already using the new data format
 		// this is a no-op.
 		$packages = array_map(
@@ -438,10 +438,10 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 6.0.7
 	 */
 	public function set_certificate( $certificate ) {
-		// TODO: Remove this method in v7.
+		// TODO: Remove this method in v8.
 		_deprecated_function(
 			__CLASS__ . '::' . __METHOD__,
-			'6.4.0',
+			'7.0.0',
 			__CLASS__ . '::set_certificate_id'
 		);
 
@@ -458,7 +458,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 *
 	 * @param string $certificate_id Exemption certificate ID.
 	 *
-	 * @since 6.4.0
+	 * @since 7.0.0
 	 */
 	public function set_certificate_id( $certificate_id ) {
 		if ( ! is_string( $certificate_id ) ) {
@@ -473,12 +473,12 @@ class SST_Order extends SST_Abstract_Cart {
 	 *
 	 * @return string Certificate ID.
 	 *
-	 * @since 6.4.0
+	 * @since 7.0.0
 	 */
 	public function get_certificate_id() {
 		$certificate_or_id = $this->get_meta( 'exempt_cert' );
 
-		// Prior to SST 6.4 we saved the entire certificate object.
+		// Prior to SST 7.0 we saved the entire certificate object.
 		// Now we just save the certificate ID.
 		if ( is_a( $certificate_or_id, 'TaxCloud\ExemptionCertificateBase' ) ) {
 			return $certificate_or_id->getCertificateID();

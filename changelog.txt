@@ -2,6 +2,27 @@ Changelog for Simple Sales Tax
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+= [7.0.0] - 2022-07-30 =
+
+Added:
+- Add a button to download a debug report with all information required for Simple Sales Tax support requests
+- Add an option to set the Taxability Information Code (TIC) for shipping charges on the plugins settings screen
+- Allow admins to edit, view, and delete customer exemption certificates from the Edit User screen in WP admin
+- Allow admins to apply an exemption certificate to an order on the Edit Order screen in WP admin
+
+Fixed:
+- WCFM Marketplace - Hide the non-functional Tax Status dropdown in the edit shipping method popup
+- Tax is not included in the order total displayed in the WooCommerce Square Google / Apple Pay popup
+- Fix tested WP version in readme.txt
+
+Changed:
+- Update tested WC version to 6.7
+- Optimize data structures to reduce DB space used by Simple Sales Tax
+
+BREAKING CHANGES:
+- Rewrote the `html-certificate-table.php` template
+- Dropped the `wootax_shipping_tic` filter in favor of `sst_shipping_tic`
+
 = [6.3.13] - 2022-02-07 =
 
 Fixed:
