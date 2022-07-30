@@ -34,7 +34,7 @@ class SST_Integration extends WC_Integration {
 		// Register action hooks.
 		add_action( 'woocommerce_update_options_integration_' . $this->id, array( $this, 'process_admin_options' ) );
 		add_action( 'woocommerce_update_options_integration_' . $this->id, array( $this, 'refresh_origin_address_list' ), 15 );
-		add_action( 'admin_init', array( $this, 'maybe_download_log_file' ) );
+		add_action( 'admin_init', array( $this, 'maybe_download_debug_report' ) );
 		add_action( 'woocommerce_hide_sst_address_mismatch_notice', array( $this, 'maybe_dismiss_address_notice' ) );
 	}
 
@@ -230,34 +230,122 @@ class SST_Integration extends WC_Integration {
 	}
 
 	/**
-	 * Force download log file if "Download Log" was clicked.
+	 * Force download debug report if download button was clicked.
 	 *
-	 * @since 5.0
+	 * @since 7.0
 	 */
-	public function maybe_download_log_file() {
-		if ( ! isset( $_GET['download_log'] ) ) { // phpcs:ignore WordPress.CSRF.NonceVerification
+	public function maybe_download_debug_report() {
+		if ( ! isset( $_GET['download_debug_report'] ) ) { // phpcs:ignore WordPress.CSRF.NonceVerification
 			return;
 		}
 
-		// If file doesn't exist, create it.
-		$log_path = SST_Logger::get_log_path();
-
-		if ( ! file_exists( $log_path ) ) {
-			$fh = @fopen( $log_path, 'a' );
-			fclose( $fh );
-		}
+		// Generate report.
+		$report         = $this->generate_debug_report();
+		$report_length  = strlen( $report );
+		$timestamp      = time();
+		$filename       = "sst_debug_report_{$timestamp}.txt";
 
 		// Force download.
 		header( 'Content-Description: File Transfer' );
 		header( 'Content-Type: application/octet-stream' );
-		header( 'Content-Disposition: attachment; filename=' . basename( $log_path ) );
+		header( "Content-Disposition: attachment; filename={$filename}" );
 		header( 'Expires: 0' );
 		header( 'Cache-Control: must-revalidate' );
 		header( 'Pragma: public' );
-		header( 'Content-Length: ' . filesize( $log_path ) );
+		header( "Content-Length: {$report_length}"  );
 
-		readfile( $log_path );
-		exit;
+		die( $report );
+	}
+
+	/**
+	 * Generates the debug report.
+	 *
+	 * @return string Report content.
+	 */
+	protected function generate_debug_report() {
+		$settings    = wp_json_encode(
+			$this->get_settings_for_report(),
+			JSON_PRETTY_PRINT
+		);
+		$report      = wp_json_encode(
+			wc()->api->get_endpoint_data( '/wc/v3/system_status' ),
+			JSON_PRETTY_PRINT
+		);
+		$request_log = $this->tail_log( 'wootax', 100 );
+		$error_log   = $this->tail_log( 'fatal-errors', 100 );
+
+		return <<<REPORT
+##################################
+### System Status Report       ###
+##################################
+
+{$report}
+
+##################################
+### SST Settings               ###
+##################################
+
+{$settings}
+
+##################################
+### SST Request Log (last 100) ###
+##################################
+
+{$request_log}
+
+##################################
+### Fatal Error Log (last 100) ###
+##################################
+
+{$error_log}
+REPORT;
+	}
+
+	/**
+	 * Get SST settings formatted for the debug report.
+	 *
+	 * @return string
+	 */
+	protected function get_settings_for_report() {
+		$settings             = array();
+		$excluded_field_types = array(
+			'title',
+			'anchor',
+			'button',
+		);
+
+		foreach ( SST_Settings::get_form_fields() as $key => $field ) {
+			if ( ! in_array( $field['type'], $excluded_field_types, true ) ) {
+				$settings[ $key ] = SST_Settings::get( $key );
+			}
+		}
+
+		$addresses = array();
+		foreach ( SST_Settings::get( 'addresses' ) as $address ) {
+			$addresses[] = json_decode( wp_unslash( $address ), true );
+		}
+
+		$settings['addresses'] = $addresses;
+
+		return $settings;
+	}
+
+	/**
+	 * Gets the last N lines of a log file.
+	 *
+	 * @param string $handle Log handle.
+	 * @param int    $lines  Number of lines to read from end of file.
+	 *
+	 * @return string
+	 */
+	protected function tail_log( $handle, $lines = 1 ) {
+		$filepath = wc_get_log_file_path( $handle );
+
+		if ( ! file_exists( $filepath ) ) {
+			return 'N/A';
+		}
+
+		return trim( implode( '', array_slice( file( $filepath ), -$lines ) ) );
 	}
 
 	/**
