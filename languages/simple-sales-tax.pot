@@ -2,9 +2,9 @@
 # This file is distributed under the same license as the Simple Sales Tax package.
 msgid ""
 msgstr ""
-"Project-Id-Version: Simple Sales Tax 6.3.13\n"
+"Project-Id-Version: Simple Sales Tax 7.0.0\n"
 "Report-Msgid-Bugs-To: https://github.com/bporcelli/simplesalestax/issues\n"
-"POT-Creation-Date: 2022-02-07 16:54:42+00:00\n"
+"POT-Creation-Date: 2022-07-30 22:35:56+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -24,17 +24,17 @@ msgstr ""
 "X-Textdomain-Support: yes\n"
 "X-Generator: grunt-wp-i18n 1.0.3\n"
 
-#: includes/abstracts/class-sst-abstract-cart.php:84
+#: includes/abstracts/class-sst-abstract-cart.php:93
 #. translators: error message from TaxCloud API response.
 msgid "Failed to calculate sales tax: %s"
 msgstr ""
 
-#: includes/abstracts/class-sst-abstract-cart.php:300
+#: includes/abstracts/class-sst-abstract-cart.php:312
 #. translators: WooCommerce product ID.
 msgid "Failed to calculate sales tax: no origin address for product %d."
 msgstr ""
 
-#: includes/abstracts/class-sst-abstract-cart.php:346
+#: includes/abstracts/class-sst-abstract-cart.php:358
 msgid ""
 "Origin address for shipping package is invalid. Using default origin "
 "address from Simple Sales Tax settings."
@@ -50,56 +50,64 @@ msgstr ""
 msgid "Simple Sales Tax"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:123
+#: includes/admin/class-sst-admin.php:125
 msgid "Go to TaxCloud Reports Page"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:139
+#: includes/admin/class-sst-admin.php:141
 msgid "Taxes"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:142
+#: includes/admin/class-sst-admin.php:144
 msgid "Overview"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:179
+#: includes/admin/class-sst-admin.php:181
 msgid "Delete cached tax rates"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:180
+#: includes/admin/class-sst-admin.php:182
 msgid "Clear tax rate cache"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:181
+#: includes/admin/class-sst-admin.php:183
 msgid "This tool will remove any tax rates cached by WooCommerce."
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:200
+#: includes/admin/class-sst-admin.php:202
 msgid "Tax rate cache cleared."
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:228
-#: includes/integrations/class-sst-wcfm.php:147
-#: includes/integrations/class-sst-wcfm.php:189
+#: includes/admin/class-sst-admin.php:230
+#: includes/integrations/class-sst-wcfm.php:148
+#: includes/integrations/class-sst-wcfm.php:190
 #: includes/integrations/class-sst-wcmp.php:130
 #: includes/integrations/class-sst-wcmp.php:161
 msgid "Taxability Information Code"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:236
+#: includes/admin/class-sst-admin.php:238
 msgid "This TIC will be used as the default for all products in this category."
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:273
+#: includes/admin/class-sst-admin.php:275
 msgid "Heads up!"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:274
+#: includes/admin/class-sst-admin.php:276
 msgid ""
 "The WooCommerce \"Calculate tax based on\" setting is not respected by "
 "Simple Sales Tax. The customer billing address will only be used for tax "
 "calculations when the shipping address is not provided (e.g. for sales of "
 "digital goods)."
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:317
+msgid "Exemption Certificates"
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:321
+msgid "Manage this customer's TaxCloud exemption certificates."
 msgstr ""
 
 #: includes/admin/class-sst-integration.php:26
@@ -176,8 +184,16 @@ msgid ""
 "5.5+."
 msgstr ""
 
-#: includes/class-sst-ajax.php:140
+#: includes/class-sst-ajax.php:110
+msgid "Unauthorized"
+msgstr ""
+
+#: includes/class-sst-ajax.php:177 includes/class-sst-ajax.php:226
 msgid "Invalid request."
+msgstr ""
+
+#: includes/class-sst-ajax.php:231
+msgid "You don't have permission to add a certificate for this user."
 msgstr ""
 
 #: includes/class-sst-assets.php:100
@@ -192,36 +208,45 @@ msgstr ""
 msgid "Connection to TaxCloud failed."
 msgstr ""
 
-#: includes/class-sst-assets.php:144
+#: includes/class-sst-assets.php:133
+msgid "Please enter a complete billing address first."
+msgstr ""
+
+#: includes/class-sst-assets.php:162
 msgid "Failed to delete certificate"
 msgstr ""
 
-#: includes/class-sst-assets.php:145
+#: includes/class-sst-assets.php:163 includes/sst-functions.php:405
 msgid "Failed to add certificate"
 msgstr ""
 
-#: includes/class-sst-assets.php:146
+#: includes/class-sst-assets.php:164
 msgid ""
 "Are you sure you want to delete this certificate? This action is "
 "irreversible."
 msgstr ""
 
-#: includes/class-sst-install.php:147
+#: includes/class-sst-certificates.php:147
+#. translators: 1 - state issued, 2 - tax id, 3 - date created
+msgid "%1$s - %2$s (created %3$s)"
+msgstr ""
+
+#: includes/class-sst-install.php:153
 #. translators: 1 - URL to keep found rates, 2 - URL to delete found rates
 msgid ""
 "Simple Sales Tax found extra rates in your tax tables. Please choose to <a "
 "href=\"%1$s\">keep the rates</a> or <a href=\"%2$s\">delete them</a>."
 msgstr ""
 
-#: includes/class-sst-install.php:248
+#: includes/class-sst-install.php:254
 msgid "Exempt Customer"
 msgstr ""
 
-#: includes/class-sst-install.php:265
+#: includes/class-sst-install.php:271
 msgid "Settings"
 msgstr ""
 
-#: includes/class-sst-install.php:354
+#: includes/class-sst-install.php:360
 msgid "Sales Tax"
 msgstr ""
 
@@ -232,32 +257,32 @@ msgid ""
 "address yet."
 msgstr ""
 
-#: includes/class-sst-order.php:305 includes/class-sst-order.php:818
+#: includes/class-sst-order.php:313 includes/class-sst-order.php:861
 #: includes/sst-update-functions.php:573
 msgid "Fee"
 msgstr ""
 
-#: includes/class-sst-order.php:587
+#: includes/class-sst-order.php:621
 #. translators: WooCommerce order ID
 msgid "Failed to capture order %d: already captured."
 msgstr ""
 
-#: includes/class-sst-order.php:599
+#: includes/class-sst-order.php:633
 #. translators: WooCommerce order ID
 msgid "Failed to capture order %d: order was refunded."
 msgstr ""
 
-#: includes/class-sst-order.php:628
+#: includes/class-sst-order.php:663
 #. translators: 1 - WooCommerce order ID, 2 - Error message from TaxCloud
 msgid "Failed to capture order %1$d: %2$s."
 msgstr ""
 
-#: includes/class-sst-order.php:669
+#: includes/class-sst-order.php:704
 #. translators: WooCommerce order ID
 msgid "Can't refund order %d: order must be completed first."
 msgstr ""
 
-#: includes/class-sst-order.php:742
+#: includes/class-sst-order.php:785
 #. translators: 1 - WooCommerce order ID, 2 - Error message from TaxCloud
 msgid "Failed to refund order %1$d: %2$s."
 msgstr ""
@@ -419,39 +444,77 @@ msgid ""
 msgstr ""
 
 #: includes/class-sst-settings.php:190
+msgid "Shipping TIC"
+msgstr ""
+
+#: includes/class-sst-settings.php:193
+msgid ""
+"11000 - Handling, crating, packing, preparation for mailing or delivery, "
+"and similar charges"
+msgstr ""
+
+#: includes/class-sst-settings.php:197
+msgid "11010 - Transportation, shipping, postage, and similar charges"
+msgstr ""
+
+#: includes/class-sst-settings.php:201
+msgid "11011 - Transportation, shipping, postage, and similar charges by USPS"
+msgstr ""
+
+#: includes/class-sst-settings.php:205
+msgid ""
+"11012 - Transportation, shipping, postage, and similar charges with pick-up "
+"option"
+msgstr ""
+
+#: includes/class-sst-settings.php:209
+msgid "11098 - Colorado Retail Delivery Fees"
+msgstr ""
+
+#: includes/class-sst-settings.php:212
+msgid ""
+"Enter TIC code on <a href=\"https://taxcloud.net/tic\" "
+"target=\"_blank\">TaxCloud website</a> for details."
+msgstr ""
+
+#: includes/class-sst-settings.php:216
+msgid "Select the Taxability Information Code to apply to shipping charges."
+msgstr ""
+
+#: includes/class-sst-settings.php:222
 msgid "Log Requests"
 msgstr ""
 
-#: includes/class-sst-settings.php:194
+#: includes/class-sst-settings.php:226
 msgid ""
 "When selected, Simple Sales Tax will log all requests sent to TaxCloud for "
 "debugging purposes."
 msgstr ""
 
-#: includes/class-sst-settings.php:201
+#: includes/class-sst-settings.php:233
 msgid "Capture Orders Immediately"
 msgstr ""
 
-#: includes/class-sst-settings.php:205
+#: includes/class-sst-settings.php:237
 msgid ""
 "By default, orders are marked as Captured in TaxCloud when they are "
 "shipped. Select this option to mark orders as Captured immediately when "
 "payment is received. Useful for stores that have items with long lead times."
 msgstr ""
 
-#: includes/class-sst-settings.php:212
+#: includes/class-sst-settings.php:244
 msgid "Tax Based On"
 msgstr ""
 
-#: includes/class-sst-settings.php:215
+#: includes/class-sst-settings.php:247
 msgid "Item Price"
 msgstr ""
 
-#: includes/class-sst-settings.php:216
+#: includes/class-sst-settings.php:248
 msgid "Line Subtotal"
 msgstr ""
 
-#: includes/class-sst-settings.php:219
+#: includes/class-sst-settings.php:251
 msgid ""
 "\"Item Price\": TaxCloud determines the taxable amount for a line item by "
 "multiplying the item price by its quantity. \"Line Subtotal\": the taxable "
@@ -459,279 +522,62 @@ msgid ""
 "rounding becomes an issue."
 msgstr ""
 
-#: includes/class-sst-settings.php:226
+#: includes/class-sst-settings.php:258
 msgid "Remove All Data"
 msgstr ""
 
-#: includes/class-sst-settings.php:230
+#: includes/class-sst-settings.php:262
 msgid ""
 "When this feature is enabled, all Simple Sales Tax options and data will be "
 "removed when you click deactivate and delete the plugin."
 msgstr ""
 
-#: includes/class-sst-settings.php:237
-msgid "Download Log File"
+#: includes/class-sst-settings.php:269
+msgid "Debug Report"
 msgstr ""
 
-#: includes/class-sst-settings.php:238
-msgid "Download Log"
+#: includes/class-sst-settings.php:270
+msgid "Download"
 msgstr ""
 
-#: includes/class-sst-settings.php:242
+#: includes/class-sst-settings.php:274
 msgid ""
-"Click this button to download the Simple Sales Tax log file for debugging "
-"purposes."
+"Send a copy of this report to TaxCloud support to help with debugging "
+"Simple Sales Tax issues."
 msgstr ""
 
 #: includes/frontend/views/html-certificate-table.php:18
 msgid "Tax exempt?"
 msgstr ""
 
-#: includes/frontend/views/html-certificate-table.php:29
+#: includes/frontend/views/html-certificate-table.php:33
 msgid "Warning:"
 msgstr ""
 
-#: includes/frontend/views/html-certificate-table.php:30
+#: includes/frontend/views/html-certificate-table.php:34
 msgid ""
 "This interface will not function properly with JavaScript disabled. Please "
 "enable JavaScript to continue."
 msgstr ""
 
-#: includes/frontend/views/html-certificate-table.php:43
+#: includes/frontend/views/html-certificate-table.php:46
 msgid ""
 "Select an exemption certificate from the table below, or click \"Add "
 "Certificate\" and fill out the provided form."
 msgstr ""
 
 #: includes/frontend/views/html-certificate-table.php:54
-msgid "ID"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:55
-msgid "Issued To"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:56
-msgid "Date"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:57
-msgid "Actions"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:64
-msgid "Add Certificate"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:73
 msgid "Please log in or register."
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:83
-msgid "There are no certificates to display. Click 'Add Certificate' to add one."
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:113
-#: includes/frontend/views/html-certificate-table.php:368
-msgid "Add certificate"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:116
-#: includes/frontend/views/html-view-certificate.php:15
-#: includes/views/html-select-tic-modal.php:49
-msgid "Close modal panel"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:125
-msgid "Warning"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:126
-msgid ""
-"You are responsible for knowing if you qualify to claim exemption from tax "
-"in the state that is due tax on this sale. You  will be held liable for any "
-"tax and interest, as well as civil and criminal penalties imposed by the "
-"member state, if you are not eligible to claim this exemption."
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:138
-msgid "Where does this exemption apply?"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:150
-msgid "Tax ID Type"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:154
-#: includes/frontend/views/html-certificate-table.php:200
-#: includes/frontend/views/html-certificate-table.php:305
-msgid "Select one"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:155
-msgid "Federal Employer ID"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:156
-msgid "State Issued Exemption ID or Drivers License"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:170
-msgid "Tax ID"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:183
-msgid "ID issued by..."
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:184
-msgid "Select if your ID is state issued."
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:196
-msgid "Business Type"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:204
-msgid "Accommodation And Food Services"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:208
-msgid "Agricultural/Forestry/Fishing/Hunting"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:212
-msgid "Construction"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:216
-msgid "Finance or Insurance"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:220
-msgid "Information Publishing and Communications"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:224
-msgid "Manufacturing"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:228
-msgid "Mining"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:229
-msgid "Real Estate"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:233
-msgid "Rental and Leasing"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:237
-msgid "Retail Trade"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:241
-msgid "Transportation and Warehousing"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:245
-msgid "Utilities"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:249
-msgid "Wholesale Trade"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:253
-msgid "Business Services"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:257
-msgid "Professional Services"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:261
-msgid "Education and Health Care Services"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:265
-msgid "Nonprofit Organization"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:269
-msgid "Government"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:273
-msgid "Not a Business"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:277
-#: includes/frontend/views/html-certificate-table.php:344
-msgid "Other"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:288
-#: includes/frontend/views/html-certificate-table.php:355
-msgid "Please explain"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:289
-msgid "Explain the nature of your business."
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:301
-msgid "Reason for Exemption"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:306
-msgid "Federal Government Department"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:310
-msgid "State Or Local Government"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:314
-msgid "Tribal Government"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:318
-msgid "Foreign Diplomat"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:322
-msgid "Charitable Organization"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:326
-msgid "Religious or Educational Organization"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:330
-msgid "Resale"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:331
-msgid "Agricultural Production"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:335
-msgid "Industrial Production or Manufacturing"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:339
-msgid "Direct Pay Permit"
-msgstr ""
-
-#: includes/frontend/views/html-certificate-table.php:343
-msgid "Direct Mail"
 msgstr ""
 
 #: includes/frontend/views/html-view-certificate.php:12
 msgid "View certificate"
+msgstr ""
+
+#: includes/frontend/views/html-view-certificate.php:15
+#: includes/views/html-add-certificate-modal.php:20
+#: includes/views/html-select-tic-modal.php:49
+msgid "Close modal panel"
 msgstr ""
 
 #: includes/integrations/class-sst-dokan.php:103
@@ -758,14 +604,14 @@ msgid ""
 "WC Vendors Pro %s+ is required."
 msgstr ""
 
-#: includes/integrations/class-sst-wcfm.php:98
+#: includes/integrations/class-sst-wcfm.php:99
 #. translators: minimum supported WCFM version
 msgid ""
 "Simple Sales Tax does not support the installed version of WCFM. WCFM %s+ "
 "is required."
 msgstr ""
 
-#: includes/integrations/class-sst-wcfm.php:139 includes/sst-functions.php:232
+#: includes/integrations/class-sst-wcfm.php:140 includes/sst-functions.php:232
 msgid "Same as parent"
 msgstr ""
 
@@ -791,6 +637,14 @@ msgid ""
 "tax rates, please make sure you select an appropriate TIC."
 msgstr ""
 
+#: includes/sst-functions.php:400
+msgid "None"
+msgstr ""
+
+#: includes/sst-functions.php:401
+msgid "Certificate added successfully! Don't forget to recalculate taxes."
+msgstr ""
+
 #: includes/sst-update-functions.php:709
 #. translators: 1 - WooCommerce order ID, 2 - Error message
 msgid "Failed to refund extraneous package for order #%1$d: %2$s."
@@ -806,6 +660,231 @@ msgid ""
 "page in TaxCloud, then click Dismiss to dismiss this notice. %2$s"
 msgstr ""
 
+#: includes/views/html-add-certificate-modal.php:17
+#: includes/views/html-add-certificate-modal.php:272
+msgid "Add certificate"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:29
+msgid "Warning"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:30
+msgid ""
+"You are responsible for knowing if you qualify to claim exemption from tax "
+"in the state that is due tax on this sale. You  will be held liable for any "
+"tax and interest, as well as civil and criminal penalties imposed by the "
+"member state, if you are not eligible to claim this exemption."
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:42
+msgid "Where does this exemption apply?"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:54
+msgid "Tax ID Type"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:58
+#: includes/views/html-add-certificate-modal.php:104
+#: includes/views/html-add-certificate-modal.php:209
+msgid "Select one"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:59
+msgid "Federal Employer ID"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:60
+msgid "State Issued Exemption ID or Drivers License"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:74
+msgid "Tax ID"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:87
+msgid "ID issued by..."
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:88
+msgid "Select if your ID is state issued."
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:100
+msgid "Business Type"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:108
+msgid "Accommodation And Food Services"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:112
+msgid "Agricultural/Forestry/Fishing/Hunting"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:116
+msgid "Construction"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:120
+msgid "Finance or Insurance"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:124
+msgid "Information Publishing and Communications"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:128
+msgid "Manufacturing"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:132
+msgid "Mining"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:133
+msgid "Real Estate"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:137
+msgid "Rental and Leasing"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:141
+msgid "Retail Trade"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:145
+msgid "Transportation and Warehousing"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:149
+msgid "Utilities"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:153
+msgid "Wholesale Trade"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:157
+msgid "Business Services"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:161
+msgid "Professional Services"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:165
+msgid "Education and Health Care Services"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:169
+msgid "Nonprofit Organization"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:173
+msgid "Government"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:177
+msgid "Not a Business"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:181
+#: includes/views/html-add-certificate-modal.php:248
+msgid "Other"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:192
+#: includes/views/html-add-certificate-modal.php:259
+msgid "Please explain"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:193
+msgid "Explain the nature of your business."
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:205
+msgid "Reason for Exemption"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:210
+msgid "Federal Government Department"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:214
+msgid "State Or Local Government"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:218
+msgid "Tribal Government"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:222
+msgid "Foreign Diplomat"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:226
+msgid "Charitable Organization"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:230
+msgid "Religious or Educational Organization"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:234
+msgid "Resale"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:235
+msgid "Agricultural Production"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:239
+msgid "Industrial Production or Manufacturing"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:243
+msgid "Direct Pay Permit"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:247
+msgid "Direct Mail"
+msgstr ""
+
+#: includes/views/html-certificate-list.php:24
+msgid "ID"
+msgstr ""
+
+#: includes/views/html-certificate-list.php:25
+msgid "Issued To"
+msgstr ""
+
+#: includes/views/html-certificate-list.php:26
+msgid "Date"
+msgstr ""
+
+#: includes/views/html-certificate-list.php:27
+msgid "Actions"
+msgstr ""
+
+#: includes/views/html-certificate-list.php:34
+msgid "Add Certificate"
+msgstr ""
+
+#: includes/views/html-certificate-list.php:47
+msgid "There are no certificates to display. Click 'Add Certificate' to add one."
+msgstr ""
+
+#: includes/views/html-certificate-list.php:72
+msgid "View"
+msgstr ""
+
+#: includes/views/html-certificate-list.php:76
+msgid "Delete"
+msgstr ""
+
 #: includes/views/html-meta-box.php:9
 msgid "TaxCloud Status"
 msgstr ""
@@ -816,16 +895,42 @@ msgid ""
 "orders should eventually be 'Captured' or 'Refunded.'"
 msgstr ""
 
-#: includes/views/html-meta-box.php:23
+#: includes/views/html-meta-box.php:24
 msgid "Exemption Certificate"
 msgstr ""
 
-#: includes/views/html-meta-box.php:24
-msgid "The customer's exemption certificate, if applicable."
+#: includes/views/html-meta-box.php:25
+msgid "An exemption certificate must be applied if the customer is tax exempt."
 msgstr ""
 
-#: includes/views/html-meta-box.php:27
-msgid "View"
+#: includes/views/html-meta-box.php:35 includes/views/html-meta-box.php:50
+msgid "Loading..."
+msgstr ""
+
+#: includes/views/html-meta-box.php:55
+msgid "Please select a customer to add an exemption certificate."
+msgstr ""
+
+#: includes/views/html-meta-box.php:61
+msgid ""
+"Certificate is no longer editable. The certificate can only be edited when "
+"the TaxCloud Status is Pending."
+msgstr ""
+
+#: includes/views/html-meta-box.php:72
+msgid "Manage customer certificates →"
+msgstr ""
+
+#: includes/views/html-meta-box.php:76
+msgid "Select certificate"
+msgstr ""
+
+#: includes/views/html-meta-box.php:87
+msgid "View Selected"
+msgstr ""
+
+#: includes/views/html-meta-box.php:93
+msgid "Add New"
 msgstr ""
 
 #: includes/views/html-select-tic-modal.php:46
