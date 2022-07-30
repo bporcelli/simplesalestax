@@ -25,6 +25,7 @@ jQuery(function($) {
 			_this.set('certificates', {});
 
 			if (!customerId) {
+				_this.set('loading', false);
 				return;
 			}
 
