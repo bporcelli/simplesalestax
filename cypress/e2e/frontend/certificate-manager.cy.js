@@ -79,7 +79,7 @@ describe('Certificate manager', () => {
     it('allows user to view the cerificate', () => {
       cy.get('#sst-certificates tbody tr[data-id]')
         .last()
-        .findByRole('link', {name: 'View'})
+        .findByRole('button', {name: 'View'})
         .click();
       cy.contains(`***-**-${idSuffix}`).should('be.visible');
       cy.get('button.modal-close').click();
@@ -88,7 +88,7 @@ describe('Certificate manager', () => {
     it('allows user to delete the ceriticate', () => {
       cy.get('#sst-certificates tbody tr[data-id]')
         .last()
-        .findByRole('link', {name: 'Delete'})
+        .findByRole('button', {name: 'Delete'})
         .click();
       cy.waitForBlockedElements();
       cy.get('#sst-certificates tbody tr[data-id]').its('length').then(function(newNumCerts) {

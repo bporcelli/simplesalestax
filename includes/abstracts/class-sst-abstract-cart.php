@@ -559,8 +559,9 @@ abstract class SST_Abstract_Cart {
 			$cart_items[] = array_merge(
 				$map_entry,
 				array(
-					'qty' => $item->getQty(),
-					'tic' => $item->getTIC(),
+					'qty'   => $item->getQty(),
+					'tic'   => $item->getTIC(),
+					'price' => $item->getPrice(),
 				)
 			);
 		}

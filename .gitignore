@@ -5,3 +5,4 @@ tests/config/local.json
 build/
 releases/
 cypress/downloads/
+cypress/videos/
