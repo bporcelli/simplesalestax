@@ -212,7 +212,7 @@ jQuery(function($) {
 			};
 
 			jQuery.post(postUrl, data)
-				.done(function(response) {
+				.then(function(response) {
 					if (!response.success) {
 						throw new Error(response.data);
 					}
