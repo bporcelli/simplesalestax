@@ -4,7 +4,6 @@
   "description": "A TaxCloud integration for WooCommerce.",
   "scripts": {
     "build": "grunt",
-    "deploy": "grunt deploy",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run"
   },
@@ -32,7 +31,6 @@
     "grunt-contrib-copy": "^1.0.0",
     "grunt-contrib-cssmin": "^3.0.0",
     "grunt-contrib-uglify": "^4.0.1",
-    "grunt-wp-deploy": "^2.1.2",
     "grunt-wp-i18n": "^1.0.3"
   },
   "dependencies": {

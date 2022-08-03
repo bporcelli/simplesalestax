@@ -69,16 +69,6 @@ module.exports = function (grunt) {
                 }]
             }
         },
-        wp_deploy: {
-            deploy: {
-                options: {
-                    plugin_slug: 'simple-sales-tax',
-                    build_dir: 'build',
-                    assets_dir: '.wordpress',
-                    svn_user: 'bporcelli'
-                }
-            }
-        }
     });
 
     grunt.loadNpmTasks('grunt-wp-i18n');
@@ -87,11 +77,9 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-contrib-compress');
-    grunt.loadNpmTasks('grunt-wp-deploy');
 
     grunt.registerTask('assets', ['uglify', 'cssmin']);
     grunt.registerTask('build', ['makepot', 'assets', 'clean', 'copy', 'compress']);
-    grunt.registerTask('deploy', ['wp_deploy']);
     grunt.registerTask('default', ['build']);
 
 };
