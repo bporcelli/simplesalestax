@@ -220,6 +220,7 @@ class SST_Ajax {
 		} catch ( Throwable $ex ) {
 			SST_Logger::add(
 				sprintf(
+					/* translators: 1 - error message */
 					__(
 						'Failed to add exemption certificate. Error was: %1$s',
 						'simple-sales-tax'
