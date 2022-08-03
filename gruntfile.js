@@ -46,40 +46,14 @@ module.exports = function (grunt) {
                 }]
             }
         },
-        clean: ['build/'],
-        copy: {
-            target: {
-                expand: true,
-                src: ['assets/**', 'includes/**', 'languages/**', 'simple-sales-tax.php', 'uninstall.php', 'readme.txt', 'changelog.txt'],
-                dest: 'build/'
-            }
-        },
-        compress: {
-            target: {
-                options: {
-                    archive: function () {
-                        return 'releases/simple-sales-tax-' + pkg.version + '.zip'
-                    }
-                },
-                files: [{
-                    expand: true,
-                    cwd: 'build/',
-                    src: '**',
-                    dest: 'simple-sales-tax/'
-                }]
-            }
-        },
     });
 
     grunt.loadNpmTasks('grunt-wp-i18n');
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-cssmin');
-    grunt.loadNpmTasks('grunt-contrib-clean');
-    grunt.loadNpmTasks('grunt-contrib-copy');
-    grunt.loadNpmTasks('grunt-contrib-compress');
 
     grunt.registerTask('assets', ['uglify', 'cssmin']);
-    grunt.registerTask('build', ['makepot', 'assets', 'clean', 'copy', 'compress']);
+    grunt.registerTask('build', ['makepot', 'assets']);
     grunt.registerTask('default', ['build']);
 
 };
