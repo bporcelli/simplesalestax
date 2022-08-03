@@ -2,7 +2,7 @@
 /**
  * Add certificate modal template.
  *
- * @version 7.0.0
+ * @version 7.0.1
  */
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -39,6 +39,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                             'ExemptState',
                             array(
                                 'type'     => 'state',
+                                'country'  => 'US',
                                 'label'    => esc_html__( 'Where does this exemption apply?', 'simple-sales-tax' ),
                                 'required' => true,
                                 'class'    => array( 'sst-input' ),
