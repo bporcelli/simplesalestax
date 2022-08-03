@@ -217,7 +217,7 @@ class SST_Ajax {
 				$form_data['PurchaserExemptionReason'],
 				$form_data['PurchaserExemptionReasonValue']
 			);
-		} catch ( Error $ex ) {
+		} catch ( Throwable $ex ) {
 			SST_Logger::add(
 				sprintf(
 					__(
