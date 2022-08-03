@@ -1,0 +1,29 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.4.2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@2.21.1
+        with:
+          php-version: 8.0
+
+      - name: Install Composer dependencies
+        run: composer install
+
+      - name: Deploy to WP.org
+        uses: 10up/action-wordpress-plugin-deploy@2.1.0
+        with:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: 'simple-sales-tax'
+          ASSETS_DIR: .wordpress
