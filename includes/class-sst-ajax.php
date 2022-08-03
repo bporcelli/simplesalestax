@@ -186,36 +186,50 @@ class SST_Ajax {
 		);
 
 		// Construct certificate.
-		$exempt_state = new TaxCloud\ExemptState(
-			$form_data['ExemptState'],
-			$form_data['PurchaserExemptionReason'],
-			$form_data['IDNumber']
-		);
+		try {
+			$exempt_state = new TaxCloud\ExemptState(
+				$form_data['ExemptState'],
+				$form_data['PurchaserExemptionReason'],
+				$form_data['IDNumber']
+			);
 
-		$tax_id = new TaxCloud\TaxID(
-			$form_data['TaxType'],
-			$form_data['IDNumber'],
-			$form_data['StateOfIssue']
-		);
+			$tax_id = new TaxCloud\TaxID(
+				$form_data['TaxType'],
+				$form_data['IDNumber'],
+				$form_data['StateOfIssue']
+			);
 
-		$certificate = new TaxCloud\ExemptionCertificate(
-			array( $exempt_state ),
-			false,
-			'',
-			$form_data['first_name'],
-			$form_data['last_name'],
-			'',
-			$form_data['address_1'],
-			$form_data['address_2'],
-			$form_data['city'],
-			$form_data['state'],
-			$form_data['postcode'],
-			$tax_id,
-			$form_data['PurchaserBusinessType'],
-			$form_data['PurchaserBusinessTypeOtherValue'],
-			$form_data['PurchaserExemptionReason'],
-			$form_data['PurchaserExemptionReasonValue']
-		);
+			$certificate = new TaxCloud\ExemptionCertificate(
+				array( $exempt_state ),
+				false,
+				'',
+				$form_data['first_name'],
+				$form_data['last_name'],
+				'',
+				$form_data['address_1'],
+				$form_data['address_2'],
+				$form_data['city'],
+				$form_data['state'],
+				$form_data['postcode'],
+				$tax_id,
+				$form_data['PurchaserBusinessType'],
+				$form_data['PurchaserBusinessTypeOtherValue'],
+				$form_data['PurchaserExemptionReason'],
+				$form_data['PurchaserExemptionReasonValue']
+			);
+		} catch ( Error $ex ) {
+			SST_Logger::add(
+				sprintf(
+					__(
+						'Failed to add exemption certificate. Error was: %1$s',
+						'simple-sales-tax'
+					),
+					$ex->getMessage()
+				)
+			);
+
+			wp_send_json_error( __( 'Invalid request.', 'simple-sales-tax' ), 400 );
+		}
 
 		// Add certificate.
 		if ( isset( $_POST['user_id'] ) ) {

@@ -107,7 +107,7 @@
 			}
 
 			$.post( script_data.ajaxurl + '?action=sst_delete_certificate', requestData )
-				.done( function( response ) {
+				.then( function( response ) {
 					if ( ! response.success ) {
 						throw new Error( response.data );
 					}
@@ -192,7 +192,7 @@
 
 			// Add certificate via ajax call
 			$.post( script_data.ajaxurl + '?action=sst_add_certificate', requestData )
-				.done( function( response ) {
+				.then( function( response ) {
 					if ( ! response.success ) {
 						throw new Error( response.data );
 					}
