@@ -1,9 +1,10 @@
 var SST_Add_Certificate_Modal = {
 	open( args ) {
 		var address = args.address || {};
+		var validationResult = SST_Add_Certificate_Modal.validateAddress( address );
 
-		if ( ! SST_Add_Certificate_Modal.isValidAddress( address ) ) {
-			alert( SST_Add_Certificate_Data.strings.please_add_address );
+		if ( true !== validationResult ) {
+			alert( validationResult );
 			return;
 		}
 
@@ -93,19 +94,30 @@ var SST_Add_Certificate_Modal = {
 			);
 		} );
 	},
-	isValidAddress( address ) {
-		var required_fields = [
+	validateAddress( address ) {
+		var requiredFields = [
 			'first_name',
 			'last_name',
 			'address_1',
+			'country',
 			'city',
 			'state',
 			'postcode',
 		];
 
-		return required_fields.every(function(field) {
-			return field in address && !!address[field];
-		});
+		var hasAllRequiredFields = requiredFields.every( function( field ) {
+			return field in address && !! address[ field ];
+		} );
+
+		if ( ! hasAllRequiredFields ) {
+			return SST_Add_Certificate_Data.strings.please_add_address;
+		}
+
+		if ( address['country'] !== 'US' ) {
+			return SST_Add_Certificate_Data.strings.invalid_country;
+		}
+
+		return true;
 	},
 	validateForm( event ) {
 		var $target = jQuery( event.target );

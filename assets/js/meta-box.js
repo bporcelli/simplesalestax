@@ -238,6 +238,7 @@ jQuery(function($) {
 				last_name: '',
 				address_1: '',
 				address_2: '',
+				country: '',
 				city: '',
 				state: '',
 				postcode: '',
