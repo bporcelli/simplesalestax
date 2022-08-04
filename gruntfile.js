@@ -52,8 +52,8 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-cssmin');
 
-    grunt.registerTask('assets', ['uglify', 'cssmin']);
-    grunt.registerTask('build', ['makepot', 'assets']);
+    grunt.registerTask('build', ['uglify', 'cssmin']);
+    grunt.registerTask('makepot', ['makepot']);
     grunt.registerTask('default', ['build']);
 
 };
