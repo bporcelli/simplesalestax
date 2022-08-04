@@ -4,6 +4,7 @@
   "description": "A TaxCloud integration for WooCommerce.",
   "scripts": {
     "build": "grunt",
+    "makepot": "grunt makepot",
     "archive": "cross-var wp dist-archive . releases/simple-sales-tax-$npm_package_version.zip --plugin-dirname=simple-sales-tax --format=zip",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run"
