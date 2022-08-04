@@ -20,6 +20,11 @@ jobs:
       - name: Install Composer dependencies
         run: composer install
 
+      - name: Build
+        run: |
+          npm install
+          npm run build
+
       - name: Deploy to WP.org
         id: plugin-deploy
         uses: 10up/action-wordpress-plugin-deploy@2.1.0
