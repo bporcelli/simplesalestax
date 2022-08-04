@@ -6,6 +6,7 @@ on:
 
 jobs:
   deploy:
+    name: Deploy
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -20,7 +21,7 @@ jobs:
         run: composer install
 
       - name: Deploy to WP.org
-        id: deploy
+        id: plugin-deploy
         uses: 10up/action-wordpress-plugin-deploy@2.1.0
         with:
           generate-zip: true
@@ -36,6 +37,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ${{ steps.deploy.outputs.zip-path }}
+          asset_path: ${{ steps.plugin-deploy.outputs.zip-path }}
           asset_name: ${{ github.event.repository.name }}.zip
           asset_content_type: application/zip
