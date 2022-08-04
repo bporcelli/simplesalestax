@@ -4,7 +4,7 @@
   "description": "A TaxCloud integration for WooCommerce.",
   "scripts": {
     "build": "grunt",
-    "deploy": "grunt deploy",
+    "archive": "cross-var wp dist-archive . releases/simple-sales-tax-$npm_package_version.zip --plugin-dirname=simple-sales-tax --format=zip",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run"
   },
@@ -25,14 +25,11 @@
   "homepage": "https://github.com/bporcelli/simplesalestax#readme",
   "devDependencies": {
     "@testing-library/cypress": "^8.0.3",
+    "cross-var": "^1.1.0",
     "cypress": "^10.3.1",
     "grunt": "^1.5.3",
-    "grunt-contrib-clean": "^2.0.0",
-    "grunt-contrib-compress": "^1.6.0",
-    "grunt-contrib-copy": "^1.0.0",
     "grunt-contrib-cssmin": "^3.0.0",
     "grunt-contrib-uglify": "^4.0.1",
-    "grunt-wp-deploy": "^2.1.2",
     "grunt-wp-i18n": "^1.0.3"
   },
   "dependencies": {

@@ -1,0 +1,20 @@
+# Directories
+.wordpress
+.github
+.git
+cypress
+node_modules
+build
+releases
+
+# Files
+.babelrc
+.distignore
+.gitignore
+README.md
+composer.json
+composer.lock
+cypress.config.js
+gruntfile.js
+package-lock.json
+package.json
