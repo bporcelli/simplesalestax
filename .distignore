@@ -1,7 +1,11 @@
 # Directories
-/.wordpress
-/.github
-/cypress
+.wordpress
+.github
+.git
+cypress
+node_modules
+build
+releases
 
 # Files
 .babelrc
