@@ -107,7 +107,7 @@
 			}
 
 			$.post( script_data.ajaxurl + '?action=sst_delete_certificate', requestData )
-				.done( function( response ) {
+				.then( function( response ) {
 					if ( ! response.success ) {
 						throw new Error( response.data );
 					}
@@ -159,6 +159,7 @@
 				last_name: '',
 				address_1: '',
 				address_2: '',
+				country: '',
 				city: '',
 				state: '',
 				postcode: '',
@@ -192,7 +193,7 @@
 
 			// Add certificate via ajax call
 			$.post( script_data.ajaxurl + '?action=sst_add_certificate', requestData )
-				.done( function( response ) {
+				.then( function( response ) {
 					if ( ! response.success ) {
 						throw new Error( response.data );
 					}
@@ -221,6 +222,7 @@
 				last_name: 'billing_last_name',
 				address_1: 'billing_address_1',
 				address_2: 'billing_address_2',
+				country: 'billing_country',
 				city: 'billing_city',
 				state: 'billing_state',
 				postcode: 'billing_postcode',

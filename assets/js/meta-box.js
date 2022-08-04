@@ -212,7 +212,7 @@ jQuery(function($) {
 			};
 
 			jQuery.post(postUrl, data)
-				.done(function(response) {
+				.then(function(response) {
 					if (!response.success) {
 						throw new Error(response.data);
 					}
@@ -238,6 +238,7 @@ jQuery(function($) {
 				last_name: '',
 				address_1: '',
 				address_2: '',
+				country: '',
 				city: '',
 				state: '',
 				postcode: '',

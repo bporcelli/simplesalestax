@@ -2,6 +2,16 @@ Changelog for Simple Sales Tax
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+= [7.0.1] - 2022-08-04 =
+
+Fixed:
+- The "Where does this exemption apply?" input in the exemption certificate form can be rendered as a text input instead of a dropdown
+- Fatal error with PHP 8 when invalid exemption certificate state is submitted
+- Prevent customers outside of the U.S. from attempting to submit exemption certificates
+
+Changed:
+- Bump tested WooCommerce version to 6.8
+
 = [7.0.0] - 2022-07-30 =
 
 Added:
