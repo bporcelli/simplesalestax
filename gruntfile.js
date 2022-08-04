@@ -53,7 +53,7 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-contrib-cssmin');
 
     grunt.registerTask('build', ['uglify', 'cssmin']);
-    grunt.registerTask('makepot', ['makepot']);
+    grunt.registerTask('i18n', ['makepot']);
     grunt.registerTask('default', ['build']);
 
 };
