@@ -6,3 +6,6 @@ build/
 releases/
 cypress/downloads/
 cypress/videos/
+*.min.js
+*.min.css
+!jquery.hideseek.min.js
