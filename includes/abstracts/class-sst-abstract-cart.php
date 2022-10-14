@@ -115,6 +115,25 @@ abstract class SST_Abstract_Cart {
 		$packages = array();
 
 		foreach ( $this->create_packages() as $package ) {
+			if ( ! $this->should_do_lookup( $package ) ) {
+				continue;
+			}
+
+			if ( ! $this->is_destination_valid( $package ) ) {
+				// Wait for a complete destination address.
+				continue;
+			}
+
+			if ( ! $this->is_origin_valid( $package ) ) {
+				SST_Logger::add(
+					__(
+						'Failed to calculate sales tax: Shipping origin address is invalid.',
+						'simple-sales-tax'
+					)
+				);
+				continue;
+			}
+
 			$package['request'] = $this->get_lookup_for_package( $package );
 
 			$hash          = $this->get_package_hash( $package );
@@ -147,13 +166,9 @@ abstract class SST_Abstract_Cart {
 	 *
 	 * @param array $package Package to perform tax lookup for.
 	 *
-	 * @return bool|array False if the package is not ready for lookup, or the updated package otherwise.
+	 * @return array Updated package.
 	 */
 	protected function do_package_lookup( $package ) {
-		if ( ! $this->ready_for_lookup( $package ) ) {
-			return false;
-		}
-
 		try {
 			$package['response'] = TaxCloud()->Lookup( $package['request'] );
 			$package['cart_id']  = key( $package['response'] );
@@ -424,18 +439,45 @@ abstract class SST_Abstract_Cart {
 	}
 
 	/**
+	 * Is the package origin address valid?
+	 *
+	 * @param array $package WooCommerce shipping package.
+	 *
+	 * @return bool
+	 * @since 7.0.2
+	 */
+	protected function is_origin_valid( $package ) {
+		return (
+			isset( $package['origin'] ) &&
+			$package['origin'] instanceof TaxCloud\Address
+		);
+	}
+
+	/**
+	 * Is the package destination address valid?
+	 *
+	 * @param array $package WooCommerce shipping package.
+	 *
+	 * @return bool
+	 * @since 7.0.2
+	 */
+	protected function is_destination_valid( $package ) {
+		return (
+			isset( $package['destination'] ) &&
+			SST_Addresses::is_valid( $package['destination'] )
+		);
+	}
+
+	/**
 	 * Can we perform a lookup for the given package?
 	 *
 	 * @param array $package WooCommerce shipping package.
 	 *
 	 * @return bool
-	 * @since 5.0
+	 * @since 7.0.2
 	 */
-	protected function ready_for_lookup( $package ) {
-		$dest_valid   = isset( $package['destination'] ) && SST_Addresses::is_valid( $package['destination'] );
-		$origin_valid = isset( $package['origin'] ) && $package['origin'] instanceof TaxCloud\Address;
-
-		return $origin_valid && $dest_valid;
+	protected function should_do_lookup( $package ) {
+		return true;
 	}
 
 	/**

@@ -85,14 +85,13 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @param array $package Shipping package.
 	 *
 	 * @return bool
-	 * @since 5.0
+	 * @since 7.0.2
 	 */
-	protected function ready_for_lookup( $package ) {
-		if ( 'pending' !== $this->get_taxcloud_status() || 0 < $this->order->get_total_refunded() ) {
-			return false;
-		}
-
-		return parent::ready_for_lookup( $package );
+	protected function should_do_lookup( $package ) {
+		return (
+			'pending' === $this->get_taxcloud_status() &&
+			0 === (int) $this->order->get_total_refunded()
+		);
 	}
 
 	/**
