@@ -2,6 +2,15 @@ Changelog for Simple Sales Tax
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+= [7.0.2] - 2022-10-14 =
+
+Fixed:
+- Fatal error on checkout page when destination address is incomplete
+
+Changed:
+- Bump tested WooCommerce version to 7.0
+- Bump tested WordPress version to 6.1
+
 = [7.0.1] - 2022-08-04 =
 
 Fixed:
