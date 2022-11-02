@@ -2,6 +2,14 @@ Changelog for Simple Sales Tax
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+= [7.0.3] - 2022-11-02 =
+
+Fixed:
+- Order exemption certificates by created date in certificate table
+
+Changed:
+- Bump tested WooCommerce version to 7.1
+
 = [7.0.2] - 2022-10-14 =
 
 Fixed:
