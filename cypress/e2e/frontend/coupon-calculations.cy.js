@@ -25,6 +25,7 @@ describe('Coupon calculations', () => {
 
     cy.addProductToCart('General Product');
     cy.visit('/cart/');
+    removeCoupon();
 
     cy.get('.shipping-calculator-button').click();
     cy.get('#calc_shipping_state').select('NY', {force: true});
@@ -34,7 +35,7 @@ describe('Coupon calculations', () => {
     cy.waitForBlockedElements();
   });
 
-  beforeEach(() => {
+  afterEach(() => {
     removeCoupon();
   });
 
