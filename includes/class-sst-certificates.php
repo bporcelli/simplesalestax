@@ -166,6 +166,16 @@ class SST_Certificates {
 			$certificates[ $id ] = self::format_certificate( $raw_cert );
 		}
 
+		// Sort by created date ascending.
+		uasort( $certificates, function( $cert_a, $cert_b ) {
+			$date_a = $cert_a['CreatedDate'];
+			$date_b = $cert_b['CreatedDate'];
+			if ( $date_a === $date_b ) {
+				return 0;
+			}
+			return $date_a < $date_b ? -1 : 1;
+		} );
+
 		return $certificates;
 	}
 
