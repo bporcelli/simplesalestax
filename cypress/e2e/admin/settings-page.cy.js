@@ -1,7 +1,8 @@
 /// <reference types="cypress" />
 
 describe('Settings page', () => {
-  before(() => {
+  beforeEach(() => {
+    cy.loginAsAdmin();
     cy.goToSettingsPage();
   });
 

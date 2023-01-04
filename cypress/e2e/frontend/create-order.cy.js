@@ -1,14 +1,13 @@
 /// <reference types="cypress" />
 
 describe('Create order', () => {
-  before(() => {
+  beforeEach(() => {
     cy.loginAsAdmin();
   });
 
   const createOrder = () => {
     cy.intercept('POST', '/?wc-ajax=update_order_review').as('updateOrderReview');
     cy.intercept('POST', '/?wc-ajax=checkout').as('doCheckout');
-    cy.emptyCart();
     cy.addProductToCart('General Product');
     cy.visit('/cart/');
     cy.selectShippingMethod('Flat rate');

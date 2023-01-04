@@ -1,8 +1,9 @@
 /// <reference types="cypress" />
 
 describe('Bulk editor', () => {
-  before(() => {
-    cy.visitAdminPage('/wp-admin/edit.php?post_type=product');
+  beforeEach(() => {
+    cy.loginAsAdmin();
+    cy.visit('/wp-admin/edit.php?post_type=product');
   });
 
   const selectProduct = (productName) => {

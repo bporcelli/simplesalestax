@@ -19,10 +19,13 @@ describe('Coupon calculations', () => {
   };
 
   before(() => {
+    cy.loginAsAdmin();
     cy.goToSettingsPage();
     cy.get('#woocommerce_wootax_show_zero_tax').select('Yes');
     cy.findByRole('button', {name: 'Save changes'}).click();
+  });
 
+  beforeEach(() => {
     cy.addProductToCart('General Product');
     cy.visit('/cart/');
     removeCoupon();

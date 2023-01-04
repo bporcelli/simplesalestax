@@ -15,6 +15,7 @@ describe('Basic calculations', () => {
   });
 
   beforeEach(() => {
+    cy.loginAsAdmin();
     cy.emptyCart();
   });
 

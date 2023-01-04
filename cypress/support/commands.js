@@ -1,25 +1,35 @@
 import '@testing-library/cypress/add-commands';
 
 Cypress.Commands.add('visitAdminPage', (pagePath = '/wp-admin/') => {
-  cy.visit(pagePath);
-  cy.get('body').then(($body) => {
-    if ($body.hasClass('login')) {
-      cy.findByRole('textbox', {name: 'Username or Email Address'})
-        .clear()
-        .type('admin');
-      cy.findByRole('button', {name: 'Show password'}).click();
-      cy.findByRole('textbox', {name: 'Password'}).type('password');
-      cy.findByRole('button', {name: 'Log In'}).click();
-    }
+  cy.session('admin', () => {
+    cy.visit(pagePath);
+    cy.get('body').then(($body) => {
+      if ($body.hasClass('login')) {
+        cy.findByRole('textbox', {name: 'Username or Email Address'})
+          .clear()
+          .type('admin');
+        cy.findByRole('button', {name: 'Show password'}).click();
+        cy.findByRole('textbox', {name: 'Password'}).type('password');
+        cy.findByRole('button', {name: 'Log In'}).click();
+      }
+    });
   });
 });
 
 Cypress.Commands.add('loginAsAdmin', () => {
-  cy.visitAdminPage('/wp-login.php');
+  cy.session('admin', () => {
+    cy.visit('/wp-login.php');
+    cy.findByRole('textbox', {name: 'Username or Email Address'})
+      .clear()
+      .type('admin');
+    cy.findByRole('button', {name: 'Show password'}).click();
+    cy.findByRole('textbox', {name: 'Password'}).type('password');
+    cy.findByRole('button', {name: 'Log In'}).click();
+  }, {cacheAcrossSpecs: true});
 });
 
 Cypress.Commands.add('goToSettingsPage', () => {
-  cy.visitAdminPage('/wp-admin/admin.php?page=wc-settings&tab=integration&section=wootax');
+  cy.visit('/wp-admin/admin.php?page=wc-settings&tab=integration&section=wootax');
 });
 
 Cypress.Commands.add('addProductToCart', (productName, variation = '') => {

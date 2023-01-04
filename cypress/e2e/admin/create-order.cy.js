@@ -23,7 +23,8 @@ describe('Admin create order', () => {
   });
 
   const createNewOrder = (orderStatus, productNames) => {
-    cy.visitAdminPage('/wp-admin/post-new.php?post_type=shop_order');
+    cy.loginAsAdmin();
+    cy.visit('/wp-admin/post-new.php?post_type=shop_order');
 
     setOrderStatus(orderStatus);
 
@@ -72,7 +73,8 @@ describe('Admin create order', () => {
     cy.wait('@saveProducts', {timeout: 20000});
   };
 
-  it('calculates tax for orders created by admin', () => {
+  it('should calculate tax, capture order when completed, and return order when refunded', () => {
+    // Tax should be calculated
     cy.findByRole('columnheader', {name: 'Sales Tax'}).should('exist');
     cy.contains('tr', 'Sales Tax:').should('exist');
 
@@ -81,9 +83,8 @@ describe('Admin create order', () => {
         .contains('.line_tax', taxAmount)
         .should('exist');
     });
-  });
 
-  it('captures Completed orders in TaxCloud', () => {
+    // Order should be captured in TaxCloud when marked Completed
     setOrderStatus('Completed');
     cy.findByRole('button', {name: 'Update'}).click();
 
@@ -91,9 +92,8 @@ describe('Admin create order', () => {
       .closest('div')
       .contains('Captured')
       .should('exist');
-  });
 
-  it('marks refunded orders as refunded in TaxCloud', () => {
+    // Order should be refunded in TaxCloud when marked Refunded
     setOrderStatus('Refunded');
     cy.findByRole('button', {name: 'Update'}).click();
 

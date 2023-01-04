@@ -13,8 +13,4 @@
 // https://on.cypress.io/configuration
 // ***********************************************************
 
-import './commands'
-
-Cypress.Cookies.defaults({
-    preserve: /wordpress_.*|.*woocommerce.*/,
-});
+import './commands';

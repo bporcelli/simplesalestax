@@ -16,11 +16,9 @@ describe('REST API order calculations', () => {
     };
 
     // Clear out any auth cookies to avoid 401s.
-    cy.clearCookies().then(() => {
-      cy.request(requestOptions).then((response) => {
-        expect(response.status).to.eq(201);
-        expect(parseFloat(response.body.total_tax)).to.be.gt(0);
-      });
+    cy.request(requestOptions).then((response) => {
+      expect(response.status).to.eq(201);
+      expect(parseFloat(response.body.total_tax)).to.be.gt(0);
     });
   });
 });
