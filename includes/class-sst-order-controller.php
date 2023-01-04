@@ -64,40 +64,12 @@ class SST_Order_Controller {
 	 * @since 5.0
 	 */
 	public function refund_order( $refund_id, $args ) {
-		$items = isset( $args['line_items'] ) ? $args['line_items'] : array();
-		$order = new SST_Order( $args['order_id'] );
-
-		/* If items specified, convert to format expected by do_refund() */
-		if ( ! empty( $items ) ) {
-			$all_items = $order->get_items( array( 'line_item', 'shipping', 'fee' ) );
-
-			foreach ( $items as $item_id => $data ) {
-				if ( $data['refund_total'] > 0 && isset( $all_items[ $item_id ] ) ) {
-					$item_type = $all_items[ $item_id ]['type'];
-
-					/* Match line total with value entered by user */
-					if ( 'shipping' === $item_type ) {
-						$all_items[ $item_id ]['cost'] = $data['refund_total'];
-					} else {
-						$all_items[ $item_id ]['line_total'] = $data['refund_total'];
-					}
-
-					/* Match quantity with value entered by user */
-					if ( 'line_item' === $item_type ) {
-						$all_items[ $item_id ]['qty'] = isset( $data['qty'] ) ? $data['qty'] : 1;
-					}
-
-					$items[ $item_id ] = $all_items[ $item_id ];
-				} else {
-					unset( $items[ $item_id ] );
-				}
-			}
-		}
-
-		/* Delete refund if refund fails */
+		$order  = new SST_Order( $args['order_id'] );
+		$refund = wc_get_order( $refund_id );
 		$result = false;
+
 		try {
-			$result = $order->do_refund( $items );
+			$result = $order->do_refund( $refund );
 
 			if ( ! $result ) {
 				wp_delete_post( $refund_id, true );

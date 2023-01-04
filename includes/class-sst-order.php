@@ -678,13 +678,15 @@ class SST_Order extends SST_Abstract_Cart {
 	/**
 	 * Send Returned request to fully or partially refund an order.
 	 *
-	 * @param array $items Array of items to refund (default: array()).
+	 * @param WC_Order|array $refund_or_items Refund order or array of items to
+	 *                                        refund. Items array is deprecated
+	 *                                        and should no longer be used.
 	 *
 	 * @return bool True on success, false on failure.
 	 *
 	 * @since 5.0
 	 */
-	public function do_refund( $items = array() ) {
+	public function do_refund( $refund_or_items ) {
 		$order = $this->order;
 
 		// Let devs control whether the order is refunded in TaxCloud.
@@ -708,62 +710,76 @@ class SST_Order extends SST_Abstract_Cart {
 			return false;
 		}
 
-		// For full refunds, refund all fees, line items, and shipping charges.
-		if ( empty( $items ) ) {
-			$items = $order->get_items( array( 'fee', 'shipping', 'line_item' ) );
+		if ( is_array( $refund_or_items ) ) {
+			// TODO: Drop support for items array in v8.
+			wc_deprecated_argument(
+				'items',
+				'7.0.5',
+				'Passing an items array into SST_Order::do_refund() is no longer supported. Please pass an instance of WC_Order_Refund instead.'
+			);
+
+			$items = $refund_or_items;
+		} else {
+			$items = $refund_or_items->get_items(
+				array( 'fee', 'shipping', 'line_item' )
+			);
 		}
 
-		$this->prepare_refund_items( $items );
+		if ( empty( $items ) ) {
+			// Refund all items if items not explicitly passed.
+			$items = $order->get_items(
+				array( 'fee', 'shipping', 'line_item' )
+			);
+		}
+
+		$refund_amounts = $this->get_refund_amounts( $items );
 
 		// Process refunds while items remain.
 		$packages = $this->get_packages();
 
-		while ( ! empty( $items ) ) {
-			$package = current( $packages );
-
-			if ( false === $package ) {
-				break;
-			}
-
+		foreach ( $packages as $package_key => $package ) {
 			$cart_items      = $package['cart_items'];
 			$shipping_method = $this->process_method_id(
 				$package['shipping_method']
 			);
 			$refund_items    = array();
 
-			foreach ( $cart_items as $cart_item ) {
-				$id_to_match = $cart_item['id'];
+			foreach ( $cart_items as $item_index => $cart_item ) {
+				$item_id = $cart_item['id'];
 
 				if ( 'shipping' === $cart_item['type'] ) {
-					$id_to_match = $shipping_method;
+					$item_id = $shipping_method;
 				}
 
-				foreach ( $items as $item_key => $item ) {
-					if ( $item['id'] !== $id_to_match ) {
-						continue; // No match.
-					}
-
-					$qty = min( $item['qty'], $cart_item['qty'] );
-
-					$refund_items[] = new TaxCloud\CartItem(
-						count( $refund_items ),
-						$cart_item['id'],
-						$cart_item['tic'],
-						$item['price'],
-						$qty
-					);
-
-					$item['qty'] -= $qty;
-
-					if ( 0 === (int) $item['qty'] ) {
-						unset( $items[ $item_key ] );
-					}
+				if ( ! isset( $refund_amounts[ $item_id ] ) ) {
+					continue;
 				}
+
+				$refund_amount = $refund_amounts[ $item_id ];
+
+				if ( $refund_amount <= 0 ) {
+					continue;
+				}
+
+				$refund_qty = min(
+					$cart_item['qty'],
+					$refund_amount / $cart_item['price']
+				);
+
+				$refund_items[] = new TaxCloud\CartItem(
+					$item_index,
+					$cart_item['id'],
+					$cart_item['tic'],
+					$cart_item['price'],
+					$refund_qty
+				);
+
+				$refund_amount -= $refund_qty * $cart_item['price'];
 			}
 
 			if ( ! empty( $refund_items ) ) {
 				$order_id = $this->get_package_order_id(
-					key( $packages ),
+					$package_key,
 					$package
 				);
 
@@ -790,8 +806,6 @@ class SST_Order extends SST_Abstract_Cart {
 					return false;
 				}
 			}
-
-			next( $packages );
 		}
 
 		// If order was fully refunded, set status accordingly.
@@ -825,48 +839,44 @@ class SST_Order extends SST_Abstract_Cart {
 	}
 
 	/**
-	 * Prepare items for refund.
+	 * Get refund amounts for each refund item.
 	 *
+	 * @since 7.0.5
+     *
 	 * @param array $items Refund items.
 	 *
-	 * @since 5.0
+	 * @return array Associative array where keys are item IDs and values
+	 *               are amounts to refund.
 	 */
-	protected function prepare_refund_items( &$items ) {
-		$tax_based_on = SST_Settings::get( 'tax_based_on' );
+	protected function get_refund_amounts( $items ) {
+		$refund_amounts = array();
 
-		foreach ( $items as $item_id => $item ) {
-
-			$quantity   = isset( $item['qty'] ) ? $item['qty'] : 1;
-			$line_total = isset( $item['line_total'] ) ? $item['line_total'] : $item['cost'];
-			$unit_price = round( $line_total / $quantity, wc_get_price_decimals() );
-
-			/* Set quantity and price according to 'Tax Based On' setting */
-			if ( 'line-subtotal' === $tax_based_on ) {
-				$quantity = 1;
-				$price    = $line_total;
-			} else {
-				$price = $unit_price;
-			}
-
-			/* Set item ID */
-			switch ( $item['type'] ) {
+		foreach ( $items as $item ) {
+			switch ( $item->get_type() ) {
 				case 'line_item':
-					$id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
+					$item_id = $item->get_variation_id()
+						? $item->get_variation_id()
+						: $item->get_product_id();
 					break;
 				case 'shipping':  // TODO: handle packages w/ same method.
-					$id = $this->process_method_id( $item['method_id'] );
+					$item_id = $this->process_method_id( $item->get_method_id() );
 					break;
 				case 'fee':
-					$name = empty( $item['name'] ) ? __( 'Fee', 'simple-sales-tax' ) : $item['name'];
-					$id   = sanitize_title( $name );
+					$name    = ! empty( $item->get_name() )
+						? $item->get_name()
+						: __( 'Fee', 'simple-sales-tax' );
+					$item_id = sanitize_title( $name );
+					break;
+				default:
+					// Unsupported item type
+					continue 2;
 			}
 
-			$items[ $item_id ] = array(
-				'qty'   => $quantity,
-				'price' => $price,
-				'id'    => $id,
-			);
+			// Refund line item amounts are negative - use abs to get magnitude
+			$refund_amounts[ $item_id ] = abs( $item->get_total() );
 		}
+
+		return $refund_amounts;
 	}
 
 	/**
