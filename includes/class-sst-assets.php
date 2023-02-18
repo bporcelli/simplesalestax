@@ -136,7 +136,7 @@ class SST_Assets {
 								),
 								'invalid_country'    => __(
 									'Billing address must be in the United States to add an exemption certificate.',
-									'simple-sales-tax',
+									'simple-sales-tax'
 								),
 							),
 						),
