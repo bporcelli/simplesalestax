@@ -2,6 +2,11 @@ Changelog for Simple Sales Tax
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+= [7.0.8] - 2023-03-07 =
+
+Changed:
+- Bump tested WooCommerce version to 7.5
+
 = [7.0.7] - 2023-02-18 =
 
 Fixed:
