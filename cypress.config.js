@@ -7,4 +7,5 @@ module.exports = {
     },
     baseUrl: 'http://sst.local',
   },
+  retries: 2,
 }

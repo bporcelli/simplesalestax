@@ -67,6 +67,7 @@ Cypress.Commands.add('selectShippingMethod', (methodName) => {
         .as('updateShippingMethod');
       cy.wrap($input).check();
       cy.wait('@updateShippingMethod');
+      cy.waitForBlockedElements();
     }
   });
 });
