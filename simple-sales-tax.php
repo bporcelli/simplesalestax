@@ -13,7 +13,7 @@
  * Requires at least:    4.5.0
  * Tested up to:         6.1.0
  * WC requires at least: 3.0.0
- * WC tested up to:      7.4.0
+ * WC tested up to:      7.6.0
  *
  * @category             Plugin
  * @copyright            Copyright © 2023 The Federal Tax Authority, LLC
