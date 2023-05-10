@@ -3,9 +3,14 @@
 import products from '../../fixtures/products.json';
 
 describe('Admin create order', () => {
-  const orderProducts = {};
+  const simpleProduct = products['simpleProduct'];
+  const downloadableProduct = products['downloadableProduct'];
+  const expectedTaxAmounts = {
+    [simpleProduct.name]: simpleProduct.expectedTax,
+    [downloadableProduct.name]: downloadableProduct.expectedTax,
+  };
 
-  before(() => {
+  beforeEach(() => {
     cy.intercept('POST', '/wp-admin/admin-ajax.php', (req) => {
       if (req.body.includes('action=woocommerce_add_order_item')) {
         req.alias = 'saveProducts';
@@ -13,13 +18,6 @@ describe('Admin create order', () => {
         req.alias = 'recalcRequest';
       }
     });
-
-    ['simple', 'downloadable'].forEach((productType) => {
-      const product = products[`${productType}Product`];
-      orderProducts[ product.name ] = product.expectedTax;
-    });
-
-    createNewOrder('Pending payment', Object.keys(orderProducts));
   });
 
   const createNewOrder = (orderStatus, productNames) => {
@@ -74,11 +72,13 @@ describe('Admin create order', () => {
   };
 
   it('should calculate tax, capture order when completed, and return order when refunded', () => {
+    createNewOrder('Pending payment', Object.keys(expectedTaxAmounts));
+
     // Tax should be calculated
     cy.findByRole('columnheader', {name: 'Sales Tax'}).should('exist');
     cy.contains('tr', 'Sales Tax:').should('exist');
 
-    Object.entries(orderProducts).forEach(([productName, taxAmount]) => {
+    Object.entries(expectedTaxAmounts).forEach(([productName, taxAmount]) => {
       cy.contains('tr', productName)
         .contains('.line_tax', taxAmount)
         .should('exist');
