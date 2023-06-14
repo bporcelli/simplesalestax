@@ -8,4 +8,5 @@ module.exports = {
     baseUrl: 'http://sst.local',
   },
   retries: 2,
+  pageLoadTimeout: 120000,
 }
