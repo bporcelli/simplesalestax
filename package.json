@@ -1,6 +1,6 @@
 {
   "name": "simplesalestax",
-  "version": "7.0.11",
+  "version": "7.0.12",
   "description": "A TaxCloud integration for WooCommerce.",
   "scripts": {
     "build": "grunt",
