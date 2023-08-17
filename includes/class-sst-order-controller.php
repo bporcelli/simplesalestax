@@ -34,6 +34,10 @@ class SST_Order_Controller {
 			2
 		);
 		add_action( 'woocommerce_process_shop_order_meta', array( $this, 'save_certficiate' ) );
+		add_filter(
+			'woocommerce_order_hide_zero_taxes',
+			array( $this, 'filter_hide_zero_taxes' )
+		);
 	}
 
 	/**
@@ -208,6 +212,16 @@ class SST_Order_Controller {
 		);
 		$order->update_meta( 'exempt_cert', $certificate_id );
 		$order->save();
+	}
+
+	/**
+	 * Filters woocommerce_order_hide_zero_taxes so zero taxes are
+	 * shown if the SST "Show Zero Tax" setting is enabled.
+	 *
+	 * @return bool
+	 */
+	public function filter_hide_zero_taxes() {
+		return 'true' !== SST_Settings::get( 'show_zero_tax' );
 	}
 
 }
