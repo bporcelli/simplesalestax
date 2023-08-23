@@ -2,6 +2,14 @@ Changelog for Simple Sales Tax
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+= [7.0.13] - 2023-08-17 =
+
+Changed:
+- Bump tested WC version to 8.0
+
+Fixed:
+- Zero Sales Tax line doesn't show in order emails when "Show Zero Tax" setting is enabled
+
 = [7.0.12] - 2023-07-19 =
 
 Changed:
