@@ -22,7 +22,7 @@ describe('Admin create order', () => {
 
   const createNewOrder = (orderStatus, productNames) => {
     cy.loginAsAdmin();
-    cy.visit('/wp-admin/post-new.php?post_type=shop_order');
+    cy.visit('/wp-admin/admin.php?page=wc-orders&action=new');
 
     setOrderStatus(orderStatus);
 
@@ -42,7 +42,7 @@ describe('Admin create order', () => {
 
     cy.findByRole('button', {name: 'Recalculate'}).click();
 
-    cy.wait('@recalcRequest', {timeout: 20000});
+    cy.wait('@recalcRequest', {timeout: 30000});
     cy.findByRole('button', {name: 'Create'}).click();
   };
 

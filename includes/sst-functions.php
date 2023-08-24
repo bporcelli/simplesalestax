@@ -377,10 +377,9 @@ function sst_get_order_shipping_address( $order ) {
 /**
  * Renders the Sales Tax meta box.
  *
- * @param WP_Post $post The post being edited.
+ * @param SST_Order $order The order being edited.
  */
-function sst_render_tax_meta_box( $post ) {
-	$order  = new SST_Order( $post->ID );
+function sst_render_tax_meta_box( $order ) {
 	$status = $order->get_taxcloud_status( 'view' );
 
 	wp_enqueue_script( 'sst-meta-box' );

@@ -232,10 +232,10 @@ abstract class SST_Marketplace_Integration {
      * that will be captured in TaxCloud and a warning message
      * for parent orders.
      *
-     * @param WP_Post $post The post being edited.
+     * @param SST_Order $order The order being edited.
      */
-    public function render_tax_meta_box( $post ) {
-        $has_sub_orders = $this->order_has_sub_orders( $post->ID );
+    public function render_tax_meta_box( $order ) {
+        $has_sub_orders = $this->order_has_sub_orders( $order->get_id() );
 
         if ( $has_sub_orders ) {
             echo '<p>';
@@ -247,7 +247,7 @@ abstract class SST_Marketplace_Integration {
 
             echo '</p>';
         } else {
-            sst_render_tax_meta_box( $post );
+            sst_render_tax_meta_box( $order );
         }
     }
 

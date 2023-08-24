@@ -1,5 +1,7 @@
 <?php
 
+use Automattic\WooCommerce\Utilities\OrderUtil;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
@@ -69,18 +71,28 @@ class SST_Admin {
 	}
 
 	/**
+	 * Get the ID of the shop order administration screen.
+	 *
+	 * @return string
+	 */
+	protected static function get_order_screen_id() {
+		return OrderUtil::custom_orders_table_usage_is_enabled()
+			? wc_get_page_screen_id( 'shop-order' )
+			: 'shop_order';
+	}
+
+	/**
 	 * Enqueue admin scripts and styles.
 	 *
 	 * @since 4.2
 	 */
 	public static function enqueue_scripts_and_styles() {
-		global $pagenow, $post;
-
 		// Global admin CSS.
 		wp_enqueue_style( 'sst-admin-css' );
 
 		// Edit Order screen CSS.
-		if ( 'post.php' === $pagenow && 'shop_order' === get_post_type( $post ) ) {
+		$screen = get_current_screen();
+		if ( $screen && $screen->id === self::get_order_screen_id() ) {
 			wp_enqueue_style( 'sst-certificate-modal-css' );
 		}
 	}
@@ -95,7 +107,7 @@ class SST_Admin {
 			'sales_tax_meta',
 			__( 'Simple Sales Tax', 'simple-sales-tax' ),
 			array( __CLASS__, 'output_tax_metabox' ),
-			'shop_order',
+			self::get_order_screen_id(),
 			'side',
 			'high'
 		);
@@ -104,12 +116,17 @@ class SST_Admin {
 	/**
 	 * Output HTML for "Sales Tax" metabox.
 	 *
-	 * @param WP_Post $post WP_Post object for product being edited.
+	 * @param WP_Post|WC_Order $post_or_order Post or order object.
 	 *
 	 * @since 4.2
 	 */
-	public static function output_tax_metabox( $post ) {
-		do_action( 'sst_output_tax_meta_box', $post );
+	public static function output_tax_metabox( $post_or_order ) {
+		$order_id = ( $post_or_order instanceof WP_Post )
+			? $post_or_order->ID
+			: $post_or_order->get_id();
+		$order    = new SST_Order( $order_id );
+
+		do_action( 'sst_output_tax_meta_box', $order );
 	}
 
 	/**
