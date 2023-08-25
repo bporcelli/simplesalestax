@@ -21,7 +21,7 @@ class SST_Order_Controller {
 	 * @since 5.0
 	 */
 	public function __construct() {
-		add_action( 'woocommerce_order_status_completed', array( $this, 'capture_order' ) );
+		add_action( 'woocommerce_order_status_completed', array( $this, 'capture_order' ), 10, 2 );
 		add_action( 'woocommerce_refund_created', array( $this, 'refund_order' ), 10, 2 );
 		add_action( 'woocommerce_payment_complete', array( $this, 'maybe_capture_order' ) );
 		add_filter( 'woocommerce_hidden_order_itemmeta', array( $this, 'hide_order_item_meta' ) );
@@ -43,17 +43,18 @@ class SST_Order_Controller {
 	/**
 	 * When an order is completed, mark it as captured in TaxCloud.
 	 *
-	 * @param int $order_id ID of completed order.
+	 * @param int      $_order_id Order ID - unused.
+	 * @param WC_Order $order     Order object.
 	 *
 	 * @return bool True on success, false on failure.
 	 *
 	 * @throws Exception If capture fails.
 	 * @since 5.0
 	 */
-	public function capture_order( $order_id ) {
-		$order = new SST_Order( $order_id );
+	public function capture_order( $_order_id, $order ) {
+		$sst_order = new SST_Order( $order );
 
-		return $order->do_capture();
+		return $sst_order->do_capture();
 	}
 
 	/**
@@ -76,10 +77,10 @@ class SST_Order_Controller {
 			$result = $order->do_refund( $refund );
 
 			if ( ! $result ) {
-				wp_delete_post( $refund_id, true );
+				$refund->delete( true );
 			}
 		} catch ( Exception $ex ) {
-			wp_delete_post( $refund_id, true );
+			$refund->delete( true );
 			throw $ex; /* Let Woo handle the exception */
 		}
 

@@ -26,7 +26,7 @@ describe('Create order', () => {
   };
 
   const editOrder = (orderId) => {
-    cy.visit(`/wp-admin/post.php?action=edit&post=${orderId}`);
+    cy.visit(`/wp-admin/admin.php?page=wc-orders&action=edit&id=${orderId}`);
   };
 
   const round = (number) => {
