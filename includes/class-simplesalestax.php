@@ -73,6 +73,7 @@ final class SimpleSalesTax {
 		define( 'SST_RATE_ID', get_option( 'wootax_rate_id' ) );
 		define( 'SST_FILE', dirname( dirname( __FILE__ ) ) . '/simple-sales-tax.php' );
 		define( 'SST_PLUGIN_BASENAME', plugin_basename( SST_FILE ) );
+		define( 'SST_SINGLE_PURCHASE_CERT_ID', 'single-purchase' );
 	}
 
 	/**

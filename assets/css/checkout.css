@@ -1,0 +1,3 @@
+#select2-certificate_id-results li:first-of-type:not(:last-of-type) {
+	border-bottom: 1px solid #aaa;
+}

@@ -13,6 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use \TaxCloud\ExemptionCertificate;
+
 /**
  * Output HTML for a help tip.
  *
@@ -380,28 +382,36 @@ function sst_get_order_shipping_address( $order ) {
  * @param SST_Order $order The order being edited.
  */
 function sst_render_tax_meta_box( $order ) {
-	$status = $order->get_taxcloud_status( 'view' );
+	$status      = $order->get_taxcloud_status( 'view' );
+	$certificate = $order->get_single_purchase_certificate();
+
+	if ( $certificate instanceof ExemptionCertificate ) {
+		$certificate = SST_Certificates::format_certificate( $certificate );
+	}
 
 	wp_enqueue_script( 'sst-meta-box' );
 	wp_localize_script(
 		'sst-meta-box',
 		'SSTMetaBox',
 		array(
-			'edit_user_url'              => add_query_arg(
+			'edit_user_url'               => add_query_arg(
 				'user_id',
 				'{user_id}',
 				admin_url('user-edit.php#exemption_certificates')
 			),
-			'order_status'               => $order->get_taxcloud_status(),
-			'selected_certificate'       => $order->get_certificate_id(),
-			'get_certificates_nonce'     => wp_create_nonce( 'sst_get_certificates' ),
-			'i18n'                       => array(
-				'none'                   => __( 'None', 'simple-sales-tax' ),
-				'certificate_added'      => __(
+			'order_status'                => $order->get_taxcloud_status(),
+			'selected_certificate'        => $order->get_certificate_id(),
+			'single_purchase_certificate' => $certificate,
+			'single_purchase_cert_id'     => SST_SINGLE_PURCHASE_CERT_ID,
+			'get_certificates_nonce'      => wp_create_nonce( 'sst_get_certificates' ),
+			'i18n'                        => array(
+				'none'                        => __( 'None', 'simple-sales-tax' ),
+				'single_purchase_certificate' => __( 'Single Purchase Certificate', 'simple-sales-tax' ),
+				'certificate_added'           => __(
 					"Certificate added successfully! Don't forget to recalculate taxes.",
 					'simple-sales-tax'
 				),
-				'add_certificate_failed' => __(
+				'add_certificate_failed'      => __(
 					'Failed to add certificate',
 					'simple-sales-tax'
 				),

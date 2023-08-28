@@ -4,6 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
+use \TaxCloud\ExemptionCertificate;
+use \TaxCloud\ExemptionCertificateBase;
+
 /**
  * Order.
  *
@@ -30,9 +33,10 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 4.4
 	 */
 	protected static $defaults = array(
-		'packages'    => array(),
-		'exempt_cert' => '',
-		'status'      => 'pending',
+		'packages'             => array(),
+		'exempt_cert'          => '',
+		'single_purchase_cert' => null,
+		'status'               => 'pending',
 	);
 
 	/**
@@ -356,6 +360,8 @@ class SST_Order extends SST_Abstract_Cart {
 			$tax_data = $method['taxes'];
 
 			if ( isset( $tax_data['total'][ SST_RATE_ID ] ) ) {
+				// TODO: Debug why tax amounts were empty string on shipping methods when new single purchase cert was created during checkout and recalc was attempted.
+				die(var_dump(compact('tax_data', 'item')));
 				$item['total_tax'] -= $tax_data['total'][ SST_RATE_ID ];
 				unset( $tax_data['total'][ SST_RATE_ID ] );
 			}
@@ -453,6 +459,76 @@ class SST_Order extends SST_Abstract_Cart {
 	}
 
 	/**
+	 * Get the exemption certificate to apply for this order.
+	 *
+	 * @return TaxCloud\ExemptionCertificateBase
+	 * @since 7.0.0
+	 */
+	public function get_certificate() {
+		$cert_id = $this->get_certificate_id();
+
+		if ( ! $cert_id ) {
+			return null;
+		}
+
+		if ( $cert_id === SST_SINGLE_PURCHASE_CERT_ID ) {
+			return $this->get_single_purchase_certificate();
+		} else {
+			return new ExemptionCertificateBase( $cert_id );
+		}
+	}
+
+	/**
+	 * Set the single-purchase exemption certificate for the order.
+	 *
+	 * @param TaxCloud\ExemptionCertificate Single-purchase exemption certificate object.
+	 *
+	 * @since 7.1.0
+	 */
+	public function set_single_purchase_certificate( $certificate ) {
+		if ( ! is_a( $certificate, 'TaxCloud\ExemptionCertificate' ) ) {
+			return;
+		}
+		$this->update_meta(
+			'single_purchase_cert',
+			wp_json_encode( $certificate )
+		);
+		$this->set_certificate_id( SST_SINGLE_PURCHASE_CERT_ID );
+	}
+
+	/**
+	 * Get the single-purchase exemption certificate for the order.
+	 *
+	 * @return TaxCloud\ExemptionCertificate|null
+	 *
+	 * @since 7.1.0
+	 */
+	public function get_single_purchase_certificate() {
+		$cert = $this->get_meta( 'single_purchase_cert' );
+
+		if ( ! $cert ) {
+			return null;
+		}
+
+		$decoded_cert = json_decode( $cert, true );
+
+		return is_array( $decoded_cert )
+			? ExemptionCertificate::fromArray( $decoded_cert )
+			: null;
+	}
+
+	/**
+	 * Get the ID of the applied exemption certificate.
+	 *
+	 * @return string Exemption certificate ID
+	 *
+	 * @since 7.0.0
+	 */
+	public function get_certificate_id() {
+		return $this->get_meta( 'exempt_cert' );
+	}
+
+	/**
 	 * Set the ID of the applied exemption certificate.
 	 *
 	 * @param string $certificate_id Exemption certificate ID.
@@ -460,30 +536,8 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 7.0.0
 	 */
 	public function set_certificate_id( $certificate_id ) {
-		if ( ! is_string( $certificate_id ) ) {
-			$certificate_id = '';
-		}
-
+		$certificate_id = is_string( $certificate_id ) ? $certificate_id : '';
 		$this->update_meta( 'exempt_cert', $certificate_id );
-	}
-
-	/**
-	 * Get the ID of the applied exemption certificate.
-	 *
-	 * @return string Certificate ID.
-	 *
-	 * @since 7.0.0
-	 */
-	public function get_certificate_id() {
-		$certificate_or_id = $this->get_meta( 'exempt_cert' );
-
-		// Prior to SST 7.0 we saved the entire certificate object.
-		// Now we just save the certificate ID.
-		if ( is_a( $certificate_or_id, 'TaxCloud\ExemptionCertificateBase' ) ) {
-			return $certificate_or_id->getCertificateID();
-		}
-
-		return $certificate_or_id;
 	}
 
 	/**

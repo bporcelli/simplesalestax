@@ -1,0 +1,7 @@
+.sst-hidden-field {
+	display: none;
+}
+
+.sst-input + .select2-container {
+	width: 100% !important;
+}

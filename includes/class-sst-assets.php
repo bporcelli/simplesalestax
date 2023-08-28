@@ -116,15 +116,27 @@ class SST_Assets {
 				'file'    => 'admin.css',
 				'context' => 'admin',
 			),
+			'sst-certificate-form'      => array(
+				'type'    => 'script',
+				'file'    => 'certificate-form.js',
+				'context' => 'both',
+				'options' => array(
+					'deps' => array(
+						'jquery',
+						'selectWoo',
+					),
+				),
+			),
 			'sst-add-certificate-modal' => array(
 				'type'    => 'script',
 				'file'    => 'add-certificate-modal.js',
-				'context' => 'both',
+				'context' => 'admin',
 				'options' => array(
 					'deps' => array(
 						'jquery',
 						'jquery-blockui',
 						'sst-backbone-modal',
+						'sst-certificate-form',
 					),
 					'localize' => array(
 						'SST_Add_Certificate_Data' => array(
@@ -181,27 +193,33 @@ class SST_Assets {
 				'options' => array(
 					'deps'     => array(
 						'jquery',
-						'wp-hooks',
-						'sst-certificate-table',
-					),
-					'localize' => array(
-						'SSTCertData' => array(
-							'certificates' => SST_Certificates::get_certificates_formatted(),
-						),
+						'sst-certificate-form',
 					),
 				),
+			),
+			'sst-checkout-css'          => array(
+				'type'    => 'style',
+				'file'    => 'checkout.css',
+				'context' => 'frontend',
 			),
 			'sst-modal-css'             => array(
 				'type'    => 'style',
 				'file'    => 'modal.css',
 				'context' => 'both',
 			),
+			'sst-certificate-form-css'  => array(
+				'type' => 'style',
+				'file' => 'certificate-form.css',
+			),
 			'sst-certificate-modal-css' => array(
 				'type'    => 'style',
 				'file'    => 'certificate-modal.css',
 				'context' => 'both',
 				'options' => array(
-					'deps' => array( 'sst-modal-css' ),
+					'deps' => array(
+						'sst-modal-css',
+						'sst-certificate-form-css',
+					),
 				),
 			),
 			'sst-edit-user'             => array(

@@ -38,7 +38,13 @@ jQuery(function($) {
 			};
 
 			$.get(ajaxurl, requestData).then(function(response) {
-				_this.set('certificates', response.data);
+				var certificates = response.data;
+
+				if (SSTMetaBox.single_purchase_certificate) {
+					certificates[SSTMetaBox.single_purchase_cert_id] = SSTMetaBox.single_purchase_certificate;
+				}
+
+				_this.set('certificates', certificates);
 			}).catch(function(err) {
 				console.error('Failed to load certificates:', err.message);
 			}).always(function() {
@@ -141,6 +147,14 @@ jQuery(function($) {
 				}
 			];
 
+			if (SSTMetaBox.single_purchase_cert_id in certificates) {
+				options.push({
+					id: SSTMetaBox.single_purchase_cert_id,
+					text: SSTMetaBox.i18n.single_purchase_certificate,
+					selected: selectedCertificate === SSTMetaBox.single_purchase_cert_id,
+				});
+			}
+
 			for (var key in certificates) {
 				if (!certificates.hasOwnProperty(key)) {
 					continue;
@@ -194,7 +208,7 @@ jQuery(function($) {
 			});
 		},
 
-		addCertificateHandler: function(certificate) {
+		addCertificateHandler: function(post_data) {
 			jQuery('#sales_tax_meta').block({
 				message: null,
 				overlayCSS: {
@@ -206,9 +220,9 @@ jQuery(function($) {
 			var postUrl = ajaxurl + '?action=sst_add_certificate';
 			var data = {
 				nonce: SST_Add_Certificate_Data.nonce,
-				certificate: certificate,
 				user_id: this.getCustomerId(),
 				address: this.getBillingAddress(),
+				...post_data,
 			};
 
 			jQuery.post(postUrl, data)
@@ -217,9 +231,15 @@ jQuery(function($) {
 						throw new Error(response.data);
 					}
 
+					var certificates = response.data.certificates;
+
+					if (SSTMetaBox.single_purchase_certificate) {
+						certificates[SSTMetaBox.single_purchase_cert_id] = SSTMetaBox.single_purchase_certificate;
+					}
+
 					model.set({
 						'selectedCertificate': response.data.certificate_id,
-						'certificates': response.data.certificates,
+						'certificates': certificates,
 					});
 
 					alert(SSTMetaBox.i18n.certificate_added);

@@ -4,6 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
+use \TaxCloud\ExemptionCertificateBase;
+use \TaxCloud\ExemptionCertificate;
+
 /**
  * Abstract Cart.
  *
@@ -504,22 +507,6 @@ abstract class SST_Abstract_Cart {
 	}
 
 	/**
-	 * Get the exemption certificate for the customer.
-	 *
-	 * @return TaxCloud\ExemptionCertificateBase
-	 * @since 7.0.0
-	 */
-	public function get_certificate() {
-		$certificate_id = $this->get_certificate_id();
-
-		if ( $certificate_id ) {
-			return new TaxCloud\ExemptionCertificateBase( $certificate_id );
-		}
-
-		return null;
-	}
-
-	/**
 	 * Prepares a cart package for saving to the session or the database.
 	 * Strips out unnecessary data to reduce space usage.
 	 *
@@ -562,7 +549,16 @@ abstract class SST_Abstract_Cart {
 			);
 		}
 
-		if ( is_a( $package['certificate'], 'TaxCloud\ExemptionCertificateBase' ) ) {
+		$certificate = $package['certificate'];
+
+		if ( $certificate instanceof ExemptionCertificate ) {
+			// Single-purchase certificate without an ID. Use a stable hash of the certificate detail object as the ID.
+			$detail       = $certificate->getDetail();
+			$detail_array = json_decode( wp_json_encode( $detail ), true );
+			unset( $detail_array['CreatedDate'] );
+			$package['certificate_id'] = md5( wp_json_encode( $detail_array ) );
+		} else if ( $certificate instanceof ExemptionCertificateBase ) {
+			// Entity-based exemption certificate with ID
 			$package['certificate_id'] = $package['certificate']->getCertificateId();
 		}
 
@@ -759,13 +755,12 @@ abstract class SST_Abstract_Cart {
 	abstract protected function set_fee_tax( $id, $tax );
 
 	/**
-	 * Get the ID of the applied exemption certificate.
+	 * Get the exemption certificate for the customer.
 	 *
-	 * @return string Exemption certificate ID.
-	 *
+	 * @return TaxCloud\ExemptionCertificateBase
 	 * @since 7.0.0
 	 */
-	abstract public function get_certificate_id();
+	abstract public function get_certificate();
 
 	/**
 	 * Handle an error by logging it or displaying it to the user.
