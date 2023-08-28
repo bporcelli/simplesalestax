@@ -168,8 +168,8 @@ class SST_Certificates {
 
 		// Sort by created date ascending.
 		uasort( $certificates, function( $cert_a, $cert_b ) {
-			$date_a = $cert_a['CreatedDate'];
-			$date_b = $cert_b['CreatedDate'];
+			$date_a = strtotime( $cert_a['CreatedDate'] );
+			$date_b = strtotime( $cert_b['CreatedDate'] );
 			if ( $date_a === $date_b ) {
 				return 0;
 			}
