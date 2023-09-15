@@ -334,42 +334,14 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	protected function reset_taxes() {
-		/* Remove tax from products and fees */
-		foreach ( $this->order->get_items( array( 'line_item', 'fee' ) ) as $item_id => $item ) {
-			$tax_data = $item['line_tax_data'];
+		$item_ids = array_keys(
+			$this->order->get_items( array( 'line_item', 'fee', 'shipping' ) )
+		);
 
-			if ( isset( $tax_data['total'][ SST_RATE_ID ] ) ) {
-				$item['line_tax'] -= $tax_data['total'][ SST_RATE_ID ];
-				unset( $tax_data['total'][ SST_RATE_ID ] );
-			}
-
-			if ( isset( $tax_data['subtotal'][ SST_RATE_ID ] ) ) {
-				$item['line_subtotal_tax'] -= $tax_data['subtotal'][ SST_RATE_ID ];
-				unset( $tax_data['subtotal'][ SST_RATE_ID ] );
-			}
-
-			$item['line_tax_data'] = $tax_data;
+		foreach ( $item_ids as $item_id ) {
+			$this->set_product_tax( $item_id, 0 );
 		}
 
-		/* Remove shipping tax */
-		foreach ( $this->order->get_shipping_methods() as $method ) {
-			if ( ! isset( $method['taxes'] ) ) {
-				continue;
-			}
-
-			$tax_data = $method['taxes'];
-
-			if ( isset( $tax_data['total'][ SST_RATE_ID ] ) ) {
-				// TODO: Debug why tax amounts were empty string on shipping methods when new single purchase cert was created during checkout and recalc was attempted.
-				die(var_dump(compact('tax_data', 'item')));
-				$item['total_tax'] -= $tax_data['total'][ SST_RATE_ID ];
-				unset( $tax_data['total'][ SST_RATE_ID ] );
-			}
-
-			$method['taxes'] = $tax_data;
-		}
-
-		/* Reset totals */
 		$this->update_taxes();
 	}
 
