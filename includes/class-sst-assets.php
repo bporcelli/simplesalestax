@@ -83,7 +83,7 @@ class SST_Assets {
 			'sst-tic-select-css'            => array(
 				'type'    => 'style',
 				'file'    => 'tic-select.css',
-				'context' => 'frontend',
+				'context' => 'both',
 				'options' => array(
 					'deps' => array( 'sst-modal-css' ),
 				),
@@ -130,7 +130,7 @@ class SST_Assets {
 			'sst-add-certificate-modal' => array(
 				'type'    => 'script',
 				'file'    => 'add-certificate-modal.js',
-				'context' => 'admin',
+				'context' => 'both',
 				'options' => array(
 					'deps' => array(
 						'jquery',
@@ -170,20 +170,6 @@ class SST_Assets {
 						'jquery-blockui',
 						'sst-add-certificate-modal',
 					),
-					'localize' => array(
-						'SST_Certificate_Table_Data' => array(
-							'delete_certificate_nonce' => wp_create_nonce( 'sst_delete_certificate' ),
-							'ajaxurl'                  => admin_url( 'admin-ajax.php' ),
-							'strings'                  => array(
-								'delete_failed'      => __( 'Failed to delete certificate', 'simple-sales-tax' ),
-								'add_failed'         => __( 'Failed to add certificate', 'simple-sales-tax' ),
-								'delete_certificate' => __(
-									'Are you sure you want to delete this certificate? This action is irreversible.',
-									'simple-sales-tax'
-								),
-							),
-						),
-					),
 				),
 			),
 			'sst-checkout'              => array(
@@ -219,17 +205,6 @@ class SST_Assets {
 					'deps' => array(
 						'sst-modal-css',
 						'sst-certificate-form-css',
-					),
-				),
-			),
-			'sst-edit-user'             => array(
-				'type'    => 'script',
-				'file'    => 'edit-user.js',
-				'context' => 'admin',
-				'options' => array(
-					'deps' => array(
-						'jquery',
-						'sst-certificate-table',
 					),
 				),
 			),

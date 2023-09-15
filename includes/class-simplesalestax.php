@@ -153,6 +153,7 @@ final class SimpleSalesTax {
 		if ( $this->is_request( 'frontend' ) ) {
 			require_once __DIR__ . '/frontend/class-sst-cart-proxy.php';
 			require_once __DIR__ . '/frontend/class-sst-checkout.php';
+			require_once __DIR__ . '/frontend/class-sst-my-account.php';
 		}
 	}
 

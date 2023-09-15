@@ -1,33 +1,35 @@
 jQuery( function( $ ) {
+	function toggleField( selector, show ) {
+		$( selector )
+			.toggleClass( 'validate-required', show )
+			.toggleClass( 'sst-hidden-field', !show );
+	}
+
 	// Toggle visibility of certain form fields based on the value of a select box
 	$( document ).on( 'change', '#purchaser_business_type', function() {
-		var $toggle = $( '#purchase_business_type_other_value_field' );
-
-		if ( 'Other' == $( this ).val() ) {
-			$toggle.addClass( 'validate-required' ).show();
-		} else {
-			$toggle.removeClass( 'validate-required' ).hide();
-		}
+		toggleField(
+			'#purchase_business_type_other_value_field',
+			'Other' === $( this ).val()
+		);
 	} );
 
 	$( document ).on( 'change', '#tax_type', function() {
-		var $toggle = $( '#state_of_issue_field' );
-
-		if ( 'StateIssued' == $( this ).val() ) {
-			$toggle.addClass( 'validate-required' ).show();
-		} else {
-			$toggle.removeClass( 'validate-required' ).hide();
-		}
+		toggleField(
+			'#state_of_issue_field',
+			'StateIssued' === $( this ).val()
+		);
 	} );
 
 	$( document ).on( 'change', '#purchaser_exemption_reason', function() {
-		var $toggle = $( '#purchaser_exemption_reason_value_field' ),
-			$label  = $toggle.find( 'label' ),
-			value   = $( this ).val();
+		var value = $( this ).val();
+		var showField = '' !== value;
 
-		if ( value !== '' ) {
-			$toggle.addClass( 'validate-required' ).show();
+		toggleField(
+			'#purchaser_exemption_reason_value_field',
+			showField,
+		);
 
+		if ( showField ) {
 			// Set label depending on value
 			var labels = {
 				'FederalGovernmentDepartment': 'Dept. Name',
@@ -44,9 +46,9 @@ jQuery( function( $ ) {
 				'Other': 'Please explain'
 			};
 
-			$label.text( labels[ value ] );
-		} else {
-			$toggle.removeClass( 'validate-required' ).hide();
+			$( 'label[for="purchaser_exemption_reason_value"]' ).text(
+				labels[ value ]
+			);
 		}
 	} );
 
@@ -60,11 +62,20 @@ jQuery( function( $ ) {
 	} );
 
 	// Enhance select boxes
-	$( 'select.sst-input' ).each( function() {
-		$( this ).selectWoo( {
-			minimumResultsForSearch: 10,
-			allowClear: $( this ).data( 'allow_clear' ) ? true : false,
-			placeholder: $( this ).data( 'placeholder' )
+	function enhanceSelectBoxes(args = {}) {
+		$( 'select.sst-input' ).each( function() {
+			$( this ).selectWoo( {
+				minimumResultsForSearch: 10,
+				allowClear: $( this ).data( 'allow_clear' ) ? true : false,
+				placeholder: $( this ).data( 'placeholder' ),
+				...args,
+			} );
 		} );
-	} );
+	}
+
+	enhanceSelectBoxes();
+
+	window.SST_Certificate_Form = {
+		enhanceSelectBoxes,
+	};
 } );

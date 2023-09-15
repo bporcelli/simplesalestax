@@ -105,3 +105,7 @@ table a.sst-certificate-delete {
 span.table-action-sep {
     margin: 0 3px;
 }
+
+.sst-select2-dropdown {
+    z-index: 10000;
+}

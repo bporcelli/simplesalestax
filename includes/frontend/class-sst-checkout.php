@@ -554,7 +554,6 @@ class SST_Checkout extends SST_Abstract_Cart {
 			}
 
 			// Do a tax lookup
-			// TODO: Set exempt cert ID or cert on ORDER and then recalc?
 			$this->calculate_taxes();
 
 			// Throw if any errors occurred during the lookup
@@ -690,38 +689,12 @@ class SST_Checkout extends SST_Abstract_Cart {
 	}
 
 	/**
-	 * Does the customer have an exempt user role?
-	 *
-	 * @return bool
-	 * @since 5.0
-	 */
-	protected function is_user_exempt() {
-		$current_user = wp_get_current_user();
-		$exempt_roles = SST_Settings::get( 'exempt_roles', array() );
-		$user_roles   = is_user_logged_in() ? $current_user->roles : array();
-
-		return count( array_intersect( $exempt_roles, $user_roles ) ) > 0;
-	}
-
-	/**
-	 * Should the exemption form be displayed?
-	 *
-	 * @since 5.0
-	 */
-	protected function show_exemption_form() {
-		$restricted = 'yes' === SST_Settings::get( 'restrict_exempt' );
-		$enabled    = 'true' === SST_Settings::get( 'show_exempt' );
-
-		return $enabled && ( ! $restricted || $this->is_user_exempt() );
-	}
-
-	/**
 	 * Output Tax Details section of checkout form.
 	 *
 	 * @since 5.0
 	 */
 	public function output_exemption_form() {
-		if ( ! $this->show_exemption_form() ) {
+		if ( ! sst_should_show_tax_exemption_form() ) {
 			return;
 		}
 
@@ -739,7 +712,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 			wp_unslash( $_POST['certificate_id'] ?? '' )
 		);
 
-		if ( ! $selected && $this->is_user_exempt() && $certificates ) {
+		if ( ! $selected && sst_is_user_tax_exempt() && $certificates ) {
 			$selected = current( array_keys( $certificates ) );
 		}
 
@@ -748,12 +721,12 @@ class SST_Checkout extends SST_Abstract_Cart {
 		wp_enqueue_style( 'sst-certificate-form-css' );
 
 		wc_get_template(
-			'html-certificate-table.php',
+			'html-checkout.php',
 			array(
 				'options'  => $options,
 				'selected' => $selected,
 			),
-			'sst/checkout/',
+			'sst/',
 			SST()->path( 'includes/frontend/views/' )
 		);
 	}

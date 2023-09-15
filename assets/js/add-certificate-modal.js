@@ -16,6 +16,11 @@ var SST_Add_Certificate_Modal = {
 			callback: SST_Add_Certificate_Modal.validateForm
 		} );
 
+		// Enhance select boxes
+		SST_Certificate_Form.enhanceSelectBoxes( {
+			dropdownCssClass: 'sst-select2-dropdown',
+		} );
+
 		if ( args.onAddCertificate ) {
 			var addCertificateHandler = function( event, target, posted_data ) {
 				if ( 'sst-modal-add-certificate' === target ) {

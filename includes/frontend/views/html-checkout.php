@@ -1,16 +1,14 @@
 <?php
 /**
- * Template for tax exemption form. You may override this template by copying it
- * to THEME_PATH/sst/checkout/html-certificate-table.php.
+ * Checkout tax exemption form template.
+ * Override by copying to `THEME_PATH/sst/html-checkout.php`.
  *
- * @since   5.0
+ * @since   7.1.0
  * @author  Brett Porcelli
  * @package Simple Sales Tax
  * @version 7.1.0
  */
 
-// TODO: Consider deprecating and renaming template file.
-// TODO: Alternate UI for full cert management on account page plus link there (parity with admin UI)
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
@@ -49,6 +47,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 			$args['selected']
 		);
 		?>
+
+		<p id="exemption_certificates_link">
+			<a
+				href="<?php echo esc_url( wc_get_account_endpoint_url( 'exemption-certificates' ) ); ?>"
+				target="_blank"
+			>
+				<?php esc_html_e( 'Manage exemption certificates →', 'simple-sales-tax' ); ?>
+			</a>
+		</p>
 
 		<div id="exempt_certificate_form" style="display: none;">
 			<?php

@@ -159,6 +159,9 @@ class SST_Install {
 			);
 			WC_Admin_Notices::add_custom_notice( 'sst_rates', $notice );
 		}
+
+		// Flush rewrite rules
+		flush_rewrite_rules();
 	}
 
 	/**

@@ -73,12 +73,14 @@
     box-shadow: none;
 }
 
-.wc-backbone-modal-main .wc-backbone-modal-header .modal-close-link:before {
-    font: normal 22px/50px 'dashicons' !important;
+[class*="sst-"] .wc-backbone-modal-main .wc-backbone-modal-header .modal-close-link::before {
+    display: none;
+}
+
+[class*="sst-"] .wc-backbone-modal-main .wc-backbone-modal-header .modal-close-link {
     color: #666;
-    display: block;
-    content: '\f335';
     font-weight: 300;
+    font-size: 24px;
 }
 
 .wc-backbone-modal-main .wc-backbone-modal-header .modal-close-link:hover,

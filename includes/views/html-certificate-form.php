@@ -33,6 +33,7 @@ $post_data = $_POST['certificate'];
 				'simple-sales-tax'
 			),
 			'id'          => 'single_purchase',
+			'class'       => array( 'sst-form-row' ),
 			'input_class' => array( 'sst-input' ),
 		),
 		$post_data['SinglePurchase'] ?? null
@@ -49,6 +50,7 @@ woocommerce_form_field(
 		'label'       => esc_html__( 'Where does this exemption apply?', 'simple-sales-tax' ),
 		'required'    => true,
 		'id'          => 'exempt_state',
+		'class'       => array( 'sst-form-row' ),
 		'input_class' => array( 'sst-input' ),
 	),
 	$post_data['ExemptState'] ?? null
@@ -63,6 +65,7 @@ woocommerce_form_field(
 		'label'       => esc_html__( 'Tax ID type', 'simple-sales-tax' ),
 		'required'    => true,
 		'id'          => 'tax_type',
+		'class'       => array( 'sst-form-row' ),
 		'input_class' => array( 'sst-input' ),
 		'options'     => array(
 				''            => esc_html__( 'Select one', 'simple-sales-tax' ),
@@ -86,7 +89,8 @@ woocommerce_form_field(
 		'placeholder' => '123-4567-89',
 		'required'    => true,
 		'id'          => 'id_number',
-		'class'       => array( 'sst-input' ),
+		'class'       => array( 'sst-form-row' ),
+		'input_class' => array( 'sst-input' ),
 	),
 	$post_data['IDNumber'] ?? null
 );
@@ -101,7 +105,8 @@ woocommerce_form_field(
 		'label'       => esc_html__( 'ID issued by...', 'simple-sales-tax' ),
 		'placeholder' => esc_html__( 'Select if your ID is state issued.', 'simple-sales-tax' ),
 		'id'          => 'state_of_issue',
-		'input_class' => array( 'sst-hidden-field', 'sst-input' ),
+		'class'       => array( 'sst-form-row', 'sst-hidden-field' ),
+		'input_class' => array( 'sst-input' ),
 	),
 	$post_data['StateOfIssue'] ?? null
 );
@@ -118,6 +123,7 @@ woocommerce_form_field(
 		),
 		'required'    => true,
 		'id'          => 'purchaser_business_type',
+		'class'       => array( 'sst-form-row' ),
 		'input_class' => array( 'sst-input' ),
 		'options'     => array(
 			''                                        => esc_html__(
@@ -218,7 +224,8 @@ woocommerce_form_field(
 		'label'       => esc_html__( 'Please explain', 'simple-sales-tax' ),
 		'placeholder' => esc_html__( 'Explain the nature of your business.', 'simple-sales-tax' ),
 		'id'          => 'purchase_business_type_other_value',
-		'class'       => array( 'sst-hidden-field', 'sst-input' ),
+		'class'       => array( 'sst-hidden-field', 'sst-form-row' ),
+		'input_class' => array( 'sst-input' ),
 	),
 	$post_data['PurchaserBusinessTypeOtherValue'] ?? null,
 );
@@ -232,6 +239,7 @@ woocommerce_form_field(
 		'label'       => esc_html__( 'Reason for exemption', 'simple-sales-tax' ),
 		'required'    => true,
 		'id'          => 'purchaser_exemption_reason',
+		'class'       => array( 'sst-form-row' ),
 		'input_class' => array( 'sst-input' ),
 		'options'     => array(
 			''                                    => esc_html__( 'Select one', 'simple-sales-tax' ),
@@ -293,10 +301,11 @@ woocommerce_form_field(
 woocommerce_form_field(
 	'certificate[PurchaserExemptionReasonValue]',
 	array(
-		'type'  => 'text',
-		'label' => esc_html__( 'Please explain', 'simple-sales-tax' ),
-		'id'    => 'purchaser_exemption_reason_value',
-		'class' => array( 'sst-hidden-field', 'sst-input' ),
+		'type'        => 'text',
+		'label'       => esc_html__( 'Please explain', 'simple-sales-tax' ),
+		'id'          => 'purchaser_exemption_reason_value',
+		'class'       => array( 'sst-hidden-field', 'sst-form-row' ),
+		'input_class' => array( 'sst-input' ),
 	),
 	$post_data['PurchaserExemptionReasonValue'] ?? null,
 );
