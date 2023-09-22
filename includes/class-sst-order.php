@@ -497,7 +497,15 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 7.0.0
 	 */
 	public function get_certificate_id() {
-		return $this->get_meta( 'exempt_cert' );
+		$certificate_or_id = $this->get_meta( 'exempt_cert' );
+
+		// Prior to SST 7.0 we saved the entire certificate object.
+		// Now we just save the certificate ID.
+		if ( is_a( $certificate_or_id, 'TaxCloud\ExemptionCertificateBase' ) ) {
+			return $certificate_or_id->getCertificateID();
+		}
+
+		return $certificate_or_id;
 	}
 
 	/**
