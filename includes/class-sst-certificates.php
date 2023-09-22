@@ -105,7 +105,7 @@ class SST_Certificates {
 	 * @return array
 	 * @since 5.0
 	 */
-	protected static function format_certificate( $certificate ) {
+	public static function format_certificate( $certificate ) {
 		$detail    = $certificate->getDetail();
 		$formatted = array(
 			'CertificateID'              => $certificate->getCertificateID(),
@@ -259,6 +259,163 @@ class SST_Certificates {
 	 */
 	private static function get_transient_name( $user_id ) {
 		return self::TRANS_PREFIX . $user_id;
+	}
+
+	/**
+	 * Build a certificate given certificate and purchaser data.
+	 *
+	 * @param array $certificate Certificate data.
+	 * @param array $purchaser   Purchaser data.
+	 *
+	 * @return TaxCloud\ExemptionCertificate
+	 * @throws Exception If certificate/purchaser data is invalid
+	 */
+	public static function build_certificate( $certificate, $purchaser ) {
+		$exempt_state = new TaxCloud\ExemptState(
+			$certificate['ExemptState'],
+			$certificate['PurchaserExemptionReason'],
+			$certificate['IDNumber']
+		);
+
+		$tax_id = new TaxCloud\TaxID(
+			$certificate['TaxType'],
+			$certificate['IDNumber'],
+			$certificate['StateOfIssue']
+		);
+
+		return new TaxCloud\ExemptionCertificate(
+			array( $exempt_state ),
+			$certificate['SinglePurchase'] ?? false,
+			$certificate['SinglePurchaserOrderNumber'] ?? '',
+			$purchaser['first_name'],
+			$purchaser['last_name'],
+			'',
+			$purchaser['address_1'],
+			$purchaser['address_2'],
+			$purchaser['city'],
+			$purchaser['state'],
+			$purchaser['postcode'],
+			$tax_id,
+			$certificate['PurchaserBusinessType'],
+			$certificate['PurchaserBusinessTypeOtherValue'],
+			$certificate['PurchaserExemptionReason'],
+			$certificate['PurchaserExemptionReasonValue']
+		);
+	}
+	/**
+	 * Add a new certificate for a particular user.
+	 *
+	 * @param array $certificate Certificate data.
+	 * @param array $purchaser   Purchaser data.
+	 * @param int   $user_id     Purchaser user ID (defaults to current user ID).
+	 *
+	 * @return string New certificate ID
+	 * @throws If certificate creation fails
+	 */
+	public static function add_certificate( $certificate, $purchaser, $user_id = 0 ) {
+		try {
+			// Build certificate
+			$certificate = self::build_certificate(
+				$certificate,
+				$purchaser
+			);
+
+			// Validate user permissions
+			$user = $user_id
+				? get_user_by( 'id', $user_id )
+				: wp_get_current_user();
+
+			if ( ! $user ) {
+				throw new Exception( "Invalid user ID '{$user_id}'" );
+			}
+
+			if ( ! current_user_can( 'edit_user', $user_id ) ) {
+				throw new Exception(
+					'User does not have permission to add a certificate'
+				);
+			}
+
+			// Add certificate
+			$request = new TaxCloud\Request\AddExemptCertificate(
+				SST_Settings::get( 'tc_id' ),
+				SST_Settings::get( 'tc_key' ),
+				$user->user_login,  // TODO: use user ID instead?
+				$certificate
+			);
+
+			$certificate_id = TaxCloud()->AddExemptCertificate( $request );
+
+			// Invalidate cached certificates
+			SST_Certificates::delete_certificates( $user->ID );
+
+			return $certificate_id;
+		} catch ( Throwable $ex ) {
+			SST_Logger::add(
+				sprintf(
+					/* translators: 1 - error message */
+					__(
+						'Failed to add exemption certificate. Error was: %1$s',
+						'simple-sales-tax'
+					),
+					$ex->getMessage()
+				)
+			);
+
+			throw $ex;
+		}
+	}
+
+	/**
+	 * Delete one of a user's saved exemption certificates.
+	 *
+	 * @param string $certificate_id Certificate ID.
+	 * @param int    $user_id        Purchaser user ID.
+	 *
+	 * @throws If certificate deletion fails
+	 */
+	public static function delete_certificate( $certificate_id, $user_id = 0 ) {
+		if ( 0 === $user_id ) {
+			$user_id = get_current_user_id();
+		}
+
+		if ( ! self::user_can_delete_certificate( $user_id, $certificate_id ) ) {
+			throw new Exception( 'Unauthorized' );
+		}
+
+		$request = new TaxCloud\Request\DeleteExemptCertificate(
+			SST_Settings::get( 'tc_id' ),
+			SST_Settings::get( 'tc_key' ),
+			$certificate_id
+		);
+
+		TaxCloud()->DeleteExemptCertificate( $request );
+
+		// Invalidate cached certificates.
+		SST_Certificates::delete_certificates( $user_id );
+	}
+
+	/**
+	 * Checks whether the current user can delete an exemption certificate.
+	 *
+	 * @param int    $user_id        User ID of certificate owner.
+	 * @param string $certificate_id Certificate ID.
+	 *
+	 * @return bool Can the user delete the certificate?
+	 */
+	protected static function user_can_delete_certificate( $user_id, $certificate_id ) {
+		if ( ! current_user_can( 'edit_user', $user_id ) ) {
+			return false;
+		}
+
+		$user_certificates = SST_Certificates::get_certificates( $user_id );
+
+		foreach ( $user_certificates as $certificate ) {
+			if ( $certificate->getCertificateID() === $certificate_id ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 }

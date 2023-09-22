@@ -9,10 +9,6 @@
     padding-bottom: 0;
 }
 
-.sst-hidden-field {
-    display: none;
-}
-
 .sst-certificate {
     background: top left no-repeat;
     background-image: url('../img/exemption_certificate750x600.png');
@@ -108,4 +104,8 @@ table a.sst-certificate-delete {
 
 span.table-action-sep {
     margin: 0 3px;
+}
+
+.sst-select2-dropdown {
+    z-index: 10000;
 }

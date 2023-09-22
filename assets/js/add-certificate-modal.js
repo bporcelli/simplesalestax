@@ -16,6 +16,11 @@ var SST_Add_Certificate_Modal = {
 			callback: SST_Add_Certificate_Modal.validateForm
 		} );
 
+		// Enhance select boxes
+		SST_Certificate_Form.enhanceSelectBoxes( {
+			dropdownCssClass: 'sst-select2-dropdown',
+		} );
+
 		if ( args.onAddCertificate ) {
 			var addCertificateHandler = function( event, target, posted_data ) {
 				if ( 'sst-modal-add-certificate' === target ) {
@@ -32,67 +37,6 @@ var SST_Add_Certificate_Modal = {
 				addCertificateHandler
 			);
 		}
-
-		// Toggle visibility of certain form fields based on the value of a select box
-		jQuery( '#PurchaserBusinessType' ).on( 'change', function() {
-			var $toggle = jQuery( '#business-type-other_field' );
-
-			if ( 'Other' == jQuery( this ).val() ) {
-				$toggle.addClass( 'validate-required' ).show();
-			} else {
-				$toggle.removeClass( 'validate-required' ).hide();
-			}
-		} );
-
-		jQuery( '#TaxType' ).on( 'change', function() {
-			var $toggle = jQuery( '#issuing-state_field' );
-
-			if ( 'StateIssued' == jQuery( this ).val() ) {
-				$toggle.addClass( 'validate-required' ).show();
-			} else {
-				$toggle.removeClass( 'validate-required' ).hide();
-			}
-		} );
-
-		jQuery( '#PurchaserExemptionReason' ).on( 'change', function() {
-			var $toggle = jQuery( '#exempt-other-reason_field' ),
-				$label  = $toggle.find( 'label' ),
-				value   = jQuery( this ).val();
-
-			if ( value !== '' ) {
-				$toggle.addClass( 'validate-required' ).show();
-
-				// Set label depending on value
-				var labels = {
-					'FederalGovernmentDepartment': 'Dept. Name',
-					'StateOrLocalGovernmentName': 'Govt. Name',
-					'TribalGovernmentName': 'Tribe Name',
-					'ForeignDiplomat': 'Diplomat ID',
-					'CharitableOrganization': 'Organization ID',
-					'ReligiousOrEducationalOrganization': 'Organization ID',
-					'Resale': 'Resale ID',
-					'AgriculturalProduction': 'Agricultural Prod. ID',
-					'IndustrialProductionOrManufacturing': 'Production ID',
-					'DirectPayPermit': 'Permit ID',
-					'DirectMail': 'Direct Mail ID',
-					'Other': 'Please explain'
-				};
-
-				$label.text( labels[ value ] );
-			} else {
-				$toggle.removeClass( 'validate-required' ).hide();
-			}
-		} );
-
-		// Remove red border from invalid fields when value changes
-		jQuery( '.sst-input' ).on( 'input', function( e ) {
-			var $this   = jQuery( this ),
-				$parent = $this.closest( '.form-row' );
-
-			$parent.removeClass(
-				'woocommerce-invalid woocommerce-invalid-required-field woocommerce-invalid-email woocommerce-validated'
-			);
-		} );
 	},
 	validateAddress( address ) {
 		var requiredFields = [

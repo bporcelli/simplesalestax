@@ -87,74 +87,30 @@ class SST_Ajax {
 	 * @since 5.0
 	 */
 	public static function delete_certificate() {
-		$nonce = isset( $_POST['nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) ) : '';
+		$nonce = sanitize_text_field(
+			wp_unslash( $_POST['nonce'] ?? '' )
+		);
 
 		if ( ! wp_verify_nonce( $nonce, 'sst_delete_certificate' ) ) {
 			return;
 		}
 
-		$certificate_id = '';
-
-		if ( isset( $_POST['certificate_id'] ) ) {
-			$certificate_id = sanitize_text_field( wp_unslash( $_POST['certificate_id'] ) );
-		}
-
-		$user_id = isset( $_POST['user_id'] ) ? absint( wp_unslash( $_POST['user_id'] ) ) : 0;
-
-		if ( 0 === $user_id ) {
-			$user_id = get_current_user_id();
-		}
-
-		if ( ! self::user_can_delete_certificate( $user_id, $certificate_id ) ) {
-			wp_send_json_error(
-				__( 'Unauthorized', 'simple-sales-tax' ),
-				403
-			);
-		}
+		$certificate_id = sanitize_text_field(
+			wp_unslash( $_POST['certificate_id'] ?? '' )
+		);
+		$user_id        = absint(
+			wp_unslash( $_POST['user_id'] ?? 0 )
+		);
 
 		try {
-			$request = new TaxCloud\Request\DeleteExemptCertificate(
-				SST_Settings::get( 'tc_id' ),
-				SST_Settings::get( 'tc_key' ),
-				$certificate_id
-			);
+			SST_Certificates::delete_certificate( $certificate_id, $user_id );
 
-			TaxCloud()->DeleteExemptCertificate( $request );
-
-			// Invalidate cached certificates.
-			SST_Certificates::delete_certificates( $user_id );
-
-			$new_certificates = SST_Certificates::get_certificates_formatted( $user_id );
 			wp_send_json_success(
-				array('certificates' => $new_certificates)
+				array( 'certificates' => SST_Certificates::get_certificates_formatted( $user_id ) )
 			);
 		} catch ( Exception $ex ) { /* Failed to delete */
 			wp_send_json_error( $ex->getMessage() );
 		}
-	}
-
-	/**
-	 * Checks whether the current user can delete an exemption certificate.
-	 *
-	 * @param int    $user_id        User ID of certificate owner.
-	 * @param string $certificate_id Certificate ID.
-	 *
-	 * @return bool Can the user delete the certificate?
-	 */
-	protected static function user_can_delete_certificate( $user_id, $certificate_id ) {
-		if ( ! current_user_can( 'edit_user', $user_id ) ) {
-			return false;
-		}
-
-		$user_certificates = SST_Certificates::get_certificates( $user_id );
-
-		foreach ( $user_certificates as $certificate ) {
-			if ( $certificate->getCertificateID() === $certificate_id ) {
-				return true;
-			}
-		}
-
-		return false;
 	}
 
 	/**
@@ -178,104 +134,33 @@ class SST_Ajax {
 		}
 
 		// Get data.
-		$certificate = wp_unslash( $_POST['certificate'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$address = wp_unslash( $_POST['address'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$form_data = array_map(
+		$certificate = array_map(
 			'sanitize_text_field',
-			array_merge( $certificate, $address )
-		);
-
-		// Construct certificate.
-		try {
-			$exempt_state = new TaxCloud\ExemptState(
-				$form_data['ExemptState'],
-				$form_data['PurchaserExemptionReason'],
-				$form_data['IDNumber']
-			);
-
-			$tax_id = new TaxCloud\TaxID(
-				$form_data['TaxType'],
-				$form_data['IDNumber'],
-				$form_data['StateOfIssue']
-			);
-
-			$certificate = new TaxCloud\ExemptionCertificate(
-				array( $exempt_state ),
-				false,
-				'',
-				$form_data['first_name'],
-				$form_data['last_name'],
-				'',
-				$form_data['address_1'],
-				$form_data['address_2'],
-				$form_data['city'],
-				$form_data['state'],
-				$form_data['postcode'],
-				$tax_id,
-				$form_data['PurchaserBusinessType'],
-				$form_data['PurchaserBusinessTypeOtherValue'],
-				$form_data['PurchaserExemptionReason'],
-				$form_data['PurchaserExemptionReasonValue']
-			);
-		} catch ( Throwable $ex ) {
-			SST_Logger::add(
-				sprintf(
-					/* translators: 1 - error message */
-					__(
-						'Failed to add exemption certificate. Error was: %1$s',
-						'simple-sales-tax'
-					),
-					$ex->getMessage()
-				)
-			);
-
-			wp_send_json_error( __( 'Invalid request.', 'simple-sales-tax' ), 400 );
-		}
+			wp_unslash( $_POST['certificate'] )
+		); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$address     = array_map(
+			'sanitize_text_field',
+			wp_unslash( $_POST['address'] )
+		); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$user_id     = absint( $_POST['user_id'] ?? 0 );
 
 		// Add certificate.
-		if ( isset( $_POST['user_id'] ) ) {
-			$user_id = absint( sanitize_text_field( $_POST['user_id'] ) );
-			$user    = get_user_by( 'id', $user_id );
-
-			if ( ! $user ) {
-				wp_send_json_error( __( 'Invalid request.', 'simple-sales-tax' ) );
-			}
-
-			if ( ! current_user_can( 'edit_user', $user_id ) ) {
-				wp_send_json_error(
-					__(
-						"You don't have permission to add a certificate for this user.",
-						'simple-sales-tax'
-					)
-				);
-			}
-		} else {
-			$user = wp_get_current_user();
-		}
-
-		$certificate_id = '';
-
 		try {
-			$request = new TaxCloud\Request\AddExemptCertificate(
-				SST_Settings::get( 'tc_id' ),
-				SST_Settings::get( 'tc_key' ),
-				$user->user_login,  // todo: use user ID instead?
-				$certificate
+			$certificate_id = SST_Certificates::add_certificate(
+				$certificate,
+				$address,
+				$user_id
 			);
 
-			$certificate_id = TaxCloud()->AddExemptCertificate( $request );
-
-			SST_Certificates::delete_certificates( $user->ID );  // Invalidate cache.
-		} catch ( Exception $ex ) {
+			wp_send_json_success(
+				array(
+					'certificate_id' => $certificate_id,
+					'certificates'   => SST_Certificates::get_certificates_formatted( $user_id ),
+				)
+			);
+		} catch ( Throwable $ex ) {
 			wp_send_json_error( $ex->getMessage() );
 		}
-
-		$data = array(
-			'certificate_id' => $certificate_id,
-			'certificates'   => SST_Certificates::get_certificates_formatted( $user->ID ),
-		);
-
-		wp_send_json_success( $data );
 	}
 
 	/**

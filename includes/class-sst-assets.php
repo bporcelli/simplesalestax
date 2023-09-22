@@ -83,7 +83,7 @@ class SST_Assets {
 			'sst-tic-select-css'            => array(
 				'type'    => 'style',
 				'file'    => 'tic-select.css',
-				'context' => 'frontend',
+				'context' => 'both',
 				'options' => array(
 					'deps' => array( 'sst-modal-css' ),
 				),
@@ -116,6 +116,17 @@ class SST_Assets {
 				'file'    => 'admin.css',
 				'context' => 'admin',
 			),
+			'sst-certificate-form'      => array(
+				'type'    => 'script',
+				'file'    => 'certificate-form.js',
+				'context' => 'both',
+				'options' => array(
+					'deps' => array(
+						'jquery',
+						'selectWoo',
+					),
+				),
+			),
 			'sst-add-certificate-modal' => array(
 				'type'    => 'script',
 				'file'    => 'add-certificate-modal.js',
@@ -125,6 +136,7 @@ class SST_Assets {
 						'jquery',
 						'jquery-blockui',
 						'sst-backbone-modal',
+						'sst-certificate-form',
 					),
 					'localize' => array(
 						'SST_Add_Certificate_Data' => array(
@@ -158,20 +170,6 @@ class SST_Assets {
 						'jquery-blockui',
 						'sst-add-certificate-modal',
 					),
-					'localize' => array(
-						'SST_Certificate_Table_Data' => array(
-							'delete_certificate_nonce' => wp_create_nonce( 'sst_delete_certificate' ),
-							'ajaxurl'                  => admin_url( 'admin-ajax.php' ),
-							'strings'                  => array(
-								'delete_failed'      => __( 'Failed to delete certificate', 'simple-sales-tax' ),
-								'add_failed'         => __( 'Failed to add certificate', 'simple-sales-tax' ),
-								'delete_certificate' => __(
-									'Are you sure you want to delete this certificate? This action is irreversible.',
-									'simple-sales-tax'
-								),
-							),
-						),
-					),
 				),
 			),
 			'sst-checkout'              => array(
@@ -181,37 +179,32 @@ class SST_Assets {
 				'options' => array(
 					'deps'     => array(
 						'jquery',
-						'wp-hooks',
-						'sst-certificate-table',
-					),
-					'localize' => array(
-						'SSTCertData' => array(
-							'certificates' => SST_Certificates::get_certificates_formatted(),
-						),
+						'sst-certificate-form',
 					),
 				),
+			),
+			'sst-checkout-css'          => array(
+				'type'    => 'style',
+				'file'    => 'checkout.css',
+				'context' => 'frontend',
 			),
 			'sst-modal-css'             => array(
 				'type'    => 'style',
 				'file'    => 'modal.css',
 				'context' => 'both',
 			),
+			'sst-certificate-form-css'  => array(
+				'type' => 'style',
+				'file' => 'certificate-form.css',
+			),
 			'sst-certificate-modal-css' => array(
 				'type'    => 'style',
 				'file'    => 'certificate-modal.css',
 				'context' => 'both',
 				'options' => array(
-					'deps' => array( 'sst-modal-css' ),
-				),
-			),
-			'sst-edit-user'             => array(
-				'type'    => 'script',
-				'file'    => 'edit-user.js',
-				'context' => 'admin',
-				'options' => array(
 					'deps' => array(
-						'jquery',
-						'sst-certificate-table',
+						'sst-modal-css',
+						'sst-certificate-form-css',
 					),
 				),
 			),

@@ -4,6 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
+use \TaxCloud\ExemptionCertificate;
+use \TaxCloud\ExemptionCertificateBase;
+
 /**
  * Order.
  *
@@ -30,9 +33,10 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 4.4
 	 */
 	protected static $defaults = array(
-		'packages'    => array(),
-		'exempt_cert' => '',
-		'status'      => 'pending',
+		'packages'             => array(),
+		'exempt_cert'          => '',
+		'single_purchase_cert' => null,
+		'status'               => 'pending',
 	);
 
 	/**
@@ -330,40 +334,14 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	protected function reset_taxes() {
-		/* Remove tax from products and fees */
-		foreach ( $this->order->get_items( array( 'line_item', 'fee' ) ) as $item_id => $item ) {
-			$tax_data = $item['line_tax_data'];
+		$item_ids = array_keys(
+			$this->order->get_items( array( 'line_item', 'fee', 'shipping' ) )
+		);
 
-			if ( isset( $tax_data['total'][ SST_RATE_ID ] ) ) {
-				$item['line_tax'] -= $tax_data['total'][ SST_RATE_ID ];
-				unset( $tax_data['total'][ SST_RATE_ID ] );
-			}
-
-			if ( isset( $tax_data['subtotal'][ SST_RATE_ID ] ) ) {
-				$item['line_subtotal_tax'] -= $tax_data['subtotal'][ SST_RATE_ID ];
-				unset( $tax_data['subtotal'][ SST_RATE_ID ] );
-			}
-
-			$item['line_tax_data'] = $tax_data;
+		foreach ( $item_ids as $item_id ) {
+			$this->set_product_tax( $item_id, 0 );
 		}
 
-		/* Remove shipping tax */
-		foreach ( $this->order->get_shipping_methods() as $method ) {
-			if ( ! isset( $method['taxes'] ) ) {
-				continue;
-			}
-
-			$tax_data = $method['taxes'];
-
-			if ( isset( $tax_data['total'][ SST_RATE_ID ] ) ) {
-				$item['total_tax'] -= $tax_data['total'][ SST_RATE_ID ];
-				unset( $tax_data['total'][ SST_RATE_ID ] );
-			}
-
-			$method['taxes'] = $tax_data;
-		}
-
-		/* Reset totals */
 		$this->update_taxes();
 	}
 
@@ -453,24 +431,68 @@ class SST_Order extends SST_Abstract_Cart {
 	}
 
 	/**
-	 * Set the ID of the applied exemption certificate.
+	 * Get the exemption certificate to apply for this order.
 	 *
-	 * @param string $certificate_id Exemption certificate ID.
-	 *
+	 * @return TaxCloud\ExemptionCertificateBase
 	 * @since 7.0.0
 	 */
-	public function set_certificate_id( $certificate_id ) {
-		if ( ! is_string( $certificate_id ) ) {
-			$certificate_id = '';
+	public function get_certificate() {
+		$cert_id = $this->get_certificate_id();
+
+		if ( ! $cert_id ) {
+			return null;
 		}
 
-		$this->update_meta( 'exempt_cert', $certificate_id );
+		if ( $cert_id === SST_SINGLE_PURCHASE_CERT_ID ) {
+			return $this->get_single_purchase_certificate();
+		} else {
+			return new ExemptionCertificateBase( $cert_id );
+		}
+	}
+
+	/**
+	 * Set the single-purchase exemption certificate for the order.
+	 *
+	 * @param TaxCloud\ExemptionCertificate Single-purchase exemption certificate object.
+	 *
+	 * @since 7.1.0
+	 */
+	public function set_single_purchase_certificate( $certificate ) {
+		if ( ! is_a( $certificate, 'TaxCloud\ExemptionCertificate' ) ) {
+			return;
+		}
+		$this->update_meta(
+			'single_purchase_cert',
+			wp_json_encode( $certificate )
+		);
+		$this->set_certificate_id( SST_SINGLE_PURCHASE_CERT_ID );
+	}
+
+	/**
+	 * Get the single-purchase exemption certificate for the order.
+	 *
+	 * @return TaxCloud\ExemptionCertificate|null
+	 *
+	 * @since 7.1.0
+	 */
+	public function get_single_purchase_certificate() {
+		$cert = $this->get_meta( 'single_purchase_cert' );
+
+		if ( ! $cert ) {
+			return null;
+		}
+
+		$decoded_cert = json_decode( $cert, true );
+
+		return is_array( $decoded_cert )
+			? ExemptionCertificate::fromArray( $decoded_cert )
+			: null;
 	}
 
 	/**
 	 * Get the ID of the applied exemption certificate.
 	 *
-	 * @return string Certificate ID.
+	 * @return string Exemption certificate ID
 	 *
 	 * @since 7.0.0
 	 */
@@ -484,6 +506,18 @@ class SST_Order extends SST_Abstract_Cart {
 		}
 
 		return $certificate_or_id;
+	}
+
+	/**
+	 * Set the ID of the applied exemption certificate.
+	 *
+	 * @param string $certificate_id Exemption certificate ID.
+	 *
+	 * @since 7.0.0
+	 */
+	public function set_certificate_id( $certificate_id ) {
+		$certificate_id = is_string( $certificate_id ) ? $certificate_id : '';
+		$this->update_meta( 'exempt_cert', $certificate_id );
 	}
 
 	/**

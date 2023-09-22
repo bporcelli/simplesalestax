@@ -51,6 +51,7 @@ final class SimpleSalesTax {
 
 		add_action( 'plugins_loaded', array( $this, 'init' ) );
 		add_action( 'before_woocommerce_init', array( $this, 'declare_hpos_compatibility' ) );
+		add_filter( 'woocommerce_get_query_vars', array( $this, 'add_tax_exemptions_query_var' ) );
 	}
 
 	/**
@@ -73,6 +74,7 @@ final class SimpleSalesTax {
 		define( 'SST_RATE_ID', get_option( 'wootax_rate_id' ) );
 		define( 'SST_FILE', dirname( dirname( __FILE__ ) ) . '/simple-sales-tax.php' );
 		define( 'SST_PLUGIN_BASENAME', plugin_basename( SST_FILE ) );
+		define( 'SST_SINGLE_PURCHASE_CERT_ID', 'single-purchase' );
 	}
 
 	/**
@@ -152,6 +154,7 @@ final class SimpleSalesTax {
 		if ( $this->is_request( 'frontend' ) ) {
 			require_once __DIR__ . '/frontend/class-sst-cart-proxy.php';
 			require_once __DIR__ . '/frontend/class-sst-checkout.php';
+			require_once __DIR__ . '/frontend/class-sst-my-account.php';
 		}
 	}
 
@@ -376,6 +379,17 @@ final class SimpleSalesTax {
 				true
 			);
 		}
+	}
+
+	/**
+	 * Adds a `exemption-certificates` query var/endpoint for WooCommerce.
+	 *
+	 * @param array $query_vars WC query vars.
+	 * @return array Modified query vars
+	 */
+	public function add_tax_exemptions_query_var( $query_vars ) {
+		$query_vars[] = 'exemption-certificates';
+		return $query_vars;
 	}
 
 }

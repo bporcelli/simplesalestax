@@ -13,6 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use \TaxCloud\ExemptionCertificate;
+
 /**
  * Output HTML for a help tip.
  *
@@ -380,28 +382,36 @@ function sst_get_order_shipping_address( $order ) {
  * @param SST_Order $order The order being edited.
  */
 function sst_render_tax_meta_box( $order ) {
-	$status = $order->get_taxcloud_status( 'view' );
+	$status      = $order->get_taxcloud_status( 'view' );
+	$certificate = $order->get_single_purchase_certificate();
+
+	if ( $certificate instanceof ExemptionCertificate ) {
+		$certificate = SST_Certificates::format_certificate( $certificate );
+	}
 
 	wp_enqueue_script( 'sst-meta-box' );
 	wp_localize_script(
 		'sst-meta-box',
 		'SSTMetaBox',
 		array(
-			'edit_user_url'              => add_query_arg(
+			'edit_user_url'               => add_query_arg(
 				'user_id',
 				'{user_id}',
 				admin_url('user-edit.php#exemption_certificates')
 			),
-			'order_status'               => $order->get_taxcloud_status(),
-			'selected_certificate'       => $order->get_certificate_id(),
-			'get_certificates_nonce'     => wp_create_nonce( 'sst_get_certificates' ),
-			'i18n'                       => array(
-				'none'                   => __( 'None', 'simple-sales-tax' ),
-				'certificate_added'      => __(
+			'order_status'                => $order->get_taxcloud_status(),
+			'selected_certificate'        => $order->get_certificate_id(),
+			'single_purchase_certificate' => $certificate,
+			'single_purchase_cert_id'     => SST_SINGLE_PURCHASE_CERT_ID,
+			'get_certificates_nonce'      => wp_create_nonce( 'sst_get_certificates' ),
+			'i18n'                        => array(
+				'none'                        => __( 'None', 'simple-sales-tax' ),
+				'single_purchase_certificate' => __( 'Single Purchase Certificate', 'simple-sales-tax' ),
+				'certificate_added'           => __(
 					"Certificate added successfully! Don't forget to recalculate taxes.",
 					'simple-sales-tax'
 				),
-				'add_certificate_failed' => __(
+				'add_certificate_failed'      => __(
 					'Failed to add certificate',
 					'simple-sales-tax'
 				),
@@ -409,9 +419,12 @@ function sst_render_tax_meta_box( $order ) {
 		)
 	);
 
-	require __DIR__ . '/views/html-meta-box.php';
-	require __DIR__ . '/views/html-add-certificate-modal.php';
-	require __DIR__ . '/frontend/views/html-view-certificate.php';
+	sst_load_template(
+		'includes/views/html-meta-box.php',
+		array( 'status' => $status )
+	);
+	sst_load_template( 'includes/views/html-add-certificate-modal.php' );
+	sst_load_template( 'includes/views/html-view-certificate.php' );
 }
 
 add_action( 'sst_output_tax_meta_box', 'sst_render_tax_meta_box' );
@@ -444,11 +457,45 @@ function sst_render_certificate_table( $user_id = 0, $options = array() ) {
 		$user_id = get_current_user_id();
 	}
 
+	$customer        = new WC_Customer( $user_id );
+	$billing_address = array(
+		'first_name' => $customer->get_billing_first_name(),
+		'last_name'  => $customer->get_billing_last_name(),
+		'address_1'  => $customer->get_billing_address_1(),
+		'address_2'  => $customer->get_billing_address_2(),
+		'country'    => $customer->get_billing_country(),
+		'city'       => $customer->get_billing_city(),
+		'state'      => $customer->get_billing_state(),
+		'postcode'   => $customer->get_billing_postcode(),
+	);
+
+	$script_data = array(
+		'delete_certificate_nonce' => wp_create_nonce( 'sst_delete_certificate' ),
+		'ajaxurl'                  => admin_url( 'admin-ajax.php' ),
+		'strings'                  => array(
+			'delete_failed'      => __( 'Failed to delete certificate', 'simple-sales-tax' ),
+			'add_failed'         => __( 'Failed to add certificate', 'simple-sales-tax' ),
+			'delete_certificate' => __(
+				'Are you sure you want to delete this certificate? This action is irreversible.',
+				'simple-sales-tax'
+			),
+		),
+		'user_id'                  => $user_id,
+		'certificates'             => SST_Certificates::get_certificates_formatted( $user_id ),
+		'billing_address'          => $billing_address,
+	);
+
 	wp_enqueue_style( 'sst-certificate-modal-css' );
+	wp_enqueue_script( 'sst-certificate-table' );
+	wp_localize_script(
+		'sst-certificate-table',
+		'SST_Certificate_Table_Data',
+		$script_data
+	);
 
 	sst_load_template( 'includes/views/html-certificate-list.php', $options );
 	sst_load_template( 'includes/views/html-add-certificate-modal.php' );
-	sst_load_template( 'includes/frontend/views/html-view-certificate.php' );
+	sst_load_template( 'includes/views/html-view-certificate.php' );
 }
 
 /**
@@ -461,4 +508,40 @@ function sst_render_certificate_table( $user_id = 0, $options = array() ) {
 function sst_get_shipping_tic( $method_id ) {
 	$default_tic = SST_Settings::get( 'shipping_tic' );
 	return apply_filters( 'sst_shipping_tic', $default_tic, $method_id );
+}
+
+/**
+ * Checks whether the current logged in user has an exempt user role.
+ *
+ * @since 7.1
+ * @return bool Does the current user have an exempt user role?
+ */
+function sst_is_user_tax_exempt() {
+	$current_user = wp_get_current_user();
+	$exempt_roles = SST_Settings::get( 'exempt_roles', array() );
+	$user_roles   = is_user_logged_in() ? $current_user->roles : array();
+	$is_exempt    = count( array_intersect( $exempt_roles, $user_roles ) ) > 0;
+
+	return apply_filters(
+		'sst_is_user_tax_exempt',
+		$is_exempt,
+		$exempt_roles,
+		$current_user,
+	);
+}
+
+/**
+ * Checks whether the tax exemption UI should be displayed to the current user.
+ *
+ * @since 7.1
+ * @return bool Whether the tax exemption UI should be displayed
+ */
+function sst_should_show_tax_exemption_form() {
+	$restricted = 'yes' === SST_Settings::get( 'restrict_exempt' );
+	$enabled    = 'true' === SST_Settings::get( 'show_exempt' );
+
+	return apply_filters(
+		'sst_show_tax_exemption_form',
+		$enabled && ( ! $restricted || sst_is_user_tax_exempt() )
+	);
 }

@@ -211,7 +211,7 @@ class SST_Order_Controller {
 		$certificate_id = sanitize_text_field(
 			wp_unslash( $_POST['exempt_cert'] ?? '' )
 		);
-		$order->update_meta( 'exempt_cert', $certificate_id );
+		$order->set_certificate_id( $certificate_id );
 		$order->save();
 	}
 

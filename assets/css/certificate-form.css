@@ -1,0 +1,12 @@
+.sst-hidden-field {
+	display: none;
+}
+
+.sst-form-row .woocommerce-input-wrapper {
+	display: block;
+	width: 100%;
+}
+
+.sst-input + .select2-container {
+	width: 100% !important;
+}

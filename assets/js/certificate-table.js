@@ -154,23 +154,17 @@
 			} );
 		},
 		getBillingAddress: function() {
-			var address = {
-				first_name: '',
-				last_name: '',
-				address_1: '',
-				address_2: '',
-				country: '',
-				city: '',
-				state: '',
-				postcode: '',
-			};
-
+			var address = script_data.billing_address;
 			var addressFields = this.addressFields;
 
+			// Override default billing address with values from address fields
 			for ( var key in address ) {
 				if ( address.hasOwnProperty( key ) && key in addressFields ) {
 					var fieldName = addressFields[ key ];
-					address[ key ] = $( '[name="' + fieldName + '"]' ).val();
+					var $field = $( '[name="' + fieldName + '"]' );
+					if ( $field.length ) {
+						address[ key ] = $field.val();
+					}
 				}
 			}
 
@@ -183,8 +177,8 @@
 
 			var requestData = {
 				nonce: SST_Add_Certificate_Data.nonce,
-				certificate: posted_data,
 				address: view.getBillingAddress(),
+				...posted_data,
 			};
 
 			if ( view.userId ) {
@@ -248,5 +242,8 @@
 		view.render();
 	}
 
-	window.renderCertificateTable = renderCertificateTable;
+	renderCertificateTable( {
+		user_id: script_data.user_id,
+		certificates: script_data.certificates,
+	} );
 } )( jQuery );

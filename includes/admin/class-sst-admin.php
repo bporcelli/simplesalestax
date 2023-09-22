@@ -321,14 +321,6 @@ class SST_Admin {
 			return;
 		}
 
-		$script_data = array(
-			'user_id'      => $user->ID,
-			'certificates' => SST_Certificates::get_certificates_formatted( $user->ID ),
-		);
-
-		wp_enqueue_script( 'sst-edit-user' );
-		wp_localize_script( 'sst-edit-user', 'SST_Edit_User_Data', $script_data );
-
 		?>
 		<h2 id="exemption_certificates">
 			<?php esc_html_e( 'Exemption Certificates', 'simple-sales-tax' ); ?>

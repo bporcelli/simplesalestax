@@ -4,6 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
+use \TaxCloud\ExemptionCertificate;
+use \TaxCloud\ExemptionCertificateBase;
+
 /**
  * Checkout.
  *
@@ -30,6 +33,13 @@ class SST_Checkout extends SST_Abstract_Cart {
 	private $errors = array();
 
 	/**
+	 * The new exemption certificate created during checkout, if any.
+	 *
+	 * @var ExemptionCertificateBase
+	 */
+	private $certificate;
+
+	/**
 	 * Constructor: Initialize hooks.
 	 *
 	 * @since 5.0
@@ -37,8 +47,10 @@ class SST_Checkout extends SST_Abstract_Cart {
 	public function __construct() {
 		add_filter( 'woocommerce_calculated_total', array( $this, 'calculate_tax_totals' ), 1100, 2 );
 		add_filter( 'woocommerce_cart_hide_zero_taxes', array( $this, 'hide_zero_taxes' ) );
-		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'add_order_meta' ) );
-		add_action( 'woocommerce_cart_emptied', array( $this, 'clear_package_cache' ) );
+		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'maybe_add_certificate' ), 100 );
+		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'add_order_meta' ), 110 );
+		add_action( 'woocommerce_checkout_order_exception', array( $this, 'maybe_delete_certificate' ) );
+		add_action( 'woocommerce_cart_emptied', array( $this, 'clear_session_data' ) );
 		add_action( 'woocommerce_after_checkout_validation', array( $this, 'validate_checkout' ), 10, 2 );
 		add_filter( 'woocommerce_add_cart_item', array( $this, 'set_key_for_cart_item' ), 10, 2 );
 
@@ -96,7 +108,15 @@ class SST_Checkout extends SST_Abstract_Cart {
 	public function calculate_taxes() {
 		$this->errors = array();
 
-		parent::calculate_taxes();
+		if ( 'new' === $this->get_certificate_id() && ! $this->certificate ) {
+			// Assume 0 tax until checkout is processed and new certificate is saved
+			$this->reset_taxes();
+			$this->update_taxes();
+
+			return true;
+		}
+
+		return parent::calculate_taxes();
 	}
 
 	/**
@@ -379,13 +399,11 @@ class SST_Checkout extends SST_Abstract_Cart {
 	}
 
 	/**
-	 * Get the ID of the applied exemption certificate.
+	 * Get the POST data from the checkout page.
 	 *
-	 * @return string Exemption certificate ID.
-	 *
-	 * @since 7.0.0
+	 * @return array
 	 */
-	public function get_certificate_id() {
+	protected function get_post_data() {
 		if ( ! isset( $_POST['post_data'] ) ) { // phpcs:ignore WordPress.CSRF.NonceVerification
 			$post_data = $_POST; // phpcs:ignore WordPress.CSRF.NonceVerification
 		} else {
@@ -393,11 +411,42 @@ class SST_Checkout extends SST_Abstract_Cart {
 			parse_str( $_POST['post_data'], $post_data ); // phpcs:ignore WordPress.CSRF.NonceVerification, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 		}
 
-		if ( isset( $post_data['tax_exempt'] ) && isset( $post_data['certificate_id'] ) ) {
-			return sanitize_text_field( wp_unslash( $post_data['certificate_id'] ) );
+		return $post_data;
+	}
+
+	/**
+	 * Get the exemption certificate for the customer.
+	 *
+	 * @return ExemptionCertificateBase
+	 */
+	public function get_certificate() {
+		if ( $this->certificate instanceof ExemptionCertificateBase ) {
+			// Apply newly added single-purchase or entity-based cert
+			return $this->certificate;
 		}
 
-		return '';
+		$certificate_id = $this->get_certificate_id();
+
+		if ( $certificate_id ) {
+			// Apply saved entity-based cert
+			return new ExemptionCertificateBase( $certificate_id );
+		}
+
+		return null;
+	}
+
+	/**
+	 * Get the ID of the applied exemption certificate.
+	 *
+	 * @return string Exemption certificate ID.
+	 *
+	 * @since 7.0.0
+	 */
+	public function get_certificate_id() {
+		$post_data      = $this->get_post_data();
+		$certificate_id = $post_data['certificate_id'] ?? '';
+
+		return sanitize_text_field( wp_unslash( $certificate_id ) );
 	}
 
 	/**
@@ -450,6 +499,114 @@ class SST_Checkout extends SST_Abstract_Cart {
 	}
 
 	/**
+	 * Create a new exemption certificate after checkout is
+	 * processed if "Add new certificate" was selected in the
+	 * Exemption certificate dropdown.
+	 *
+	 * @param int $order_id ID of new order.
+	 */
+	public function maybe_add_certificate( $order_id ) {
+		if ( 'new' !== $this->get_certificate_id() ) {
+			return;
+		}
+
+		$post_data   = $this->get_post_data();
+		$certificate = $post_data['certificate'] ?? [];
+
+		if ( ! $certificate ) {
+			return null;
+		}
+
+		$certificate = array_map(
+			'sanitize_text_field',
+			wp_unslash( $certificate )
+		);
+
+		$purchaser = array(
+			'first_name' => sanitize_text_field( $post_data['billing_first_name'] ),
+			'last_name'  => sanitize_text_field( $post_data['billing_last_name'] ),
+			'address_1'  => sanitize_text_field( $post_data['billing_address_1'] ),
+			'address_2'  => sanitize_text_field( $post_data['billing_address_2'] ),
+			'city'       => sanitize_text_field( $post_data['billing_city'] ),
+			'state'      => sanitize_text_field( $post_data['billing_state'] ),
+			'postcode'   => sanitize_text_field( $post_data['billing_postcode'] ),
+		);
+
+		try {
+			// Build single purchase cert or save entity-based cert
+			if ( empty( $certificate['SinglePurchase'] ) ) {
+				$certificate_id    = SST_Certificates::add_certificate(
+					$certificate,
+					$purchaser
+				);
+				$this->certificate = new ExemptionCertificateBase( $certificate_id );
+			} else {
+				$this->certificate = SST_Certificates::build_certificate(
+					array_merge(
+						$certificate,
+						array(
+							'SinglePurchase'             => true,
+							'SinglePurchaserOrderNumber' => $order_id,
+						)
+					),
+					$purchaser,
+				);
+			}
+
+			// Do a tax lookup
+			$this->calculate_taxes();
+
+			// Throw if any errors occurred during the lookup
+			if ( $this->errors ) {
+				throw new Exception( current( $this->errors ) );
+			} else if ( wc_notice_count( 'error' ) ) {
+				$notices      = wc_get_notices( 'error' );
+				$first_notice = current( $notices );
+
+				throw new Exception( $first_notice['notice'] );
+			}
+		} catch ( Throwable $ex ) {
+			SST_Logger::add(
+				sprintf(
+					/* translators: 1 - error message */
+					__(
+						'Failed to add exemption certificate during checkout. Error was: %1$s',
+						'simple-sales-tax'
+					),
+					$ex->getMessage()
+				)
+			);
+
+			throw new Exception( $ex->getMessage() );
+		}
+	}
+
+	/**
+	 * Delete the newly created exemption certificate (if any)
+	 * if checkout processing fails after it is created.
+	 */
+	public function maybe_delete_certificate() {
+		if ( ! isset( $this->certificate ) ) {
+			return;
+		}
+
+		$certificate_id = $this->certificate->getCertificateID();
+
+		if ( ! $certificate_id ) {
+			// Single-purchase certificate - no need to clean up
+			return;
+		}
+
+		try {
+			SST_Certificates::delete_certificate( $certificate_id );
+		} catch ( Throwable $ex ) {
+			SST_Logger::add(
+				"Failed to delete certificate after failed checkout: {$ex->getMessage()}"
+			);
+		}
+	}
+
+	/**
 	 * Save metadata when a new order is created.
 	 *
 	 * @param int $order_id ID of new order.
@@ -465,9 +622,14 @@ class SST_Checkout extends SST_Abstract_Cart {
 		$order->set_packages( $this->get_packages() );
 
 		// Save the applied exemption certificate (if any).
-		$certificate_id = $this->get_certificate_id();
-		if ( $certificate_id ) {
-			$order->set_certificate_id( $certificate_id );
+		$certificate = $this->get_certificate();
+
+		if ( $certificate instanceof ExemptionCertificate ) {
+			// Single-purchase certificate
+			$order->set_single_purchase_certificate( $certificate );
+		} else if ( $certificate instanceof ExemptionCertificateBase ) {
+			// Entity-based certificate
+			$order->set_certificate_id( $certificate->getCertificateID() );
 		}
 
 		$order->save();
@@ -527,72 +689,54 @@ class SST_Checkout extends SST_Abstract_Cart {
 	}
 
 	/**
-	 * Does the customer have an exempt user role?
-	 *
-	 * @return bool
-	 * @since 5.0
-	 */
-	protected function is_user_exempt() {
-		$current_user = wp_get_current_user();
-		$exempt_roles = SST_Settings::get( 'exempt_roles', array() );
-		$user_roles   = is_user_logged_in() ? $current_user->roles : array();
-
-		return count( array_intersect( $exempt_roles, $user_roles ) ) > 0;
-	}
-
-	/**
-	 * Should the exemption form be displayed?
-	 *
-	 * @since 5.0
-	 */
-	protected function show_exemption_form() {
-		$restricted = 'yes' === SST_Settings::get( 'restrict_exempt' );
-		$enabled    = 'true' === SST_Settings::get( 'show_exempt' );
-
-		return $enabled && ( ! $restricted || $this->is_user_exempt() );
-	}
-
-	/**
 	 * Output Tax Details section of checkout form.
 	 *
 	 * @since 5.0
 	 */
 	public function output_exemption_form() {
-		if ( ! $this->show_exemption_form() ) {
+		if ( ! sst_should_show_tax_exemption_form() ) {
 			return;
 		}
 
-		wp_enqueue_script( 'sst-checkout' );
-
-		// phpcs:disable
-		$checked = (
-			( ! $_POST && $this->is_user_exempt() )        // User is already marked as exempt in session.
-			|| ( $_POST && isset( $_POST['tax_exempt'] ) ) // User just ticked the "Tax Exempt?" checkbox.
+		$certificates = SST_Certificates::get_certificates_formatted();
+		$options      = array(
+			''    => 'None',
+			'new' => 'Add new certificate',
 		);
-		// phpcs:enable
 
-		$selected = '';
-		if ( isset( $_POST['certificate_id'] ) ) { // phpcs:ignore WordPress.CSRF.NonceVerification
-			$selected = sanitize_text_field( wp_unslash( $_POST['certificate_id'] ) ); // phpcs:ignore WordPress.CSRF.NonceVerification
+		foreach ( $certificates as $cert ) {
+			$options[ $cert['CertificateID'] ] = $cert['Description'];
 		}
 
+		$selected = sanitize_text_field(
+			wp_unslash( $_POST['certificate_id'] ?? '' )
+		);
+
+		if ( ! $selected && sst_is_user_tax_exempt() && $certificates ) {
+			$selected = current( array_keys( $certificates ) );
+		}
+
+		wp_enqueue_script( 'sst-checkout' );
+		wp_enqueue_style( 'sst-checkout-css' );
+		wp_enqueue_style( 'sst-certificate-form-css' );
+
 		wc_get_template(
-			'html-certificate-table.php',
+			'html-checkout.php',
 			array(
-				'checked'  => $checked,
+				'options'  => $options,
 				'selected' => $selected,
 			),
-			'sst/checkout/',
+			'sst/',
 			SST()->path( 'includes/frontend/views/' )
 		);
 	}
 
 	/**
-	 * Clear cached shipping packages when the cart is emptied.
+	 * Clear SST session data when the cart is emptied.
 	 *
 	 * @since 5.7
 	 */
-	public function clear_package_cache() {
+	public function clear_session_data() {
 		WC()->session->set( 'sst_packages', array() );
 		WC()->session->set( 'sst_package_cache', array() );
 	}
