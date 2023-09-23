@@ -363,7 +363,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	protected function set_product_tax( $id, $tax ) {
-		$item     = $this->order->get_item( $id );
+		$item     = $this->order->get_item( $id, false );
 		$tax_data = $item->get_taxes( 'edit' );
 
 		if ( ! is_array( $tax_data ) ) {
