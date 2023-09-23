@@ -223,7 +223,7 @@ final class SimpleSalesTax {
 		require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
 		// Check PHP version.
-		if ( version_compare( phpversion(), '5.5', '<' ) ) {
+		if ( version_compare( phpversion(), '7.2', '<' ) ) {
 			add_action( 'admin_notices', array( $this, 'php_version_notice' ) );
 
 			return false;
@@ -316,7 +316,7 @@ final class SimpleSalesTax {
 	public function php_version_notice() {
 		printf(
 			'<div class="notice notice-error"><p>%s</p></div>',
-			__( '<strong>PHP needs to be updated.</strong> Simple Sales Tax requires PHP 5.5+.', 'simple-sales-tax' ) // phpcs:ignore WordPress.Security.EscapeOutput
+			__( '<strong>PHP needs to be updated.</strong> Simple Sales Tax requires PHP 7.2+.', 'simple-sales-tax' ) // phpcs:ignore WordPress.Security.EscapeOutput
 		);
 	}
 

@@ -4,7 +4,7 @@ Tags: woocommerce, taxcloud, tax, taxes, sales tax, tax calculation, sales tax c
 Requires at least: 4.5
 Tested up to: 6.3
 Stable tag: 7.0.13
-Requires PHP: 5.5
+Requires PHP: 7.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
