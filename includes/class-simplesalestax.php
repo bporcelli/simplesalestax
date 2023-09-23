@@ -234,7 +234,7 @@ final class SimpleSalesTax {
 			add_action( 'admin_notices', array( $this, 'woocommerce_required_notice' ) );
 
 			return false;
-		} elseif ( ! defined( 'WC_VERSION' ) || version_compare( WC_VERSION, '3.0', '<' ) ) {
+		} elseif ( ! defined( 'WC_VERSION' ) || version_compare( WC_VERSION, '6.9', '<' ) ) {
 			add_action( 'admin_notices', array( $this, 'woocommerce_version_notice' ) );
 
 			return false;
@@ -340,7 +340,7 @@ final class SimpleSalesTax {
 		printf(
 			'<div class="notice notice-error"><p>%s</p></div>',
 			__( // phpcs:ignore WordPress.Security.EscapeOutput
-				'<strong>WooCommerce needs to be updated.</strong> Simple Sales Tax requires WooCommerce 3.0.0+.',
+				'<strong>WooCommerce needs to be updated.</strong> Simple Sales Tax requires WooCommerce 6.9.0+.',
 				'simple-sales-tax'
 			)
 		);

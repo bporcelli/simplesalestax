@@ -116,11 +116,7 @@ class SST_Subscriptions {
 		if ( in_array( $calc_type, array( 'none', 'recurring_total' ), true ) ) {
 			$saved_taxes = WC()->session->get( 'sst_saved_shipping_taxes', array() );
 
-			if ( sst_woocommerce_gte_32() ) {
-				$saved_taxes[ $calc_type ] = $cart->get_shipping_taxes();
-			} else {
-				$saved_taxes[ $calc_type ] = $cart->shipping_taxes;
-			}
+			$saved_taxes[ $calc_type ] = $cart->get_shipping_taxes();
 
 			WC()->session->set( 'sst_saved_shipping_taxes', $saved_taxes );
 		}
@@ -140,11 +136,7 @@ class SST_Subscriptions {
 			$saved_taxes = WC()->session->get( 'sst_saved_shipping_taxes', array() );
 
 			if ( array_key_exists( $calc_type, $saved_taxes ) ) {
-				if ( sst_woocommerce_gte_32() ) {
-					WC()->cart->set_shipping_taxes( $saved_taxes[ $calc_type ] );
-				} else {
-					WC()->cart->shipping_taxes = $saved_taxes[ $calc_type ];
-				}
+				WC()->cart->set_shipping_taxes( $saved_taxes[ $calc_type ] );
 			}
 		}
 	}

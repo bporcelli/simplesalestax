@@ -926,10 +926,6 @@ class SST_Order extends SST_Abstract_Cart {
 
 		if ( ! is_string( $value ) ) {
 			$value = serialize( $value ); /* $value must be a string */
-
-			if ( version_compare( WC_VERSION, '3.1', '<' ) ) {
-				$value = wp_slash( $value );
-			}
 		}
 
 		$this->order->update_meta_data( $key, $value );

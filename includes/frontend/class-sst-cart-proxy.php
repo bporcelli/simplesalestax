@@ -36,14 +36,10 @@ class SST_Cart_Proxy {
 	 * @since  5.6
 	 */
 	public function get_cart_taxes() {
-		if ( sst_woocommerce_gte_32() ) {
-			return wc_array_merge_recursive_numeric(
-				$this->cart->get_cart_contents_taxes(),
-				$this->cart->get_fee_taxes()
-			);
-		} else {
-			return $this->cart->taxes;
-		}
+		return wc_array_merge_recursive_numeric(
+			$this->cart->get_cart_contents_taxes(),
+			$this->cart->get_fee_taxes()
+		);
 	}
 
 	/**
@@ -53,11 +49,7 @@ class SST_Cart_Proxy {
 	 * @since  5.6
 	 */
 	public function get_shipping_taxes() {
-		if ( sst_woocommerce_gte_32() ) {
-			return $this->cart->get_shipping_taxes();
-		} else {
-			return $this->cart->shipping_taxes;
-		}
+		return $this->cart->get_shipping_taxes();
 	}
 
 	/**
@@ -68,11 +60,7 @@ class SST_Cart_Proxy {
 	 * @since 5.6
 	 */
 	public function set_cart_tax( $value ) {
-		if ( sst_woocommerce_gte_32() ) {
-			$this->cart->set_cart_contents_tax( $value );
-		} else {
-			$this->cart->tax_total = wc_round_tax_total( $value );
-		}
+		$this->cart->set_cart_contents_tax( $value );
 	}
 
 	/**
@@ -83,11 +71,7 @@ class SST_Cart_Proxy {
 	 * @since 3.2.0
 	 */
 	public function set_shipping_tax( $value ) {
-		if ( sst_woocommerce_gte_32() ) {
-			$this->cart->set_shipping_tax( $value );
-		} else {
-			$this->cart->shipping_tax_total = wc_round_tax_total( $value );
-		}
+		$this->cart->set_shipping_tax( $value );
 	}
 
 	/**
@@ -99,13 +83,8 @@ class SST_Cart_Proxy {
 	 * @since 5.0
 	 */
 	public function set_cart_item_tax( $key, $tax ) {
-		if ( sst_woocommerce_gte_32() ) {
-			$cart_contents = $this->cart->get_cart_contents();
-		} else {
-			$cart_contents = $this->cart->cart_contents;
-		}
-
-		$tax_data = $cart_contents[ $key ]['line_tax_data'];
+		$cart_contents = $this->cart->get_cart_contents();
+		$tax_data      = $cart_contents[ $key ]['line_tax_data'];
 
 		$tax_data['subtotal'][ SST_RATE_ID ] = $tax;
 		$tax_data['total'][ SST_RATE_ID ]    = $tax;
@@ -114,11 +93,7 @@ class SST_Cart_Proxy {
 		$cart_contents[ $key ]['line_subtotal_tax'] = array_sum( $tax_data['subtotal'] );
 		$cart_contents[ $key ]['line_tax']          = array_sum( $tax_data['total'] );
 
-		if ( sst_woocommerce_gte_32() ) {
-			$this->cart->set_cart_contents( $cart_contents );
-		} else {
-			$this->cart->cart_contents = $cart_contents;
-		}
+		$this->cart->set_cart_contents( $cart_contents );
 	}
 
 	/**
@@ -130,20 +105,12 @@ class SST_Cart_Proxy {
 	 * @since 5.0
 	 */
 	public function set_fee_item_tax( $id, $tax ) {
-		if ( sst_woocommerce_gte_32() ) {
-			$fees = $this->cart->fees_api()->get_fees();
-		} else {
-			$fees = $this->cart->fees;
-		}
+		$fees = $this->cart->fees_api()->get_fees();
 
 		$fees[ $id ]->tax_data[ SST_RATE_ID ] = $tax;
 		$fees[ $id ]->tax                     = array_sum( $this->cart->fees[ $id ]->tax_data );
 
-		if ( sst_woocommerce_gte_32() ) {
-			$this->cart->fees_api()->set_fees( $fees );
-		} else {
-			$this->cart->fees = $fees;
-		}
+		$this->cart->fees_api()->set_fees( $fees );
 	}
 
 	/**
@@ -167,13 +134,9 @@ class SST_Cart_Proxy {
 	 * @since 5.6
 	 */
 	public function set_tax_amount( $tax_rate_id, $amount ) {
-		if ( sst_woocommerce_gte_32() ) {
-			$taxes                 = $this->cart->get_cart_contents_taxes();
-			$taxes[ $tax_rate_id ] = $amount;
-			$this->cart->set_cart_contents_taxes( $taxes );
-		} else {
-			$this->cart->taxes[ $tax_rate_id ] = $amount;
-		}
+		$taxes                 = $this->cart->	get_cart_contents_taxes();
+		$taxes[ $tax_rate_id ] = $amount;
+		$this->cart->set_cart_contents_taxes( $taxes );
 	}
 
 	/**
@@ -185,13 +148,9 @@ class SST_Cart_Proxy {
 	 * @since 5.6
 	 */
 	public function set_shipping_tax_amount( $tax_rate_id, $amount ) {
-		if ( sst_woocommerce_gte_32() ) {
-			$taxes                 = $this->cart->get_shipping_taxes();
-			$taxes[ $tax_rate_id ] = $amount;
-			$this->cart->set_shipping_taxes( $taxes );
-		} else {
-			$this->cart->shipping_taxes[ $tax_rate_id ] = $amount;
-		}
+		$taxes                 = $this->cart->get_shipping_taxes();
+		$taxes[ $tax_rate_id ] = $amount;
+		$this->cart->set_shipping_taxes( $taxes );
 	}
 
 	/**
