@@ -455,7 +455,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 *
 	 * @param TaxCloud\ExemptionCertificate Single-purchase exemption certificate object.
 	 *
-	 * @since 7.1.0
+	 * @since 8.0.0
 	 */
 	public function set_single_purchase_certificate( $certificate ) {
 		if ( ! is_a( $certificate, 'TaxCloud\ExemptionCertificate' ) ) {
@@ -473,7 +473,7 @@ class SST_Order extends SST_Abstract_Cart {
 	 *
 	 * @return TaxCloud\ExemptionCertificate|null
 	 *
-	 * @since 7.1.0
+	 * @since 8.0.0
 	 */
 	public function get_single_purchase_certificate() {
 		$cert = $this->get_meta( 'single_purchase_cert' );

@@ -3,10 +3,10 @@
  * Template for My Account > Exemption Certificates page.
  * You may override this template by copying it to THEME_PATH/sst/html-my-account.php.
  *
- * @since   7.1.0
+ * @since   8.0.0
  * @author  Brett Porcelli
  * @package Simple Sales Tax
- * @version 7.1.0
+ * @version 8.0.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
