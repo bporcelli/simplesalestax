@@ -549,7 +549,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 							'SinglePurchaserOrderNumber' => $order_id,
 						)
 					),
-					$purchaser,
+					$purchaser
 				);
 			}
 

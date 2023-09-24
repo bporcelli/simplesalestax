@@ -526,7 +526,7 @@ function sst_is_user_tax_exempt() {
 		'sst_is_user_tax_exempt',
 		$is_exempt,
 		$exempt_roles,
-		$current_user,
+		$current_user
 	);
 }
 
