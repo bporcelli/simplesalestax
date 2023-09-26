@@ -15,7 +15,7 @@ For more information, please check our [plugin page](https://wordpress.org/plugi
 1. Download the Simple Sales Tax .zip file from [WordPress.org](https://wordpress.org/plugins/simple-sales-tax/).
 2. Go to **WordPress Admin > Plugins > Add New** and **Upload Plugin** with the zip file.
 3. **Install Now** and **Activate** the plugin.
-4. Follow the instructions in our [Setup Guide](https://taxcloud.com/support/woocommerce-setup-guide)
+4. Follow the instructions in our [Setup Guide](https://wordpress.org/plugins/simple-sales-tax/#installation)
 
 ## Support
 
