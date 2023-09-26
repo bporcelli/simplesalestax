@@ -6,7 +6,7 @@
   "description": "Sales tax compliance solution for WooCommerce.",
   "type": "project",
   "require": {
-    "bporcelli/php-taxcloud": "1.0.0"
+    "bporcelli/php-taxcloud": "1.0.1"
   },
   "license": "GPL-3.0+",
   "authors": [
