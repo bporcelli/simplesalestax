@@ -7,7 +7,7 @@ For more information, please check our [plugin page](https://wordpress.org/plugi
 ## Requirements
 
 - WordPress 4.5+
-- WooCommerce 3.0+
+- WooCommerce 6.9+
 - [TaxCloud account](https://taxcloud.com/go/get-started/)
 
 ## Getting Started
