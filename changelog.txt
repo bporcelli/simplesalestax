@@ -2,6 +2,11 @@ Changelog for Simple Sales Tax
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+= [8.0.1] - 2023-09-26 =
+
+Fixed:
+- Fatal errors when making requests to TaxCloud
+
 = [8.0.0] - 2023-09-23 =
 
 Added:
