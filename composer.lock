@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ac8439be610754e7e3a5c82ef55e2dcf",
+    "content-hash": "92b5328d828aff49a2d663416025f7a2",
     "packages": [
         {
             "name": "bporcelli/php-taxcloud",
-            "version": "1.0.1",
+            "version": "1.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/bporcelli/php-taxcloud.git",
-                "reference": "fcdb99961fc84e1e3168b97212ed969783ca89a3"
+                "reference": "28c80bf767b89651eadfddc3ee287cafcd6328ee"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bporcelli/php-taxcloud/zipball/fcdb99961fc84e1e3168b97212ed969783ca89a3",
-                "reference": "fcdb99961fc84e1e3168b97212ed969783ca89a3",
+                "url": "https://api.github.com/repos/bporcelli/php-taxcloud/zipball/28c80bf767b89651eadfddc3ee287cafcd6328ee",
+                "reference": "28c80bf767b89651eadfddc3ee287cafcd6328ee",
                 "shasum": ""
             },
             "require": {
@@ -59,9 +59,9 @@
             ],
             "support": {
                 "issues": "https://github.com/bporcelli/php-taxcloud/issues",
-                "source": "https://github.com/bporcelli/php-taxcloud/tree/1.0.1"
+                "source": "https://github.com/bporcelli/php-taxcloud/tree/1.0.2"
             },
-            "time": "2023-09-26T15:23:50+00:00"
+            "time": "2023-09-29T15:49:31+00:00"
         }
     ],
     "packages-dev": [],
