@@ -2,14 +2,14 @@
 /**
  * Template for tax exemption certificate form. You may override this template by copying it to `THEME_PATH/sst/html-certificate-form.php`.
  *
- * @version 8.0.0
+ * @version 8.0.3
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$post_data = $_POST['certificate'];
+$post_data = $_POST['certificate'] ?? [];
 
 ?>
 <p>
