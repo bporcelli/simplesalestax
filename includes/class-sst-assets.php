@@ -259,10 +259,11 @@ class SST_Assets {
 	 * @param string $context Context to register assets for. Can be 'admin' or 'frontend'.
 	 */
 	private function register_assets_for_context( $context ) {
-		$js_base_url   = SST()->url( 'assets/js/' );
-		$css_base_url  = SST()->url( 'assets/css/' );
-		$load_minified = ! defined( 'SCRIPT_DEBUG' ) || ! SCRIPT_DEBUG;
-		$defaults      = array(
+		$js_base_url    = SST()->url( 'assets/js/' );
+		$css_base_url   = SST()->url( 'assets/css/' );
+		$plugin_version = SST()->version;
+		$load_minified  = ! defined( 'SCRIPT_DEBUG' ) || ! SCRIPT_DEBUG;
+		$defaults       = array(
 			'type'       => '',
 			'file'       => '',
 			'compressed' => false,
@@ -273,7 +274,7 @@ class SST_Assets {
 		foreach ( $this->assets as $handle => $asset ) {
 			$asset   = wp_parse_args( $asset, $defaults );
 			$options = $asset['options'];
-			$ver     = isset( $options['ver'] ) ? $options['ver'] : false;
+			$ver     = $options['ver'] ?? $plugin_version;
 			$deps    = array();
 
 			if ( isset( $options['deps'] ) ) {
