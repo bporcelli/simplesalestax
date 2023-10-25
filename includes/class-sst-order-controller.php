@@ -26,7 +26,13 @@ class SST_Order_Controller {
 		add_action( 'woocommerce_payment_complete', array( $this, 'maybe_capture_order' ) );
 		add_filter( 'woocommerce_hidden_order_itemmeta', array( $this, 'hide_order_item_meta' ) );
 		add_filter( 'woocommerce_order_item_get_taxes', array( $this, 'fix_shipping_tax_issue' ), 10, 2 );
-		add_action( 'woocommerce_before_order_object_save', array( $this, 'on_order_saved' ) );
+		add_action( 'woocommerce_before_order_object_save', array( $this, 'save_db_version' ) );
+		add_action(
+			'woocommerce_order_after_calculate_totals',
+			array( $this, 'calculate_order_tax' ),
+			10,
+			2
+		);
 		add_filter(
 			'woocommerce_order_data_store_cpt_get_orders_query',
 			array( $this, 'handle_version_query_var' ),
@@ -141,27 +147,35 @@ class SST_Order_Controller {
 	}
 
 	/**
-	 * Runs when an order is saved.
-	 *
-	 * Calculates the tax for the order if it was created via the REST API and
-	 * ensures that the order DB version is set.
+	 * Runs when an order is saved to set the order DB version.
 	 *
 	 * @param WC_Order $order The WooCommerce order that is about to be saved.
 	 */
-	public function on_order_saved( $order ) {
-		if ( 'rest-api' === $order->get_created_via() ) {
-			// Remove hook temporarily to prevent infinite loop.
-			remove_action( 'woocommerce_before_order_object_save', array( $this, 'on_order_saved' ) );
-
-			sst_order_calculate_taxes( $order );
-
-			add_action( 'woocommerce_before_order_object_save', array( $this, 'on_order_saved' ) );
-		}
-
+	public function save_db_version( $order ) {
 		$db_version = $order->get_meta( '_wootax_db_version', true );
 
 		if ( empty( $db_version ) ) {
 			$order->update_meta_data( '_wootax_db_version', SST()->version );
+		}
+	}
+
+	/**
+	 * Calculates tax for orders created via WooCommerce REST API.
+	 *
+	 * @param bool     $and_taxes Whether to calculate taxes
+	 * @param WC_Order $order     Order object
+	 */
+	public function calculate_order_tax( $and_taxes, $order ) {
+		// Note: sst_order_calculate_taxes sets `and_taxes` to false so
+		// the `and_taxes` check prevents infinite recursion
+		$should_calculate = (
+			WC()->is_rest_api_request()
+			&& 'rest-api' === $order->get_created_via()
+			&& $and_taxes
+		);
+
+		if ( $should_calculate ) {
+			sst_order_calculate_taxes( $order );
 		}
 	}
 
