@@ -510,6 +510,11 @@ class SST_Checkout extends SST_Abstract_Cart {
 			return;
 		}
 
+		if ( isset( $this->certificate ) ) {
+			// Certificate already added during this request. Bail to avoid duplication.
+			return;
+		}
+
 		$post_data   = $this->get_post_data();
 		$certificate = $post_data['certificate'] ?? [];
 
