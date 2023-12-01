@@ -15,8 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       min_php: ${{ steps.php.outputs.min_php }}
-      min_woo: ${{ steps.wc.outputs.min_wc }}
-      max_woo: ${{ steps.wc.outputs.max_wc }}
+      min_woo: ${{ steps.woo.outputs.min_wc }}
+      max_woo: ${{ steps.woo.outputs.max_wc }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2.4.2
