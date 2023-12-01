@@ -82,7 +82,7 @@ jobs:
       - name: Start containers
         working-directory: docker
         run: |
-          docker-compose up -d --wait
+          docker-compose up -d
           docker-compose exec wordpress wp theme install --allow-root --activate storefront
           wp plugin install --allow-root woocommerce --version=$WOO_VERSION
           wp option patch --allow-root update woocommerce_wootax_settings tc_id ${{ secrets.TAXCLOUD_LOGIN_ID }}
