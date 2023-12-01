@@ -6,9 +6,6 @@ on:
       - develop
       - master
 
-env:
-  MAX_PHP: 8.2
-
 jobs:
   prepare:
     name: Prepare
@@ -63,12 +60,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php_version: ["${{needs.prepare.outputs.min_php}}", "${{ env.MAX_PHP }}"]
+        php_version: ["${{needs.prepare.outputs.min_php}}", 8.2]
         include:
           - wc_version: ${{needs.prepare.outputs.min_wc}}
             php_version: ${{needs.prepare.outputs.min_php}}
           - wc_version: ${{needs.prepare.outputs.max_wc}}
-            php_version: ${{ env.MAX_PHP }}
+            php_version: 8.2
     env:
       PHP_VERSION: ${{ matrix.php_version }}
       WOO_VERSION: ${{ matrix.wc_version }}
@@ -82,7 +79,7 @@ jobs:
       - name: Install plugins/themes
         run: |
           docker-compose exec wordpress wp theme install --allow-root --activate storefront
-          wp plugin install --allow-root woocommerce --version=${{ env.WOO_VERSION }}
+          wp plugin install --allow-root woocommerce --version=$WOO_VERSION
           wp option patch --allow-root update woocommerce_wootax_settings tc_id ${{ secrets.TAXCLOUD_LOGIN_ID }}
           wp option patch --allow-root update woocommerce_wootax_settings tc_key ${{ secrets.TAXCLOUD_API_KEY }}
 
