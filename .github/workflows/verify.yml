@@ -73,6 +73,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2.4.2
 
+      - name: Download plugin artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: plugin-files
+          path: docker/plugin
+
       - name: Start containers
         working-directory: docker
         run: |
