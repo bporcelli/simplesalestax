@@ -35,7 +35,7 @@ jobs:
         run: npm run build
 
       - name: Build plugin
-        run: rsync -av --mkpath --exclude-file=.distignore . ./dist
+        run: rsync -av --mkpath --exclude-from=.distignore . ./dist
 
       - name: Upload plugin artifact
         uses: actions/upload-artifact@v3
