@@ -1,0 +1,96 @@
+name: Verify
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - master
+
+env:
+  MAX_PHP: 8.2
+
+jobs:
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+    outputs:
+      min_php: ${{ steps.php.outputs.min_php }}
+      min_woo: ${{ steps.wc.outputs.min_wc }}
+      max_woo: ${{ steps.wc.outputs.max_wc }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.4.2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@2.21.1
+        with:
+          php-version: 8.0
+
+      - name: Install dependencies
+        run: |
+          composer install
+          npm install
+
+      - name: Generate minified assets
+        run: npm run build
+
+      - name: Build plugin
+        run: rsync -av --mkpath --exclude-file=.distignore . ./dist
+
+      - name: Upload plugin artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: plugin-files
+          path: ./dist
+
+      - id: php
+        name: Identify supported PHP versions
+        run: |
+          min_php=$(grep 'Requires PHP:' readme.txt | grep -oE '[0-9]+.[0-9]')
+          echo "min_php=$min_php" >> "$GITHUB_OUTPUT"
+
+      - id: woo
+        name: Identify supported WC versions
+        run: |
+          min_wc=$(grep 'WC requires at least:' simple-sales-tax.php | grep -oE '[0-9]+.[0-9]+.[0-9]+')
+          max_wc=$$(grep 'WC tested up to:' simple-sales-tax.php | grep -oE '[0-9]+.[0-9]+.[0-9]+')
+          echo "min_wc=$min_wc" >> "$GITHUB_OUTPUT"
+          echo "max_wc=$max_wc" >> "$GITHUB_OUTPUT"
+
+  test:
+    name: Test
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php_version: ["${{needs.prepare.outputs.min_php}}", "$MAX_PHP"]
+        include:
+          - wc_version: ${{needs.prepare.outputs.min_wc}}
+            php_version: ${{needs.prepare.outputs.min_php}}
+          - wc_version: ${{needs.prepare.outputs.max_wc}}
+            php_version: $MAX_PHP
+    env:
+      PHP_VERSION: ${{ matrix.php_version }}
+      WOO_VERSION: ${{ matrix.wc_version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.4.2
+
+      - name: Start containers
+        run: docker-compose -f ./docker/docker-compose.yml up -d --wait
+
+      - name: Install plugins/themes
+        run: |
+          docker-compose exec wordpress wp theme install --allow-root --activate storefront
+          wp plugin install --allow-root woocommerce --version=$WOO_VERSION
+          wp option patch --allow-root update woocommerce_wootax_settings tc_id ${{ secrets.TAXCLOUD_LOGIN_ID }}
+          wp option patch --allow-root update woocommerce_wootax_settings tc_key ${{ secrets.TAXCLOUD_API_KEY }}
+
+      - name: Wait for containers
+        uses: iFaxity/wait-on-action@v1.1.0
+        with:
+          resource: http://localhost:8080
+          timeout: 120000
+
+      - name: Run cypress tests
+        uses: cypress-io/github-action@v6

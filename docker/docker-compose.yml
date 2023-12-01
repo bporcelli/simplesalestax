@@ -1,0 +1,45 @@
+version: '3.1'
+
+services:
+  wordpress:
+    build:
+      context: ./
+      args:
+        PHP_VERSION: ${PHP_VERSION}
+    restart: always
+    ports:
+      - 8080:80
+    environment:
+      - WORDPRESS_DB_HOST=db
+      - WORDPRESS_DB_USER=exampleuser
+      - WORDPRESS_DB_PASSWORD=examplepass
+      - WORDPRESS_DB_NAME=exampledb
+      - WORDPRESS_AUTH_KEY='nmsKIZSZtzB7QYLZxhiwURTf0WLa55Go5NMihtwv1GBqVKs7l84osCejXx4iyIRPj70v4OD7iYga1TijcT0CLg=='
+      - WORDPRESS_SECURE_AUTH_KEY='Z1VwJC7fyX/Tk29mDnOtYB37eJh5HVvT1xVadwWqtnlMVM1SJBqKD5RaGU2W3BIEMKbEdMKn3fsYMkvaR3Q3cA=='
+      - WORDPRESS_LOGGED_IN_KEY='65BcApZO8vx0uL7ZhKK4hJkFjjdr//mlqcuzhqxd2GfUslVKUQNwTE0ko58dQkxwWLh5++4xMiMMarsaQ6YslA=='
+      - WORDPRESS_NONCE_KEY='2+lN58w1Yv0WbU9MZ+TlW1SkCDfj0c0/Byzq+cmBCdrebSRwyRPlictc47njeHpcDkm25ZbTI/8/hYog+VoWbA=='
+      - WORDPRESS_AUTH_SALT='GqiNMWWmy+LWU3i13vs5OoqzqIYOHxQNppjjoDElxe7d/PzOiSQLNxItQsym9W90cRromhrQ5DBEYg1W5eCu/g=='
+      - WORDPRESS_SECURE_AUTH_SALT='2f4YwX/djvr4Fl5sh9crq4ic5lm5pnpvTyqiiPzNtqJoH5g0kr9SFTVAH5mKbTzb0EdVsdorSPI+Ys/frbM05Q=='
+      - WORDPRESS_LOGGED_IN_SALT='1yS8rztjey5nqQmPG+p25E3yULuJY6Jrr+tQrkLvw6MICNX+Vq6upm2rBN8pTuuTgNwStcBBwFc9I6nv2bLNxg=='
+      - WORDPRESS_NONCE_SALT='NXSbOHc97HVmm3m3MrEb5xsTlhPifWfRYu7+u43W/r2XWQTevVMebq4xbpPG1YZMiD9dRmmPySGyWcsyOPgnAw=='
+    volumes:
+      - wordpress:/var/www/html
+      - ./plugin:/var/www/html/wp-content/plugins/simple-sales-tax
+    depends_on:
+      - db
+
+  db:
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_DATABASE: exampledb
+      MYSQL_USER: exampleuser
+      MYSQL_PASSWORD: examplepass
+      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+    volumes:
+      - db:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  wordpress:
+  db:
