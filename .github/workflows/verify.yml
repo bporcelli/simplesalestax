@@ -96,6 +96,7 @@ jobs:
         run: |
           docker-compose exec -T wordpress wp theme install --allow-root --activate storefront
           docker-compose exec -T wordpress wp plugin install --allow-root woocommerce --version=$WOO_VERSION
+          docker-compose exec -T wordpress wp plugin install --allow-root woo-order-test
           docker-compose exec -T wordpress wp option patch --allow-root update woocommerce_wootax_settings tc_id ${{ secrets.TAXCLOUD_LOGIN_ID }}
           docker-compose exec -T wordpress wp option patch --allow-root update woocommerce_wootax_settings tc_key ${{ secrets.TAXCLOUD_API_KEY }}
 
