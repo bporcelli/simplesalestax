@@ -83,10 +83,10 @@ jobs:
         working-directory: docker
         run: |
           docker-compose up -d
-          docker-compose exec wordpress wp theme install --allow-root --activate storefront
-          docker-compose exec wordpress wp plugin install --allow-root woocommerce --version=$WOO_VERSION
-          docker-compose exec wordpress wp option patch --allow-root update woocommerce_wootax_settings tc_id ${{ secrets.TAXCLOUD_LOGIN_ID }}
-          docker-compose exec wordpress wp option patch --allow-root update woocommerce_wootax_settings tc_key ${{ secrets.TAXCLOUD_API_KEY }}
+          docker-compose exec -T wordpress wp theme install --allow-root --activate storefront
+          docker-compose exec -T wordpress wp plugin install --allow-root woocommerce --version=$WOO_VERSION
+          docker-compose exec -T wordpress wp option patch --allow-root update woocommerce_wootax_settings tc_id ${{ secrets.TAXCLOUD_LOGIN_ID }}
+          docker-compose exec -T wordpress wp option patch --allow-root update woocommerce_wootax_settings tc_key ${{ secrets.TAXCLOUD_API_KEY }}
 
       - name: Wait for containers
         uses: iFaxity/wait-on-action@v1.1.0
