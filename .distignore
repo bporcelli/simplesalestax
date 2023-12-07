@@ -4,8 +4,8 @@
 .git
 cypress
 node_modules
-build
 releases
+docker
 
 # Files
 .babelrc

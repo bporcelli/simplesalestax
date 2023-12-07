@@ -5,7 +5,7 @@ module.exports = {
     setupNodeEvents(on, config) {
       return require('./cypress/plugins/index.js')(on, config)
     },
-    baseUrl: 'http://sst.local',
+    baseUrl: 'http://localhost:8080',
   },
   retries: 2,
   pageLoadTimeout: 120000,
