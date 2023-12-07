@@ -161,6 +161,11 @@ RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli
     chmod +x wp-cli.phar; \
     mv wp-cli.phar /usr/local/bin/wp
 
+# Install Basic Auth plugin
+RUN curl -O https://raw.githubusercontent.com/WP-API/Basic-Auth/master/basic-auth.php; \
+    mkdir /usr/src/wordpress/wp-content/plugins/basic-auth; \
+    mv basic-auth.php /usr/src/wordpress/wp-content/plugins/basic-auth
+
 VOLUME /var/www/html
 
 COPY --chown=www-data:www-data wp-config-docker.php /usr/src/wordpress/
