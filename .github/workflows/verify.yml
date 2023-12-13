@@ -59,6 +59,7 @@ jobs:
     needs: prepare
     runs-on: ubuntu-latest
     strategy:
+      max-parallel: 1
       matrix:
         php_version: ["${{needs.prepare.outputs.min_php}}", 8.2]
         include:
