@@ -80,13 +80,10 @@ describe('Exemption certificates', () => {
           cy.wait('@doCheckout', {timeout: 60000});
 
           // Edit order
-          cy.contains('Order number:')
-            .closest('li')
-            .find('strong')
-            .invoke('text')
-            .then((orderId) => {
-              cy.visit(`/wp-admin/admin.php?page=wc-orders&action=edit&id=${orderId}`);
-            });
+          cy.url().then((url) => {
+            const orderId = /\/(\d+)\//.exec(url)[1];
+            cy.visit(`/wp-admin/admin.php?page=wc-orders&action=edit&id=${orderId}`);
+          });
 
           // Confirm tax is zero
           cy.contains('Sales Tax:')

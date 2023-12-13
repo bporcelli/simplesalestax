@@ -622,7 +622,14 @@ class SST_Order extends SST_Abstract_Cart {
 			return $package['order_id'];
 		}
 
-		return $this->order->get_id() . '_' . $package_key;
+		$order_id = $this->order->get_id() . '_' . $package_key;
+
+		return apply_filters(
+			'sst_package_order_id',
+			$order_id,
+			$this->order,
+			$package_key
+		);
 	}
 
 	/**
