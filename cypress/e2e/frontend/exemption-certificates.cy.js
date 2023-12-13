@@ -39,7 +39,7 @@ describe('Exemption certificates', () => {
         });
 
         // Tax is zero when saved certificate is selected
-        selectCertificate('5bfbaace-9f7d-ec11-94f5-38563dbb7eae');
+        selectCertificate('81f3dfba-5599-ee11-84db-38563dbb2da7');
         cy.getTaxTotal().then((total) => {
           expect(total).to.match(/0\.00$/);
         });
@@ -80,13 +80,10 @@ describe('Exemption certificates', () => {
           cy.wait('@doCheckout', {timeout: 60000});
 
           // Edit order
-          cy.contains('Order number:')
-            .closest('li')
-            .find('strong')
-            .invoke('text')
-            .then((orderId) => {
-              cy.visit(`/wp-admin/admin.php?page=wc-orders&action=edit&id=${orderId}`);
-            });
+          cy.url().then((url) => {
+            const orderId = /\/(\d+)\//.exec(url)[1];
+            cy.visit(`/wp-admin/admin.php?page=wc-orders&action=edit&id=${orderId}`);
+          });
 
           // Confirm tax is zero
           cy.contains('Sales Tax:')

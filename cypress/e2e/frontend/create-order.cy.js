@@ -16,13 +16,9 @@ describe('Create order', () => {
     cy.findByRole('button', {name: 'Place order'}).click({force: true});
     cy.wait('@doCheckout', {timeout: 60000});
 
-    const orderNumber =
-      cy.contains('Order number:')
-        .closest('li')
-        .find('strong')
-        .invoke('text');
-
-    return orderNumber;
+    return cy.url().then((url) => {
+      return /\/(\d+)\//.exec(url)[1];
+    });
   };
 
   const editOrder = (orderId) => {

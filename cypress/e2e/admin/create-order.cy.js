@@ -86,7 +86,7 @@ describe('Admin create order', () => {
 
     // Order should be captured in TaxCloud when marked Completed
     setOrderStatus('Completed');
-    cy.findByRole('button', {name: 'Update'}).click();
+    cy.get('button.save_order').click();
 
     cy.contains('TaxCloud Status')
       .closest('div')
@@ -95,7 +95,7 @@ describe('Admin create order', () => {
 
     // Order should be refunded in TaxCloud when marked Refunded
     setOrderStatus('Refunded');
-    cy.findByRole('button', {name: 'Update'}).click();
+    cy.get('button.save_order').click();
 
     cy.contains('TaxCloud Status')
       .closest('div')

@@ -64,8 +64,9 @@ describe('Basic calculations', () => {
     cy.visit('/checkout/');
 
     cy.get('body').then(($body) => {
-      if ($body.find('#tax_exempt_checkbox').length) {
-        cy.get('#tax_exempt_checkbox').uncheck();
+      if ($body.find('#certificate_id').length) {
+        cy.get('#certificate_id').select('', {force: true});
+        cy.waitForBlockedElements();
       }
     });
 
