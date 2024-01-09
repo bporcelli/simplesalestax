@@ -12,7 +12,8 @@ module.exports = function (grunt) {
                     exclude: [
                         'node_modules/.*',
                         'includes/vendor/.*',
-                        'build/.*'
+                        'build/.*',
+                        'docker/.*',
                     ],
                     potHeaders: {
                         'poedit': true,
