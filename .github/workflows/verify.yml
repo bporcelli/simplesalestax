@@ -98,17 +98,9 @@ jobs:
           docker-compose exec -T wordpress wp theme install --allow-root --activate storefront
           docker-compose exec -T wordpress wp plugin install --allow-root woocommerce --version=$WOO_VERSION
           docker-compose exec -T wordpress wp plugin install --allow-root woo-order-test
-          docker-compose exec -T wordpress wp plugin install --allow-root --activate custom-order-numbers-for-woocommerce
-          docker-compose exec -T wordpress wp option update --allow-root alg_wc_custom_order_numbers_counter_type hash_crc32
           docker-compose exec -T wordpress wp plugin activate --allow-root sst-change-order-ids
           docker-compose exec -T wordpress wp option patch --allow-root update woocommerce_wootax_settings tc_id ${{ secrets.TAXCLOUD_LOGIN_ID }}
           docker-compose exec -T wordpress wp option patch --allow-root update woocommerce_wootax_settings tc_key ${{ secrets.TAXCLOUD_API_KEY }}
-
-      - name: Wait for containers
-        uses: iFaxity/wait-on-action@v1.1.0
-        with:
-          resource: http://localhost:8080
-          timeout: 120000
 
       - name: Run cypress tests
         uses: cypress-io/github-action@v6
