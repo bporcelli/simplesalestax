@@ -102,11 +102,5 @@ jobs:
           docker-compose exec -T wordpress wp option patch --allow-root update woocommerce_wootax_settings tc_id ${{ secrets.TAXCLOUD_LOGIN_ID }}
           docker-compose exec -T wordpress wp option patch --allow-root update woocommerce_wootax_settings tc_key ${{ secrets.TAXCLOUD_API_KEY }}
 
-      - name: Wait for containers
-        uses: iFaxity/wait-on-action@v1.1.0
-        with:
-          resource: http://localhost:8080
-          timeout: 120000
-
       - name: Run cypress tests
         uses: cypress-io/github-action@v6
