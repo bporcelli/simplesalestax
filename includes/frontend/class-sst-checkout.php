@@ -46,14 +46,24 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 */
 	public function __construct() {
 		add_filter( 'woocommerce_calculated_total', array( $this, 'calculate_tax_totals' ), 1100, 2 );
+		// TODO: No easy way to support with checkout blocks. Hide option in settings UI if block checkout is in use.
 		add_filter( 'woocommerce_cart_hide_zero_taxes', array( $this, 'hide_zero_taxes' ) );
+		// TODO: woocommerce_store_api_checkout_update_order_meta and update get_post_data as needed.
+		// Investigate how to adapt other hooks as well.
 		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'maybe_add_certificate' ), 100 );
 		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'add_order_meta' ), 110 );
+		// TODO: Won't fire with checkout blocks. Find another way. Save ID in session and delete on next checkout_update_order_meta event if still present?
 		add_action( 'woocommerce_checkout_order_exception', array( $this, 'maybe_delete_certificate' ) );
 		add_action( 'woocommerce_cart_emptied', array( $this, 'clear_session_data' ) );
+		// TODO: Throw exceptions from woocommerce_store_api_checkout_update_order_meta instead.
 		add_action( 'woocommerce_after_checkout_validation', array( $this, 'validate_checkout' ), 10, 2 );
 		add_filter( 'woocommerce_add_cart_item', array( $this, 'set_key_for_cart_item' ), 10, 2 );
 
+		// TODO: Must adapt this, checkout validation, etc. to cart/checkout block actions.
+		// For exemptions:
+		// 1. Create new tax options form step block
+		// 2. Filter page contents before output to inject tax options block before payment block if page doesn't already have tax options block
+		// 3. Use store API to recalc when new cert selected
 		if ( sst_storefront_active() ) {
 			add_action( 'woocommerce_checkout_shipping', array( $this, 'output_exemption_form' ), 15 );
 		} else {
