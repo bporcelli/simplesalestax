@@ -85,7 +85,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 		$should_calculate = (
 			is_cart() ||
 			is_checkout() ||
-			doing_action( 'wc_ajax_square_digital_wallet_recalculate_totals' )
+			doing_action( 'wc_ajax_square_digital_wallet_recalculate_totals' ) ||
+			$this->is_store_api_request()
 		);
 
 		if ( apply_filters( 'sst_calculate_tax_totals', $should_calculate ) ) {
@@ -105,6 +106,17 @@ class SST_Checkout extends SST_Abstract_Cart {
 		$this->cart->set_total_tax( $tax_total );
 
 		return $total + $tax_total;
+	}
+
+	/**
+	 * Check if is request to the Store API.
+	 *
+	 * @return bool
+	 */
+	protected function is_store_api_request() {
+		global $wp;
+		$rest_route = $wp->query_vars['rest_route'] ?? '';
+		return 0 === strpos( $rest_route, '/wc/store/' );
 	}
 
 	/**
