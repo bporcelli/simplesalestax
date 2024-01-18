@@ -1,0 +1,16 @@
+{
+	"apiVersion": 2,
+	"name": "simple-sales-tax/tax-exemption",
+	"version": "1.0.0",
+	"title": "Tax Exemption Block",
+	"category": "woocommerce",
+	"description": "Adds a tax exemption form to the checkout.",
+	"supports": {
+		"html": false,
+		"align": false,
+		"multiple": false,
+		"reusable": false
+	},
+	"parent": [ "woocommerce/checkout-fields-block" ],
+	"textdomain": "simple-sales-tax"
+}

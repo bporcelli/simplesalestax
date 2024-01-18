@@ -4,6 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use \Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils;
+
 /**
  * SST Settings.
  *
@@ -41,11 +43,46 @@ class SST_Settings {
 	}
 
 	/**
+	 * Check whether cart block is being used on default cart page.
+	 *
+	 * @return bool
+	 */
+	protected static function is_using_cart_block() {
+		if ( class_exists( CartCheckoutUtils::class ) ) {
+			return CartCheckoutUtils::is_cart_block_default();
+		}
+
+		$page_id = wc_get_page_id( 'cart' );
+
+		return WC_Blocks_Utils::has_block_in_page( $page_id, 'woocommerce/cart' );
+	}
+
+	/**
+	 * Check whether checkout block is being used on default checkout page.
+	 *
+	 * @return bool
+	 */
+	protected static function is_using_checkout_block() {
+		if ( class_exists( CartCheckoutUtils::class ) ) {
+			return CartCheckoutUtils::is_checkout_block_default();
+		}
+
+		$page_id = wc_get_page_id( 'checkout' );
+
+		return WC_Blocks_Utils::has_block_in_page( $page_id, 'woocommerce/checkout' );
+	}
+
+	/**
 	 * Get a list of plugin options and their default values.
 	 *
 	 * @since 5.0
 	 */
 	public static function get_form_fields() {
+		$disable_show_zero_tax = (
+			self::is_using_cart_block() ||
+			self::is_using_checkout_block()
+		);
+
 		$fields = array(
 			'taxcloud_settings'           => array(
 				'title'       => __( 'TaxCloud Settings', 'simple-sales-tax' ),
@@ -173,9 +210,10 @@ class SST_Settings {
 				),
 				'default'     => 'false',
 				'description' => __(
-					'When the sales tax due is zero, should the "Sales Tax" line be shown?',
+					'When the sales tax due is zero, should the "Sales Tax" line be shown? Disabled when cart or checkout block is in use.',
 					'simple-sales-tax'
 				),
+				'disabled'    => $disable_show_zero_tax,
 				'desc_tip'    => true,
 			),
 			'advanced_settings'           => array(

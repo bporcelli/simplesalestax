@@ -1,0 +1,35 @@
+.wp-block-simple-sales-tax-tax-exemption {
+	margin: 1.5em 0;
+
+	.wc-block-components-title.wc-block-components-title {
+		margin-bottom: 1em;
+	}
+
+	.wc-block-components-text-input {
+		margin-top: 1em;
+	}
+
+	.sst-radio-group {
+		margin-top: 1em;
+
+		label {
+			display: block;
+			margin-bottom: 0.5em;
+		}
+
+		.wc-block-components-radio-control {
+			label {
+				padding-left: 2em;
+
+				input {
+					left: 0;
+				}
+			}
+		}
+	}
+
+	a {
+		display: block;
+		margin: 1em 0;
+	}
+}

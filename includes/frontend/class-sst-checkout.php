@@ -4,6 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
+use \Automattic\WooCommerce\StoreApi\Exceptions\RouteException;
 use \TaxCloud\ExemptionCertificate;
 use \TaxCloud\ExemptionCertificateBase;
 
@@ -33,13 +34,6 @@ class SST_Checkout extends SST_Abstract_Cart {
 	private $errors = array();
 
 	/**
-	 * The new exemption certificate created during checkout, if any.
-	 *
-	 * @var ExemptionCertificateBase
-	 */
-	private $certificate;
-
-	/**
 	 * Constructor: Initialize hooks.
 	 *
 	 * @since 5.0
@@ -47,13 +41,13 @@ class SST_Checkout extends SST_Abstract_Cart {
 	public function __construct() {
 		add_filter( 'woocommerce_calculated_total', array( $this, 'calculate_tax_totals' ), 1100, 2 );
 		add_filter( 'woocommerce_cart_hide_zero_taxes', array( $this, 'hide_zero_taxes' ) );
-		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'maybe_add_certificate' ), 100 );
-		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'add_order_meta' ), 110 );
-		add_action( 'woocommerce_checkout_order_exception', array( $this, 'maybe_delete_certificate' ) );
+		add_action( 'woocommerce_checkout_order_created', array( $this, 'handle_legacy_checkout' ) );
 		add_action( 'woocommerce_cart_emptied', array( $this, 'clear_session_data' ) );
 		add_action( 'woocommerce_after_checkout_validation', array( $this, 'validate_checkout' ), 10, 2 );
 		add_filter( 'woocommerce_add_cart_item', array( $this, 'set_key_for_cart_item' ), 10, 2 );
 		add_filter( 'wootax_cart_packages', array( $this, 'handle_negative_fees' ), PHP_INT_MAX - 1 );
+		add_action( 'init', array( $this, 'update_certificate_id' ) );
+		add_action( 'woocommerce_store_api_checkout_update_order_from_request', array( $this, 'handle_checkout' ), 10, 2 );
 
 		if ( sst_storefront_active() ) {
 			add_action( 'woocommerce_checkout_shipping', array( $this, 'output_exemption_form' ), 15 );
@@ -125,7 +119,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	public function calculate_taxes() {
 		$this->errors = array();
 
-		if ( 'new' === $this->get_certificate_id() && ! $this->certificate ) {
+		if ( 'new' === $this->get_certificate_id() ) {
 			// Assume 0 tax until checkout is processed and new certificate is saved
 			$this->reset_taxes();
 			$this->update_taxes();
@@ -437,11 +431,6 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @return ExemptionCertificateBase
 	 */
 	public function get_certificate() {
-		if ( $this->certificate instanceof ExemptionCertificateBase ) {
-			// Apply newly added single-purchase or entity-based cert
-			return $this->certificate;
-		}
-
 		$certificate_id = $this->get_certificate_id();
 
 		if ( $certificate_id ) {
@@ -453,6 +442,20 @@ class SST_Checkout extends SST_Abstract_Cart {
 	}
 
 	/**
+	 * Update exemption certificate ID in session on `init`.
+	 */
+	public function update_certificate_id() {
+		$post_data = $this->get_post_data();
+
+		if ( isset( $post_data['certificate_id'] ) ) {
+			$certificate_id = sanitize_text_field(
+				wp_unslash( $post_data['certificate_id'] )
+			);
+			WC()->session->set( 'sst_certificate_id', $certificate_id );
+		}
+	}
+
+	/**
 	 * Get the ID of the applied exemption certificate.
 	 *
 	 * @return string Exemption certificate ID.
@@ -460,10 +463,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @since 7.0.0
 	 */
 	public function get_certificate_id() {
-		$post_data      = $this->get_post_data();
-		$certificate_id = $post_data['certificate_id'] ?? '';
-
-		return sanitize_text_field( wp_unslash( $certificate_id ) );
+		return WC()->session->get( 'sst_certificate_id', '' );
 	}
 
 	/**
@@ -516,27 +516,34 @@ class SST_Checkout extends SST_Abstract_Cart {
 	}
 
 	/**
-	 * Create a new exemption certificate after checkout is
-	 * processed if "Add new certificate" was selected in the
-	 * Exemption certificate dropdown.
+	 * Create a new exemption certificate based on checkout data and
+	 * associate it with the newly created order.
 	 *
-	 * @param int $order_id ID of new order.
+	 * If an exemption certificate was already created during a previous
+	 * failed checkout attempt, it will be deleted and recreated.
+	 *
+	 * @param array     $data  Checkout data
+	 * @param SST_Order $order New order object
 	 */
-	public function maybe_add_certificate( $order_id ) {
-		if ( 'new' !== $this->get_certificate_id() ) {
-			return;
-		}
-
-		if ( isset( $this->certificate ) ) {
-			// Certificate already added during this request. Bail to avoid duplication.
-			return;
-		}
-
-		$post_data   = $this->get_post_data();
-		$certificate = $post_data['certificate'] ?? [];
+	protected function create_exemption_certificate( $data, $order ) {
+		$certificate = $data['certificate'] ?? [];
 
 		if ( ! $certificate ) {
-			return null;
+			return;
+		}
+
+		if ( $order->get_certificate_id() ) {
+			try {
+				SST_Certificates::delete_certificate(
+					$order->get_certificate_id()
+				);
+
+				$order->set_certificate_id( '' );
+			} catch ( Throwable $ex ) {
+				SST_Logger::add(
+					"Failed to delete certificate during checkout: {$ex->getMessage()}"
+				);
+			}
 		}
 
 		$certificate = array_map(
@@ -545,48 +552,42 @@ class SST_Checkout extends SST_Abstract_Cart {
 		);
 
 		$purchaser = array(
-			'first_name' => sanitize_text_field( $post_data['billing_first_name'] ),
-			'last_name'  => sanitize_text_field( $post_data['billing_last_name'] ),
-			'address_1'  => sanitize_text_field( $post_data['billing_address_1'] ),
-			'address_2'  => sanitize_text_field( $post_data['billing_address_2'] ),
-			'city'       => sanitize_text_field( $post_data['billing_city'] ),
-			'state'      => sanitize_text_field( $post_data['billing_state'] ),
-			'postcode'   => sanitize_text_field( $post_data['billing_postcode'] ),
+			'first_name' => $order->get_billing_first_name(),
+			'last_name'  => $order->get_billing_last_name(),
+			'address_1'  => $order->get_billing_address_1(),
+			'address_2'  => $order->get_billing_address_2(),
+			'city'       => $order->get_billing_city(),
+			'state'      => $order->get_billing_state(),
+			'postcode'   => $order->get_billing_postcode(),
 		);
 
 		try {
 			// Build single purchase cert or save entity-based cert
 			if ( empty( $certificate['SinglePurchase'] ) ) {
-				$certificate_id    = SST_Certificates::add_certificate(
+				$certificate_id = SST_Certificates::add_certificate(
 					$certificate,
 					$purchaser
 				);
-				$this->certificate = new ExemptionCertificateBase( $certificate_id );
+
+				$order->set_certificate_id( $certificate_id );
 			} else {
-				$this->certificate = SST_Certificates::build_certificate(
+				$certificate = SST_Certificates::build_certificate(
 					array_merge(
 						$certificate,
 						array(
 							'SinglePurchase'             => true,
-							'SinglePurchaserOrderNumber' => $order_id,
+							'SinglePurchaserOrderNumber' => $order->get_id(),
 						)
 					),
 					$purchaser
 				);
+
+				$order->set_single_purchase_certificate( $certificate );
 			}
 
 			// Do a tax lookup
-			$this->calculate_taxes();
-
-			// Throw if any errors occurred during the lookup
-			if ( $this->errors ) {
-				throw new Exception( current( $this->errors ) );
-			} else if ( wc_notice_count( 'error' ) ) {
-				$notices      = wc_get_notices( 'error' );
-				$first_notice = current( $notices );
-
-				throw new Exception( $first_notice['notice'] );
-			}
+			$order->calculate_taxes();
+			$order->calculate_totals( false );
 		} catch ( Throwable $ex ) {
 			SST_Logger::add(
 				sprintf(
@@ -604,57 +605,52 @@ class SST_Checkout extends SST_Abstract_Cart {
 	}
 
 	/**
-	 * Delete the newly created exemption certificate (if any)
-	 * if checkout processing fails after it is created.
+	 * Process checkout and save order meta.
+	 *
+	 * @param array    $data     Checkout data
+	 * @param WC_Order $wc_order Order object
 	 */
-	public function maybe_delete_certificate() {
-		if ( ! isset( $this->certificate ) ) {
+	protected function process_checkout( $data, $wc_order ) {
+		$certificate_id = $data['certificate_id'] ?? '';
+		$order          = new SST_Order( $wc_order );
+
+		if ( 'new' === $certificate_id ) {
+			$this->create_exemption_certificate( $data, $order );
 			return;
 		}
 
-		$certificate_id = $this->certificate->getCertificateID();
+		// Ensure we save packages from the 'main' cart
+		$this->cart = new SST_Cart_Proxy( WC()->cart );
 
-		if ( ! $certificate_id ) {
-			// Single-purchase certificate - no need to clean up
-			return;
-		}
+		$order->set_certificate_id( $certificate_id );
+		$order->set_packages( $this->get_packages() );
 
-		try {
-			SST_Certificates::delete_certificate( $certificate_id );
-		} catch ( Throwable $ex ) {
-			SST_Logger::add(
-				"Failed to delete certificate after failed checkout: {$ex->getMessage()}"
+		// Fix tax totals for orders created via store API
+		if ( 'store-api' === $order->get_created_via() ) {
+			$order->remove_order_items( 'line_item' );
+			$order->remove_order_items( 'shipping' );
+			$order->remove_order_items( 'fee' );
+
+			WC()->checkout->create_order_line_items( $order, WC()->cart );
+			WC()->checkout->create_order_shipping_lines(
+				$order,
+				WC()->session->get( 'chosen_shipping_methods' ),
+				WC()->shipping()->get_packages()
 			);
+			WC()->checkout->create_order_fee_lines( $order, WC()->cart );
+
+			$order->update_taxes();
+			$order->calculate_totals( false );
 		}
 	}
 
 	/**
-	 * Save metadata when a new order is created.
+	 * Handles processing of the legacy shortcode based checkout.
 	 *
-	 * @param int $order_id ID of new order.
-	 *
-	 * @since 4.2
+	 * @param WC_Order $order New order object
 	 */
-	public function add_order_meta( $order_id ) {
-		// Make sure we're saving the data from the 'main' cart.
-		$this->cart = new SST_Cart_Proxy( WC()->cart );
-
-		// Save the packages from the last lookup.
-		$order = new SST_Order( $order_id );
-		$order->set_packages( $this->get_packages() );
-
-		// Save the applied exemption certificate (if any).
-		$certificate = $this->get_certificate();
-
-		if ( $certificate instanceof ExemptionCertificate ) {
-			// Single-purchase certificate
-			$order->set_single_purchase_certificate( $certificate );
-		} else if ( $certificate instanceof ExemptionCertificateBase ) {
-			// Entity-based certificate
-			$order->set_certificate_id( $certificate->getCertificateID() );
-		}
-
-		$order->save();
+	public function handle_legacy_checkout( $order ) {
+		$this->process_checkout( $this->get_post_data(), $order );
 	}
 
 	/**
@@ -730,9 +726,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 			$options[ $cert['CertificateID'] ] = $cert['Description'];
 		}
 
-		$selected = sanitize_text_field(
-			wp_unslash( $_POST['certificate_id'] ?? '' )
-		);
+		$selected = $this->get_certificate_id();
 
 		if ( ! $selected && sst_is_user_tax_exempt() && $certificates ) {
 			$selected = current( array_keys( $certificates ) );
@@ -761,6 +755,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 	public function clear_session_data() {
 		WC()->session->set( 'sst_packages', array() );
 		WC()->session->set( 'sst_package_cache', array() );
+		WC()->session->set( 'sst_certificate_id', '' );
 	}
 
 	/**
@@ -774,16 +769,16 @@ class SST_Checkout extends SST_Abstract_Cart {
 			$errors->add( 'tax', $error_message );
 		}
 
-		$this->validate_exemption_certificate( $errors );
+		$this->validate_exemption_certificate( $data, $errors );
 	}
 
 	/**
 	 * Validate exemption certificate checkout fields.
 	 *
+	 * @param array    $data   Checkout data.
 	 * @param WP_Error $errors Checkout errors.
 	 */
-	public function validate_exemption_certificate( $errors ) {
-		$data           = $this->get_post_data();
+	protected function validate_exemption_certificate( $data, $errors ) {
 		$certificate_id = $data['certificate_id'] ?? '';
 		$certificate    = $data['certificate'] ?? [];
 
@@ -926,6 +921,26 @@ class SST_Checkout extends SST_Abstract_Cart {
 		}
 
 		return $packages;
+	}
+
+	/**
+	 * Handle processing of block based checkout.
+	 *
+	 * @param WC_Order        $order   Order object
+	 * @param WP_REST_Request $request Request
+	 */
+	public function handle_checkout( $order, $request ) {
+		$extension_data = $request->get_param( 'extensions' );
+		$data           = $extension_data['simple-sales-tax'];
+
+		$error = new WP_Error();
+		$this->validate_checkout( $data, $error );
+
+		if ( $error->has_errors() ) {
+			throw new RouteException( 'sst_checkout_invalid_fields', $error->get_error_message(), 400 );
+		}
+
+		$this->process_checkout( $data, $order );
 	}
 
 }

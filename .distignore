@@ -8,7 +8,6 @@ releases
 docker
 
 # Files
-.babelrc
 .distignore
 .gitignore
 README.md

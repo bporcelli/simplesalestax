@@ -299,7 +299,7 @@ class SST_Certificates {
 			$certificate['PurchaserBusinessType'],
 			$certificate['PurchaserBusinessTypeOtherValue'],
 			$certificate['PurchaserExemptionReason'],
-			$certificate['PurchaserExemptionReasonValue']
+			$certificate['PurchaserExemptionReasonOtherValue']
 		);
 	}
 	/**

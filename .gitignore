@@ -6,6 +6,7 @@ cypress/downloads/
 cypress/videos/
 cypress/screenshots/
 docker/plugin
+build
 .env
 *.min.js
 *.min.css
