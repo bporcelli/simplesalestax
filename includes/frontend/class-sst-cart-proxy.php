@@ -161,6 +161,11 @@ class SST_Cart_Proxy {
 	public function update_tax_totals() {
 		$this->set_cart_tax( WC_Tax::get_tax_total( $this->get_cart_taxes() ) );
 		$this->set_shipping_tax( WC_Tax::get_tax_total( $this->get_shipping_taxes() ) );
+
+		$cart_total_tax = wc_round_tax_total(
+			$this->get_cart_contents_tax() + $this->get_shipping_tax() + $this->get_fee_tax()
+		);
+		$this->cart->set_total_tax( $cart_total_tax );
 	}
 
 	/**
