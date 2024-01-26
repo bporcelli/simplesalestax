@@ -72,7 +72,8 @@ final class SimpleSalesTax {
 		define( 'SST_SHIPPING_ITEM', 'SHIPPING' );
 		define( 'SST_DEFAULT_FEE_TIC', 10010 );
 		define( 'SST_RATE_ID', get_option( 'wootax_rate_id' ) );
-		define( 'SST_FILE', dirname( dirname( __FILE__ ) ) . '/simple-sales-tax.php' );
+		define( 'SST_DIR', dirname( dirname( __FILE__ ) ) );
+		define( 'SST_FILE', SST_DIR . '/simple-sales-tax.php' );
 		define( 'SST_PLUGIN_BASENAME', plugin_basename( SST_FILE ) );
 		define( 'SST_SINGLE_PURCHASE_CERT_ID', 'single-purchase' );
 	}
@@ -135,6 +136,7 @@ final class SimpleSalesTax {
 		require_once __DIR__ . '/class-sst-order-controller.php';
 		require_once __DIR__ . '/class-sst-assets.php';
 		require_once __DIR__ . '/class-sst-marketplaces.php';
+		require_once __DIR__ . '/class-sst-blocks.php';
 
 		/**
 		 * Third party integrations.

@@ -1,0 +1,19 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "simple-sales-tax/tax-exemption-block",
+	"version": "0.1.0",
+	"title": "Tax Exemption Block",
+	"category": "widgets",
+	"icon": "percent",
+	"description": "Block for rendering a tax exemption form on the WooCommerce Checkout page.",
+	"example": {},
+	"supports": {
+		"html": false
+	},
+	"textdomain": "tax-exemption-block",
+	"editorScript": "file:./index.js",
+	"editorStyle": "file:./index.css",
+	"style": "file:./style-index.css",
+	"viewScript": "file:./view.js"
+}
