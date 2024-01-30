@@ -1,6 +1,10 @@
 {
   "config": {
-    "vendor-dir": "includes/vendor"
+    "vendor-dir": "includes/vendor",
+    "allow-plugins": {
+      "composer/installers": true,
+      "automattic/jetpack-autoloader": true
+    }
   },
   "name": "simplesalestax/simplesalestax",
   "description": "Sales tax compliance solution for WooCommerce.",
@@ -14,5 +18,13 @@
       "name": "The WooTax Corporation",
       "email": "support@simplesalestax.com"
     }
-  ]
+  ],
+  "require-dev": {
+    "woocommerce/woocommerce-blocks": "^11.7"
+  },
+  "extra": {
+    "installer-paths": {
+      "includes/vendor/{$name}/": ["woocommerce/woocommerce-blocks"]
+    }
+  }
 }

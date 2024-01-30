@@ -31,14 +31,20 @@
   },
   "homepage": "https://github.com/bporcelli/simplesalestax#readme",
   "devDependencies": {
+    "@automattic/color-studio": "^2.5.0",
     "@testing-library/cypress": "^10.0.1",
+    "@woocommerce/block-library": "^2.3.0",
+    "@woocommerce/dependency-extraction-webpack-plugin": "^2.3.0",
+    "@wordpress/base-styles": "4.35.0",
+    "@wordpress/icons": "^9.41.0",
     "@wordpress/scripts": "^27.1.0",
     "cross-var": "^1.1.0",
     "cypress": "^13.6.2",
     "grunt": "^1.6.1",
     "grunt-contrib-cssmin": "^5.0.0",
     "grunt-contrib-uglify": "^5.2.2",
-    "grunt-wp-i18n": "^1.0.3"
+    "grunt-wp-i18n": "^1.0.3",
+    "wordpress-components": "npm:@wordpress/components@14.2.0"
   },
   "dependencies": {
     "npm": "^10.3.0"
