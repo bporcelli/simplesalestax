@@ -59,11 +59,6 @@ class SST_Checkout extends SST_Abstract_Cart {
 		add_action( 'woocommerce_after_checkout_validation', array( $this, 'validate_checkout' ), 10, 2 );
 		add_filter( 'woocommerce_add_cart_item', array( $this, 'set_key_for_cart_item' ), 10, 2 );
 
-		// TODO: Must adapt this, checkout validation, etc. to cart/checkout block actions.
-		// For exemptions:
-		// 1. Create new tax options form step block
-		// 2. Filter page contents before output to inject tax options block before payment block if page doesn't already have tax options block
-		// 3. Use store API to recalc when new cert selected
 		if ( sst_storefront_active() ) {
 			add_action( 'woocommerce_checkout_shipping', array( $this, 'output_exemption_form' ), 15 );
 		} else {
