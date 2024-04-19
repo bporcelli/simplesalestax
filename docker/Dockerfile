@@ -119,8 +119,8 @@ RUN set -eux; \
     find /etc/apache2 -type f -name '*.conf' -exec sed -ri 's/([[:space:]]*LogFormat[[:space:]]+"[^"]*)%h([^"]*")/\1%a\2/g' '{}' +
 
 RUN set -eux; \
-    version='6.4.1'; \
-    sha1='35e62d935d6a93097366476e389752dd55d8a077'; \
+    version='6.5.2'; \
+    sha1='b70701b5426891ca1f8ff9b3cd96653e2b60d7e9'; \
     \
     curl -o wordpress.tar.gz -fL "https://wordpress.org/wordpress-$version.tar.gz"; \
     echo "$sha1 *wordpress.tar.gz" | sha1sum -c -; \
@@ -165,6 +165,9 @@ RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli
 RUN curl -O https://raw.githubusercontent.com/WP-API/Basic-Auth/master/basic-auth.php; \
     mkdir /usr/src/wordpress/wp-content/plugins/basic-auth; \
     mv basic-auth.php /usr/src/wordpress/wp-content/plugins/basic-auth
+
+# Set up WC_LOG_DIR
+RUN mkdir -p /usr/src/wordpress/wp-content/uploads/wc-logs
 
 VOLUME /var/www/html
 

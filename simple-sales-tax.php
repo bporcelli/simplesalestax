@@ -6,14 +6,14 @@
  * Author:               TaxCloud
  * Author URI:           https://taxcloud.com
  * GitHub Plugin URI:    https://github.com/bporcelli/simplesalestax
- * Version:              8.0.10
+ * Version:              8.0.11
  * Text Domain:          simple-sales-tax
  * Domain Path:          /languages/
  *
  * Requires at least:    4.5.0
- * Tested up to:         6.4.0
+ * Tested up to:         6.5.0
  * WC requires at least: 6.9.0
- * WC tested up to:      8.7.0
+ * WC tested up to:      8.8.2
  *
  * @category             Plugin
  * @copyright            Copyright © 2024 The Federal Tax Authority, LLC

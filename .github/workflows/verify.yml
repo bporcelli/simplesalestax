@@ -102,5 +102,9 @@ jobs:
           docker-compose exec -T wordpress wp option patch --allow-root update woocommerce_wootax_settings tc_id ${{ secrets.TAXCLOUD_LOGIN_ID }}
           docker-compose exec -T wordpress wp option patch --allow-root update woocommerce_wootax_settings tc_key ${{ secrets.TAXCLOUD_API_KEY }}
 
+      - name: Update WP database
+        working-directory: docker
+        run: docker-compose exec -T wordpress wp core update-db --allow-root
+
       - name: Run cypress tests
         uses: cypress-io/github-action@v6
