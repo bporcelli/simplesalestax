@@ -196,8 +196,11 @@ abstract class SST_Abstract_Cart {
 
 		/* Add products */
 		foreach ( $package['contents'] as $cart_id => $item ) {
-
-			$line_total       = $item['line_total'];
+			$line_total       = apply_filters(
+				'sst_line_item_total',
+				$item['line_total'],
+				$item
+			);
 			$discounted_price = round( $line_total / $item['quantity'], wc_get_price_decimals() );
 
 			/* Set quantity and price according to 'Tax Based On' setting. */
