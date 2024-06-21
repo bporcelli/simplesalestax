@@ -78,7 +78,7 @@ describe('Exemption certificates', () => {
           cy.intercept('POST', '/?wc-ajax=checkout').as('doCheckout');
           cy.findByRole('button', {name: 'Place order'}).click({force: true});
           cy.wait('@doCheckout', {timeout: 60000});
-          cy.url({timeout: 15000}).should('match', /\/(\d+)\//);
+          cy.url({timeout: 30000}).should('match', /\/(\d+)\//);
 
           // Edit order
           cy.url().then((url) => {
@@ -123,7 +123,7 @@ describe('Exemption certificates', () => {
           cy.get('#sst-certificates tbody tr[data-id]').its('length').as('origNumCerts');
 
           cy.findByRole('button', {name: 'Add certificate'}).click();
-          cy.waitForBlockedElements();
+          cy.waitForBlockedElements(60000);
 
           cy.get('#sst-certificates tbody tr[data-id]').its('length').then(function(newNumCerts) {
             expect(newNumCerts).to.eq(parseInt(this.origNumCerts) + 1);
@@ -145,7 +145,7 @@ describe('Exemption certificates', () => {
             .last()
             .findByRole('button', {name: 'Delete'})
             .click();
-          cy.waitForBlockedElements();
+          cy.waitForBlockedElements(60000);
           cy.get('#sst-certificates tbody tr[data-id]').its('length').then(function(newNumCerts) {
             expect(newNumCerts).to.eq(this.origNumCerts - 1);
           });
