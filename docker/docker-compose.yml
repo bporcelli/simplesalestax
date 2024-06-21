@@ -26,6 +26,7 @@ services:
         // WC is throwing an error when attempting to create the log dir.
         // We create it ourselves in Dockerfile to avoid that.
         define('WC_LOG_DIR', '/var/www/html/wp-content/uploads/wc-logs');
+      PHP_TAXCLOUD_REQUEST_TIMEOUT: 60
     volumes:
       - wordpress:/var/www/html
       - ./plugin:/var/www/html/wp-content/plugins/simple-sales-tax
