@@ -15,7 +15,6 @@ describe('Create order', () => {
     cy.wait('@updateOrderReview', {timeout: 15000});
     cy.findByRole('button', {name: 'Place order'}).click({force: true});
     cy.wait('@doCheckout', {timeout: 60000});
-    cy.url({timeout: 30000}).should('match', /\/(\d+)\//);
 
     return cy.url().then((url) => {
       return /\/(\d+)\//.exec(url)[1];

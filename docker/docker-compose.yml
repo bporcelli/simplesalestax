@@ -31,6 +31,7 @@ services:
       - wordpress:/var/www/html
       - ./plugin:/var/www/html/wp-content/plugins/simple-sales-tax
       - ./sst-change-order-ids.php:/var/www/html/wp-content/plugins/sst-change-order-ids.php
+      - ./woo-order-test.php:/var/www/html/wp-content/plugins/woo-order-test.php
     depends_on:
       - db
 
