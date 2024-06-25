@@ -25,7 +25,7 @@
   },
   "homepage": "https://github.com/bporcelli/simplesalestax#readme",
   "devDependencies": {
-    "@testing-library/cypress": "^10.0.1",
+    "@testing-library/cypress": "^10.0.2",
     "cross-var": "^1.1.0",
     "cypress": "^13.6.4",
     "grunt": "^1.6.1",
