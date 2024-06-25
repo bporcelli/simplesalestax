@@ -39,7 +39,11 @@ describe('Exemption certificates', () => {
         });
 
         // Tax is zero when saved certificate is selected
-        selectCertificate('81f3dfba-5599-ee11-84db-38563dbb2da7');
+        cy.get('select#certificate_id').then(($select) => {
+          // Select first cert after "None" and "New"
+          const $option = $select.find('option').eq(2);
+          selectCertificate($option.val());
+        });
         cy.getTaxTotal().then((total) => {
           expect(total).to.match(/0\.00$/);
         });
