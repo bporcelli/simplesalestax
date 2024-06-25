@@ -4,6 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Automattic\WooCommerce\Utilities\RestApiUtil;
+
 /**
  * SST Integration.
  *
@@ -258,6 +260,21 @@ class SST_Integration extends WC_Integration {
 	}
 
 	/**
+	 * Get WC System Status Report data.
+	 *
+	 * @return array
+	 */
+	protected function get_system_status_report() {
+		if ( version_compare( WC_VERSION, '9.0', '>=' ) ) {
+			return wc_get_container()
+				->get( RestApiUtil::class )
+				->get_endpoint_data( '/wc/v3/system_status' );
+		}
+
+		return wc()->api->get_endpoint_data( '/wc/v3/system_status' );
+	}
+
+	/**
 	 * Generates the debug report.
 	 *
 	 * @return string Report content.
@@ -268,7 +285,7 @@ class SST_Integration extends WC_Integration {
 			JSON_PRETTY_PRINT
 		);
 		$report      = wp_json_encode(
-			wc()->api->get_endpoint_data( '/wc/v3/system_status' ),
+			$this->get_system_status_report(),
 			JSON_PRETTY_PRINT
 		);
 		$request_log = $this->tail_log( 'wootax', 100 );
