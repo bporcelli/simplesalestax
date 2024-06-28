@@ -137,7 +137,7 @@ class SST_Admin {
 	public static function output_tax_report_button() {
 		?>
 		<div id="poststuff" class="wootax-reports-page">
-			<a target="_blank" href="https://taxcloud.com/go/tax-reporting/"
+			<a target="_blank" href="https://app.taxcloud.com/go/tax-reporting"
 			   class="wp-core-ui button button-primary">
 				<?php esc_html_e( 'Go to TaxCloud Reports Page', 'simple-sales-tax' ); ?>
 			</a>

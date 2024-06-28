@@ -90,7 +90,7 @@ class SST_Settings {
 				'title'       => __( 'Address Settings', 'simple-sales-tax' ),
 				'type'        => 'title',
 				'description' => __(
-					'To accurately determine the sales tax for an order, Simple Sales Tax needs to know the locations you ship your products from.<br>You can select from the addresses entered on the <a href="https://taxcloud.com/go/locations/" target="_blank">Locations</a> page in TaxCloud.',
+					'To accurately determine the sales tax for an order, Simple Sales Tax needs to know the locations you ship your products from.<br>You can select from the addresses entered on the <a href="https://app.taxcloud.com/go/locations" target="_blank">Locations</a> page in TaxCloud.',
 					'simple-sales-tax'
 				),
 			),

@@ -26,7 +26,7 @@ class SST_Integration extends WC_Integration {
 		$this->id                 = 'wootax';
 		$this->method_title       = __( 'Simple Sales Tax', 'simple-sales-tax' );
 		$this->method_description = __(
-			'<p>Simple Sales Tax makes sales tax easy by connecting your store with <a href="https://www.taxcloud.com" target="_blank">TaxCloud</a>. If you have trouble with Simple Sales Tax, please consult the <a href="https://wordpress.org/plugins/simple-sales-tax/#faq-header" target="_blank">FAQ</a> and the <a href="https://wordpress.org/plugins/simple-sales-tax/#installation" target="_blank">Installation Guide</a> before contacting support.</p><p>Need help? <a href="https://taxcloud.com/contact" target="_blank">Contact us</a>.</p>',
+			'<p>Simple Sales Tax makes sales tax easy by connecting your store with <a href="https://www.taxcloud.com" target="_blank">TaxCloud</a>. If you have trouble with Simple Sales Tax, please consult the <a href="https://wordpress.org/plugins/simple-sales-tax/#faq-header" target="_blank">FAQ</a> and the <a href="https://wordpress.org/plugins/simple-sales-tax/#installation" target="_blank">Installation Guide</a> before contacting support.</p><p>Need help? <a href="https://taxcloud.com/contact-us/" target="_blank">Contact us</a>.</p>',
 			'simple-sales-tax'
 		);
 
@@ -190,7 +190,7 @@ class SST_Integration extends WC_Integration {
 							<p>
 								<?php
 								_e(
-									'Oops! It appears there are no addresses in your TaxCloud account. Please add at least one address on the <a href="https://taxcloud.com/go/locations/" target="_blank">Locations</a> page in TaxCloud and then save your settings to refresh the address list.',
+									'Oops! It appears there are no addresses in your TaxCloud account. Please add at least one address on the <a href="https://app.taxcloud.com/go/locations" target="_blank">Locations</a> page in TaxCloud and then save your settings to refresh the address list.',
 									'simple-sales-tax'
 								);
 								?>

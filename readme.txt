@@ -18,11 +18,11 @@ With affordable service fees and support for product level tax exemptions and ta
 
 **Key Features:**
 
-* Affordable — TaxCloud's [competitive pricing](https://taxcloud.com/pricing) provides the best value in the industry. 
+* Affordable — TaxCloud's [competitive pricing](https://taxcloud.com/taxcloud-pricing/) provides the best value in the industry.
 * Accurate sales tax calculations — Calculate sales tax in real time for every state, county, city, and special jurisdiction in the US. Rates are updated automatically so you never have to worry.
 * Advanced reports — Cut your sales tax prep time significantly with TaxCloud's advanced, return-ready reporting.
 * Exemption certificates — Optionally enable tax exemptions and collect exemption certificates from exempt customers.
-* Product level exemptions — Handle product-level exemptions by assigning an appropriate [Taxability Information Code (TIC)](https://taxcloud.com/support/what-are-tics) to each of your products.
+* Product level exemptions — Handle product-level exemptions by assigning an appropriate [Taxability Information Code (TIC)](https://support.taxcloud.com/article/109-taxability-identification-codes) to each of your products.
 * Multi-state support — Whether your business has presence in dozens of states or just one, Simple Sales Tax has you covered.
 
 **Other Notable Features:**
@@ -45,16 +45,16 @@ Need us to add compatibility with another extension? Drop us a line at go@taxclo
 
 = Step 1: Create a TaxCloud Account =
 
-If you have not yet registered for TaxCloud, click [here](https://taxcloud.com/go/get-started/) to get started. Registration can be completed in minutes and is entirely free.
+If you have not yet registered for TaxCloud, click [here](https://app.taxcloud.com/register) to get started. Registration can be completed in minutes and is entirely free.
 
 = Step 2: Configure your TaxCloud account =
 
 Now that you have created your TaxCloud account, there are a few important matters to take care of. Please log in to your TaxCloud account and complete all of the items below.
 
-1. **Add your website.** While logged in, go to [Settings -> Stores & Websites](https://taxcloud.com/go/stores/). If your store is not listed on this page, you will need to add it by clicking "Add Store" and following the on-screen prompt.
-2. **Select a default TIC for your website.** To ensure that your customers are taxed correctly, you will want to set a default [Taxability Information Code](https://taxcloud.com/tic) (TIC) for your website. To do so, click the "Modify Settings" button for your store on the "Stores & Websites" page.
-3. **Add business locations.** If your business has a physical presence in the United States, it is imperative that you register your business locations, including stores, warehouses, and distribution facilities, with TaxCloud. To do so, navigate to [Settings -> Locations](https://taxcloud.com/go/locations/) and click "Add Location."
-4. **Select your tax states.** Navigate to [Settings -> Manage Tax States](https://taxcloud.com/go/states-management/). You will be presented with a map of the United States. Click the map to highlight those states where you would like to collect sales tax.
+1. **Add your website.** While logged in, go to [Settings -> Stores & Websites](https://app.taxcloud.com/go/stores). If your store is not listed on this page, you will need to add it by clicking "Add Store" and following the on-screen prompt.
+2. **Select a default TIC for your website.** To ensure that your customers are taxed correctly, you will want to set a default [Taxability Information Code](https://app.taxcloud.com/tic) (TIC) for your website. To do so, click the "Modify Settings" button for your store on the "Stores & Websites" page.
+3. **Add business locations.** If your business has a physical presence in the United States, it is imperative that you register your business locations, including stores, warehouses, and distribution facilities, with TaxCloud. To do so, navigate to [Settings -> Locations](https://app.taxcloud.com/go/locations) and click "Add Location."
+4. **Select your tax states.** Navigate to [Settings -> Manage Tax States](https://app.taxcloud.com/go/states-management). You will be presented with a map of the United States. Click the map to highlight those states where you would like to collect sales tax.
 
 = Step 3: Install and Activate Simple Sales Tax =
 
@@ -69,7 +69,7 @@ If there are one or more rates in your WooCommerce tax rate tables, you will be 
 = Step 5: Configure Simple Sales Tax =
 
 1. Navigate to WooCommerce > Settings > Integrations > Simple Sales Tax in the WordPress dashboard.
-2. Enter your TaxCloud API ID and API Key in the relevant fields, then click "Verify Settings" to validate your API credentials. You can find your API ID and API Key under [Settings -> Stores & Websites](https://taxcloud.com/go/stores/) in the TaxCloud dashboard. After entering and validating your credentials, click **Save changes** to import your business [locations](https://taxcloud.com/go/locations/) from TaxCloud.
+2. Enter your TaxCloud API ID and API Key in the relevant fields, then click "Verify Settings" to validate your API credentials. You can find your API ID and API Key under [Settings -> Stores & Websites](https://app.taxcloud.com/go/stores) in the TaxCloud dashboard. After entering and validating your credentials, click **Save changes** to import your business [locations](https://app.taxcloud.com/go/locations) from TaxCloud.
 3. Under Address Settings, you should now see a list of your TaxCloud locations in the Shipping Origin Addresses field. Select all of the addresses you ship your products from.
 4. If you have tax exempt customers like schools, churches, or wholesale purchasers, enable tax exemptions and fill out the fields under the Exemption Settings heading.
 5. Optionally change the default settings under Display Settings and Advanced Settings. **Do not change Advanced Settings unless you understand the consequences!**
@@ -77,7 +77,7 @@ If there are one or more rates in your WooCommerce tax rate tables, you will be 
 
 = Step 6: Configure Your Products =
 
-If you sell products that do not fall into the category indicated by your site's Default [TIC](https://taxcloud.com/tic), you will need to assign appropriate TICs to these products. For your convenience, Simple Sales Tax provides three methods by which you can do this:
+If you sell products that do not fall into the category indicated by your site's Default [TIC](https://app.taxcloud.com/tic), you will need to assign appropriate TICs to these products. For your convenience, Simple Sales Tax provides three methods by which you can do this:
 
 1. **Category-level TIC assignment:** To assign a TIC to all products in a category, navigate to Products > Categories and select the category in question. Click the button next to "Taxability Information Code," make your selection, and click "Save Changes."
 2. **Bulk TIC assignment:** To assign a TIC to a group of products, start by navigating to the Products screen and ticking the checkbox next to each product. Next, select "Edit" under "Bulk Actions" and click "Apply." You will then see an option to set a TIC for the selected products.
@@ -99,13 +99,13 @@ While testing, you may review your transactions by logging in to TaxCloud and na
 
 Now that you have tested your website and verified that Simple Sales Tax is working properly, it is time to switch your TaxCloud account from test mode to live mode. To do so, log in to TaxCloud and you should see the "Go Live Advisor" and click "Go Live" - if you don't see a Go Live button, you should see instructions on what needs to be done in order to complete your account setup.
 
-Please feel free to [contact us](https://taxcloud.com/contact) if you need help with any step of this process.
+Please feel free to [contact us](https://taxcloud.com/contact-us/) if you need help with any step of this process.
 
 == Frequently Asked Questions ==
 
 = What does TaxCloud cost? =
 
-Please consult the TaxCloud [Pricing](https://taxcloud.com/pricing) page for details on the cost of TaxCloud.
+Please consult the TaxCloud [Pricing](https://taxcloud.com/taxcloud-pricing/) page for details on the cost of TaxCloud.
 
 = Does the plugin support recurring payments? =
 
