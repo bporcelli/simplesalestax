@@ -4,6 +4,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This p
 
 = [8.0.14] - 2024-07-11 =
 
+Fixed:
+- Update links to taxcloud.com
+
 Changed:
 - Bump tested WC version to 9.1
 
