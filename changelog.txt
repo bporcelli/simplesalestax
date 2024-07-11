@@ -4,6 +4,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This p
 
 = [8.0.13] - 2024-06-20 =
 
+Fixed:
+- "Download Debug Report" button not working with WC 9.0+
+
 Changed:
 - Bump tested WC version to 9.0
 
