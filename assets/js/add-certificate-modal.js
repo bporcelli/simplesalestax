@@ -73,7 +73,7 @@ var SST_Add_Certificate_Modal = {
 			.removeClass( 'woocommerce-invalid-required-field woocommerce-invalid' );
 
 		// Mark all required fields
-		form.find( '.validate-required' ).each( function() {
+		form.find( '.validate-required:visible' ).each( function() {
 			var $field = jQuery( this ).find( 'input, select, textarea' );
 			if ( $field.val() === '' ) {
 				jQuery( this ).addClass(

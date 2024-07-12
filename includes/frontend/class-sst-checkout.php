@@ -756,6 +756,61 @@ class SST_Checkout extends SST_Abstract_Cart {
 		foreach ( $this->errors as $error_message ) {
 			$errors->add( 'tax', $error_message );
 		}
+
+		$this->validate_exemption_certificate( $errors );
+	}
+
+	/**
+	 * Validate exemption certificate checkout fields.
+	 *
+	 * @param WP_Error $errors Checkout errors.
+	 */
+	public function validate_exemption_certificate( $errors ) {
+		$data           = $this->get_post_data();
+		$certificate_id = $data['certificate_id'] ?? '';
+		$certificate    = $data['certificate'] ?? [];
+
+		if ( 'new' !== $certificate_id ) {
+			return;
+		}
+
+		// Field key => Condition when field is required
+		$required_fields = [
+			'ExemptState'                        => [],
+			'TaxType'                            => [],
+			'IDNumber'                           => [],
+			'StateOfIssue'                       => [
+				'field' => 'TaxType',
+				'value' => 'StateIssued',
+			],
+			'PurchaserBusinessType'              => [],
+			'PurchaserBusinessTypeOtherValue'    => [
+				'field' => 'PurchaserBusinessType',
+				'value' => 'Other',
+			],
+			'PurchaserExemptionReason'           => [],
+			'PurchaserExemptionReasonOtherValue' => [
+				'field' => 'PurchaserExemptionReason',
+				'value' => 'Other',
+			],
+		];
+
+		foreach ( $required_fields as $field_key => $condition ) {
+			$required = true;
+
+			if ( isset( $condition['field'], $condition['value'] ) ) {
+				$field_value = $certificate[ $condition['field'] ] ?? '';
+				$required    = $field_value === $condition['value'];
+			}
+
+			if ( $required && empty( $certificate[ $field_key ] ) ) {
+				$errors->add(
+					$field_key . '_required',
+					__( 'Required exemption certificate fields are missing', 'simple-sales-tax' )
+				);
+				break;
+			}
+		}
 	}
 
 	/**
