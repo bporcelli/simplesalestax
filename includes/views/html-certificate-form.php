@@ -2,7 +2,7 @@
 /**
  * Template for tax exemption certificate form. You may override this template by copying it to `THEME_PATH/sst/html-certificate-form.php`.
  *
- * @version 8.0.3
+ * @version 8.0.15
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -103,7 +103,8 @@ woocommerce_form_field(
 		'type'        => 'state',
 		'country'     => 'US',
 		'label'       => esc_html__( 'ID issued by...', 'simple-sales-tax' ),
-		'placeholder' => esc_html__( 'Select if your ID is state issued.', 'simple-sales-tax' ),
+		'placeholder' => esc_html__( 'Select one', 'simple-sales-tax' ),
+		'required'    => true,
 		'id'          => 'state_of_issue',
 		'class'       => array( 'sst-form-row', 'sst-hidden-field' ),
 		'input_class' => array( 'sst-input' ),
@@ -223,6 +224,7 @@ woocommerce_form_field(
 		'type'        => 'text',
 		'label'       => esc_html__( 'Please explain', 'simple-sales-tax' ),
 		'placeholder' => esc_html__( 'Explain the nature of your business.', 'simple-sales-tax' ),
+		'required'    => true,
 		'id'          => 'purchase_business_type_other_value',
 		'class'       => array( 'sst-hidden-field', 'sst-form-row' ),
 		'input_class' => array( 'sst-input' ),
@@ -298,11 +300,14 @@ woocommerce_form_field(
 ?>
 
 <?php
+// Note: This field is required when "Other" is selected as the exemption
+// reason. See certificate-form.js.
 woocommerce_form_field(
 	'certificate[PurchaserExemptionReasonValue]',
 	array(
 		'type'        => 'text',
 		'label'       => esc_html__( 'Please explain', 'simple-sales-tax' ),
+		'required'    => false,
 		'id'          => 'purchaser_exemption_reason_value',
 		'class'       => array( 'sst-hidden-field', 'sst-form-row' ),
 		'input_class' => array( 'sst-input' ),

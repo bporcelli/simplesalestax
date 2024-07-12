@@ -1,8 +1,6 @@
 jQuery( function( $ ) {
 	function toggleField( selector, show ) {
-		$( selector )
-			.toggleClass( 'validate-required', show )
-			.toggleClass( 'sst-hidden-field', !show );
+		$( selector ).toggleClass( 'sst-hidden-field', !show );
 	}
 
 	// Toggle visibility of certain form fields based on the value of a select box
@@ -23,32 +21,45 @@ jQuery( function( $ ) {
 	$( document ).on( 'change', '#purchaser_exemption_reason', function() {
 		var value = $( this ).val();
 		var showField = '' !== value;
+		var required = 'Other' === value;
 
 		toggleField(
 			'#purchaser_exemption_reason_value_field',
-			showField,
+			showField
 		);
 
-		if ( showField ) {
-			// Set label depending on value
-			var labels = {
-				'FederalGovernmentDepartment': 'Dept. Name',
-				'StateOrLocalGovernmentName': 'Govt. Name',
-				'TribalGovernmentName': 'Tribe Name',
-				'ForeignDiplomat': 'Diplomat ID',
-				'CharitableOrganization': 'Organization ID',
-				'ReligiousOrEducationalOrganization': 'Organization ID',
-				'Resale': 'Resale ID',
-				'AgriculturalProduction': 'Agricultural Prod. ID',
-				'IndustrialProductionOrManufacturing': 'Production ID',
-				'DirectPayPermit': 'Permit ID',
-				'DirectMail': 'Direct Mail ID',
-				'Other': 'Please explain'
-			};
+		if ( ! showField ) {
+			return;
+		}
 
-			$( 'label[for="purchaser_exemption_reason_value"]' ).text(
-				labels[ value ]
-			);
+		// Toggle required validation and revalidate
+		$( '#purchaser_exemption_reason_value_field' )
+			.toggleClass( 'validate-required', required )
+			.find( 'input' )
+			.trigger( 'change' );
+
+		// Set label depending on value
+		var labels = {
+			'FederalGovernmentDepartment': 'Dept. Name',
+			'StateOrLocalGovernmentName': 'Govt. Name',
+			'TribalGovernmentName': 'Tribe Name',
+			'ForeignDiplomat': 'Diplomat ID',
+			'CharitableOrganization': 'Organization ID',
+			'ReligiousOrEducationalOrganization': 'Organization ID',
+			'Resale': 'Resale ID',
+			'AgriculturalProduction': 'Agricultural Prod. ID',
+			'IndustrialProductionOrManufacturing': 'Production ID',
+			'DirectPayPermit': 'Permit ID',
+			'DirectMail': 'Direct Mail ID',
+			'Other': 'Please explain'
+		};
+
+		var $label = $( 'label[for="purchaser_exemption_reason_value"]' );
+
+		$label.text( labels[ value ] );
+
+		if ( required ) {
+			$label.append( ' <abbr class="required" title="required">*</abbr>' );
 		}
 	} );
 
