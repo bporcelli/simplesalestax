@@ -2,6 +2,11 @@ Changelog for Simple Sales Tax
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+= [8.0.15] - 2024-07-12 =
+
+Fixed:
+- Labeling and validation for required exemption certificate fields
+
 = [8.0.14] - 2024-07-11 =
 
 Fixed:

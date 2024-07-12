@@ -2,9 +2,9 @@
 # This file is distributed under the same license as the Simple Sales Tax package.
 msgid ""
 msgstr ""
-"Project-Id-Version: Simple Sales Tax 8.0.14\n"
+"Project-Id-Version: Simple Sales Tax 8.0.15\n"
 "Report-Msgid-Bugs-To: https://github.com/bporcelli/simplesalestax/issues\n"
-"POT-Creation-Date: 2024-07-11 15:57:49+00:00\n"
+"POT-Creation-Date: 2024-07-12 22:26:33+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -546,6 +546,10 @@ msgstr ""
 msgid "Failed to add exemption certificate during checkout. Error was: %1$s"
 msgstr ""
 
+#: includes/frontend/class-sst-checkout.php:809
+msgid "Required exemption certificate fields are missing"
+msgstr ""
+
 #: includes/frontend/class-sst-my-account.php:63
 msgid "Exemption certificates"
 msgstr ""
@@ -718,8 +722,9 @@ msgid "Tax ID type"
 msgstr ""
 
 #: includes/views/html-certificate-form.php:71
-#: includes/views/html-certificate-form.php:129
-#: includes/views/html-certificate-form.php:245
+#: includes/views/html-certificate-form.php:106
+#: includes/views/html-certificate-form.php:130
+#: includes/views/html-certificate-form.php:247
 msgid "Select one"
 msgstr ""
 
@@ -739,149 +744,145 @@ msgstr ""
 msgid "ID issued by..."
 msgstr ""
 
-#: includes/views/html-certificate-form.php:106
-msgid "Select if your ID is state issued."
-msgstr ""
-
-#: includes/views/html-certificate-form.php:120
+#: includes/views/html-certificate-form.php:121
 msgid "Business type"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:133
+#: includes/views/html-certificate-form.php:134
 msgid "Accommodation And Food Services"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:137
+#: includes/views/html-certificate-form.php:138
 msgid "Agricultural/Forestry/Fishing/Hunting"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:141
+#: includes/views/html-certificate-form.php:142
 msgid "Construction"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:145
+#: includes/views/html-certificate-form.php:146
 msgid "Finance or Insurance"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:149
+#: includes/views/html-certificate-form.php:150
 msgid "Information Publishing and Communications"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:153
+#: includes/views/html-certificate-form.php:154
 msgid "Manufacturing"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:157
+#: includes/views/html-certificate-form.php:158
 msgid "Mining"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:161
+#: includes/views/html-certificate-form.php:162
 msgid "Real Estate"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:165
+#: includes/views/html-certificate-form.php:166
 msgid "Rental and Leasing"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:169
+#: includes/views/html-certificate-form.php:170
 msgid "Retail Trade"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:173
+#: includes/views/html-certificate-form.php:174
 msgid "Transportation and Warehousing"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:177
+#: includes/views/html-certificate-form.php:178
 msgid "Utilities"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:181
+#: includes/views/html-certificate-form.php:182
 msgid "Wholesale Trade"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:185
+#: includes/views/html-certificate-form.php:186
 msgid "Business Services"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:189
+#: includes/views/html-certificate-form.php:190
 msgid "Professional Services"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:193
+#: includes/views/html-certificate-form.php:194
 msgid "Education and Health Care Services"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:197
+#: includes/views/html-certificate-form.php:198
 msgid "Nonprofit Organization"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:201
+#: includes/views/html-certificate-form.php:202
 msgid "Government"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:205
+#: includes/views/html-certificate-form.php:206
 msgid "Not a Business"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:209
-#: includes/views/html-certificate-form.php:290
+#: includes/views/html-certificate-form.php:210
+#: includes/views/html-certificate-form.php:292
 msgid "Other"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:224
-#: includes/views/html-certificate-form.php:305
+#: includes/views/html-certificate-form.php:225
+#: includes/views/html-certificate-form.php:309
 msgid "Please explain"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:225
+#: includes/views/html-certificate-form.php:226
 msgid "Explain the nature of your business."
 msgstr ""
 
-#: includes/views/html-certificate-form.php:239
+#: includes/views/html-certificate-form.php:241
 msgid "Reason for exemption"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:246
+#: includes/views/html-certificate-form.php:248
 msgid "Federal Government Department"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:250
+#: includes/views/html-certificate-form.php:252
 msgid "State Or Local Government"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:254
+#: includes/views/html-certificate-form.php:256
 msgid "Tribal Government"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:258
+#: includes/views/html-certificate-form.php:260
 msgid "Foreign Diplomat"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:262
+#: includes/views/html-certificate-form.php:264
 msgid "Charitable Organization"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:266
+#: includes/views/html-certificate-form.php:268
 msgid "Religious or Educational Organization"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:270
+#: includes/views/html-certificate-form.php:272
 msgid "Resale"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:274
+#: includes/views/html-certificate-form.php:276
 msgid "Agricultural Production"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:278
+#: includes/views/html-certificate-form.php:280
 msgid "Industrial Production or Manufacturing"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:282
+#: includes/views/html-certificate-form.php:284
 msgid "Direct Pay Permit"
 msgstr ""
 
-#: includes/views/html-certificate-form.php:286
+#: includes/views/html-certificate-form.php:288
 msgid "Direct Mail"
 msgstr ""
 
