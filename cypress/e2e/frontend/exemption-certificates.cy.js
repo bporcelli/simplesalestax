@@ -260,7 +260,7 @@ describe('Exemption certificates', () => {
                 cy.findByRole('button', {name: 'Add certificate'}).click();
                 cy.waitForBlockedElements(60000);
                 cy.get('.blockOverlay').should('not.exist');
-                validateFieldHasError('state_of_issue');
+                validateFieldHasError(field);
 
                 cy.get(`#${field}`).invoke('val', origVal);
               });
