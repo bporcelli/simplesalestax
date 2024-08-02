@@ -27,9 +27,11 @@ services:
       PHP_TAXCLOUD_REQUEST_TIMEOUT: 60
     volumes:
       - wordpress:/var/www/html
-      - ./plugin:/var/www/html/wp-content/plugins/simple-sales-tax
+      - ../:/var/www/html/wp-content/plugins/simple-sales-tax
+      - C:/Users/Brett/Local Sites/simple-sales-tax/app/public/wp-content/plugins/deposits-for-woocommerce:/var/www/html/wp-content/plugins/deposits-for-woocommerce
       - ./sst-change-order-ids.php:/var/www/html/wp-content/plugins/sst-change-order-ids.php
       - ./woo-order-test.php:/var/www/html/wp-content/plugins/woo-order-test.php
+      - ./woocommerce-gateway-stripe:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe
     depends_on:
       db:
         condition: service_healthy
@@ -54,6 +56,11 @@ services:
       interval: 30s
       retries: 3
       start_period: 10s
+
+  mailcatcher:
+    image: instructure/mailcatcher
+    ports:
+      - 8081:8080
 
 volumes:
   wordpress:

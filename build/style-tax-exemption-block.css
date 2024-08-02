@@ -1,0 +1,345 @@
+/*!********************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[8].use[1]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[8].use[2]!./assets/js/blocks/tax-exemption/style.scss ***!
+  \********************************************************************************************************************************************************************************************/
+/**
+*  Converts a hex value into the rgb equivalent.
+*
+* @param {string} hex - the hexadecimal value to convert
+* @return {string} comma separated rgb values
+*/
+/**
+ * Colors
+ */
+/**
+ * SCSS Variables.
+ *
+ * Please use variables from this sheet to ensure consistency across the UI.
+ * Don't add to this sheet unless you're pretty sure the value will be reused in many places.
+ * For example, don't add rules to this sheet that affect block visuals. It's purely for UI.
+ */
+/**
+*  Converts a hex value into the rgb equivalent.
+*
+* @param {string} hex - the hexadecimal value to convert
+* @return {string} comma separated rgb values
+*/
+/**
+ * Colors
+ */
+/**
+ * Fonts & basic variables.
+ */
+/**
+ * Grid System.
+ * https://make.wordpress.org/design/2019/10/31/proposal-a-consistent-spacing-system-for-wordpress/
+ */
+/**
+ * Dimensions.
+ */
+/**
+ * Shadows.
+ */
+/**
+ * Editor widths.
+ */
+/**
+ * Block & Editor UI.
+ */
+/**
+ * Block paddings.
+ */
+/**
+ * React Native specific.
+ * These variables do not appear to be used anywhere else.
+ */
+/* stylelint-disable block-closing-brace-newline-after */
+/* stylelint-enable */
+@keyframes spinner__animation {
+  0% {
+    animation-timing-function: cubic-bezier(0.5856, 0.0703, 0.4143, 0.9297);
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+@keyframes loading__animation {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.wp-block-simple-sales-tax-tax-exemption {
+  margin: 1.5em 0;
+}
+.wp-block-simple-sales-tax-tax-exemption .wc-block-components-title.wc-block-components-title {
+  margin-bottom: 1em;
+}
+.wp-block-simple-sales-tax-tax-exemption .wc-block-components-text-input {
+  margin-top: 1em;
+}
+.wp-block-simple-sales-tax-tax-exemption .sst-radio-group {
+  margin-top: 1em;
+}
+.wp-block-simple-sales-tax-tax-exemption .sst-radio-group label {
+  display: block;
+  margin-bottom: 0.5em;
+}
+.wp-block-simple-sales-tax-tax-exemption .sst-radio-group .wc-block-components-radio-control label {
+  padding-left: 2em;
+}
+.wp-block-simple-sales-tax-tax-exemption .sst-radio-group .wc-block-components-radio-control label input {
+  left: 0;
+}
+.wp-block-simple-sales-tax-tax-exemption a {
+  display: block;
+  margin: 1em 0;
+}
+/*!*****************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[8].use[1]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[8].use[2]!./includes/vendor/woocommerce/woocommerce/plugins/woocommerce-blocks/assets/js/base/components/select/style.scss ***!
+  \*****************************************************************************************************************************************************************************************************************************************************************/
+/**
+*  Converts a hex value into the rgb equivalent.
+*
+* @param {string} hex - the hexadecimal value to convert
+* @return {string} comma separated rgb values
+*/
+/**
+ * Colors
+ */
+/**
+ * SCSS Variables.
+ *
+ * Please use variables from this sheet to ensure consistency across the UI.
+ * Don't add to this sheet unless you're pretty sure the value will be reused in many places.
+ * For example, don't add rules to this sheet that affect block visuals. It's purely for UI.
+ */
+/**
+*  Converts a hex value into the rgb equivalent.
+*
+* @param {string} hex - the hexadecimal value to convert
+* @return {string} comma separated rgb values
+*/
+/**
+ * Colors
+ */
+/**
+ * Fonts & basic variables.
+ */
+/**
+ * Grid System.
+ * https://make.wordpress.org/design/2019/10/31/proposal-a-consistent-spacing-system-for-wordpress/
+ */
+/**
+ * Dimensions.
+ */
+/**
+ * Shadows.
+ */
+/**
+ * Editor widths.
+ */
+/**
+ * Block & Editor UI.
+ */
+/**
+ * Block paddings.
+ */
+/**
+ * React Native specific.
+ * These variables do not appear to be used anywhere else.
+ */
+/* stylelint-disable block-closing-brace-newline-after */
+/* stylelint-enable */
+@keyframes spinner__animation {
+  0% {
+    animation-timing-function: cubic-bezier(0.5856, 0.0703, 0.4143, 0.9297);
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+@keyframes loading__animation {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.wc-blocks-components-select {
+  width: 100%;
+}
+.wc-blocks-components-select .wc-blocks-components-select__container {
+  border-radius: 4px;
+  box-sizing: border-box;
+  border: 1px solid rgba(17, 17, 17, 0.8);
+  background: #fff;
+  width: 100%;
+  height: 50px;
+  position: relative;
+}
+.has-dark-controls .wc-blocks-components-select .wc-blocks-components-select__container {
+  background-color: rgba(0, 0, 0, 0.1);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
+}
+.has-dark-controls .wc-blocks-components-select .wc-blocks-components-select__container:focus {
+  background-color: rgba(0, 0, 0, 0.1);
+  color: #fff;
+  box-shadow: 0 0 0 2px #50575e;
+}
+.has-error .wc-blocks-components-select .wc-blocks-components-select__container {
+  border-color: #cc1818;
+}
+.wc-blocks-components-select .wc-blocks-components-select__select {
+  font-family: inherit;
+  font-size: inherit;
+  font-style: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  text-decoration: inherit;
+  text-transform: inherit;
+  font-size: 1em;
+  border-radius: 4px;
+  border: none;
+  width: 100%;
+  height: 100%;
+  appearance: none;
+  background: none;
+  padding: 1em 0.5em 0;
+  color: #2b2d2f;
+}
+.wc-blocks-components-select .wc-blocks-components-select__select:focus {
+  outline: 0;
+  box-shadow: 0 0 0 1px inherit;
+}
+.has-dark-controls .wc-blocks-components-select .wc-blocks-components-select__select {
+  color: #fff;
+}
+.has-error .wc-blocks-components-select .wc-blocks-components-select__select {
+  color: #cc1818;
+}
+.wc-blocks-components-select .wc-blocks-components-select__label {
+  font-family: inherit;
+  font-size: inherit;
+  font-style: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  text-decoration: inherit;
+  text-transform: inherit;
+  font-size: 1em;
+  position: absolute;
+  line-height: 1.25;
+  left: 0.5em;
+  top: 2px;
+  transform-origin: top left;
+  transition: all 200ms ease;
+  color: #2b2d2f;
+  z-index: 1;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 32px);
+  white-space: nowrap;
+  transform: translateY(15%) scale(0.75);
+}
+.has-dark-controls .wc-blocks-components-select .wc-blocks-components-select__label {
+  color: rgba(255, 255, 255, 0.6);
+}
+.has-error .wc-blocks-components-select .wc-blocks-components-select__label {
+  color: #cc1818;
+}
+@media screen and (prefers-reduced-motion: reduce) {
+  .wc-blocks-components-select .wc-blocks-components-select__label {
+    transition: none;
+  }
+}
+.wc-blocks-components-select .wc-blocks-components-select__expand {
+  position: absolute;
+  transform: translate(0%, -50%);
+  top: 50%;
+  right: 12px;
+  pointer-events: none;
+  fill: #2b2d2f;
+}
+.has-dark-controls .wc-blocks-components-select .wc-blocks-components-select__expand {
+  fill: #fff;
+}
+.has-error .wc-blocks-components-select .wc-blocks-components-select__expand {
+  fill: #cc1818;
+}
+/*!**********************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[8].use[1]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[8].use[2]!./includes/vendor/woocommerce/woocommerce/plugins/woocommerce-blocks/assets/js/base/components/state-input/style.scss ***!
+  \**********************************************************************************************************************************************************************************************************************************************************************/
+/**
+*  Converts a hex value into the rgb equivalent.
+*
+* @param {string} hex - the hexadecimal value to convert
+* @return {string} comma separated rgb values
+*/
+/**
+ * Colors
+ */
+/**
+ * SCSS Variables.
+ *
+ * Please use variables from this sheet to ensure consistency across the UI.
+ * Don't add to this sheet unless you're pretty sure the value will be reused in many places.
+ * For example, don't add rules to this sheet that affect block visuals. It's purely for UI.
+ */
+/**
+*  Converts a hex value into the rgb equivalent.
+*
+* @param {string} hex - the hexadecimal value to convert
+* @return {string} comma separated rgb values
+*/
+/**
+ * Colors
+ */
+/**
+ * Fonts & basic variables.
+ */
+/**
+ * Grid System.
+ * https://make.wordpress.org/design/2019/10/31/proposal-a-consistent-spacing-system-for-wordpress/
+ */
+/**
+ * Dimensions.
+ */
+/**
+ * Shadows.
+ */
+/**
+ * Editor widths.
+ */
+/**
+ * Block & Editor UI.
+ */
+/**
+ * Block paddings.
+ */
+/**
+ * React Native specific.
+ * These variables do not appear to be used anywhere else.
+ */
+/* stylelint-disable block-closing-brace-newline-after */
+/* stylelint-enable */
+@keyframes spinner__animation {
+  0% {
+    animation-timing-function: cubic-bezier(0.5856, 0.0703, 0.4143, 0.9297);
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+@keyframes loading__animation {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.wc-blocks-components-select__container {
+  margin-top: 16px;
+}
+
+/*# sourceMappingURL=style-tax-exemption-block.css.map*/
