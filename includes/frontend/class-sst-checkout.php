@@ -77,6 +77,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	public function calculate_tax_totals( $total, $cart ) {
+		$tax_total = 0;
+
 		$this->cart = new SST_Cart_Proxy( $cart );
 
 		$should_calculate = (
@@ -94,12 +96,14 @@ class SST_Checkout extends SST_Abstract_Cart {
 			 */
 			foreach ( $this->cart->get_taxes() as $rate_id => $tax ) {
 				if ( (int) SST_RATE_ID === $rate_id ) {
-					$total += $tax;
+					$tax_total += $tax;
 				}
 			}
 		}
 
-		return $total;
+		$this->cart->set_total_tax( $tax_total );
+
+		return $total + $tax_total;
 	}
 
 	/**

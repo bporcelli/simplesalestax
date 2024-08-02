@@ -191,8 +191,22 @@ abstract class SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	protected function get_lookup_for_package( &$package ) {
-		$cart_items = array();
-		$based_on   = SST_Settings::get( 'tax_based_on' );
+		$cart_items         = array();
+		$based_on           = SST_Settings::get( 'tax_based_on' );
+		$negative_fee_total = 0;
+		$cart_total         = 0;
+
+		// Some WooCommerce extensions, like Deposits for WooCommerce,
+		// use negative fees instead of coupons for discounts. TaxCloud
+		// doesn't allow cart items with negative prices, so we have to
+		// filter them out and translate them into discounts on other
+		// cart items.
+		foreach ( $package['fees'] as $key => $fee ) {
+			if ( $fee->amount < 0 ) {
+				$negative_fee_total += abs( $fee->amount );
+				unset( $package['fees'][ $key ] );
+			}
+		}
 
 		/* Add products */
 		foreach ( $package['contents'] as $cart_id => $item ) {
@@ -224,6 +238,31 @@ abstract class SST_Abstract_Cart {
 				'id'      => $item['data']->get_id(),
 				'cart_id' => isset( $item['shipping_item_key'] ) ? $item['shipping_item_key'] : $item['key'],
 			);
+
+			$cart_total += $price * $quantity;
+		}
+
+		/* Apply negative fees as discounts on items */
+		foreach ( $cart_items as $item ) {
+			if ( $negative_fee_total <= 0 ) {
+				break;
+			}
+
+			$item_total       = $item->getQty() * $item->getPrice();
+			$discount         = $negative_fee_total * ( $item_total / $cart_total );
+			$per_qty_discount = $discount / $item->getQty();
+
+			// Setters aren't public so we have to create a new object
+			$cart_items[ $item->getIndex() ] = new TaxCloud\CartItem(
+				$item->getIndex(),
+				$item->getItemID(),
+				$item->getTIC(),
+				$item->getPrice() - $per_qty_discount,
+				$item->getQty()
+			);
+
+			$negative_fee_total -= $discount;
+			$cart_total         -= $item_total;
 		}
 
 		/* Add fees */
