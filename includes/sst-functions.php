@@ -545,3 +545,23 @@ function sst_should_show_tax_exemption_form() {
 		$enabled && ( ! $restricted || sst_is_user_tax_exempt() )
 	);
 }
+
+/**
+ * Gets the label to use for the SST tax rate.
+ *
+ * @since 8.1
+ * @return string Label for SST tax rate
+ */
+function sst_get_rate_label() {
+	return apply_filters( 'wootax_rate_label', __( 'Sales Tax', 'simple-sales-tax' ) );
+}
+
+/**
+ * Get the rate code to use for the SST tax rate.
+ *
+ * @since 8.1
+ * @return string Rate code for SST tax rate
+ */
+function sst_get_rate_code() {
+	return apply_filters( 'wootax_rate_code', 'SALES-TAX' );
+}

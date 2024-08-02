@@ -344,7 +344,7 @@ class SST_Install {
 	 */
 	public static function get_rate_code( $code, $key ) {
 		if ( (int) SST_RATE_ID === (int) $key ) {
-			return apply_filters( 'wootax_rate_code', 'SALES-TAX' );
+			return sst_get_rate_code();
 		} else {
 			return $code;
 		}
@@ -360,7 +360,7 @@ class SST_Install {
 	 */
 	public static function get_rate_label( $label, $key ) {
 		if ( (int) SST_RATE_ID === (int) $key ) {
-			return apply_filters( 'wootax_rate_label', __( 'Sales Tax', 'simple-sales-tax' ) );
+			return sst_get_rate_label();
 		} else {
 			return $label;
 		}

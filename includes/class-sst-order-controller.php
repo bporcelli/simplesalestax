@@ -174,7 +174,7 @@ class SST_Order_Controller {
 			&& $and_taxes
 		);
 
-		if ( $should_calculate ) {
+		if ( apply_filters( 'sst_should_calculate_order_tax', $should_calculate, $order, $and_taxes ) ) {
 			sst_order_calculate_taxes( $order );
 		}
 	}

@@ -53,6 +53,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 		add_action( 'woocommerce_cart_emptied', array( $this, 'clear_session_data' ) );
 		add_action( 'woocommerce_after_checkout_validation', array( $this, 'validate_checkout' ), 10, 2 );
 		add_filter( 'woocommerce_add_cart_item', array( $this, 'set_key_for_cart_item' ), 10, 2 );
+		add_filter( 'wootax_cart_packages', array( $this, 'handle_negative_fees' ), PHP_INT_MAX - 1 );
 
 		if ( sst_storefront_active() ) {
 			add_action( 'woocommerce_checkout_shipping', array( $this, 'output_exemption_form' ), 15 );
@@ -77,6 +78,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 	 * @since 5.0
 	 */
 	public function calculate_tax_totals( $total, $cart ) {
+		$tax_total = 0;
+
 		$this->cart = new SST_Cart_Proxy( $cart );
 
 		$should_calculate = (
@@ -94,12 +97,14 @@ class SST_Checkout extends SST_Abstract_Cart {
 			 */
 			foreach ( $this->cart->get_taxes() as $rate_id => $tax ) {
 				if ( (int) SST_RATE_ID === $rate_id ) {
-					$total += $tax;
+					$tax_total += $tax;
 				}
 			}
 		}
 
-		return $total;
+		$this->cart->set_total_tax( $tax_total );
+
+		return $total + $tax_total;
 	}
 
 	/**
@@ -857,6 +862,58 @@ class SST_Checkout extends SST_Abstract_Cart {
 		}
 
 		return $cart_item_data;
+	}
+
+	/**
+	 * Handle negative fees by spreading them evenly across all cart package
+	 * items as discounts.
+	 *
+	 * This is required to support extensions like Deposits for WooCommerce
+	 * that apply discounts using negative fees instead of coupons. Without
+	 * it, tax lookups will fail due to the inclusion of line items with
+	 * negative prices.
+	 *
+	 * @param array $packages Cart packages
+	 * @return array Cart packages with negative fees converted to discounts
+	 */
+	public function handle_negative_fees( $packages ) {
+		$cart_total         = 0;
+		$negative_fee_total = 0;
+
+		foreach ( $packages as &$package ) {
+			foreach ( $package['contents'] as $item ) {
+				$cart_total += $item['line_total'];
+			}
+
+			foreach ( $package['fees'] as $key => $fee ) {
+				if ( $fee->amount < 0 ) {
+					$negative_fee_total += abs( $fee->amount );
+					unset( $package['fees'][ $key ] );
+				}
+			}
+		}
+
+		if ( 0 === $negative_fee_total ) {
+			return $packages;
+		}
+
+		foreach ( $packages as &$package ) {
+			foreach ( $package['contents'] as &$item ) {
+				if ( $negative_fee_total <= 0 || $cart_total <= 0 ) {
+					break 2;
+				}
+
+				$item_total = $item['line_total'];
+				$discount   = $negative_fee_total * ( $item_total / $cart_total );
+
+				$item['line_total'] -= $discount;
+
+				$negative_fee_total -= $discount;
+				$cart_total         -= $item_total;
+			}
+		}
+
+		return $packages;
 	}
 
 }
