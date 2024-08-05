@@ -27,7 +27,7 @@
   "devDependencies": {
     "@testing-library/cypress": "^10.0.2",
     "cross-var": "^1.1.0",
-    "cypress": "^13.6.4",
+    "cypress": "^13.13.2",
     "grunt": "^1.6.1",
     "grunt-contrib-cssmin": "^5.0.0",
     "grunt-contrib-uglify": "^5.2.2",
