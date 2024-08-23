@@ -84,14 +84,6 @@ jobs:
         working-directory: docker
         run: docker compose up -d
 
-      - name: Wait for database
-        working-directory: docker
-        run: |
-          while ! docker compose exec -T db mysql --user=exampleuser --password=examplepass -e "status" &> /dev/null; do
-            echo "Waiting for database connection..."
-            sleep 2
-          done
-
       - name: Set up plugins
         working-directory: docker
         run: |
