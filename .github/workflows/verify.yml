@@ -82,7 +82,7 @@ jobs:
 
       - name: Start containers
         working-directory: docker
-        run: docker compose up -d
+        run: docker compose up -d --wait
 
       - name: Set up plugins
         working-directory: docker

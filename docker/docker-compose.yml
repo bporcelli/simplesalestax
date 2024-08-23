@@ -33,6 +33,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: wp core version --path=/var/www/html --allow-root
+      interval: 30s
+      start_period: 10s
 
   db:
     image: mysql:5.7
