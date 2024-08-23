@@ -11,7 +11,7 @@ describe('Basic calculations', () => {
     cy.loginAsAdmin();
     cy.goToSettingsPage();
     cy.get('#woocommerce_wootax_show_zero_tax').select('Yes');
-    cy.findByRole('button', {name: 'Save changes'}).click();
+    cy.findByRole('button', {name: 'Save changes'}).click({ force: true });
   });
 
   beforeEach(() => {
@@ -105,7 +105,7 @@ describe('Basic calculations', () => {
   it('does not show zero tax total if "Show Zero Tax?" is set to "No"', () => {
     cy.goToSettingsPage();
     cy.get('#woocommerce_wootax_show_zero_tax').select('No');
-    cy.findByRole('button', {name: 'Save changes'}).click();
+    cy.findByRole('button', {name: 'Save changes'}).click({ force: true });
 
     cy.addProductToCart('eBook');
     cy.visit('/cart/');
@@ -116,7 +116,7 @@ describe('Basic calculations', () => {
   it('shows zero tax total if "Show Zero Tax?" is set to "Yes"', () => {
     cy.goToSettingsPage();
     cy.get('#woocommerce_wootax_show_zero_tax').select('Yes');
-    cy.findByRole('button', {name: 'Save changes'}).click();
+    cy.findByRole('button', {name: 'Save changes'}).click({ force: true });
 
     cy.addProductToCart('eBook');
     cy.visit('/cart/');

@@ -22,7 +22,7 @@ describe('Coupon calculations', () => {
     cy.loginAsAdmin();
     cy.goToSettingsPage();
     cy.get('#woocommerce_wootax_show_zero_tax').select('Yes');
-    cy.findByRole('button', {name: 'Save changes'}).click();
+    cy.findByRole('button', {name: 'Save changes'}).click({ force: true });
   });
 
   beforeEach(() => {

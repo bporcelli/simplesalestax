@@ -42,7 +42,7 @@ describe('Exemption certificates', () => {
       cy.goToSettingsPage();
       cy.get('#woocommerce_wootax_show_exempt').select('Yes', {force: true});
       cy.get('#woocommerce_wootax_restrict_exempt').select('No', {force: true});
-      cy.findByRole('button', {name: 'Save changes'}).click();
+      cy.findByRole('button', {name: 'Save changes'}).click({ force: true });
     });
 
     describe('checkout', () => {
@@ -313,7 +313,7 @@ describe('Exemption certificates', () => {
         cy.get('#woocommerce_wootax_show_exempt').select('Yes', {force: true});
         cy.get('#woocommerce_wootax_restrict_exempt').select('Yes', {force: true});
         cy.get('#woocommerce_wootax_exempt_roles').select('Administrator', {force: true});
-        cy.findByRole('button', {name: 'Save changes'}).click();
+        cy.findByRole('button', {name: 'Save changes'}).click({ force: true });
       });
 
       it('renders tax exemption form on checkout page', () => {
@@ -336,7 +336,7 @@ describe('Exemption certificates', () => {
         cy.get('#woocommerce_wootax_show_exempt').select('Yes', {force: true});
         cy.get('#woocommerce_wootax_restrict_exempt').select('Yes', {force: true});
         cy.get('#woocommerce_wootax_exempt_roles').select('Exempt Customer', {force: true});
-        cy.findByRole('button', {name: 'Save changes'}).click();
+        cy.findByRole('button', {name: 'Save changes'}).click({ force: true });
       });
 
       it('does not render exemption form on checkout page', () => {
@@ -358,7 +358,7 @@ describe('Exemption certificates', () => {
       cy.loginAsAdmin();
       cy.goToSettingsPage();
       cy.get('#woocommerce_wootax_show_exempt').select('No', {force: true});
-      cy.findByRole('button', {name: 'Save changes'}).click();
+      cy.findByRole('button', {name: 'Save changes'}).click({ force: true });
     });
 
     it('does not render tax exemption form on checkout page', () => {
