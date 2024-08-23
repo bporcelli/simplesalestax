@@ -61,7 +61,7 @@ describe('Create order', () => {
   it('captures Processing orders in TaxCloud if "Capture orders immediately" is enabled', () => {
     cy.goToSettingsPage();
     cy.get('#woocommerce_wootax_capture_immediately').check();
-    cy.findByRole('button', {name: 'Save changes'}).click();
+    cy.findByRole('button', {name: 'Save changes'}).click({ force: true });
 
     createOrder().then((orderId) => {
       editOrder(orderId);
@@ -75,7 +75,7 @@ describe('Create order', () => {
   it('does not capture Processing orders in TaxCloud "Capture orders immediately" is disabled', () => {
     cy.goToSettingsPage();
     cy.get('#woocommerce_wootax_capture_immediately').uncheck();
-    cy.findByRole('button', {name: 'Save changes'}).click();
+    cy.findByRole('button', {name: 'Save changes'}).click({ force: true });
 
     createOrder().then((orderId) => {
       editOrder(orderId);

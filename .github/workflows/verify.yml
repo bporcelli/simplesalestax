@@ -82,29 +82,21 @@ jobs:
 
       - name: Start containers
         working-directory: docker
-        run: docker-compose up -d
-
-      - name: Wait for database
-        working-directory: docker
-        run: |
-          while ! docker-compose exec -T db mysql --user=exampleuser --password=examplepass -e "status" &> /dev/null; do
-            echo "Waiting for database connection..."
-            sleep 2
-          done
+        run: docker compose up -d --wait
 
       - name: Set up plugins
         working-directory: docker
         run: |
-          docker-compose exec -T wordpress wp theme install --allow-root --activate storefront
-          docker-compose exec -T wordpress wp plugin install --allow-root woocommerce --version=$WOO_VERSION
-          docker-compose exec -T wordpress wp plugin activate --allow-root woo-order-test
-          docker-compose exec -T wordpress wp plugin activate --allow-root sst-change-order-ids
-          docker-compose exec -T wordpress wp option patch --allow-root update woocommerce_wootax_settings tc_id ${{ secrets.TAXCLOUD_LOGIN_ID }}
-          docker-compose exec -T wordpress wp option patch --allow-root update woocommerce_wootax_settings tc_key ${{ secrets.TAXCLOUD_API_KEY }}
+          docker compose exec -T wordpress wp theme install --allow-root --activate storefront
+          docker compose exec -T wordpress wp plugin install --allow-root woocommerce --version=$WOO_VERSION
+          docker compose exec -T wordpress wp plugin activate --allow-root woo-order-test
+          docker compose exec -T wordpress wp plugin activate --allow-root sst-change-order-ids
+          docker compose exec -T wordpress wp option patch --allow-root update woocommerce_wootax_settings tc_id ${{ secrets.TAXCLOUD_LOGIN_ID }}
+          docker compose exec -T wordpress wp option patch --allow-root update woocommerce_wootax_settings tc_key ${{ secrets.TAXCLOUD_API_KEY }}
 
       - name: Update WP database
         working-directory: docker
-        run: docker-compose exec -T wordpress wp core update-db --allow-root
+        run: docker compose exec -T wordpress wp core update-db --allow-root
 
       - name: Run cypress tests
         uses: cypress-io/github-action@v6

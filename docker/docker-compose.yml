@@ -1,5 +1,3 @@
-version: '3.1'
-
 services:
   wordpress:
     build:
@@ -33,7 +31,12 @@ services:
       - ./sst-change-order-ids.php:/var/www/html/wp-content/plugins/sst-change-order-ids.php
       - ./woo-order-test.php:/var/www/html/wp-content/plugins/woo-order-test.php
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: wp core version --path=/var/www/html --allow-root
+      interval: 30s
+      start_period: 10s
 
   db:
     image: mysql:5.7
@@ -46,6 +49,11 @@ services:
     volumes:
       - db:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: mysql --user=exampleuser --password=examplepass -e "status" &> /dev/null
+      interval: 30s
+      retries: 3
+      start_period: 10s
 
 volumes:
   wordpress:
