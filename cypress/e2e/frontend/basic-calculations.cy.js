@@ -102,6 +102,44 @@ describe('Basic calculations', () => {
     });
   });
 
+  describe('when a negative fee is applied', () => {
+    it('calculates tax for single taxable product', () => {
+      cy.addProductToCart('General Product');
+      cy.visit('/cart/?add_negative_fee=yes');
+      cy.selectShippingMethod('Free shipping');
+
+      // Negative fee amount: 19.99 * 0.1 = 1.999
+      // Discount on simple product: 1.999 * (19.99 / 19.99) = 1.999
+      // Expected tax: (19.99 - 1.999) * 0.08625 = 1.55
+      assertTaxTotal(1.55);
+    });
+
+    it('calculates tax for multiple taxable products', () => {
+      cy.addProductToCart('General Product');
+      cy.addProductToCart('Variable Product', 'A');
+      cy.visit('/cart/?add_negative_fee=yes');
+      cy.selectShippingMethod('Free shipping');
+
+      // Negative fee amount: 24.99 * 0.1 = 2.499
+      // Discount on simple product: 2.499 * (19.99 / 24.99) = 1.999
+      // Discount on variable product: 2.499 * (5 / 24.99) = 0.5
+      // Expected tax: ((19.99 - 1.999) + (5 - 0.5)) * 0.08625 = 1.94
+      assertTaxTotal(1.94);
+    });
+
+    it('calculatex tax for mix of taxable and non-taxable products', () => {
+      cy.addProductToCart('General Product');
+      cy.addProductToCart('eBook');
+      cy.visit('/cart/?add_negative_fee=yes');
+      cy.selectShippingMethod('Free shipping');
+
+      // Negative fee amount: 29.98 * 0.1 = 2.998
+      // Discount on simple product: 2.998 * (19.99 / 29.98) = 1.999
+      // Expected tax: (19.99 - 1.999) * 0.08625 = 1.55
+      assertTaxTotal(1.55);
+    });
+  });
+
   it('does not show zero tax total if "Show Zero Tax?" is set to "No"', () => {
     cy.goToSettingsPage();
     cy.get('#woocommerce_wootax_show_zero_tax').select('No');
