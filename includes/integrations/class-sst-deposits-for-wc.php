@@ -52,34 +52,16 @@ class SST_Deposits_For_WC {
 
 		// ORDER HOOKS
 		add_filter(
-			'sst_should_calculate_order_tax',
-			array( $this, 'should_calculate_order_tax' ),
-			10,
-			3
-		);
-		add_filter(
 			'wootax_order_packages',
 			array( $this, 'filter_order_packages' ),
 			10,
 			2
 		);
 		// Priority set to run before DFW_Manage_Orders::dfw_order_init_action()
-		add_action( 'admin_init', array( $this, 'add_gmt_offset_filter' ), 5 );
-		add_action(
-			'woocommerce_new_order',
-			array( $this, 'add_woocommerce_calc_taxes_filter' ),
-			10,
-			2
-		);
-		add_action(
-			'woocommerce_order_before_calculate_totals',
-			array( $this, 'remove_pre_option_filters' ),
-			10,
-			2
-		);
+		add_action( 'admin_init', array( $this, 'add_pre_option_filters' ), 5 );
 		add_action(
 			'woocommerce_before_order_object_save',
-			array( $this, 'calculate_order_totals' )
+			array( $this, 'calculate_order_taxes' )
 		);
 		add_action(
 			'woocommerce_after_order_object_save',
@@ -237,27 +219,6 @@ class SST_Deposits_For_WC {
 	}
 
 	/**
-	 * Filter sst_should_calculate_order_tax to enable tax calculations
-	 * for orders created by Deposits for WooCommerce.
-	 *
-	 * NOTE: `sst_order_calculate_taxes` sets `and_taxes` to false. Returning
-	 * `and_taxes` instead of `true` prevents infinite recursion.
-	 *
-	 * @param bool     $should_calculate Whether to calculate order taxes
-	 * @param WC_Order $order            Order object
-	 * @param bool     $and_taxes        Whether to calculate order taxes
-	 *
-	 * @return bool
-	 */
-	public function should_calculate_order_tax( $should_calculate, $order, $and_taxes ) {
-		if ( $this->is_dfw_order( $order ) ) {
-			return $and_taxes;
-		}
-
-		return $should_calculate;
-	}
-
-	/**
 	 * Set a non-zero GMT offset when calculating taxes so current_time
 	 * returns a timestamp in the future.
 	 *
@@ -270,13 +231,19 @@ class SST_Deposits_For_WC {
 	}
 
 	/**
-	 * Filter gmt_offset option to prevent Stripe from throwing an error
-	 * about an invoice due_date in the past when GMT offset is 0.
+	 * Adds pre_option filters to fix various issues with DFW calculations.
+	 * These are removed promptly once the problematic DFW code runs.
 	 */
-	public function add_gmt_offset_filter() {
+	public function add_pre_option_filters() {
 		if ( ! $this->is_dfw_creating_order() ) {
 			return;
 		}
+
+		// Prevents DFW from setting item total to 0 when creating orders for future payments
+		add_filter(
+			'pre_option_woocommerce_calc_taxes',
+			'__return_empty_string'
+		);
 
 		if ( 'yes' === get_option( 'enable_auto_charge_stripe' ) ) {
 			// Prevents Stripe from throwing error about due_date in the past
@@ -285,52 +252,35 @@ class SST_Deposits_For_WC {
 				array( $this, 'filter_gmt_offset' )
 			);
 		}
-	}
 
-	/**
-	 * Filter woocommerce_calc_taxes option to prevent DFW from setting
-	 * order item total to 0 when creating orders for future payments.
-	 *
-	 * @param int      $_order_id Order ID
-	 * @param WC_Order $order     Order object
-	 */
-	public function add_woocommerce_calc_taxes_filter( $_order_id, $order ) {
-		if ( $this->is_dfw_order( $order ) ) {
-			add_filter(
-				'pre_option_woocommerce_calc_taxes',
-				'__return_empty_string'
-			);
-		}
+		add_action(
+			'woocommerce_order_before_calculate_totals',
+			array( $this, 'remove_pre_option_filters' )
+		);
 	}
 
 	/**
 	 * Remove pre_option filters after problematic DFW code runs.
-	 *
-	 * @param bool     $_and_taxes Ignored
-	 * @param WC_Order $order      Order object
 	 */
-	public function remove_pre_option_filters( $_and_taxes, $order ) {
-		if ( $this->is_dfw_order( $order ) ) {
-			remove_filter(
-				'pre_option_woocommerce_calc_taxes',
-				'__return_empty_string'
-			);
-			add_filter(
-				'pre_option_gmt_offset',
-				array( $this, 'filter_gmt_offset' )
-			);
-		}
+	public function remove_pre_option_filters() {
+		remove_filter(
+			'pre_option_woocommerce_calc_taxes',
+			'__return_empty_string'
+		);
+		remove_filter(
+			'pre_option_gmt_offset',
+			array( $this, 'filter_gmt_offset' )
+		);
 	}
 
 	/**
-	 * Calculate tax for checkout based deposit duplicate orders before
-	 * save.
+	 * Calculate tax for DFW orders before save.
 	 *
 	 * @param WC_Order $order Order object
 	 */
-	public function calculate_order_totals( $order ) {
+	public function calculate_order_taxes( $order ) {
 		if (
-			! $this->is_dfw_duplicate_order( $order ) ||
+			! $this->is_dfw_order( $order ) ||
 			! $this->is_dfw_creating_order()
 		) {
 			return;
@@ -339,15 +289,18 @@ class SST_Deposits_For_WC {
 		// Remove action temporarily to avoid infinite recursion
 		remove_action(
 			'woocommerce_before_order_object_save',
-			array( $this, 'calculate_order_totals' )
+			array( $this, 'calculate_order_taxes' )
 		);
 
-		$_order = new SST_Order( $order );
-		$_order->calculate_taxes();
+		sst_order_calculate_taxes( $order );
+
+		if ( '' !== $order->get_meta( '_child_total' ) ) {
+			$order->set_total( $order->get_meta( '_child_total' ) );
+		}
 
 		add_action(
 			'woocommerce_before_order_object_save',
-			array( $this, 'calculate_order_totals' )
+			array( $this, 'calculate_order_taxes' )
 		);
 	}
 
