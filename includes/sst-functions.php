@@ -494,8 +494,13 @@ function sst_render_certificate_table( $user_id = 0, $options = array() ) {
 	);
 
 	sst_load_template( 'includes/views/html-certificate-list.php', $options );
-	sst_load_template( 'includes/views/html-add-certificate-modal.php' );
-	sst_load_template( 'includes/views/html-view-certificate.php' );
+
+	$footer_hook = is_admin() ? 'admin_footer' : 'wp_footer';
+
+	add_action( $footer_hook, function() {
+		sst_load_template( 'includes/views/html-add-certificate-modal.php' );
+		sst_load_template( 'includes/views/html-view-certificate.php' );
+	} );
 }
 
 /**
