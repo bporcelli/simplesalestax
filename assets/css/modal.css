@@ -8,7 +8,7 @@
 .wc-backbone-modal .wc-backbone-modal-content {
     position: fixed;
     background: #fff;
-    z-index: 9998;
+    z-index: 100001;
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
@@ -28,7 +28,7 @@
     min-height: 360px;
     background: #000;
     opacity: .7;
-    z-index: 9900;
+    z-index: 100000;
 }
 
 .wc-backbone-modal-main {
