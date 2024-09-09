@@ -49,10 +49,10 @@ export const NewCertificateForm = () => {
 			const store = select( VALIDATION_STORE_KEY );
 			return {
 				businessTypeOtherError: store.getValidationError(
-					'business-type-other-error'
+					'purchase_business_type_other_value_error'
 				),
 				exemptionReasonOtherError: store.getValidationError(
-					'exemption-reason-other-error'
+					'purchaser_exemption_reason_value_error'
 				),
 			};
 		}
@@ -71,7 +71,7 @@ export const NewCertificateForm = () => {
 				) }
 			</p>
 			<CheckboxControl
-				id="is-single-purchase"
+				id="single_purchase"
 				checked={ certificate.SinglePurchase }
 				onChange={ ( value ) =>
 					updateCertificate( 'SinglePurchase', value )
@@ -83,7 +83,7 @@ export const NewCertificateForm = () => {
 				) }
 			</CheckboxControl>
 			<StateInput
-				id="exempt-state"
+				id="exempt_state"
 				label={ __( 'Exempt state', 'simple-sales-tax' ) }
 				country="US"
 				states={ ALLOWED_STATES }
@@ -96,13 +96,14 @@ export const NewCertificateForm = () => {
 			<div
 				className="sst-radio-group"
 				role="radiogroup"
-				ariaLabelledBy="tax-id-type-label"
+				id="tax_type"
+				ariaLabelledBy="tax_type_label"
 			>
-				<label id="tax-id-type-label">
+				<label id="tax_type_label">
 					{ __( 'Tax ID type', 'simple-sales-tax' ) }
 				</label>
 				<RadioControl
-					id="tax-id-type"
+					id="tax_type"
 					selected={ certificate.TaxType }
 					options={ [
 						{
@@ -127,7 +128,7 @@ export const NewCertificateForm = () => {
 			</div>
 			{ certificate.TaxType === 'StateIssued' && (
 				<StateInput
-					id="issuing-state"
+					id="state_of_issue"
 					label={ __( 'Issuing state', 'simple-sales-tax' ) }
 					country="US"
 					states={ ALLOWED_STATES }
@@ -139,8 +140,8 @@ export const NewCertificateForm = () => {
 				/>
 			) }
 			<ValidatedTextInput
-				id="tax-id-number"
-				errorId="tax-id-number-error"
+				id="id_number"
+				errorId="id_number_error"
 				label={ __( 'Tax ID', 'simple-sales-tax' ) }
 				required
 				type="text"
@@ -148,7 +149,7 @@ export const NewCertificateForm = () => {
 				onChange={ ( value ) => updateCertificate( 'IDNumber', value ) }
 			/>
 			<Select
-				id="business-type"
+				id="purchaser_business_type"
 				label={ __( 'Business type', 'simple-sales-tax' ) }
 				onChange={ ( value ) =>
 					updateCertificate( 'PurchaserBusinessType', value )
@@ -159,8 +160,8 @@ export const NewCertificateForm = () => {
 			/>
 			{ certificate.PurchaserBusinessType === 'Other' && (
 				<ValidatedTextInput
-					id="business-type-other"
-					errorId="business-type-other-error"
+					id="purchase_business_type_other_value"
+					errorId="purchase_business_type_other_value_error"
 					label={ __(
 						'Explain the nature of your business',
 						'simple-sales-tax'
@@ -182,7 +183,7 @@ export const NewCertificateForm = () => {
 				/>
 			) }
 			<Select
-				id="exemption-reason"
+				id="purchaser_exemption_reason"
 				label={ __( 'Reason for exemption', 'simple-sales-tax' ) }
 				onChange={ ( value ) =>
 					updateCertificate( 'PurchaserExemptionReason', value )
@@ -193,8 +194,8 @@ export const NewCertificateForm = () => {
 			/>
 			{ certificate.PurchaserExemptionReason === 'Other' && (
 				<ValidatedTextInput
-					id="exemption-reason-other"
-					errorId="exemption-reason-other-error"
+					id="purchaser_exemption_reason_value"
+					errorId="purchaser_exemption_reason_value_error"
 					label={ __( 'Please explain', 'simple-sales-tax' ) }
 					required
 					type="text"

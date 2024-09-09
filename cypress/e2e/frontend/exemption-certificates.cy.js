@@ -1,5 +1,31 @@
 /// <reference types="cypress" />
 
+import products from '../../fixtures/products.json';
+
+const certificateTypes = [
+  {
+    type: 'single-purchase',
+    idPattern: /single\-purchase/
+  },
+  {
+    type: 'entity-based',
+    idPattern: /^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$/,
+  },
+];
+
+const testCases = [
+  {
+    label: 'classic checkout',
+    useClassicCart: true,
+    checkoutUrl: '/legacy-checkout/',
+  },
+  {
+    label: 'block checkout',
+    useClassicCart: false,
+    checkoutUrl: '/checkout/',
+  }
+];
+
 describe('Exemption certificates', () => {
   beforeEach(() => {
     cy.loginAsAdmin();
@@ -16,89 +42,87 @@ describe('Exemption certificates', () => {
 
     const fillBasicFields = () => {
       cy.get('#exempt_state').select('New York', {force: true});
-      cy.get('#tax_type').select('Federal Employer ID', {force: true});
+      cy.get('#tax_type').then(($el) => {
+        // Block checkout uses radiogroup; classic uses select
+        if ($el.is('select')) {
+          cy.wrap($el).select('Federal Employer ID', {force: true});
+        } else {
+          cy.wrap($el).within(() => {
+            cy.findByRole('radio', {name: 'Federal Employer ID'}).check();
+          });
+        }
+      });
       cy.get('#id_number').type('123-45-6789');
       cy.get('#purchaser_business_type').select('Construction', {force: true});
       cy.get('#purchaser_exemption_reason').select('Federal Government Department', {force: true});
     };
 
-    const validateRequiredField = (id) => {
-      cy.get(`#${id}`)
-        .closest('.form-row')
-        .should('have.class', 'validate-required');
-      cy.get(`label[for="${id}"]`)
-        .invoke('text')
-        .should('match', /.*\*$/);
+    const validateRequiredField = (id, checkLabel = true) => {
+      cy.get(`#${id}`).should('match', ':required');
+
+      if (checkLabel) {
+        cy.get(`label[for="${id}"]`)
+          .invoke('text')
+          .should('match', /.*\*$/);
+      }
     };
 
     const validateFieldHasError = (id) => {
-      cy.get(`#${id}`)
-        .closest('.form-row')
-        .should('have.class', 'woocommerce-invalid');
+      cy.get(`#${id}`).should('match', ':invalid');
     };
 
     before(() => {
       cy.loginAsAdmin();
+      cy.useClassicCart(true);
       cy.goToSettingsPage();
       cy.get('#woocommerce_wootax_show_exempt').select('Yes', {force: true});
       cy.get('#woocommerce_wootax_restrict_exempt').select('No', {force: true});
+      cy.get('#woocommerce_wootax_show_zero_tax').select('Yes', {force: true});
       cy.findByRole('button', {name: 'Save changes'}).click({ force: true });
     });
 
-    describe('checkout', () => {
-      const selectCertificate = (id) => {
-        cy.get('select#certificate_id').select(id, {force: true});
+    describe('classic checkout', () => {
+      const selectCertificate = (option) => {
+        cy.get('@certificateSelect').select(option, {force: true});
         cy.wait('@updateOrderReview', {timeout: 15000});
       };
 
       beforeEach(() => {
         cy.intercept('POST', '/?wc-ajax=update_order_review').as('updateOrderReview');
-        cy.addProductToCart('General Product');
-        cy.visit('/checkout/');
+
+        cy.resetCart();
+        cy.addProductToCart(products.simpleProduct.id);
+        cy.visit('/legacy-cart/');
+        cy.selectShippingMethod('Free shipping');
+        cy.visit('/legacy-checkout/');
+
+        cy.get('#certificate_id').as('certificateSelect');
       });
 
       it('renders tax exemption form', () => {
         cy.findByRole('heading', {name: 'Tax exemption'}).should('be.visible');
-        cy.emptyCart();
       });
 
       it('applies a zero rate when a certificate is selected', () => {
         // Tax is applied when no certificate is selected
-        selectCertificate('');
-        cy.getTaxTotal().then((total) => {
-          expect(total).not.to.match(/0\.00$/);
-        });
+        selectCertificate('None');
+        cy.assertTaxTotal(products.simpleProduct.expectedTax);
 
         // Tax is zero when saved certificate is selected
-        cy.get('select#certificate_id').then(($select) => {
-          // Select first cert after "None" and "New"
-          const $option = $select.find('option').eq(2);
-          selectCertificate($option.val());
-        });
-        cy.getTaxTotal().then((total) => {
-          expect(total).to.match(/0\.00$/);
-        });
+        selectCertificate(2);
+        cy.assertTaxTotal(0.00);
 
         // Tax is zero when a new certificate is being added
-        selectCertificate('new');
-        cy.getTaxTotal().then((total) => {
-          expect(total).to.match(/0\.00$/);
-        });
-
-        cy.emptyCart();
+        selectCertificate('Add new certificate');
+        cy.assertTaxTotal(0.00);
       });
 
-      const certificateTypes = [
-        ['single-purchase', /single\-purchase/],
-        ['entity-based', /^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$/]
-      ];
-
-      certificateTypes.forEach(([certificateType, idPattern]) => {
-        it(`allows user to add a new ${certificateType} certificate`, () => {
-          selectCertificate('new');
+      certificateTypes.forEach(({ type, idPattern }) => {
+        it(`allows user to add a new ${type} certificate`, () => {
+          selectCertificate('Add new certificate');
 
           // Fill out form
-          if (certificateType === 'single-purchase') {
+          if (type === 'single-purchase') {
             cy.get('#single_purchase').check();
           }
 
@@ -130,34 +154,23 @@ describe('Exemption certificates', () => {
 
       describe('validation', () => {
         beforeEach(() => {
-          selectCertificate('new');
-          fillBasicFields();
-        });
-
-        afterEach(() => {
-          cy.emptyCart();
+          selectCertificate('Add new certificate');
         });
 
         it('requires basic fields', () => {
+          cy.findByRole('button', {name: 'Place order'}).click({force: true});
+          cy.waitForBlockedElements();
+          cy.contains('Required exemption certificate fields are missing').should('be.visible');
+
           for (const field of alwaysRequiredFields) {
-            // Should be labeled as required in UI
             validateRequiredField(field);
-
-            // Should show error if field is empty
-            cy.get(`#${field}`).invoke('val').then((origVal) => {
-              cy.get(`#${field}`).invoke('val', '');
-
-              cy.findByRole('button', {name: 'Place order'}).click({force: true});
-              cy.waitForBlockedElements();
-              cy.contains('Required exemption certificate fields are missing').should('be.visible');
-              validateFieldHasError(field);
-
-              cy.get(`#${field}`).invoke('val', origVal);
-            });
+            validateFieldHasError(field);
           }
         });
 
         it('requires state when id type is state', () => {
+          fillBasicFields();
+
           cy.get('#state_of_issue_field').should('not.be.visible');
           cy.get('#tax_type').select('State Issued Exemption ID or Drivers License', {force: true});
           cy.get('#state_of_issue_field').should('be.visible');
@@ -171,6 +184,8 @@ describe('Exemption certificates', () => {
         });
 
         it('requires other type value when business type is other', () => {
+          fillBasicFields();
+
           cy.get('#purchase_business_type_other_value').should('not.be.visible');
           cy.get('#purchaser_business_type').select('Other', {force: true});
           cy.get('#purchase_business_type_other_value').should('be.visible');
@@ -184,6 +199,8 @@ describe('Exemption certificates', () => {
         });
 
         it('requires other reason value when exemption reason is other', () => {
+          fillBasicFields();
+
           cy.get('#purchaser_exemption_reason').select('Other', {force: true});
 
           validateRequiredField('purchaser_exemption_reason_value');
@@ -191,6 +208,131 @@ describe('Exemption certificates', () => {
           cy.findByRole('button', {name: 'Place order'}).click({force: true});
           cy.waitForBlockedElements();
           cy.contains('Required exemption certificate fields are missing').should('be.visible');
+          validateFieldHasError('purchaser_exemption_reason_value');
+        });
+      });
+    });
+
+    describe('block checkout', () => {
+      before(() => {
+        cy.loginAsAdmin();
+        cy.useClassicCart(false);
+      });
+
+      beforeEach(() => {
+        cy.resetCart();
+        cy.addProductToCart(products.simpleProduct.id);
+
+        cy.visit('/checkout/');
+        cy.selectShippingMethod('Free shipping');
+
+        cy.findByRole('listbox', {name: 'Exemption certificate'}).as('certificateSelect');
+        cy.findByRole('button', {name: /place order/i}).as('placeOrder');
+      });
+
+      it('renders tax exemption form', () => {
+        cy.findByRole('heading', {name: 'Tax exemption'}).should('be.visible');
+      });
+
+      it('applies a zero rate when a certificate is selected', () => {
+        // Tax is applied when no certificate is selected
+        cy.get('@certificateSelect').select('None');
+        cy.assertTaxTotal(products.simpleProduct.expectedTax);
+
+        // Tax is zero when saved certificate is selected
+        cy.get('@certificateSelect').select(2);
+        cy.get('@placeOrder', {timeout: 15000}).should('be.enabled');
+        cy.findByText('Sales Tax').should('not.exist');
+
+        // Tax is zero when a new certificate is being added
+        cy.get('@certificateSelect').select('Add new certificate');
+        cy.get('@placeOrder', {timeout: 15000}).should('be.enabled');
+        cy.findByText('Sales Tax').should('not.exist');
+      });
+
+      certificateTypes.forEach(({ type, idPattern }) => {
+        it(`allows user to add a new ${type} certificate`, () => {
+          cy.get('@certificateSelect').select('Add new certificate');
+
+          // Fill out form
+          if (type === 'single-purchase') {
+            cy.get('#single_purchase').check();
+          }
+
+          fillBasicFields();
+
+          // Checkout
+          cy.get('@placeOrder').click();
+          cy.url({ timeout: 60000 }).should('match', /\/(\d+)\//);
+
+          // Edit order
+          cy.url().then((url) => {
+            const orderId = /\/(\d+)\//.exec(url)[1];
+            cy.visit(`/wp-admin/admin.php?page=wc-orders&action=edit&id=${orderId}`);
+          });
+
+          // Confirm tax is zero
+          cy.contains('td', 'Sales Tax:').should('not.exist');
+
+          // Confirm exemption certifiate was saved
+          cy.get('#exempt_cert', {timeout: 30000})
+            .invoke('val')
+            .should('match', idPattern);
+        });
+      });
+
+      describe('validation', () => {
+        beforeEach(() => {
+          cy.get('@certificateSelect').select('Add new certificate');
+          cy.get('@placeOrder', {timeout: 150000}).should('be.enabled');
+        });
+
+        it('requires basic fields', () => {
+          cy.get('@placeOrder').click();
+
+          // In block checkout, tax type is a radio and cannot be unchecked
+          const fieldsToCheck = alwaysRequiredFields.filter((field) => field !== 'tax_type');
+
+          for (const field of fieldsToCheck) {
+            validateRequiredField(field, false);
+            validateFieldHasError(field);
+          }
+        });
+
+        it('requires state when id type is state', () => {
+          fillBasicFields();
+
+          cy.get('#state_of_issue').should('not.exist');
+          cy.findByRole('radio', {name: /state issued exemption id/i}).check();
+          cy.get('#state_of_issue').should('be.visible');
+
+          validateRequiredField('state_of_issue', false);
+
+          cy.get('@placeOrder').click();
+          validateFieldHasError('state_of_issue');
+        });
+
+        it('requires other type value when business type is other', () => {
+          fillBasicFields();
+
+          cy.get('#purchase_business_type_other_value').should('not.exist');
+          cy.get('#purchaser_business_type').select('Other');
+          cy.get('#purchase_business_type_other_value').should('be.visible');
+
+          validateRequiredField('purchase_business_type_other_value', false);
+
+          cy.get('@placeOrder').click();
+          validateFieldHasError('purchase_business_type_other_value');
+        });
+
+        it('requires other reason value when exemption reason is other', () => {
+          fillBasicFields();
+
+          cy.get('#purchaser_exemption_reason').select('Other');
+
+          validateRequiredField('purchaser_exemption_reason_value', false);
+
+          cy.get('@placeOrder').click();
           validateFieldHasError('purchaser_exemption_reason_value');
         });
       });
@@ -316,11 +458,14 @@ describe('Exemption certificates', () => {
         cy.findByRole('button', {name: 'Save changes'}).click({ force: true });
       });
 
-      it('renders tax exemption form on checkout page', () => {
-        cy.addProductToCart('General Product');
-        cy.visit('/checkout/');
-        cy.findByRole('heading', {name: 'Tax exemption'}).should('be.visible');
-        cy.emptyCart();
+      testCases.forEach(({ label, useClassicCart, checkoutUrl }) => {
+        it(`renders tax exemption form on ${label} page`, () => {
+          cy.useClassicCart(useClassicCart);
+          cy.resetCart();
+          cy.addProductToCart(products.simpleProduct.id);
+          cy.visit(checkoutUrl);
+          cy.findByRole('heading', {name: 'Tax exemption'}).should('be.visible');
+        });
       });
 
       it('renders exemption certificates menu item in my account', () => {
@@ -339,11 +484,14 @@ describe('Exemption certificates', () => {
         cy.findByRole('button', {name: 'Save changes'}).click({ force: true });
       });
 
-      it('does not render exemption form on checkout page', () => {
-        cy.addProductToCart('General Product');
-        cy.visit('/checkout/');
-        cy.findByRole('heading', {name: 'Tax exemption'}).should('not.exist');
-        cy.emptyCart();
+      testCases.forEach(({ label, checkoutUrl, useClassicCart }) => {
+        it(`does not render exemption form on ${label} page`, () => {
+          cy.resetCart();
+          cy.useClassicCart(useClassicCart);
+          cy.addProductToCart(products.simpleProduct.id);
+          cy.visit(checkoutUrl);
+          cy.findByRole('heading', {name: 'Tax exemption'}).should('not.exist');
+        });
       });
 
       it('does not render exemption certificates menu item in my account', () => {
@@ -361,11 +509,14 @@ describe('Exemption certificates', () => {
       cy.findByRole('button', {name: 'Save changes'}).click({ force: true });
     });
 
-    it('does not render tax exemption form on checkout page', () => {
-      cy.addProductToCart('General Product');
-      cy.visit('/checkout/');
-      cy.findByRole('heading', {name: 'Tax exemption'}).should('not.exist');
-      cy.emptyCart();
+    testCases.forEach(({ label, checkoutUrl, useClassicCart }) => {
+      it(`does not render exemption form on ${label} page`, () => {
+        cy.resetCart();
+        cy.useClassicCart(useClassicCart);
+        cy.addProductToCart(products.simpleProduct.id);
+        cy.visit(checkoutUrl);
+        cy.findByRole('heading', {name: 'Tax exemption'}).should('not.exist');
+      });
     });
 
     it('does not render exemption certificates menu item in my account', () => {

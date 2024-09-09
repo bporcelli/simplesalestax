@@ -14,13 +14,19 @@
     "id": 90148,
     "variations": [
       {
+        "id": 90171,
         "name": "A",
         "expectedTax": 0.43
       },
       {
+        "id": 90172,
         "name": "B",
         "expectedTax": 0.52
       }
     ]
+  },
+  "multiOriginProduct": {
+    "name": "Multi-origin Product",
+    "id": 90161
   }
 }
