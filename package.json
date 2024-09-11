@@ -3,8 +3,8 @@
   "version": "8.1.1",
   "description": "A TaxCloud integration for WooCommerce.",
   "scripts": {
-    "build": "build:blocks && grunt",
-    "makepot": "grunt makepot",
+    "build": "npm run build:blocks && npm run build:makepot && grunt",
+    "build:makepot": "npx @wp-blocks/make-pot . ./languages --slug simple-sales-tax --domain plugin --exclude .git,build,cypress,docker,node_modules,vendor,*.config.js",
     "archive": "cross-var wp dist-archive . releases/simple-sales-tax-$npm_package_version.zip --plugin-dirname=simple-sales-tax --format=zip",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run",
@@ -39,12 +39,12 @@
     "@wordpress/base-styles": "4.35.0",
     "@wordpress/icons": "^9.41.0",
     "@wordpress/scripts": "^27.1.0",
+    "@wp-blocks/make-pot": "^1.4.0",
     "cross-var": "^1.1.0",
     "cypress": "^13.6.4",
     "grunt": "^1.6.1",
     "grunt-contrib-cssmin": "^5.0.0",
     "grunt-contrib-uglify": "^5.2.2",
-    "grunt-wp-i18n": "^1.0.3",
     "wordpress-components": "npm:@wordpress/components@28.3.0"
   },
   "dependencies": {

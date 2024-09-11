@@ -1,117 +1,901 @@
-# Copyright (C) 2024 TaxCloud
-# This file is distributed under the same license as the Simple Sales Tax package.
+# Copyright (C) 2024 simple-sales-tax
+# This file is distributed under the GPL-3.0+ license.
 msgid ""
 msgstr ""
-"Project-Id-Version: Simple Sales Tax 8.1.1\n"
-"Report-Msgid-Bugs-To: https://github.com/bporcelli/simplesalestax/issues\n"
-"POT-Creation-Date: 2024-09-06 15:13:55+00:00\n"
+"Project-Id-Version: simple-sales-tax 8.1.1\n"
+"Report-Msgid-Bugs-To: TaxCloud <EMAIL>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Content-Type: text/plain; charset=iso-8859-1\n"
+"Plural-Forms: nplurals=2; plural=(n!=1);\n"
+"POT-Creation-Date: 2024-09-11T16:28:24.920Z\n"
 "PO-Revision-Date: 2024-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: Brett Porcelli <bporcelli@taxcloud.com>\n"
+"Last-Translator: TaxCloud <EMAIL>\n"
+"Language-Team: TaxCloud <EMAIL>\n"
+"X-Generator: @wp-blocks/make-pot 1.4.0\n"
 "Language: en\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Poedit-Country: United States\n"
-"X-Poedit-SourceCharset: UTF-8\n"
-"X-Poedit-KeywordsList: "
-"__;_e;_x:1,2c;_ex:1,2c;_n:1,2;_nx:1,2,4c;_n_noop:1,2;_nx_noop:1,2,3c;esc_"
-"attr__;esc_html__;esc_attr_e;esc_html_e;esc_attr_x:1,2c;esc_html_x:1,2c;\n"
-"X-Poedit-Basepath: ../\n"
-"X-Poedit-SearchPath-0: .\n"
-"X-Poedit-Bookmarks: \n"
-"X-Textdomain-Support: yes\n"
-"X-Generator: grunt-wp-i18n 1.0.3\n"
+"domain: X-Domain: simple-sales-tax\n"
 
-#: includes/abstracts/class-sst-abstract-cart.php:96
-#. translators: error message from TaxCloud API response.
-msgid "Failed to calculate sales tax: %s"
-msgstr ""
-
-#: includes/abstracts/class-sst-abstract-cart.php:132
-msgid "Failed to calculate sales tax: Shipping origin address is invalid."
-msgstr ""
-
-#: includes/abstracts/class-sst-abstract-cart.php:330
-#. translators: WooCommerce product ID.
-msgid "Failed to calculate sales tax: no origin address for product %d."
-msgstr ""
-
-#: includes/abstracts/class-sst-abstract-cart.php:376
-msgid ""
-"Origin address for shipping package is invalid. Using default origin "
-"address from Simple Sales Tax settings."
-msgstr ""
-
-#: includes/abstracts/class-sst-marketplace-integration.php:243
-msgid ""
-"This order has sub-orders and will not be captured in TaxCloud. Please see "
-"the sub-orders for tax details."
-msgstr ""
-
-#. Plugin Name of the plugin/theme
+#: simple-sales-tax.php
+#: includes/admin/class-sst-integration.php:27
+#: includes/admin/class-sst-admin.php:108
+#. Name of the plugin
 msgid "Simple Sales Tax"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:142
-msgid "Go to TaxCloud Reports Page"
+#: simple-sales-tax.php
+#. Url of the plugin
+msgid ""
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:158
-msgid "Taxes"
+#: simple-sales-tax.php
+#. Description of the plugin
+msgid ""
+"Harness the power of TaxCloud to accurately calculate sales tax for your "
+"WooCommerce store."
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:161
-msgid "Overview"
+#: simple-sales-tax.php
+#. Author of the plugin
+msgid "TaxCloud"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:198
-msgid "Delete cached tax rates"
+#: simple-sales-tax.php
+#. Author URI of the plugin
+msgid "https://taxcloud.com"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:199
-msgid "Clear tax rate cache"
+#: includes/sst-update-functions.php:573
+#: includes/class-sst-order.php:316
+#: includes/class-sst-order.php:908
+msgid "Fee"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:200
-msgid "This tool will remove any tax rates cached by WooCommerce."
+# 1 - WooCommerce order ID, 2 - Error message
+#: includes/sst-update-functions.php:709
+msgid "Failed to refund extraneous package for order #%1$d: %2$s."
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:219
-msgid "Tax rate cache cleared."
+#: includes/sst-update-functions.php:941
+msgid ""
+"<strong>IMPORTANT: Your TaxCloud Locations are out of sync.</strong> One or "
+"more of the addresses from your Simple Sales Tax settings are not "
+"registered as Locations in your TaxCloud account. Please add all of the "
+"addresses listed below on the <a "
+"href=\"https://app.taxcloud.com/go/locations\" "
+"target=\"_blank\">Locations</a> page in TaxCloud, then click Dismiss to "
+"dismiss this notice. %2$s"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:247
-#: includes/integrations/class-sst-wcfm.php:148
-#: includes/integrations/class-sst-wcfm.php:190
+#: includes/sst-functions.php:221
+msgid "Using site default"
+msgstr ""
+
+#: includes/sst-functions.php:234
+#: includes/integrations/class-sst-wcfm.php:140
+msgid "Same as parent"
+msgstr ""
+
+#: includes/sst-functions.php:257
+#: includes/views/html-select-tic-modal.php:35
+msgid "Select"
+msgstr ""
+
+#: includes/sst-functions.php:287
+msgid ""
+"The TIC is used to determine the appropriate sales tax rate for your "
+"product. If your product is exempt from sales tax or qualifies for reduced "
+"tax rates, please make sure you select an appropriate TIC."
+msgstr ""
+
+#: includes/sst-functions.php:408
+msgid "None"
+msgstr ""
+
+#: includes/sst-functions.php:409
+msgid "Single Purchase Certificate"
+msgstr ""
+
+#: includes/sst-functions.php:410
+msgid "Certificate added successfully! Don't forget to recalculate taxes."
+msgstr ""
+
+#: includes/sst-functions.php:414
+#: includes/sst-functions.php:477
+msgid "Failed to add certificate"
+msgstr ""
+
+#: includes/sst-functions.php:476
+msgid "Failed to delete certificate"
+msgstr ""
+
+#: includes/sst-functions.php:478
+msgid ""
+"Are you sure you want to delete this certificate? This action is "
+"irreversible."
+msgstr ""
+
+#: includes/sst-functions.php:561
+msgid "Sales Tax"
+msgstr ""
+
+#: includes/class-sst-settings.php:88
+msgid "TaxCloud Settings"
+msgstr ""
+
+#: includes/class-sst-settings.php:90
+msgid ""
+"You must enter a valid TaxCloud API ID and API Key for Simple Sales Tax to "
+"work properly. Use the \"Verify Settings\" button to test your settings."
+msgstr ""
+
+#: includes/class-sst-settings.php:96
+msgid "TaxCloud API ID"
+msgstr ""
+
+#: includes/class-sst-settings.php:98
+msgid ""
+"Your TaxCloud API ID. This can be found in your TaxCloud account on the "
+"\"Websites\" page."
+msgstr ""
+
+#: includes/class-sst-settings.php:106
+msgid "TaxCloud API Key"
+msgstr ""
+
+#: includes/class-sst-settings.php:108
+msgid ""
+"Your TaxCloud API Key. This can be found in your TaxCloud account on the "
+"\"Websites\" page."
+msgstr ""
+
+#: includes/class-sst-settings.php:116
+msgid "Verify TaxCloud Settings"
+msgstr ""
+
+#: includes/class-sst-settings.php:117
+msgid "Verify Settings"
+msgstr ""
+
+#: includes/class-sst-settings.php:119
+msgid "Use this button to verify that your site can communicate with TaxCloud."
+msgstr ""
+
+#: includes/class-sst-settings.php:127
+msgid "Address Settings"
+msgstr ""
+
+#: includes/class-sst-settings.php:129
+msgid ""
+"To accurately determine the sales tax for an order, Simple Sales Tax needs "
+"to know the locations you ship your products from.<br>You can select from "
+"the addresses entered on the <a "
+"href=\"https://app.taxcloud.com/go/locations\" "
+"target=\"_blank\">Locations</a> page in TaxCloud."
+msgstr ""
+
+#: includes/class-sst-settings.php:135
+msgid "Shipping Origin Addresses"
+msgstr ""
+
+#: includes/class-sst-settings.php:137
+msgid ""
+"Select the addresses you ship your products from. You can choose a "
+"different set of origin addresses for a specific product under the Shipping "
+"tab on the Edit Product screen."
+msgstr ""
+
+#: includes/class-sst-settings.php:145
+msgid "Exemption Settings"
+msgstr ""
+
+#: includes/class-sst-settings.php:147
+msgid ""
+"If you have tax exempt customers, be sure to enable tax exemptions and "
+"enter your company name."
+msgstr ""
+
+#: includes/class-sst-settings.php:153
+msgid "Enable Tax Exemptions?"
+msgstr ""
+
+#: includes/class-sst-settings.php:156
+#: includes/class-sst-settings.php:195
+#: includes/class-sst-settings.php:208
+msgid "Yes"
+msgstr ""
+
+#: includes/class-sst-settings.php:157
+#: includes/class-sst-settings.php:196
+#: includes/class-sst-settings.php:209
+msgid "No"
+msgstr ""
+
+#: includes/class-sst-settings.php:160
+msgid "Set this to \"Yes\" if you have tax exempt customers."
+msgstr ""
+
+#: includes/class-sst-settings.php:164
+msgid "Company Name"
+msgstr ""
+
+#: includes/class-sst-settings.php:167
+msgid "Enter your company name as it should be displayed on exemption certificates."
+msgstr ""
+
+#: includes/class-sst-settings.php:174
+msgid "Exempt User Roles"
+msgstr ""
+
+#: includes/class-sst-settings.php:179
+msgid ""
+"When a user with one of these roles shops on your site, WooTax will "
+"automatically find and apply the first exemption certificate associated "
+"with their account. Convenient if you have repeat exempt customers."
+msgstr ""
+
+#: includes/class-sst-settings.php:186
+msgid "Restrict to Exempt Roles"
+msgstr ""
+
+#: includes/class-sst-settings.php:189
+msgid ""
+"Set this to \"Yes\" to restrict users aside from those specified above from "
+"seeing the exemption form during checkout."
+msgstr ""
+
+#: includes/class-sst-settings.php:200
+msgid "Display Settings"
+msgstr ""
+
+#: includes/class-sst-settings.php:202
+msgid "Control how taxes are displayed during checkout."
+msgstr ""
+
+#: includes/class-sst-settings.php:205
+msgid "Show Zero Tax?"
+msgstr ""
+
+#: includes/class-sst-settings.php:212
+msgid ""
+"When the sales tax due is zero, should the \"Sales Tax\" line be shown? "
+"Disabled when cart or checkout block is in use."
+msgstr ""
+
+#: includes/class-sst-settings.php:220
+msgid "Advanced Settings"
+msgstr ""
+
+#: includes/class-sst-settings.php:222
+msgid ""
+"For advanced users only. Leave these settings untouched if you are not sure "
+"how to use them."
+msgstr ""
+
+#: includes/class-sst-settings.php:228
+msgid "Shipping TIC"
+msgstr ""
+
+#: includes/class-sst-settings.php:231
+msgid ""
+"11000 - Handling, crating, packing, preparation for mailing or delivery, "
+"and similar charges"
+msgstr ""
+
+#: includes/class-sst-settings.php:235
+msgid "11010 - Transportation, shipping, postage, and similar charges"
+msgstr ""
+
+#: includes/class-sst-settings.php:239
+msgid "11011 - Transportation, shipping, postage, and similar charges by USPS"
+msgstr ""
+
+#: includes/class-sst-settings.php:243
+msgid ""
+"11012 - Transportation, shipping, postage, and similar charges with pick-up "
+"option"
+msgstr ""
+
+#: includes/class-sst-settings.php:247
+msgid "11098 - Colorado Retail Delivery Fees"
+msgstr ""
+
+#: includes/class-sst-settings.php:250
+msgid ""
+"Enter TIC code on <a href=\"https://taxcloud.net/tic\" "
+"target=\"_blank\">TaxCloud website</a> for details."
+msgstr ""
+
+#: includes/class-sst-settings.php:254
+msgid "Select the Taxability Information Code to apply to shipping charges."
+msgstr ""
+
+#: includes/class-sst-settings.php:260
+msgid "Log Requests"
+msgstr ""
+
+#: includes/class-sst-settings.php:264
+msgid ""
+"When selected, Simple Sales Tax will log all requests sent to TaxCloud for "
+"debugging purposes."
+msgstr ""
+
+#: includes/class-sst-settings.php:271
+msgid "Capture Orders Immediately"
+msgstr ""
+
+#: includes/class-sst-settings.php:275
+msgid ""
+"By default, orders are marked as Captured in TaxCloud when they are "
+"shipped. Select this option to mark orders as Captured immediately when "
+"payment is received. Useful for stores that have items with long lead times."
+msgstr ""
+
+#: includes/class-sst-settings.php:282
+msgid "Tax Based On"
+msgstr ""
+
+#: includes/class-sst-settings.php:285
+msgid "Item Price"
+msgstr ""
+
+#: includes/class-sst-settings.php:286
+msgid "Line Subtotal"
+msgstr ""
+
+#: includes/class-sst-settings.php:289
+msgid ""
+"\"Item Price\": TaxCloud determines the taxable amount for a line item by "
+"multiplying the item price by its quantity. \"Line Subtotal\": the taxable "
+"amount is determined by the line subtotal. Useful in instances where "
+"rounding becomes an issue."
+msgstr ""
+
+#: includes/class-sst-settings.php:296
+msgid "Remove All Data"
+msgstr ""
+
+#: includes/class-sst-settings.php:300
+msgid ""
+"When this feature is enabled, all Simple Sales Tax options and data will be "
+"removed when you click deactivate and delete the plugin."
+msgstr ""
+
+#: includes/class-sst-settings.php:307
+msgid "Debug Report"
+msgstr ""
+
+#: includes/class-sst-settings.php:308
+msgid "Download"
+msgstr ""
+
+#: includes/class-sst-settings.php:312
+msgid ""
+"Send a copy of this report to TaxCloud support to help with debugging "
+"Simple Sales Tax issues."
+msgstr ""
+
+#: includes/class-sst-product.php:125
+msgid "No Change"
+msgstr ""
+
+#: includes/class-sst-product.php:130
+#: includes/class-sst-product.php:183
+msgid "TIC"
+msgstr ""
+
+# WooCommerce order ID
+#: includes/class-sst-order.php:661
+msgid "Failed to capture order %d: already captured."
+msgstr ""
+
+# WooCommerce order ID
+#: includes/class-sst-order.php:673
+msgid "Failed to capture order %d: order was refunded."
+msgstr ""
+
+# 1 - WooCommerce order ID, 2 - Error message from TaxCloud
+#: includes/class-sst-order.php:703
+msgid "Failed to capture order %1$d: %2$s."
+msgstr ""
+
+# WooCommerce order ID
+#: includes/class-sst-order.php:746
+msgid "Can't refund order %d: order must be completed first."
+msgstr ""
+
+# 1 - WooCommerce order ID, 2 - Error message from TaxCloud
+#: includes/class-sst-order.php:841
+msgid "Failed to refund order %1$d: %2$s."
+msgstr ""
+
+#: includes/class-sst-marketplaces.php:118
+msgid ""
+"Select the addresses you ship your products from. These will be used when "
+"calculating tax for your products and for vendors who haven't provided an "
+"address yet."
+msgstr ""
+
+# 1 - URL to keep found rates, 2 - URL to delete found rates
+#: includes/class-sst-install.php:153
+msgid ""
+"Simple Sales Tax found extra rates in your tax tables. Please choose to <a "
+"href=\"%1$s\">keep the rates</a> or <a href=\"%2$s\">delete them</a>."
+msgstr ""
+
+#: includes/class-sst-install.php:257
+msgid "Exempt Customer"
+msgstr ""
+
+#: includes/class-sst-install.php:274
+msgid "Settings"
+msgstr ""
+
+# 1 - state issued, 2 - tax id, 3 - date created
+#: includes/class-sst-certificates.php:147
+msgid "%1$s - %2$s (created %3$s)"
+msgstr ""
+
+# 1 - error message
+#: includes/class-sst-certificates.php:356
+msgid "Failed to add exemption certificate. Error was: %1$s"
+msgstr ""
+
+#: includes/class-sst-assets.php:100
+msgid "Please enter your API Login ID and API Key."
+msgstr ""
+
+#: includes/class-sst-assets.php:104
+msgid "Success! Your TaxCloud settings are valid."
+msgstr ""
+
+#: includes/class-sst-assets.php:108
+msgid "Connection to TaxCloud failed."
+msgstr ""
+
+#: includes/class-sst-assets.php:145
+msgid "Please enter a complete billing address first."
+msgstr ""
+
+#: includes/class-sst-assets.php:149
+msgid ""
+"Billing address must be in the United States to add an exemption "
+"certificate."
+msgstr ""
+
+#: includes/class-sst-ajax.php:133
+msgid "Invalid request."
+msgstr ""
+
+#: includes/class-simplesalestax.php:287
+msgid ""
+"<strong>Simple Sales Tax is inactive.</strong> Simple Sales Tax cannot be "
+"used alongside the <a "
+"href=\"https://wordpress.org/plugins/taxjar-simplified-taxes-for-"
+"woocommerce/\" target=\"_blank\">TaxJar</a> plugin. Please deactivate "
+"TaxJar to use Simple Sales Tax."
+msgstr ""
+
+#: includes/class-simplesalestax.php:300
+msgid ""
+"<strong>Simple Sales Tax is inactive.</strong> Simple Sales Tax cannot be "
+"used alongside the <a "
+"href=\"https://woocommerce.com/products/woocommerce-avatax/\" "
+"target=\"_blank\">WooCommerce AvaTax</a> plugin. Please deactivate "
+"WooCommerce AvaTax to use Simple Sales Tax."
+msgstr ""
+
+#: includes/class-simplesalestax.php:314
+msgid ""
+"<strong>Simple Sales Tax is inactive.</strong> Simple Sales Tax cannot be "
+"used alongside <a "
+"href=\"https://docs.woocommerce.com/document/woocommerce-services/#section-1"
+"0\" target=\"_blank\">WooCommerce Services Automated Taxes</a>. Please "
+"disable automated taxes to use Simple Sales Tax."
+msgstr ""
+
+#: includes/class-simplesalestax.php:327
+msgid ""
+"<strong>PHP needs to be updated.</strong> Simple Sales Tax requires PHP "
+"7.2+."
+msgstr ""
+
+#: includes/class-simplesalestax.php:337
+msgid ""
+"<strong>WooCommerce not detected.</strong> Please install or activate "
+"WooCommerce to use Simple Sales Tax."
+msgstr ""
+
+#: includes/class-simplesalestax.php:350
+msgid ""
+"<strong>WooCommerce needs to be updated.</strong> Simple Sales Tax requires "
+"WooCommerce 6.9.0+."
+msgstr ""
+
+#: includes/views/html-view-certificate.php:12
+msgid "View certificate"
+msgstr ""
+
+#: includes/views/html-view-certificate.php:16
+#: includes/views/html-select-tic-modal.php:50
+#: includes/views/html-add-certificate-modal.php:21
+msgid "Close modal panel"
+msgstr ""
+
+#: includes/views/html-select-tic-modal.php:46
+msgid "Select TIC"
+msgstr ""
+
+#: includes/views/html-select-tic-modal.php:57
+msgid "Start typing to search"
+msgstr ""
+
+#: includes/views/html-meta-box.php:9
+msgid "TaxCloud Status"
+msgstr ""
+
+#: includes/views/html-meta-box.php:12
+msgid ""
+"Status of order in TaxCloud ('Pending', 'Captured', or 'Refunded'). All "
+"orders should eventually be 'Captured' or 'Refunded.'"
+msgstr ""
+
+#: includes/views/html-meta-box.php:24
+msgid "Exemption Certificate"
+msgstr ""
+
+#: includes/views/html-meta-box.php:25
+msgid "An exemption certificate must be applied if the customer is tax exempt."
+msgstr ""
+
+#: includes/views/html-meta-box.php:35
+#: includes/views/html-meta-box.php:50
+msgid "Loading..."
+msgstr ""
+
+#: includes/views/html-meta-box.php:55
+msgid "Please select a customer to add an exemption certificate."
+msgstr ""
+
+#: includes/views/html-meta-box.php:61
+msgid ""
+"Certificate is no longer editable. The certificate can only be edited when "
+"the TaxCloud Status is Pending."
+msgstr ""
+
+#: includes/views/html-meta-box.php:72
+msgid "Manage customer certificates ?"
+msgstr ""
+
+#: includes/views/html-meta-box.php:76
+msgid "Select certificate"
+msgstr ""
+
+#: includes/views/html-meta-box.php:87
+msgid "View Selected"
+msgstr ""
+
+#: includes/views/html-meta-box.php:93
+msgid "Add New"
+msgstr ""
+
+#: includes/views/html-certificate-list.php:24
+msgid "ID"
+msgstr ""
+
+#: includes/views/html-certificate-list.php:25
+msgid "Issued To"
+msgstr ""
+
+#: includes/views/html-certificate-list.php:26
+msgid "Date"
+msgstr ""
+
+#: includes/views/html-certificate-list.php:27
+msgid "Actions"
+msgstr ""
+
+#: includes/views/html-certificate-list.php:34
+msgid "Add Certificate"
+msgstr ""
+
+#: includes/views/html-certificate-list.php:47
+msgid "There are no certificates to display. Click 'Add Certificate' to add one."
+msgstr ""
+
+#: includes/views/html-certificate-list.php:72
+msgid "View"
+msgstr ""
+
+#: includes/views/html-certificate-list.php:76
+msgid "Delete"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:16
+#: assets/js/blocks/tax-exemption/new-certificate-form.js:67
+msgid "WARNING:"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:18
+#: assets/js/blocks/tax-exemption/new-certificate-form.js:68
+msgid ""
+"You are responsible for knowing if you qualify to claim exemption from tax "
+"in the state that is due tax on this sale. You  will be held liable for any "
+"tax and interest, as well as civil and criminal penalties imposed by the "
+"member state, if you are not eligible to claim this exemption."
+msgstr ""
+
+#: includes/views/html-certificate-form.php:31
+#: assets/js/blocks/tax-exemption/new-certificate-form.js:80
+msgid "This is a single-purchase exemption certificate"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:50
+msgid "Where does this exemption apply?"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:65
+#: assets/js/blocks/tax-exemption/new-certificate-form.js:103
+msgid "Tax ID type"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:71
+#: includes/views/html-certificate-form.php:106
+#: includes/views/html-certificate-form.php:130
+#: includes/views/html-certificate-form.php:247
+msgid "Select one"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:72
+#: assets/js/blocks/tax-exemption/new-certificate-form.js:117
+msgid "Federal Employer ID"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:73
+#: assets/js/blocks/tax-exemption/new-certificate-form.js:110
+msgid "State Issued Exemption ID or Drivers License"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:88
+#: assets/js/blocks/tax-exemption/new-certificate-form.js:145
+msgid "Tax ID"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:105
+msgid "ID issued by..."
+msgstr ""
+
+#: includes/views/html-certificate-form.php:121
+#: assets/js/blocks/tax-exemption/new-certificate-form.js:153
+msgid "Business type"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:134
+#: assets/js/blocks/tax-exemption/constants.js:14
+msgid "Accommodation And Food Services"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:138
+#: assets/js/blocks/tax-exemption/constants.js:18
+msgid "Agricultural/Forestry/Fishing/Hunting"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:142
+#: assets/js/blocks/tax-exemption/constants.js:25
+msgid "Construction"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:146
+#: assets/js/blocks/tax-exemption/constants.js:29
+msgid "Finance or Insurance"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:150
+#: assets/js/blocks/tax-exemption/constants.js:33
+msgid "Information Publishing and Communications"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:154
+#: assets/js/blocks/tax-exemption/constants.js:40
+msgid "Manufacturing"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:158
+#: assets/js/blocks/tax-exemption/constants.js:44
+msgid "Mining"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:162
+#: assets/js/blocks/tax-exemption/constants.js:48
+msgid "Real Estate"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:166
+#: assets/js/blocks/tax-exemption/constants.js:52
+msgid "Rental and Leasing"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:170
+#: assets/js/blocks/tax-exemption/constants.js:56
+msgid "Retail Trade"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:174
+#: assets/js/blocks/tax-exemption/constants.js:60
+msgid "Transportation and Warehousing"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:178
+#: assets/js/blocks/tax-exemption/constants.js:64
+msgid "Utilities"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:182
+#: assets/js/blocks/tax-exemption/constants.js:68
+msgid "Wholesale Trade"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:186
+#: assets/js/blocks/tax-exemption/constants.js:72
+msgid "Business Services"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:190
+#: assets/js/blocks/tax-exemption/constants.js:76
+msgid "Professional Services"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:194
+#: assets/js/blocks/tax-exemption/constants.js:80
+msgid "Education and Health Care Services"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:198
+#: assets/js/blocks/tax-exemption/constants.js:84
+msgid "Nonprofit Organization"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:202
+#: assets/js/blocks/tax-exemption/constants.js:88
+msgid "Government"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:206
+#: assets/js/blocks/tax-exemption/constants.js:92
+msgid "Not a Business"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:210
+#: includes/views/html-certificate-form.php:292
+#: assets/js/blocks/tax-exemption/constants.js:96
+#: assets/js/blocks/tax-exemption/constants.js:158
+msgid "Other"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:225
+#: includes/views/html-certificate-form.php:309
+#: assets/js/blocks/tax-exemption/new-certificate-form.js:199
+msgid "Please explain"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:226
+msgid "Explain the nature of your business."
+msgstr ""
+
+#: includes/views/html-certificate-form.php:241
+#: assets/js/blocks/tax-exemption/new-certificate-form.js:187
+msgid "Reason for exemption"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:248
+#: assets/js/blocks/tax-exemption/constants.js:108
+msgid "Federal Government Department"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:252
+#: assets/js/blocks/tax-exemption/constants.js:112
+msgid "State Or Local Government"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:256
+#: assets/js/blocks/tax-exemption/constants.js:116
+msgid "Tribal Government"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:260
+#: assets/js/blocks/tax-exemption/constants.js:120
+msgid "Foreign Diplomat"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:264
+#: assets/js/blocks/tax-exemption/constants.js:124
+msgid "Charitable Organization"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:268
+#: assets/js/blocks/tax-exemption/constants.js:128
+msgid "Religious or Educational Organization"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:272
+#: assets/js/blocks/tax-exemption/constants.js:135
+msgid "Resale"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:276
+#: assets/js/blocks/tax-exemption/constants.js:139
+msgid "Agricultural Production"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:280
+#: assets/js/blocks/tax-exemption/constants.js:143
+msgid "Industrial Production or Manufacturing"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:284
+#: assets/js/blocks/tax-exemption/constants.js:150
+msgid "Direct Pay Permit"
+msgstr ""
+
+#: includes/views/html-certificate-form.php:288
+#: assets/js/blocks/tax-exemption/constants.js:154
+msgid "Direct Mail"
+msgstr ""
+
+#: includes/views/html-add-certificate-modal.php:17
+#: includes/views/html-add-certificate-modal.php:42
+msgid "Add certificate"
+msgstr ""
+
+# minimum supported WCMp version
+#: includes/integrations/class-sst-wcmp.php:93
+msgid ""
+"Simple Sales Tax does not support the installed version of WC Marketplace. "
+"WC Marketplace %s+ is required."
+msgstr ""
+
 #: includes/integrations/class-sst-wcmp.php:130
 #: includes/integrations/class-sst-wcmp.php:161
+#: includes/integrations/class-sst-wcfm.php:148
+#: includes/integrations/class-sst-wcfm.php:190
+#: includes/admin/class-sst-admin.php:247
 msgid "Taxability Information Code"
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:255
-msgid "This TIC will be used as the default for all products in this category."
-msgstr ""
-
-#: includes/admin/class-sst-admin.php:292
-msgid "Heads up!"
-msgstr ""
-
-#: includes/admin/class-sst-admin.php:293
+# minimum supported WCFM version
+#: includes/integrations/class-sst-wcfm.php:99
 msgid ""
-"The WooCommerce \"Calculate tax based on\" setting is not respected by "
-"Simple Sales Tax. The customer billing address will only be used for tax "
-"calculations when the shipping address is not provided (e.g. for sales of "
-"digital goods)."
+"Simple Sales Tax does not support the installed version of WCFM. WCFM %s+ "
+"is required."
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:326
-msgid "Exemption Certificates"
+# 1 - Renewal order ID, 2 - Error message
+#: includes/integrations/class-sst-subscriptions.php:88
+msgid "Failed to calculate sales tax for renewal order %1$d: %2$s."
 msgstr ""
 
-#: includes/admin/class-sst-admin.php:330
-msgid "Manage this customer's TaxCloud exemption certificates."
+# minimum supported Dokan version
+#: includes/integrations/class-sst-dokan.php:103
+msgid ""
+"Simple Sales Tax does not support the installed version of Dokan. Dokan %s+ "
+"is required."
+msgstr ""
+
+#: includes/integrations/class-sst-dokan.php:153
+msgid "Taxability Information Code (TIC)"
+msgstr ""
+
+#: includes/frontend/class-sst-my-account.php:63
+msgid "Exemption certificates"
+msgstr ""
+
+# 1 - error message
+#: includes/frontend/class-sst-checkout.php:595
+msgid "Failed to add exemption certificate during checkout. Error was: %1$s"
+msgstr ""
+
+#: includes/frontend/class-sst-checkout.php:821
+msgid "Required exemption certificate fields are missing"
 msgstr ""
 
 #: includes/admin/class-sst-integration.php:28
@@ -150,23 +934,119 @@ msgstr ""
 msgid "Please select at least one origin address."
 msgstr ""
 
-#: includes/admin/views/html-notice-update.php:17
-#: includes/admin/views/html-notice-updating.php:17
-msgid "Simple Sales Tax data update."
+#: includes/admin/class-sst-admin.php:142
+msgid "Go to TaxCloud Reports Page"
 msgstr ""
 
-#: includes/admin/views/html-notice-update.php:18
-msgid "We need to update your database to the latest version."
+#: includes/admin/class-sst-admin.php:158
+msgid "Taxes"
 msgstr ""
 
-#: includes/admin/views/html-notice-update.php:24
-msgid "Run the updater"
+#: includes/admin/class-sst-admin.php:161
+msgid "Overview"
 msgstr ""
 
-#: includes/admin/views/html-notice-updating.php:18
+#: includes/admin/class-sst-admin.php:198
+msgid "Delete cached tax rates"
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:199
+msgid "Clear tax rate cache"
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:200
+msgid "This tool will remove any tax rates cached by WooCommerce."
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:219
+msgid "Tax rate cache cleared."
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:255
+msgid "This TIC will be used as the default for all products in this category."
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:292
+msgid "Heads up!"
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:293
 msgid ""
-"Your database is being updated in the background. This notice will "
-"disappear when the update is complete."
+"The WooCommerce \"Calculate tax based on\" setting is not respected by "
+"Simple Sales Tax. The customer billing address will only be used for tax "
+"calculations when the shipping address is not provided (e.g. for sales of "
+"digital goods)."
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:326
+msgid "Exemption Certificates"
+msgstr ""
+
+#: includes/admin/class-sst-admin.php:330
+msgid "Manage this customer's TaxCloud exemption certificates."
+msgstr ""
+
+#: includes/abstracts/class-sst-marketplace-integration.php:243
+msgid ""
+"This order has sub-orders and will not be captured in TaxCloud. Please see "
+"the sub-orders for tax details."
+msgstr ""
+
+# error message from TaxCloud API response.
+#: includes/abstracts/class-sst-abstract-cart.php:96
+msgid "Failed to calculate sales tax: %s"
+msgstr ""
+
+#: includes/abstracts/class-sst-abstract-cart.php:132
+msgid "Failed to calculate sales tax: Shipping origin address is invalid."
+msgstr ""
+
+# WooCommerce product ID.
+#: includes/abstracts/class-sst-abstract-cart.php:330
+msgid "Failed to calculate sales tax: no origin address for product %d."
+msgstr ""
+
+#: includes/abstracts/class-sst-abstract-cart.php:376
+msgid ""
+"Origin address for shipping package is invalid. Using default origin "
+"address from Simple Sales Tax settings."
+msgstr ""
+
+#: includes/frontend/views/html-my-account.php:19
+msgid ""
+"Exemption certificates added below will be available to apply each time you "
+"checkout. Use the form on the checkout page to add a single-purchase "
+"exemption certificate."
+msgstr ""
+
+#: includes/frontend/views/html-checkout.php:18
+#: assets/js/blocks/tax-exemption/block.js:63
+msgid "Tax exemption"
+msgstr ""
+
+#: includes/frontend/views/html-checkout.php:26
+msgid "Warning:"
+msgstr ""
+
+#: includes/frontend/views/html-checkout.php:27
+msgid ""
+"This interface will not function properly with JavaScript disabled. Please "
+"enable JavaScript to continue."
+msgstr ""
+
+#: includes/frontend/views/html-checkout.php:44
+#: assets/js/blocks/tax-exemption/block.js:79
+msgid "Exemption certificate"
+msgstr ""
+
+#: includes/frontend/views/html-checkout.php:56
+#: assets/js/blocks/tax-exemption/block.js:88
+msgid "Manage exemption certificates ?"
+msgstr ""
+
+#: includes/frontend/views/html-checkout.php:73
+#: assets/js/blocks/tax-exemption/block.js:68
+msgid "Please log in or register to apply an exemption certificate."
 msgstr ""
 
 #: includes/admin/views/html-origin-select.php:12
@@ -183,815 +1063,49 @@ msgid ""
 "which this product will be shipped."
 msgstr ""
 
-#: includes/class-simplesalestax.php:324
+#: includes/admin/views/html-notice-updating.php:17
+#: includes/admin/views/html-notice-update.php:17
+msgid "Simple Sales Tax data update."
+msgstr ""
+
+#: includes/admin/views/html-notice-updating.php:18
 msgid ""
-"<strong>PHP needs to be updated.</strong> Simple Sales Tax requires PHP "
-"7.2+."
+"Your database is being updated in the background. This notice will "
+"disappear when the update is complete."
 msgstr ""
 
-#: includes/class-sst-ajax.php:133
-msgid "Invalid request."
+#: includes/admin/views/html-notice-update.php:18
+msgid "We need to update your database to the latest version."
 msgstr ""
 
-#: includes/class-sst-assets.php:100
-msgid "Please enter your API Login ID and API Key."
+#: includes/admin/views/html-notice-update.php:24
+msgid "Run the updater"
 msgstr ""
 
-#: includes/class-sst-assets.php:104
-msgid "Success! Your TaxCloud settings are valid."
+#: assets/js/blocks/tax-exemption/new-certificate-form.js:87
+msgid "Exempt state"
 msgstr ""
 
-#: includes/class-sst-assets.php:108
-msgid "Connection to TaxCloud failed."
+#: assets/js/blocks/tax-exemption/new-certificate-form.js:132
+msgid "Issuing state"
 msgstr ""
 
-#: includes/class-sst-assets.php:145
-msgid "Please enter a complete billing address first."
+#: assets/js/blocks/tax-exemption/new-certificate-form.js:165
+msgid "Explain the nature of your business"
 msgstr ""
 
-#: includes/class-sst-assets.php:149
-msgid ""
-"Billing address must be in the United States to add an exemption "
-"certificate."
+#: assets/js/blocks/tax-exemption/new-certificate-form.js:179
+msgid "Please explain the nature of your business"
 msgstr ""
 
-#: includes/class-sst-certificates.php:147
-#. translators: 1 - state issued, 2 - tax id, 3 - date created
-msgid "%1$s - %2$s (created %3$s)"
+#: assets/js/blocks/tax-exemption/new-certificate-form.js:210
+msgid "Please explain why you are tax exempt"
 msgstr ""
 
-#: includes/class-sst-certificates.php:356
-#. translators: 1 - error message
-msgid "Failed to add exemption certificate. Error was: %1$s"
+#: assets/js/blocks/tax-exemption/constants.js:9
+msgid "Select a business type"
 msgstr ""
 
-#: includes/class-sst-install.php:153
-#. translators: 1 - URL to keep found rates, 2 - URL to delete found rates
-msgid ""
-"Simple Sales Tax found extra rates in your tax tables. Please choose to <a "
-"href=\"%1$s\">keep the rates</a> or <a href=\"%2$s\">delete them</a>."
-msgstr ""
-
-#: includes/class-sst-install.php:257
-msgid "Exempt Customer"
-msgstr ""
-
-#: includes/class-sst-install.php:274
-msgid "Settings"
-msgstr ""
-
-#: includes/class-sst-marketplaces.php:118
-msgid ""
-"Select the addresses you ship your products from. These will be used when "
-"calculating tax for your products and for vendors who haven't provided an "
-"address yet."
-msgstr ""
-
-#: includes/class-sst-order.php:316 includes/class-sst-order.php:908
-#: includes/sst-update-functions.php:573
-msgid "Fee"
-msgstr ""
-
-#: includes/class-sst-order.php:661
-#. translators: WooCommerce order ID
-msgid "Failed to capture order %d: already captured."
-msgstr ""
-
-#: includes/class-sst-order.php:673
-#. translators: WooCommerce order ID
-msgid "Failed to capture order %d: order was refunded."
-msgstr ""
-
-#: includes/class-sst-order.php:703
-#. translators: 1 - WooCommerce order ID, 2 - Error message from TaxCloud
-msgid "Failed to capture order %1$d: %2$s."
-msgstr ""
-
-#: includes/class-sst-order.php:746
-#. translators: WooCommerce order ID
-msgid "Can't refund order %d: order must be completed first."
-msgstr ""
-
-#: includes/class-sst-order.php:841
-#. translators: 1 - WooCommerce order ID, 2 - Error message from TaxCloud
-msgid "Failed to refund order %1$d: %2$s."
-msgstr ""
-
-#: includes/class-sst-product.php:125
-msgid "No Change"
-msgstr ""
-
-#: includes/class-sst-product.php:130 includes/class-sst-product.php:183
-msgid "TIC"
-msgstr ""
-
-#: includes/class-sst-settings.php:51
-msgid "TaxCloud Settings"
-msgstr ""
-
-#: includes/class-sst-settings.php:53
-msgid ""
-"You must enter a valid TaxCloud API ID and API Key for Simple Sales Tax to "
-"work properly. Use the \"Verify Settings\" button to test your settings."
-msgstr ""
-
-#: includes/class-sst-settings.php:59
-msgid "TaxCloud API ID"
-msgstr ""
-
-#: includes/class-sst-settings.php:61
-msgid ""
-"Your TaxCloud API ID. This can be found in your TaxCloud account on the "
-"\"Websites\" page."
-msgstr ""
-
-#: includes/class-sst-settings.php:69
-msgid "TaxCloud API Key"
-msgstr ""
-
-#: includes/class-sst-settings.php:71
-msgid ""
-"Your TaxCloud API Key. This can be found in your TaxCloud account on the "
-"\"Websites\" page."
-msgstr ""
-
-#: includes/class-sst-settings.php:79
-msgid "Verify TaxCloud Settings"
-msgstr ""
-
-#: includes/class-sst-settings.php:80
-msgid "Verify Settings"
-msgstr ""
-
-#: includes/class-sst-settings.php:82
-msgid "Use this button to verify that your site can communicate with TaxCloud."
-msgstr ""
-
-#: includes/class-sst-settings.php:90
-msgid "Address Settings"
-msgstr ""
-
-#: includes/class-sst-settings.php:92
-msgid ""
-"To accurately determine the sales tax for an order, Simple Sales Tax needs "
-"to know the locations you ship your products from.<br>You can select from "
-"the addresses entered on the <a "
-"href=\"https://app.taxcloud.com/go/locations\" "
-"target=\"_blank\">Locations</a> page in TaxCloud."
-msgstr ""
-
-#: includes/class-sst-settings.php:98
-msgid "Shipping Origin Addresses"
-msgstr ""
-
-#: includes/class-sst-settings.php:100
-msgid ""
-"Select the addresses you ship your products from. You can choose a "
-"different set of origin addresses for a specific product under the Shipping "
-"tab on the Edit Product screen."
-msgstr ""
-
-#: includes/class-sst-settings.php:108
-msgid "Exemption Settings"
-msgstr ""
-
-#: includes/class-sst-settings.php:110
-msgid ""
-"If you have tax exempt customers, be sure to enable tax exemptions and "
-"enter your company name."
-msgstr ""
-
-#: includes/class-sst-settings.php:116
-msgid "Enable Tax Exemptions?"
-msgstr ""
-
-#: includes/class-sst-settings.php:119 includes/class-sst-settings.php:158
-#: includes/class-sst-settings.php:171
-msgid "Yes"
-msgstr ""
-
-#: includes/class-sst-settings.php:120 includes/class-sst-settings.php:159
-#: includes/class-sst-settings.php:172
-msgid "No"
-msgstr ""
-
-#: includes/class-sst-settings.php:123
-msgid "Set this to \"Yes\" if you have tax exempt customers."
-msgstr ""
-
-#: includes/class-sst-settings.php:127
-msgid "Company Name"
-msgstr ""
-
-#: includes/class-sst-settings.php:130
-msgid "Enter your company name as it should be displayed on exemption certificates."
-msgstr ""
-
-#: includes/class-sst-settings.php:137
-msgid "Exempt User Roles"
-msgstr ""
-
-#: includes/class-sst-settings.php:142
-msgid ""
-"When a user with one of these roles shops on your site, WooTax will "
-"automatically find and apply the first exemption certificate associated "
-"with their account. Convenient if you have repeat exempt customers."
-msgstr ""
-
-#: includes/class-sst-settings.php:149
-msgid "Restrict to Exempt Roles"
-msgstr ""
-
-#: includes/class-sst-settings.php:152
-msgid ""
-"Set this to \"Yes\" to restrict users aside from those specified above from "
-"seeing the exemption form during checkout."
-msgstr ""
-
-#: includes/class-sst-settings.php:163
-msgid "Display Settings"
-msgstr ""
-
-#: includes/class-sst-settings.php:165
-msgid "Control how taxes are displayed during checkout."
-msgstr ""
-
-#: includes/class-sst-settings.php:168
-msgid "Show Zero Tax?"
-msgstr ""
-
-#: includes/class-sst-settings.php:175
-msgid "When the sales tax due is zero, should the \"Sales Tax\" line be shown?"
-msgstr ""
-
-#: includes/class-sst-settings.php:182
-msgid "Advanced Settings"
-msgstr ""
-
-#: includes/class-sst-settings.php:184
-msgid ""
-"For advanced users only. Leave these settings untouched if you are not sure "
-"how to use them."
-msgstr ""
-
-#: includes/class-sst-settings.php:190
-msgid "Shipping TIC"
-msgstr ""
-
-#: includes/class-sst-settings.php:193
-msgid ""
-"11000 - Handling, crating, packing, preparation for mailing or delivery, "
-"and similar charges"
-msgstr ""
-
-#: includes/class-sst-settings.php:197
-msgid "11010 - Transportation, shipping, postage, and similar charges"
-msgstr ""
-
-#: includes/class-sst-settings.php:201
-msgid "11011 - Transportation, shipping, postage, and similar charges by USPS"
-msgstr ""
-
-#: includes/class-sst-settings.php:205
-msgid ""
-"11012 - Transportation, shipping, postage, and similar charges with pick-up "
-"option"
-msgstr ""
-
-#: includes/class-sst-settings.php:209
-msgid "11098 - Colorado Retail Delivery Fees"
-msgstr ""
-
-#: includes/class-sst-settings.php:212
-msgid ""
-"Enter TIC code on <a href=\"https://taxcloud.net/tic\" "
-"target=\"_blank\">TaxCloud website</a> for details."
-msgstr ""
-
-#: includes/class-sst-settings.php:216
-msgid "Select the Taxability Information Code to apply to shipping charges."
-msgstr ""
-
-#: includes/class-sst-settings.php:222
-msgid "Log Requests"
-msgstr ""
-
-#: includes/class-sst-settings.php:226
-msgid ""
-"When selected, Simple Sales Tax will log all requests sent to TaxCloud for "
-"debugging purposes."
-msgstr ""
-
-#: includes/class-sst-settings.php:233
-msgid "Capture Orders Immediately"
-msgstr ""
-
-#: includes/class-sst-settings.php:237
-msgid ""
-"By default, orders are marked as Captured in TaxCloud when they are "
-"shipped. Select this option to mark orders as Captured immediately when "
-"payment is received. Useful for stores that have items with long lead times."
-msgstr ""
-
-#: includes/class-sst-settings.php:244
-msgid "Tax Based On"
-msgstr ""
-
-#: includes/class-sst-settings.php:247
-msgid "Item Price"
-msgstr ""
-
-#: includes/class-sst-settings.php:248
-msgid "Line Subtotal"
-msgstr ""
-
-#: includes/class-sst-settings.php:251
-msgid ""
-"\"Item Price\": TaxCloud determines the taxable amount for a line item by "
-"multiplying the item price by its quantity. \"Line Subtotal\": the taxable "
-"amount is determined by the line subtotal. Useful in instances where "
-"rounding becomes an issue."
-msgstr ""
-
-#: includes/class-sst-settings.php:258
-msgid "Remove All Data"
-msgstr ""
-
-#: includes/class-sst-settings.php:262
-msgid ""
-"When this feature is enabled, all Simple Sales Tax options and data will be "
-"removed when you click deactivate and delete the plugin."
-msgstr ""
-
-#: includes/class-sst-settings.php:269
-msgid "Debug Report"
-msgstr ""
-
-#: includes/class-sst-settings.php:270
-msgid "Download"
-msgstr ""
-
-#: includes/class-sst-settings.php:274
-msgid ""
-"Send a copy of this report to TaxCloud support to help with debugging "
-"Simple Sales Tax issues."
-msgstr ""
-
-#: includes/frontend/class-sst-checkout.php:582
-#. translators: 1 - error message
-msgid "Failed to add exemption certificate during checkout. Error was: %1$s"
-msgstr ""
-
-#: includes/frontend/class-sst-checkout.php:814
-msgid "Required exemption certificate fields are missing"
-msgstr ""
-
-#: includes/frontend/class-sst-my-account.php:63
-msgid "Exemption certificates"
-msgstr ""
-
-#: includes/frontend/views/html-checkout.php:18
-msgid "Tax exemption"
-msgstr ""
-
-#: includes/frontend/views/html-checkout.php:26
-msgid "Warning:"
-msgstr ""
-
-#: includes/frontend/views/html-checkout.php:27
-msgid ""
-"This interface will not function properly with JavaScript disabled. Please "
-"enable JavaScript to continue."
-msgstr ""
-
-#: includes/frontend/views/html-checkout.php:44
-msgid "Exemption certificate"
-msgstr ""
-
-#: includes/frontend/views/html-checkout.php:56
-msgid "Manage exemption certificates →"
-msgstr ""
-
-#: includes/frontend/views/html-checkout.php:73
-msgid "Please log in or register to apply an exemption certificate."
-msgstr ""
-
-#: includes/frontend/views/html-my-account.php:19
-msgid ""
-"Exemption certificates added below will be available to apply each time you "
-"checkout. Use the form on the checkout page to add a single-purchase "
-"exemption certificate."
-msgstr ""
-
-#: includes/integrations/class-sst-dokan.php:103
-#. translators: minimum supported Dokan version
-msgid ""
-"Simple Sales Tax does not support the installed version of Dokan. Dokan %s+ "
-"is required."
-msgstr ""
-
-#: includes/integrations/class-sst-dokan.php:153
-#: includes/integrations/class-sst-wc-vendors.php:132
-msgid "Taxability Information Code (TIC)"
-msgstr ""
-
-#: includes/integrations/class-sst-subscriptions.php:88
-#. translators: 1 - Renewal order ID, 2 - Error message
-msgid "Failed to calculate sales tax for renewal order %1$d: %2$s."
-msgstr ""
-
-#: includes/integrations/class-sst-wc-vendors.php:88
-#. translators: minimum supported WC Vendors Pro version
-msgid ""
-"Simple Sales Tax does not support the installed version of WC Vendors Pro. "
-"WC Vendors Pro %s+ is required."
-msgstr ""
-
-#: includes/integrations/class-sst-wcfm.php:99
-#. translators: minimum supported WCFM version
-msgid ""
-"Simple Sales Tax does not support the installed version of WCFM. WCFM %s+ "
-"is required."
-msgstr ""
-
-#: includes/integrations/class-sst-wcfm.php:140 includes/sst-functions.php:234
-msgid "Same as parent"
-msgstr ""
-
-#: includes/integrations/class-sst-wcmp.php:93
-#. translators: minimum supported WCMp version
-msgid ""
-"Simple Sales Tax does not support the installed version of WC Marketplace. "
-"WC Marketplace %s+ is required."
-msgstr ""
-
-#: includes/sst-functions.php:221
-msgid "Using site default"
-msgstr ""
-
-#: includes/sst-functions.php:257 includes/views/html-select-tic-modal.php:35
-msgid "Select"
-msgstr ""
-
-#: includes/sst-functions.php:287
-msgid ""
-"The TIC is used to determine the appropriate sales tax rate for your "
-"product. If your product is exempt from sales tax or qualifies for reduced "
-"tax rates, please make sure you select an appropriate TIC."
-msgstr ""
-
-#: includes/sst-functions.php:408
-msgid "None"
-msgstr ""
-
-#: includes/sst-functions.php:409
-msgid "Single Purchase Certificate"
-msgstr ""
-
-#: includes/sst-functions.php:410
-msgid "Certificate added successfully! Don't forget to recalculate taxes."
-msgstr ""
-
-#: includes/sst-functions.php:414 includes/sst-functions.php:477
-msgid "Failed to add certificate"
-msgstr ""
-
-#: includes/sst-functions.php:476
-msgid "Failed to delete certificate"
-msgstr ""
-
-#: includes/sst-functions.php:478
-msgid ""
-"Are you sure you want to delete this certificate? This action is "
-"irreversible."
-msgstr ""
-
-#: includes/sst-functions.php:561
-msgid "Sales Tax"
-msgstr ""
-
-#: includes/sst-update-functions.php:709
-#. translators: 1 - WooCommerce order ID, 2 - Error message
-msgid "Failed to refund extraneous package for order #%1$d: %2$s."
-msgstr ""
-
-#: includes/sst-update-functions.php:941
-msgid ""
-"<strong>IMPORTANT: Your TaxCloud Locations are out of sync.</strong> One or "
-"more of the addresses from your Simple Sales Tax settings are not "
-"registered as Locations in your TaxCloud account. Please add all of the "
-"addresses listed below on the <a "
-"href=\"https://app.taxcloud.com/go/locations\" "
-"target=\"_blank\">Locations</a> page in TaxCloud, then click Dismiss to "
-"dismiss this notice. %2$s"
-msgstr ""
-
-#: includes/views/html-add-certificate-modal.php:17
-#: includes/views/html-add-certificate-modal.php:42
-msgid "Add certificate"
-msgstr ""
-
-#: includes/views/html-add-certificate-modal.php:21
-#: includes/views/html-select-tic-modal.php:50
-#: includes/views/html-view-certificate.php:16
-msgid "Close modal panel"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:16
-msgid "WARNING:"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:18
-msgid ""
-"You are responsible for knowing if you qualify to claim exemption from tax "
-"in the state that is due tax on this sale. You  will be held liable for any "
-"tax and interest, as well as civil and criminal penalties imposed by the "
-"member state, if you are not eligible to claim this exemption."
-msgstr ""
-
-#: includes/views/html-certificate-form.php:31
-msgid "This is a single-purchase exemption certificate"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:50
-msgid "Where does this exemption apply?"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:65
-msgid "Tax ID type"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:71
-#: includes/views/html-certificate-form.php:106
-#: includes/views/html-certificate-form.php:130
-#: includes/views/html-certificate-form.php:247
-msgid "Select one"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:72
-msgid "Federal Employer ID"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:73
-msgid "State Issued Exemption ID or Drivers License"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:88
-msgid "Tax ID"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:105
-msgid "ID issued by..."
-msgstr ""
-
-#: includes/views/html-certificate-form.php:121
-msgid "Business type"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:134
-msgid "Accommodation And Food Services"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:138
-msgid "Agricultural/Forestry/Fishing/Hunting"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:142
-msgid "Construction"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:146
-msgid "Finance or Insurance"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:150
-msgid "Information Publishing and Communications"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:154
-msgid "Manufacturing"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:158
-msgid "Mining"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:162
-msgid "Real Estate"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:166
-msgid "Rental and Leasing"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:170
-msgid "Retail Trade"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:174
-msgid "Transportation and Warehousing"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:178
-msgid "Utilities"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:182
-msgid "Wholesale Trade"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:186
-msgid "Business Services"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:190
-msgid "Professional Services"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:194
-msgid "Education and Health Care Services"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:198
-msgid "Nonprofit Organization"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:202
-msgid "Government"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:206
-msgid "Not a Business"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:210
-#: includes/views/html-certificate-form.php:292
-msgid "Other"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:225
-#: includes/views/html-certificate-form.php:309
-msgid "Please explain"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:226
-msgid "Explain the nature of your business."
-msgstr ""
-
-#: includes/views/html-certificate-form.php:241
-msgid "Reason for exemption"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:248
-msgid "Federal Government Department"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:252
-msgid "State Or Local Government"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:256
-msgid "Tribal Government"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:260
-msgid "Foreign Diplomat"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:264
-msgid "Charitable Organization"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:268
-msgid "Religious or Educational Organization"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:272
-msgid "Resale"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:276
-msgid "Agricultural Production"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:280
-msgid "Industrial Production or Manufacturing"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:284
-msgid "Direct Pay Permit"
-msgstr ""
-
-#: includes/views/html-certificate-form.php:288
-msgid "Direct Mail"
-msgstr ""
-
-#: includes/views/html-certificate-list.php:24
-msgid "ID"
-msgstr ""
-
-#: includes/views/html-certificate-list.php:25
-msgid "Issued To"
-msgstr ""
-
-#: includes/views/html-certificate-list.php:26
-msgid "Date"
-msgstr ""
-
-#: includes/views/html-certificate-list.php:27
-msgid "Actions"
-msgstr ""
-
-#: includes/views/html-certificate-list.php:34
-msgid "Add Certificate"
-msgstr ""
-
-#: includes/views/html-certificate-list.php:47
-msgid "There are no certificates to display. Click 'Add Certificate' to add one."
-msgstr ""
-
-#: includes/views/html-certificate-list.php:72
-msgid "View"
-msgstr ""
-
-#: includes/views/html-certificate-list.php:76
-msgid "Delete"
-msgstr ""
-
-#: includes/views/html-meta-box.php:9
-msgid "TaxCloud Status"
-msgstr ""
-
-#: includes/views/html-meta-box.php:12
-msgid ""
-"Status of order in TaxCloud ('Pending', 'Captured', or 'Refunded'). All "
-"orders should eventually be 'Captured' or 'Refunded.'"
-msgstr ""
-
-#: includes/views/html-meta-box.php:24
-msgid "Exemption Certificate"
-msgstr ""
-
-#: includes/views/html-meta-box.php:25
-msgid "An exemption certificate must be applied if the customer is tax exempt."
-msgstr ""
-
-#: includes/views/html-meta-box.php:35 includes/views/html-meta-box.php:50
-msgid "Loading..."
-msgstr ""
-
-#: includes/views/html-meta-box.php:55
-msgid "Please select a customer to add an exemption certificate."
-msgstr ""
-
-#: includes/views/html-meta-box.php:61
-msgid ""
-"Certificate is no longer editable. The certificate can only be edited when "
-"the TaxCloud Status is Pending."
-msgstr ""
-
-#: includes/views/html-meta-box.php:72
-msgid "Manage customer certificates →"
-msgstr ""
-
-#: includes/views/html-meta-box.php:76
-msgid "Select certificate"
-msgstr ""
-
-#: includes/views/html-meta-box.php:87
-msgid "View Selected"
-msgstr ""
-
-#: includes/views/html-meta-box.php:93
-msgid "Add New"
-msgstr ""
-
-#: includes/views/html-select-tic-modal.php:46
-msgid "Select TIC"
-msgstr ""
-
-#: includes/views/html-select-tic-modal.php:57
-msgid "Start typing to search"
-msgstr ""
-
-#: includes/views/html-view-certificate.php:12
-msgid "View certificate"
-msgstr ""
-
-#. Plugin URI of the plugin/theme
-msgid "https://github.com/bporcelli/simplesalestax"
-msgstr ""
-
-#. Description of the plugin/theme
-msgid ""
-"Harness the power of TaxCloud to accurately calculate sales tax for your "
-"WooCommerce store."
-msgstr ""
-
-#. Author of the plugin/theme
-msgid "TaxCloud"
-msgstr ""
-
-#. Author URI of the plugin/theme
-msgid "https://taxcloud.com"
+#: assets/js/blocks/tax-exemption/constants.js:103
+msgid "Select a reason"
 msgstr ""
