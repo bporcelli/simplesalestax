@@ -1,22 +1,10 @@
 /// <reference types="cypress" />
 
 import products from '../../fixtures/products.json';
+import { getCartTestCases } from '../../support/helpers';
 
 describe('Basic calculations', () => {
-  const testCases = [
-    {
-      label: 'classic cart/checkout',
-      useClassicCart: true,
-      cartUrl: '/legacy-cart/',
-      checkoutUrl: '/legacy-checkout/',
-    },
-    {
-      label: 'block cart/checkout',
-      useClassicCart: false,
-      cartUrl: '/cart/',
-      checkoutUrl: '/checkout/',
-    },
-  ];
+  const testCases = getCartTestCases();
 
   testCases.forEach(({ label, useClassicCart, cartUrl, checkoutUrl }) => {
     describe(label, () => {

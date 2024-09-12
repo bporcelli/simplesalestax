@@ -1,6 +1,7 @@
 /// <reference types="cypress" />
 
 import products from '../../fixtures/products.json';
+import { getCartTestCases, shouldRunBlockTests } from '../../support/helpers';
 
 const certificateTypes = [
   {
@@ -13,18 +14,7 @@ const certificateTypes = [
   },
 ];
 
-const testCases = [
-  {
-    label: 'classic checkout',
-    useClassicCart: true,
-    checkoutUrl: '/legacy-checkout/',
-  },
-  {
-    label: 'block checkout',
-    useClassicCart: false,
-    checkoutUrl: '/checkout/',
-  }
-];
+const testCases = getCartTestCases();
 
 describe('Exemption certificates', () => {
   beforeEach(() => {
@@ -214,6 +204,10 @@ describe('Exemption certificates', () => {
     });
 
     describe('block checkout', () => {
+      if (!shouldRunBlockTests()) {
+        return;
+      }
+
       before(() => {
         cy.loginAsAdmin();
         cy.useClassicCart(false);
