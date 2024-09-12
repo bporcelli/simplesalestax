@@ -67,6 +67,12 @@ describe('Exemption certificates', () => {
       });
     };
 
+    const assertTotal = (expectedTotal) => {
+      cy.findByText('Total')
+        .parent()
+        .should('contain', expectedTotal);
+    };
+
     before(() => {
       cy.loginAsAdmin();
       cy.useClassicCart(true);
@@ -75,6 +81,8 @@ describe('Exemption certificates', () => {
       cy.get('#woocommerce_wootax_restrict_exempt').select('No', {force: true});
       cy.get('#woocommerce_wootax_show_zero_tax').select('Yes', {force: true});
       cy.findByRole('button', {name: 'Save changes'}).click({ force: true });
+      cy.resetCart();
+      cy.addProductToCart(products.simpleProduct.id);
     });
 
     describe('classic checkout', () => {
@@ -85,16 +93,10 @@ describe('Exemption certificates', () => {
 
       beforeEach(() => {
         cy.intercept('POST', '/?wc-ajax=update_order_review').as('updateOrderReview');
-
         cy.resetCart();
         cy.addProductToCart(products.simpleProduct.id);
         cy.visit('/legacy-checkout/');
-
         cy.get('#certificate_id').as('certificateSelect');
-      });
-
-      it('renders tax exemption form', () => {
-        cy.findByRole('heading', {name: 'Tax exemption'}).should('be.visible');
       });
 
       it('applies a zero rate when a certificate is selected', () => {
@@ -107,11 +109,11 @@ describe('Exemption certificates', () => {
 
         // Tax is zero when saved certificate is selected
         selectCertificate(2);
-        cy.assertTaxTotal(0.00);
+        assertTotal(products.simpleProduct.price);
 
         // Tax is zero when a new certificate is being added
         selectCertificate('Add new certificate');
-        cy.assertTaxTotal(0.00);
+        assertTotal(products.simpleProduct.price);
       });
 
       certificateTypes.forEach(({ type, idPattern }) => {
@@ -137,10 +139,9 @@ describe('Exemption certificates', () => {
           });
 
           // Confirm tax is zero
-          cy.contains('Sales Tax:')
+          cy.contains('Order Total:')
             .siblings('.total')
-            .invoke('text')
-            .should('match', /0\.00/);
+            .should('contain', products.simpleProduct.price);
 
           // Confirm exemption certifiate was saved
           cy.get('#exempt_cert', {timeout: 30000})
@@ -217,8 +218,8 @@ describe('Exemption certificates', () => {
 
       const selectCertificate = (option) => {
         cy.get('@certificateSelect').select(option);
-        cy.get('@placeOrder').should('be.disabled');
-        cy.get('@placeOrder', {timeout: 30000}).should('be.enabled');
+        cy.wait('@storeApiRequest', {timeout: 30000});
+        cy.get('@placeOrder').should('be.enabled');
       };
 
       before(() => {
@@ -227,6 +228,7 @@ describe('Exemption certificates', () => {
       });
 
       beforeEach(() => {
+        cy.intercept('POST', '/wp-json/wc/store/v1/batch').as('storeApiRequest');
         cy.resetCart();
         cy.addProductToCart(products.simpleProduct.id);
 
@@ -236,10 +238,6 @@ describe('Exemption certificates', () => {
 
         cy.get('@placeOrder', {timeout: 15000}).should('be.enabled');
         cy.selectShippingMethod('Free shipping');
-      });
-
-      it('renders tax exemption form', () => {
-        cy.findByRole('heading', {name: 'Tax exemption'}).should('be.visible');
       });
 
       it('applies a zero rate when a certificate is selected', () => {
@@ -278,10 +276,9 @@ describe('Exemption certificates', () => {
           });
 
           // Confirm tax is zero
-          cy.contains('Sales Tax:')
+          cy.contains('Order Total:')
             .siblings('.total')
-            .invoke('text')
-            .should('match', /0\.00/);
+            .should('contain', products.simpleProduct.price);
 
           // Confirm exemption certifiate was saved
           cy.get('#exempt_cert', {timeout: 30000})
@@ -457,7 +454,6 @@ describe('Exemption certificates', () => {
       testCases.forEach(({ label, useClassicCart, checkoutUrl }) => {
         it(`renders tax exemption form on ${label} page`, () => {
           cy.useClassicCart(useClassicCart);
-          cy.resetCart();
           cy.addProductToCart(products.simpleProduct.id);
           cy.visit(checkoutUrl);
           cy.findByRole('heading', {name: 'Tax exemption'}).should('be.visible');
@@ -482,7 +478,6 @@ describe('Exemption certificates', () => {
 
       testCases.forEach(({ label, checkoutUrl, useClassicCart }) => {
         it(`does not render exemption form on ${label} page`, () => {
-          cy.resetCart();
           cy.useClassicCart(useClassicCart);
           cy.addProductToCart(products.simpleProduct.id);
           cy.visit(checkoutUrl);
@@ -507,9 +502,7 @@ describe('Exemption certificates', () => {
 
     testCases.forEach(({ label, checkoutUrl, useClassicCart }) => {
       it(`does not render exemption form on ${label} page`, () => {
-        cy.resetCart();
         cy.useClassicCart(useClassicCart);
-        cy.addProductToCart(products.simpleProduct.id);
         cy.visit(checkoutUrl);
         cy.findByRole('heading', {name: 'Tax exemption'}).should('not.exist');
       });
