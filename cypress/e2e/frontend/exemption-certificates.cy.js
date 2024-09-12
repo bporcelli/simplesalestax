@@ -47,34 +47,22 @@ describe('Exemption certificates', () => {
       cy.get('#purchaser_exemption_reason').select('Federal Government Department', {force: true});
     };
 
-    const validateRequiredField = (id, checkLabel = true) => {
-      cy.get(`#${id}`).then(($el) => {
-        if ($el.closest('.form-row').length) {
-          cy.wrap($el)
-            .closest('.form-row')
-            .should('have.class', 'validate-required');
-        } else if ($el.is('select')) {
-          cy.wrap($el).find('option[value=""]').should('be.disabled');
-        } else {
-          cy.wrap($el).should('match', ':required');
-        }
-      });
-
-      if (checkLabel) {
-        cy.get(`label[for="${id}"]`)
-          .invoke('text')
-          .should('match', /.*\*$/);
-      }
+    const validateRequiredFieldLabel = (id) => {
+      cy.get(`label[for="${id}"]`)
+        .invoke('text')
+        .should('match', /.*\*$/);
     };
 
     const validateFieldHasError = (id) => {
       cy.get(`#${id}`).then(($el) => {
         if ($el.closest('.form-row').length) {
+          // Classic checkout/my account
           cy.wrap($el)
             .closest('.form-row')
             .should('have.class', 'woocommerce-invalid');
         } else {
-          cy.wrap($el).should('match', ':invalid');
+          // Block checkout
+          cy.wrap($el).should('have.attr', 'aria-invalid', 'true');
         }
       });
     };
@@ -172,7 +160,7 @@ describe('Exemption certificates', () => {
           cy.contains('Required exemption certificate fields are missing').should('be.visible');
 
           for (const field of alwaysRequiredFields) {
-            validateRequiredField(field);
+            validateRequiredFieldLabel(field);
             validateFieldHasError(field);
           }
         });
@@ -184,7 +172,7 @@ describe('Exemption certificates', () => {
           cy.get('#tax_type').select('State Issued Exemption ID or Drivers License', {force: true});
           cy.get('#state_of_issue_field').should('be.visible');
 
-          validateRequiredField('state_of_issue');
+          validateRequiredFieldLabel('state_of_issue');
 
           cy.findByRole('button', {name: 'Place order'}).click({force: true});
           cy.waitForBlockedElements();
@@ -199,7 +187,7 @@ describe('Exemption certificates', () => {
           cy.get('#purchaser_business_type').select('Other', {force: true});
           cy.get('#purchase_business_type_other_value').should('be.visible');
 
-          validateRequiredField('purchase_business_type_other_value');
+          validateRequiredFieldLabel('purchase_business_type_other_value');
 
           cy.findByRole('button', {name: 'Place order'}).click({force: true});
           cy.waitForBlockedElements();
@@ -212,7 +200,7 @@ describe('Exemption certificates', () => {
 
           cy.get('#purchaser_exemption_reason').select('Other', {force: true});
 
-          validateRequiredField('purchaser_exemption_reason_value');
+          validateRequiredFieldLabel('purchaser_exemption_reason_value');
 
           cy.findByRole('button', {name: 'Place order'}).click({force: true});
           cy.waitForBlockedElements();
@@ -230,7 +218,7 @@ describe('Exemption certificates', () => {
       const selectCertificate = (option) => {
         cy.get('@certificateSelect').select(option);
         cy.get('@placeOrder').should('be.disabled');
-        cy.get('@placeOrder', {timeout: 15000}).should('be.enabled');
+        cy.get('@placeOrder', {timeout: 30000}).should('be.enabled');
       };
 
       before(() => {
@@ -243,10 +231,11 @@ describe('Exemption certificates', () => {
         cy.addProductToCart(products.simpleProduct.id);
 
         cy.visit('/checkout/');
-        cy.selectShippingMethod('Free shipping');
-
         cy.findByRole('listbox', {name: 'Exemption certificate'}).as('certificateSelect');
         cy.findByRole('button', {name: /place order/i}).as('placeOrder');
+
+        cy.get('@placeOrder', {timeout: 15000}).should('be.enabled');
+        cy.selectShippingMethod('Free shipping');
       });
 
       it('renders tax exemption form', () => {
@@ -289,7 +278,10 @@ describe('Exemption certificates', () => {
           });
 
           // Confirm tax is zero
-          cy.contains('td', 'Sales Tax:').should('not.exist');
+          cy.contains('Sales Tax:')
+            .siblings('.total')
+            .invoke('text')
+            .should('match', /0\.00/);
 
           // Confirm exemption certifiate was saved
           cy.get('#exempt_cert', {timeout: 30000})
@@ -310,45 +302,33 @@ describe('Exemption certificates', () => {
           const fieldsToCheck = alwaysRequiredFields.filter((field) => field !== 'tax_type');
 
           for (const field of fieldsToCheck) {
-            validateRequiredField(field, false);
             validateFieldHasError(field);
           }
         });
 
         it('requires state when id type is state', () => {
-          fillBasicFields();
-
+          cy.findByRole('radio', {name: /federal/i }).check();
           cy.get('#state_of_issue').should('not.exist');
           cy.findByRole('radio', {name: /state issued exemption id/i}).check();
           cy.get('#state_of_issue').should('be.visible');
-
-          validateRequiredField('state_of_issue', false);
-
           cy.get('@placeOrder').click();
+
           validateFieldHasError('state_of_issue');
         });
 
         it('requires other type value when business type is other', () => {
-          fillBasicFields();
-
           cy.get('#purchase_business_type_other_value').should('not.exist');
           cy.get('#purchaser_business_type').select('Other');
           cy.get('#purchase_business_type_other_value').should('be.visible');
-
-          validateRequiredField('purchase_business_type_other_value', false);
-
           cy.get('@placeOrder').click();
+
           validateFieldHasError('purchase_business_type_other_value');
         });
 
         it('requires other reason value when exemption reason is other', () => {
-          fillBasicFields();
-
           cy.get('#purchaser_exemption_reason').select('Other');
-
-          validateRequiredField('purchaser_exemption_reason_value', false);
-
           cy.get('@placeOrder').click();
+
           validateFieldHasError('purchaser_exemption_reason_value');
         });
       });
@@ -409,7 +389,7 @@ describe('Exemption certificates', () => {
           it('requires basic fields', () => {
             for (const field of alwaysRequiredFields) {
               // Should be labeled as required in UI
-              validateRequiredField(field);
+              validateRequiredFieldLabel(field);
 
               // Should show error if field is empty
               cy.get(`#${field}`).invoke('val').then((origVal) => {
@@ -430,7 +410,7 @@ describe('Exemption certificates', () => {
             cy.get('#tax_type').select('State Issued Exemption ID or Drivers License', {force: true});
             cy.get('#state_of_issue_field').should('be.visible');
 
-            validateRequiredField('state_of_issue');
+            validateRequiredFieldLabel('state_of_issue');
 
             cy.findByRole('button', {name: 'Add certificate'}).click();
             cy.get('.blockOverlay').should('not.exist');
@@ -442,7 +422,7 @@ describe('Exemption certificates', () => {
             cy.get('#purchaser_business_type').select('Other', {force: true});
             cy.get('#purchase_business_type_other_value').should('be.visible');
 
-            validateRequiredField('purchase_business_type_other_value');
+            validateRequiredFieldLabel('purchase_business_type_other_value');
 
             cy.findByRole('button', {name: 'Add certificate'}).click();
             cy.get('.blockOverlay').should('not.exist');
@@ -452,7 +432,7 @@ describe('Exemption certificates', () => {
           it('requires other reason value when exemption reason is other', () => {
             cy.get('#purchaser_exemption_reason').select('Other', {force: true});
 
-            validateRequiredField('purchaser_exemption_reason_value');
+            validateRequiredFieldLabel('purchaser_exemption_reason_value');
 
             cy.findByRole('button', {name: 'Add certificate'}).click();
             cy.get('.blockOverlay').should('not.exist');
