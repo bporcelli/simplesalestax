@@ -6,6 +6,7 @@ cypress
 node_modules
 releases
 docker
+includes/vendor/woocommerce
 
 # Files
 .distignore
