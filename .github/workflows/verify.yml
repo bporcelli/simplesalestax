@@ -61,18 +61,14 @@ jobs:
     strategy:
       max-parallel: 1
       matrix:
-        php_version: ["${{needs.prepare.outputs.min_php}}", 8.2]
+        php_version: [8.2]
         include:
-          - wc_version: ${{needs.prepare.outputs.min_woo}}
-            php_version: ${{needs.prepare.outputs.min_php}}
-            run_block_tests: 0
           - wc_version: ${{needs.prepare.outputs.max_woo}}
             php_version: 8.2
             run_block_tests: 1
     env:
       PHP_VERSION: ${{ matrix.php_version }}
       WOO_VERSION: ${{ matrix.wc_version }}
-      CYPRESS_RUN_BLOCK_TESTS: ${{ matrix.run_block_tests }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2.4.2
@@ -101,6 +97,8 @@ jobs:
 
       - name: Run cypress tests
         uses: cypress-io/github-action@v6
+        env:
+          CYPRESS_RUN_BLOCK_TESTS: ${{ matrix.run_block_tests }}
 
       - name: Print logs
         if: failure()
