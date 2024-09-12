@@ -43,7 +43,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 		add_filter( 'woocommerce_cart_hide_zero_taxes', array( $this, 'hide_zero_taxes' ) );
 		add_action( 'woocommerce_checkout_order_created', array( $this, 'handle_legacy_checkout' ) );
 		add_action( 'woocommerce_cart_emptied', array( $this, 'clear_session_data' ) );
-		add_action( 'woocommerce_after_checkout_validation', array( $this, 'validate_checkout' ), 10, 2 );
+		add_action( 'woocommerce_after_checkout_validation', array( $this, 'validate_legacy_checkout' ), 10, 2 );
 		add_filter( 'woocommerce_add_cart_item', array( $this, 'set_key_for_cart_item' ), 10, 2 );
 		add_filter( 'wootax_cart_packages', array( $this, 'handle_negative_fees' ), PHP_INT_MAX - 1 );
 		add_action( 'init', array( $this, 'update_certificate_id' ) );
@@ -759,17 +759,27 @@ class SST_Checkout extends SST_Abstract_Cart {
 	}
 
 	/**
-	 * Displays any validation errors on {@see 'woocommerce_after_checkout_validation'}.
+	 * Validate checkout.
 	 *
 	 * @param array    $data   POST data.
 	 * @param WP_Error $errors Checkout errors.
 	 */
-	public function validate_checkout( $data, $errors ) {
+	protected function validate_checkout( $data, $errors ) {
 		foreach ( $this->errors as $error_message ) {
 			$errors->add( 'tax', $error_message );
 		}
 
 		$this->validate_exemption_certificate( $data, $errors );
+	}
+
+	/**
+	 * Validate legacy checkout on {@see 'woocommerce_after_checkout_validation'}
+	 *
+	 * @param array    $data   POST data.
+	 * @param WP_Error $errors Checkout errors.
+	 */
+	public function validate_legacy_checkout( $data, $errors ) {
+		$this->validate_checkout( $this->get_post_data(), $errors );
 	}
 
 	/**
