@@ -46,7 +46,7 @@ class SST_Checkout extends SST_Abstract_Cart {
 		add_action( 'woocommerce_after_checkout_validation', array( $this, 'validate_legacy_checkout' ), 10, 2 );
 		add_filter( 'woocommerce_add_cart_item', array( $this, 'set_key_for_cart_item' ), 10, 2 );
 		add_filter( 'wootax_cart_packages', array( $this, 'handle_negative_fees' ), PHP_INT_MAX - 1 );
-		add_action( 'init', array( $this, 'update_certificate_id' ) );
+		add_action( 'woocommerce_init', array( $this, 'init_certificate_id' ) );
 		add_action( 'woocommerce_store_api_checkout_update_order_from_request', array( $this, 'handle_checkout' ), 10, 2 );
 
 		if ( sst_storefront_active() ) {
@@ -442,9 +442,34 @@ class SST_Checkout extends SST_Abstract_Cart {
 	}
 
 	/**
-	 * Update exemption certificate ID in session on `init`.
+	 * Get the ID of the exemption certificate to apply by default
+	 * for the current user.
+	 *
+	 * @return string
 	 */
-	public function update_certificate_id() {
+	protected function get_default_certificate_id() {
+		if ( ! sst_is_user_tax_exempt() ) {
+			// For users who don't have an exempt user role, nothing is selected by default
+			return '';
+		}
+
+		// For users with an exempt role, select the first available certificate
+		$certificates   = SST_Certificates::get_certificates_formatted();
+		$certificate_id = count( $certificates ) > 0
+			? current( array_keys( $certificates ) )
+			: '';
+
+		return $certificate_id;
+	}
+
+	/**
+	 * Initialize certificate ID in session.
+	 */
+	public function init_certificate_id() {
+		if ( ! WC()->session ) {
+			return;
+		}
+
 		$post_data = $this->get_post_data();
 
 		if ( isset( $post_data['certificate_id'] ) ) {
@@ -452,6 +477,11 @@ class SST_Checkout extends SST_Abstract_Cart {
 				wp_unslash( $post_data['certificate_id'] )
 			);
 			WC()->session->set( 'sst_certificate_id', $certificate_id );
+		} else if ( is_null( WC()->session->sst_certificate_id ) ) {
+			WC()->session->set(
+				'sst_certificate_id',
+				$this->get_default_certificate_id()
+			);
 		}
 	}
 
@@ -728,10 +758,6 @@ class SST_Checkout extends SST_Abstract_Cart {
 
 		$selected = $this->get_certificate_id();
 
-		if ( ! $selected && sst_is_user_tax_exempt() && $certificates ) {
-			$selected = current( array_keys( $certificates ) );
-		}
-
 		wp_enqueue_script( 'sst-checkout' );
 		wp_enqueue_style( 'sst-checkout-css' );
 		wp_enqueue_style( 'sst-certificate-form-css' );
@@ -755,7 +781,8 @@ class SST_Checkout extends SST_Abstract_Cart {
 	public function clear_session_data() {
 		WC()->session->set( 'sst_packages', array() );
 		WC()->session->set( 'sst_package_cache', array() );
-		WC()->session->set( 'sst_certificate_id', '' );
+
+		unset( WC()->session->sst_certificate_id );
 	}
 
 	/**

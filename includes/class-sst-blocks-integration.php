@@ -67,10 +67,6 @@ class SST_Blocks_Integration implements IntegrationInterface {
 			? WC()->session->get( 'sst_certificate_id', '' )
 			: '';
 
-		if ( sst_is_user_tax_exempt() && $certificates ) {
-			$selected = current( array_keys( $certificates ) );
-		}
-
 		return array(
 			'showExemptionForm'    => sst_should_show_tax_exemption_form(),
 			'certificateOptions'   => $options,
