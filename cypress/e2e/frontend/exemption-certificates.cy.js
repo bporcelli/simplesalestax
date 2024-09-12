@@ -53,6 +53,8 @@ describe('Exemption certificates', () => {
           cy.wrap($el)
             .closest('.form-row')
             .should('have.class', 'validate-required');
+        } else if ($el.is('select')) {
+          cy.wrap($el).find('option[value=""]').should('be.disabled');
         } else {
           cy.wrap($el).should('match', ':required');
         }
@@ -225,6 +227,12 @@ describe('Exemption certificates', () => {
         return;
       }
 
+      const selectCertificate = (option) => {
+        cy.get('@certificateSelect').select(option);
+        cy.get('@placeOrder').should('be.disabled');
+        cy.get('@placeOrder', {timeout: 15000}).should('be.enabled');
+      };
+
       before(() => {
         cy.loginAsAdmin();
         cy.useClassicCart(false);
@@ -247,23 +255,21 @@ describe('Exemption certificates', () => {
 
       it('applies a zero rate when a certificate is selected', () => {
         // Tax is applied when no certificate is selected
-        cy.get('@certificateSelect').select('None');
+        selectCertificate('None');
         cy.assertTaxTotal(products.simpleProduct.expectedTax);
 
         // Tax is zero when saved certificate is selected
-        cy.get('@certificateSelect').select(2);
-        cy.get('@placeOrder', {timeout: 15000}).should('be.enabled');
+        selectCertificate(2);
         cy.findByText('Sales Tax').should('not.exist');
 
         // Tax is zero when a new certificate is being added
-        cy.get('@certificateSelect').select('Add new certificate');
-        cy.get('@placeOrder', {timeout: 15000}).should('be.enabled');
+        selectCertificate('Add new certificate');
         cy.findByText('Sales Tax').should('not.exist');
       });
 
       certificateTypes.forEach(({ type, idPattern }) => {
         it(`allows user to add a new ${type} certificate`, () => {
-          cy.get('@certificateSelect').select('Add new certificate');
+          selectCertificate('Add new certificate');
 
           // Fill out form
           if (type === 'single-purchase') {
@@ -294,8 +300,7 @@ describe('Exemption certificates', () => {
 
       describe('validation', () => {
         beforeEach(() => {
-          cy.get('@certificateSelect').select('Add new certificate');
-          cy.get('@placeOrder', {timeout: 150000}).should('be.enabled');
+          selectCertificate('Add new certificate');
         });
 
         it('requires basic fields', () => {
