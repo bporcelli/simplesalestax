@@ -56,7 +56,6 @@ class SST_Blocks_Integration implements IntegrationInterface {
 	public function get_script_data() {
 		$certificates = SST_Certificates::get_certificates_formatted();
 		$options      = array(
-			'none' => 'None',
 			'new'  => 'Add new certificate',
 		);
 
@@ -65,8 +64,8 @@ class SST_Blocks_Integration implements IntegrationInterface {
 		}
 
 		$selected = WC()->session
-			? WC()->session->get( 'sst_certificate_id', 'none' )
-			: 'none';
+			? WC()->session->get( 'sst_certificate_id', '' )
+			: '';
 
 		if ( sst_is_user_tax_exempt() && $certificates ) {
 			$selected = current( array_keys( $certificates ) );

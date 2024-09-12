@@ -54,7 +54,7 @@ const Block = ( { className, children } ) => {
 			namespace: 'simple-sales-tax',
 			data: {
 				action: 'set_certificate_id',
-				certificate_id: value === 'none' ? '' : value,
+				certificate_id: value,
 			},
 		} ).finally( () => {
 			__internalDecrementCalculating();
