@@ -10,7 +10,6 @@ export const getCartTestCases = () => {
       cartUrl: '/legacy-cart/',
       checkoutUrl: '/legacy-checkout/',
     },
-    ,
   ];
 
   if (shouldRunBlockTests()) {
