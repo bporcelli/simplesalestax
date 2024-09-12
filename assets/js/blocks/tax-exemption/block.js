@@ -31,6 +31,10 @@ import { NewCertificateForm } from './new-certificate-form';
 import { useExtensionState } from './use-extension-state';
 
 const Block = ( { className, children } ) => {
+	if (!showExemptionForm) {
+		return null;
+	}
+
 	const [ certificateId, setCertificateId ] = useExtensionState(
 		'certificate_id',
 		selectedCertificate
