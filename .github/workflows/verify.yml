@@ -101,8 +101,6 @@ jobs:
 
       - name: Run cypress tests
         uses: cypress-io/github-action@v6
-        with:
-          spec: cypress/e2e/frontend/exemption-certificates.cy.js
 
       - name: Print logs
         if: failure()
