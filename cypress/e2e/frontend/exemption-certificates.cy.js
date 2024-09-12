@@ -228,7 +228,7 @@ describe('Exemption certificates', () => {
       });
 
       beforeEach(() => {
-        cy.intercept('POST', '/wp-json/wc/store/v1/batch').as('storeApiRequest');
+        cy.intercept('POST', '/wp-json/wc/store/v1/batch?_locale=user').as('storeApiRequest');
         cy.resetCart();
         cy.addProductToCart(products.simpleProduct.id);
 
@@ -241,10 +241,6 @@ describe('Exemption certificates', () => {
       });
 
       it('applies a zero rate when a certificate is selected', () => {
-        // Tax is applied when no certificate is selected
-        selectCertificate('None');
-        cy.assertTaxTotal(products.simpleProduct.expectedTax);
-
         // Tax is zero when saved certificate is selected
         selectCertificate(2);
         cy.findByText('Sales Tax').should('not.exist');
@@ -252,6 +248,10 @@ describe('Exemption certificates', () => {
         // Tax is zero when a new certificate is being added
         selectCertificate('Add new certificate');
         cy.findByText('Sales Tax').should('not.exist');
+
+        // Tax is applied when no certificate is selected
+        selectCertificate('');
+        cy.assertTaxTotal(products.simpleProduct.expectedTax);
       });
 
       certificateTypes.forEach(({ type, idPattern }) => {
