@@ -1,5 +1,4 @@
 export const shouldRunBlockTests = () => {
-  console.log('run block tests?', Cypress.env('RUN_BLOCK_TESTS'));
   return Boolean(Cypress.env('RUN_BLOCK_TESTS'));
 };
 
