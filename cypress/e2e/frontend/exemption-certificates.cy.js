@@ -98,8 +98,6 @@ describe('Exemption certificates', () => {
 
         cy.resetCart();
         cy.addProductToCart(products.simpleProduct.id);
-        cy.visit('/legacy-cart/');
-        cy.selectShippingMethod('Free shipping');
         cy.visit('/legacy-checkout/');
 
         cy.get('#certificate_id').as('certificateSelect');
@@ -110,6 +108,9 @@ describe('Exemption certificates', () => {
       });
 
       it('applies a zero rate when a certificate is selected', () => {
+        cy.selectShippingMethod('Free shipping');
+        cy.waitForBlockedElements();
+
         // Tax is applied when no certificate is selected
         selectCertificate('None');
         cy.assertTaxTotal(products.simpleProduct.expectedTax);
