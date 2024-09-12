@@ -48,7 +48,15 @@ describe('Exemption certificates', () => {
     };
 
     const validateRequiredField = (id, checkLabel = true) => {
-      cy.get(`#${id}`).should('match', ':required');
+      cy.get(`#${id}`).then(($el) => {
+        if ($el.closest('.form-row').length) {
+          cy.wrap($el)
+            .closest('.form-row')
+            .should('have.class', 'validate-required');
+        } else {
+          cy.wrap($el).should('match', ':required');
+        }
+      });
 
       if (checkLabel) {
         cy.get(`label[for="${id}"]`)
@@ -58,7 +66,15 @@ describe('Exemption certificates', () => {
     };
 
     const validateFieldHasError = (id) => {
-      cy.get(`#${id}`).should('match', ':invalid');
+      cy.get(`#${id}`).then(($el) => {
+        if ($el.closest('.form-row').length) {
+          cy.wrap($el)
+            .closest('.form-row')
+            .should('have.class', 'woocommerce-invalid');
+        } else {
+          cy.wrap($el).should('match', ':invalid');
+        }
+      });
     };
 
     before(() => {
