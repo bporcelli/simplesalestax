@@ -3,11 +3,17 @@
   "version": "8.1.1",
   "description": "A TaxCloud integration for WooCommerce.",
   "scripts": {
-    "build": "grunt",
-    "makepot": "grunt makepot",
+    "build": "npm run build:blocks && npm run build:makepot && grunt",
+    "build:makepot": "npx @wp-blocks/make-pot . ./languages --slug simple-sales-tax --domain plugin --exclude .git,build,cypress,docker,node_modules,vendor,*.config.js",
     "archive": "cross-var wp dist-archive . releases/simple-sales-tax-$npm_package_version.zip --plugin-dirname=simple-sales-tax --format=zip",
     "cypress:open": "cypress open",
-    "cypress:run": "cypress run"
+    "cypress:run": "cypress run",
+    "build:blocks": "wp-scripts build --webpack-src-dir=./assets/js/blocks",
+    "format": "wp-scripts format ./assets/js/blocks",
+    "lint:css": "wp-scripts lint-style ./assets/js/blocks",
+    "lint:js": "wp-scripts lint-js ./assets/js/blocks",
+    "packages-update": "wp-scripts packages-update",
+    "start": "wp-scripts start --webpack-src-dir=./assets/js/blocks"
   },
   "repository": {
     "type": "git",
@@ -25,13 +31,21 @@
   },
   "homepage": "https://github.com/bporcelli/simplesalestax#readme",
   "devDependencies": {
+    "@automattic/color-studio": "^2.5.0",
     "@testing-library/cypress": "^10.0.2",
+    "@woocommerce/block-library": "^2.3.0",
+    "@woocommerce/dependency-extraction-webpack-plugin": "^3.0.1",
+    "@woocommerce/woocommerce-rest-api": "^1.0.1",
+    "@wordpress/base-styles": "4.35.0",
+    "@wordpress/icons": "^9.41.0",
+    "@wordpress/scripts": "^27.1.0",
+    "@wp-blocks/make-pot": "^1.4.0",
     "cross-var": "^1.1.0",
     "cypress": "^13.6.4",
     "grunt": "^1.6.1",
     "grunt-contrib-cssmin": "^5.0.0",
     "grunt-contrib-uglify": "^5.2.2",
-    "grunt-wp-i18n": "^1.0.3"
+    "wordpress-components": "npm:@wordpress/components@28.3.0"
   },
   "dependencies": {
     "npm": "^10.8.3"

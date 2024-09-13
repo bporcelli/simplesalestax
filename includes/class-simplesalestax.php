@@ -51,6 +51,7 @@ final class SimpleSalesTax {
 
 		add_action( 'plugins_loaded', array( $this, 'init' ) );
 		add_action( 'before_woocommerce_init', array( $this, 'declare_hpos_compatibility' ) );
+		add_action( 'before_woocommerce_init', array( $this, 'declare_cart_block_compatibility' ) );
 		add_filter( 'woocommerce_get_query_vars', array( $this, 'add_tax_exemptions_query_var' ) );
 	}
 
@@ -72,7 +73,8 @@ final class SimpleSalesTax {
 		define( 'SST_SHIPPING_ITEM', 'SHIPPING' );
 		define( 'SST_DEFAULT_FEE_TIC', 10010 );
 		define( 'SST_RATE_ID', get_option( 'wootax_rate_id' ) );
-		define( 'SST_FILE', dirname( dirname( __FILE__ ) ) . '/simple-sales-tax.php' );
+		define( 'SST_DIR', dirname( dirname( __FILE__ ) ) );
+		define( 'SST_FILE', SST_DIR . '/simple-sales-tax.php' );
 		define( 'SST_PLUGIN_BASENAME', plugin_basename( SST_FILE ) );
 		define( 'SST_SINGLE_PURCHASE_CERT_ID', 'single-purchase' );
 	}
@@ -135,6 +137,7 @@ final class SimpleSalesTax {
 		require_once __DIR__ . '/class-sst-order-controller.php';
 		require_once __DIR__ . '/class-sst-assets.php';
 		require_once __DIR__ . '/class-sst-marketplaces.php';
+		require_once __DIR__ . '/class-sst-blocks.php';
 
 		/**
 		 * Third party integrations.
@@ -380,6 +383,19 @@ final class SimpleSalesTax {
 		if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
 			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility(
 				'custom_order_tables',
+				SST_FILE,
+				true
+			);
+		}
+	}
+
+	/**
+	 * Declare compatibility with the Cart & Checkout blocks.
+	 */
+	public function declare_cart_block_compatibility() {
+		if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility(
+				'cart_checkout_blocks',
 				SST_FILE,
 				true
 			);

@@ -31,4 +31,15 @@ describe('Settings page', () => {
       expect(intercepted.response.headers['content-disposition']).to.match(/filename=sst_debug_report_(.*).txt$/);
     });
   });
+
+  describe('when block cart/checkout is enabled', () => {
+    before(() => {
+      cy.loginAsAdmin();
+      cy.useClassicCart(false);
+    });
+
+    it('should disable Show Zero Tax dropdown', () => {
+      cy.findByRole('combobox', {name: /Show Zero Tax/i }).should('be.disabled');
+    });
+  });
 });

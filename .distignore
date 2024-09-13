@@ -6,9 +6,9 @@ cypress
 node_modules
 releases
 docker
+includes/vendor/woocommerce
 
 # Files
-.babelrc
 .distignore
 .gitignore
 README.md

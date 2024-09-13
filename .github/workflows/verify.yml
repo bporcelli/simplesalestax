@@ -65,11 +65,14 @@ jobs:
         include:
           - wc_version: ${{needs.prepare.outputs.min_woo}}
             php_version: ${{needs.prepare.outputs.min_php}}
+            run_block_tests: ''
           - wc_version: ${{needs.prepare.outputs.max_woo}}
             php_version: 8.2
+            run_block_tests: 1
     env:
       PHP_VERSION: ${{ matrix.php_version }}
       WOO_VERSION: ${{ matrix.wc_version }}
+      CYPRESS_RUN_BLOCK_TESTS: ${{ matrix.run_block_tests }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2.4.2
@@ -88,10 +91,7 @@ jobs:
         working-directory: docker
         run: |
           docker compose exec -T wordpress wp theme install --allow-root --activate storefront
-          docker compose exec -T wordpress wp plugin install --allow-root woocommerce --version=$WOO_VERSION
-          docker compose exec -T wordpress wp plugin activate --allow-root woo-order-test
-          docker compose exec -T wordpress wp plugin activate --allow-root sst-change-order-ids
-          docker compose exec -T wordpress wp plugin activate --allow-root sst-add-negative-fee
+          docker compose exec -T wordpress wp plugin install --allow-root --force woocommerce --version=$WOO_VERSION
           docker compose exec -T wordpress wp option patch --allow-root update woocommerce_wootax_settings tc_id ${{ secrets.TAXCLOUD_LOGIN_ID }}
           docker compose exec -T wordpress wp option patch --allow-root update woocommerce_wootax_settings tc_key ${{ secrets.TAXCLOUD_API_KEY }}
 
@@ -101,6 +101,13 @@ jobs:
 
       - name: Run cypress tests
         uses: cypress-io/github-action@v6
+
+      - name: Print logs
+        if: failure()
+        working-directory: docker
+        run: |
+          docker compose logs --tail 100 wordpress
+          docker compose exec -T wordpress sh -c "cat /var/www/html/wp-content/uploads/wc-logs/wootax-* || true"
 
       - name: Upload screenshots
         uses: actions/upload-artifact@v4.4.0

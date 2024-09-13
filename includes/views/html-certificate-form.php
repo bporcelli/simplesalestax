@@ -2,7 +2,7 @@
 /**
  * Template for tax exemption certificate form. You may override this template by copying it to `THEME_PATH/sst/html-certificate-form.php`.
  *
- * @version 8.0.15
+ * @version 8.2.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -303,7 +303,7 @@ woocommerce_form_field(
 // Note: This field is required when "Other" is selected as the exemption
 // reason. See certificate-form.js.
 woocommerce_form_field(
-	'certificate[PurchaserExemptionReasonValue]',
+	'certificate[PurchaserExemptionReasonOtherValue]',
 	array(
 		'type'        => 'text',
 		'label'       => esc_html__( 'Please explain', 'simple-sales-tax' ),
@@ -312,6 +312,6 @@ woocommerce_form_field(
 		'class'       => array( 'sst-hidden-field', 'sst-form-row' ),
 		'input_class' => array( 'sst-input' ),
 	),
-	$post_data['PurchaserExemptionReasonValue'] ?? null,
+	$post_data['PurchaserExemptionReasonOtherValue'] ?? null,
 );
 ?>
