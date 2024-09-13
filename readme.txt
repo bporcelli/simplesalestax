@@ -31,6 +31,7 @@ With affordable service fees and support for product level tax exemptions and ta
 * Recurring payments — Simple Sales Tax is fully compatible with the WooCommerce Subscriptions extension by Prospress and will automatically calculate the sales tax for recurring payments.
 * Multi-destination shipments — Simple Sales Tax supports multi-destination shipments created with the WooCommerce Shipping Multiple Addresses extension.
 * Customer support — Simple Sales Tax is backed by TaxCloud's world class support team.
+* Compatible with [WooCommerce Checkout Blocks](https://woocommerce.com/checkout-blocks/)
 
 == Supported WooCommerce Extensions ==
 
