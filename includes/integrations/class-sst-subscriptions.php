@@ -30,6 +30,7 @@ class SST_Subscriptions {
 		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'destroy_session' ) );
 		add_filter( 'wcs_renewal_order_created', array( $this, 'recalc_taxes_for_renewal' ), 1, 2 );
 		add_filter( 'wootax_save_packages_for_capture', array( $this, 'should_save_packages_for_capture' ) );
+		add_filter( 'woocommerce_subscriptions_calculated_total', array( $this, 'filter_calculated_total' ) );
 	}
 
 	/**
@@ -306,6 +307,20 @@ class SST_Subscriptions {
 	 */
 	public function should_save_packages_for_capture() {
 		return 'none' === WC_Subscriptions_Cart::get_calculation_type();
+	}
+
+	/**
+	 * Filters calculated total to fix double tax on initial cart with
+	 * WC 9.2+.
+	 *
+	 * @param float $total Cart total
+	 *
+	 * @return float
+	 */
+	public function filter_calculated_total( $total ) {
+		$cart_tax = WC()->cart->get_cart_contents_tax();
+
+		return max( 0, round( $total - $cart_tax, wc_get_price_decimals() ) );
 	}
 
 }
